@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../admin-api"
+		},
+		{
+			"path": "../../../admin-dashboard"
+		}
+	],
+	"settings": {}
+}

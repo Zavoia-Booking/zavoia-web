@@ -10,6 +10,8 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { listPosts } from "@/sanity/queries";
 import { BlogList } from "@/app/_components/blog/blog-list";
+import { toBlogCardVM } from "@/app/_components/blog/vm";
+import type { BlogCardVM } from "@/app/_components/blog/types";
 
 export const revalidate = 0;
 
@@ -45,5 +47,15 @@ export default async function BlogIndex({ params }: Props) {
   if (!isLocale(locale)) notFound();
 
   const posts = await listPosts();
-  return <BlogList locale={locale} posts={posts} />;
+
+  // Build serializable view-models via the shared helper. `body` is only read
+  // there (server-side) to compute reading time, then dropped so it never
+  // crosses to the client. Posts missing a slug/title for the locale are
+  // skipped (helper returns null).
+  const vm: BlogCardVM[] = posts.flatMap((post) => {
+    const card = toBlogCardVM(post, locale);
+    return card ? [card] : [];
+  });
+
+  return <BlogList locale={locale} posts={vm} />;
 }

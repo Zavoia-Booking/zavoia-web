@@ -4,6 +4,8 @@ import type { Locale } from "@/i18n/locales";
 export type Localized<T> = Partial<Record<Locale, T>>;
 export type LocalizedSlug = Partial<Record<Locale, { current: string }>>;
 
+export type BlogCategory = "guides" | "business" | "product";
+
 export type SanityImage = {
   asset?: { _ref: string };
   alt?: string;
@@ -14,6 +16,7 @@ export type Post = {
   _id: string;
   title: Localized<string>;
   slug: LocalizedSlug;
+  category?: BlogCategory;
   excerpt?: Localized<string>;
   body?: Localized<PortableTextBlock[]>;
   coverImage?: SanityImage;
@@ -26,5 +29,12 @@ export type Post = {
 
 export type PostListItem = Pick<
   Post,
-  "_id" | "title" | "slug" | "excerpt" | "coverImage" | "publishedAt"
+  | "_id"
+  | "title"
+  | "slug"
+  | "excerpt"
+  | "body"
+  | "coverImage"
+  | "publishedAt"
+  | "category"
 >;

@@ -6,9 +6,13 @@ import {
   isLocale,
   type Locale,
 } from "@/i18n/locales";
-import { getPostBySlug, listPostSlugs } from "@/sanity/queries";
+import { getPostBySlug, listPostSlugs, listPosts } from "@/sanity/queries";
 import { localeHref } from "@/i18n/routes";
+import { selectRelated } from "@/lib/blog";
+import type { PostListItem } from "@/sanity/types";
 import { BlogPost } from "@/app/_components/blog/blog-post";
+import { toBlogCardVM } from "@/app/_components/blog/vm";
+import type { BlogCardVM } from "@/app/_components/blog/types";
 
 export const revalidate = 0;
 export const dynamicParams = true;
@@ -73,5 +77,17 @@ export default async function PostPage({ params }: Props) {
   if (!isLocale(localeParam)) notFound();
   const post = await getPostBySlug(localeParam, slug);
   if (!post) notFound();
-  return <BlogPost locale={localeParam} post={post} />;
+
+  // Related: same-category first, then fill — excluding the current post by _id.
+  const allPosts = await listPosts();
+  // selectRelated only reads `_id`/`category`; a minimal current stand-in is
+  // enough to exclude the open post and prefer same-category neighbours.
+  const current = { _id: post._id, category: post.category } as PostListItem;
+  const related = selectRelated<PostListItem>(allPosts, current, 3);
+  const relatedVMs: BlogCardVM[] = related.flatMap((p) => {
+    const vm = toBlogCardVM(p, localeParam);
+    return vm ? [vm] : [];
+  });
+
+  return <BlogPost locale={localeParam} post={post} related={relatedVMs} />;
 }

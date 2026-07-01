@@ -11,7 +11,12 @@ import { dictionaries, format } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { CategoryContent } from "@/app/_components/category-content";
 
-export const dynamicParams = false;
+// Real city/industry combos are prerendered for SEO (generateStaticParams).
+// Allow on-demand params so unknown 2-segment paths (e.g. /legal/privacy, which
+// collides with this route until the literal /legal/[doc] route exists) render
+// and hit the notFound() below — a clean 404 — instead of Next throwing an
+// internal NoFallbackError in production for an un-generated param.
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   return getAllLocaleCityIndustryTriples();

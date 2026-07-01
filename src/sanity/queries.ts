@@ -6,7 +6,9 @@ const POST_LIST_FIELDS = `
   _id,
   title,
   slug,
+  category,
   excerpt,
+  body,
   coverImage,
   publishedAt
 `;
@@ -15,6 +17,7 @@ const POST_DETAIL_FIELDS = `
   _id,
   title,
   slug,
+  category,
   excerpt,
   body,
   coverImage,

@@ -18,6 +18,20 @@ export const post = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
+      name: "category",
+      title: "Category",
+      type: "string",
+      options: {
+        layout: "radio",
+        list: [
+          { title: "Guides", value: "guides" },
+          { title: "For business", value: "business" },
+          { title: "Product news", value: "product" },
+        ],
+      },
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
       name: "excerpt",
       title: "Excerpt",
       type: "localeText",
@@ -65,13 +79,15 @@ export const post = defineType({
       titleRo: "title.ro",
       media: "coverImage",
       publishedAt: "publishedAt",
+      category: "category",
     },
-    prepare({ titleEn, titleRo, media, publishedAt }) {
+    prepare({ titleEn, titleRo, media, publishedAt, category }) {
+      const date = publishedAt
+        ? new Date(publishedAt).toLocaleDateString()
+        : "Unpublished";
       return {
         title: titleEn || titleRo || "Untitled",
-        subtitle: publishedAt
-          ? new Date(publishedAt).toLocaleDateString()
-          : "Unpublished",
+        subtitle: category ? `${category} · ${date}` : date,
         media,
       };
     },

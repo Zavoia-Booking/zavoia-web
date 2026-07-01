@@ -9,6 +9,12 @@ import {
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { HomeContent } from "@/app/_components/home-content";
+import { getIndustries, getLatestListings } from "@/lib/api/marketplace/public";
+import type { BusinessCard, Industry } from "@/lib/api/marketplace/types";
+
+// The home fetches live marketplace data, so it must NOT be statically
+// prerendered at build time (the backend may be down during `next build`).
+export const dynamic = "force-dynamic";
 
 export const dynamicParams = false;
 
@@ -50,5 +56,25 @@ export default async function Home({ params }: Props) {
   const { locale: localeParam } = await params;
   if (!isLocale(localeParam)) notFound();
 
-  return <HomeContent locale={localeParam} />;
+  // Build-safety: every data-layer call is wrapped so a failed/absent backend
+  // never crashes the render. The page falls back to empty data + editorial
+  // sections.
+  let industries: Industry[] = [];
+  try {
+    industries = await getIndustries();
+  } catch {
+    industries = [];
+  }
+
+  let latest: BusinessCard[] = [];
+  try {
+    const res = await getLatestListings({ limit: 10 });
+    latest = res.data;
+  } catch {
+    latest = [];
+  }
+
+  return (
+    <HomeContent locale={localeParam} industries={industries} latest={latest} />
+  );
 }
