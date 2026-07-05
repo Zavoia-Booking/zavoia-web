@@ -46,7 +46,7 @@ export function FilterRow({
           }
         >
           <CatDot cat={toCat(c)} size={6} />
-          {c.name}
+          {dict.industries[c.slug] ?? c.name}
         </Chip>
       ))}
       <span

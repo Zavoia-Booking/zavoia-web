@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
+import { dictionaries } from "@/i18n/dictionaries";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { toCat } from "@/lib/marketplace/card-mappers";
 import type { CategoryKey } from "@/components/ui/cat-dot";
@@ -33,6 +34,7 @@ export function CategoryRail({
   locale: Locale;
   industries: Industry[];
 }) {
+  const dict = dictionaries[locale];
   const seen = new Set<number>();
   const tagChips = industries.flatMap((industry) =>
     industry.tags.map((tag) => ({ tag, industry })),
@@ -94,7 +96,7 @@ export function CategoryRail({
                   whiteSpace: "nowrap",
                 }}
               >
-                {tag.name}
+                {dict.industryTags[tag.slug] ?? tag.name}
               </span>
             </Link>
           );
