@@ -38,6 +38,7 @@ import {
   MapboxSurface,
   type GeoPin,
   type GeoPoint,
+  type MapboxSurfaceHandle,
 } from "@/components/search/mapbox-surface";
 import { isOpenNow } from "@/components/search/open-now";
 import {
@@ -171,6 +172,7 @@ export function SearchContent({
   const resolvedOnce = useRef(false);
 
   const listRef = useRef<HTMLDivElement>(null);
+  const mapHandleRef = useRef<MapboxSurfaceHandle>(null);
 
   // ── Responsive flag (window.matchMedia) ─────────────────────────────────
   useEffect(() => {
@@ -515,6 +517,9 @@ export function SearchContent({
           lng: pos.coords.longitude,
         };
         setDeviceLocation(loc);
+        // Fly the camera ourselves: when the URL is already anchored on this
+        // position, updateParams is a no-op and no refetch/refit follows.
+        mapHandleRef.current?.flyTo(loc);
         updateParams({
           lat: String(loc.lat),
           lng: String(loc.lng),
@@ -526,7 +531,7 @@ export function SearchContent({
         // Permission denied / unavailable → reopen the modal instead of toasting.
         setLocationModalOpen(true);
       },
-      { timeout: 8000 },
+      { enableHighAccuracy: true, timeout: 8000 },
     );
   }, [toast, t.centeredOnLocation, updateParams]);
 
@@ -707,6 +712,7 @@ export function SearchContent({
   // ── Map ──────────────────────────────────────────────────────────────────
   const mapSurface = (
     <MapboxSurface
+      ref={mapHandleRef}
       pins={pins}
       selectedId={selectedId ?? hoverId}
       wave={wave}
@@ -855,7 +861,7 @@ function getBrowserLocation(): Promise<GeoPoint | null> {
       (pos) =>
         resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => resolve(null),
-      { timeout: 8000 },
+      { enableHighAccuracy: true, timeout: 8000 },
     );
   });
 }

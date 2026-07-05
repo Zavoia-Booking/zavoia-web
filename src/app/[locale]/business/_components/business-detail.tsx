@@ -13,7 +13,7 @@ import {
   StatusPill,
   useToast,
 } from "@/components/ui";
-import { toCat } from "@/lib/marketplace/card-mappers";
+import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { openStatus } from "@/lib/marketplace/working-hours";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/dictionaries";
@@ -217,11 +217,9 @@ export function BusinessDetail({ listing, locale }: Props) {
     }
   }, [listing.name, t.shareCopied, toast]);
 
-  const industry = listing.industry as
-    | IndustryRef
-    | { name?: string; slug?: string }
-    | null;
+  const industry = listing.industry as IndustryRef | null;
   const cat = toCat(industry);
+  const industryLabel = industry ? taxonomyLabel(industry, locale) : null;
   // Live open/closed status WITH closing time — same derivation as the map
   // cards (reuse openStatus so the "· closes 20:00" suffix matches exactly).
   const { status, closesAt } = openStatus(listing.location);
@@ -309,7 +307,7 @@ export function BusinessDetail({ listing, locale }: Props) {
                         size={14}
                       />
                     ),
-                    industry?.name && (
+                    industryLabel && (
                       <span
                         style={{
                           display: "inline-flex",
@@ -318,7 +316,7 @@ export function BusinessDetail({ listing, locale }: Props) {
                         }}
                       >
                         <CatDot cat={cat} size={8} />
-                        {industry.name}
+                        {industryLabel}
                       </span>
                     ),
                     listing.location.city && (

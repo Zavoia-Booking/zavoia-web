@@ -17,6 +17,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { Img } from "@/components/ui/image";
 import {
+  taxonomyLabel,
   toCat,
   businessCardToData,
   locationCardToData,
@@ -712,7 +713,7 @@ function WhatSection({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {tag.name}
+                      {taxonomyLabel(tag, locale)}
                     </span>
                   </button>
                 );
@@ -1542,7 +1543,7 @@ export function SearchOverlay({
         // Permission denied / position error → IP-based estimate.
         applyIpFallback(t.locationDenied);
       },
-      { timeout: 8000 },
+      { enableHighAccuracy: true, timeout: 8000 },
     );
   };
 

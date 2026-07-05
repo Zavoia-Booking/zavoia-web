@@ -218,6 +218,8 @@ export const ro: Dictionary = {
       emailTaken: "Acest email este deja folosit.",
       currentEmailMismatch: "Emailul tău actual nu corespunde.",
       sameEmail: "Emailul nou trebuie să fie diferit de cel actual.",
+      resetLinkInvalid: "Acest link este invalid sau a fost deja folosit.",
+      resetLinkExpired: "Acest link a expirat.",
     },
     enableAccess: {
       heading: "Activează accesul în marketplace",
@@ -310,6 +312,7 @@ export const ro: Dictionary = {
       backToLogin: "Înapoi la autentificare",
       mismatch: "Parolele nu coincid.",
       confirmRequired: "Te rugăm să confirmi parola.",
+      requestNewLink: "Solicită un link nou",
     },
   },
   account: {

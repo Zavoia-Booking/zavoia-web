@@ -187,6 +187,8 @@ export const en: {
       emailTaken: string;
       currentEmailMismatch: string;
       sameEmail: string;
+      resetLinkInvalid: string;
+      resetLinkExpired: string;
     };
     enableAccess: {
       heading: string;
@@ -261,6 +263,7 @@ export const en: {
       backToLogin: string;
       mismatch: string;
       confirmRequired: string;
+      requestNewLink: string;
     };
   };
   account: {
@@ -1381,6 +1384,8 @@ export const en: {
       emailTaken: "That email is already in use.",
       currentEmailMismatch: "Your current email doesn't match.",
       sameEmail: "New email must be different from your current one.",
+      resetLinkInvalid: "This link is invalid or has already been used.",
+      resetLinkExpired: "This link has expired.",
     },
     enableAccess: {
       heading: "Enable marketplace access",
@@ -1468,6 +1473,7 @@ export const en: {
       backToLogin: "Back to sign in",
       mismatch: "Passwords do not match.",
       confirmRequired: "Please confirm your password.",
+      requestNewLink: "Request a new link",
     },
   },
   account: {

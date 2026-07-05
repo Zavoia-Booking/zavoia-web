@@ -29,6 +29,14 @@ const CODE_TO_KEY: Record<string, keyof AuthErrorsDict> = {
   // E48: wrong account password supplied when unlinking.
   "CUSTOMER_AUTH.E48": "incorrectPassword",
 
+  // ── Token validation (password reset & other emailed links) ──
+  // Thrown by the backend's TokenService.validateToken: E06 = token not
+  // found (invalid), E07 = already used, E08 = expired. Worded generically
+  // ("this link") since the same codes cover every emailed-token flow.
+  "SYSTEM.E06": "resetLinkInvalid",
+  "SYSTEM.E07": "resetLinkInvalid",
+  "SYSTEM.E08": "resetLinkExpired",
+
   // ── Change email ──
   // The backend surfaces these as a top-level `code` (not the CUSTOMER_AUTH.E##
   // form), which parseError copies onto ApiError.code as well.

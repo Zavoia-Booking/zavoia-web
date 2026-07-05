@@ -5,8 +5,8 @@ import type { CategoryKey } from "@/components/ui/cat-dot";
 // provided, otherwise call their onClick handler.
 export interface BusinessCardData {
   id: string | number;
-  /** Non-enumerable location slug — the detail-route nav target. */
-  slug: string;
+  /** Non-enumerable location slug — the detail-route nav target (absent for slug-less business cards). */
+  slug?: string;
   name: string;
   cat: CategoryKey | string;
   catLabel?: string;

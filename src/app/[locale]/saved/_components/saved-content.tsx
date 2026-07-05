@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries, format } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
+import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
 import {
@@ -115,7 +116,9 @@ function buildRows(fav: AllFavorites, locale: Locale): SavedRow[] {
       entityId: f.business.id,
       media: f.marketplace.featuredImage,
       round: false,
-      eyebrow: f.business.industry?.name ?? "",
+      eyebrow: f.business.industry
+        ? taxonomyLabel(f.business.industry, locale)
+        : "",
       title: f.business.name,
       rating: toRating(f.business.averageRating),
       subtitle: "",

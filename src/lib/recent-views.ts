@@ -11,10 +11,13 @@
 /** localStorage key for the recently-viewed location-id trail. */
 export const RECENT_VIEWS_KEY = "zw-recent-views";
 
-/** Maximum number of ids kept in the trail. */
-export const MAX_RECENT = 12;
+/**
+ * Maximum number of ids kept in the trail. Matches the max ids accepted by the
+ * bulk hydration endpoint (GET /marketplace/public/listings/bulk).
+ */
+export const MAX_RECENT = 10;
 
-/** Read the recently-viewed LOCATION-id trail (most-recent first). */
+/** Read the recently-viewed LOCATION-id trail (most-recent first, ≤ MAX_RECENT). */
 export function getRecentViews(): number[] {
   if (typeof window === "undefined") return [];
   try {
@@ -23,9 +26,29 @@ export function getRecentViews(): number[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .map((v) => (typeof v === "number" ? v : Number(v)))
-      .filter((n) => Number.isFinite(n));
+      .filter((n) => Number.isFinite(n))
+      // Cap on read too, so trails written before the cap changed (or tampered
+      // with) never exceed MAX_RECENT downstream.
+      .slice(0, MAX_RECENT);
   } catch {
     return [];
+  }
+}
+
+/**
+ * Remove specific location ids from the trail — called after bulk hydration
+ * with the ids the backend did NOT return (delisted / hidden / deleted), so
+ * future visits stop re-requesting dead listings. No-op on the server or when
+ * storage is unavailable.
+ */
+export function removeRecentViews(ids: number[]): void {
+  if (typeof window === "undefined" || ids.length === 0) return;
+  try {
+    const drop = new Set(ids);
+    const next = getRecentViews().filter((id) => !drop.has(id));
+    window.localStorage.setItem(RECENT_VIEWS_KEY, JSON.stringify(next));
+  } catch {
+    // Storage disabled / quota exceeded — silently skip pruning.
   }
 }
 

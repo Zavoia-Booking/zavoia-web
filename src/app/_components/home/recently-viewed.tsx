@@ -4,15 +4,13 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { SectionTitle } from "@/components/ui/section-title";
-import { getListing } from "@/lib/api/marketplace/public";
-import type { ListingDetail } from "@/lib/api/marketplace/types";
-import { getRecentViews } from "@/lib/recent-views";
+import { getListingsBulk } from "@/lib/api/marketplace/public";
+import type { ListingLightCard } from "@/lib/api/marketplace/types";
+import { getRecentViews, removeRecentViews } from "@/lib/recent-views";
 import {
   RecentlyViewedCard,
   type RecentlyViewedCardData,
 } from "./recently-viewed-card";
-
-const MAX = 6;
 
 // Haversine distance in km between two {lat,lng} points.
 function haversineKm(
@@ -32,31 +30,39 @@ function haversineKm(
 }
 
 // Reads the recently-viewed LOCATION-id trail from localStorage (written by
-// the business-detail slice). Fetches each listing in parallel (try/catch per
-// id) and shows a compact rail of name + rating + distance/city mini cards.
-// Hidden when fewer than 2 ids resolve. Geolocation is requested once and is
-// purely optional — denial/error falls back to the listing's city.
+// the business-detail slice) and hydrates it with ONE bulk light-card call
+// (max 10 ids, extras ignored server-side) instead of N detail fetches.
+// Shows a compact rail of name + rating + distance/city mini cards. Hidden
+// when fewer than 2 ids resolve. Geolocation is requested once and is purely
+// optional — denial/error falls back to the listing's city.
 export function RecentlyViewed() {
   const { locale, dict } = useTranslation();
-  const [listings, setListings] = useState<ListingDetail[] | null>(null);
+  const [listings, setListings] = useState<ListingLightCard[] | null>(null);
   // null = not yet resolved (asked & pending, denied, or unavailable).
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   // Fetch the recently-viewed listings.
   useEffect(() => {
-    const ids = getRecentViews().slice(0, MAX);
+    // Already capped at 10 (MAX_RECENT) on read; the bulk endpoint accepts 10.
+    const ids = getRecentViews();
     // Fewer than 2 ids → leave `listings` null so the section stays hidden.
     if (ids.length < 2) return;
 
     let cancelled = false;
-    // The trail stores LOCATION ids; the backend resolves id-or-slug, so the
-    // numeric id is stringified for the slug-typed fetch.
-    Promise.all(ids.map((id) => getListing(String(id)).catch(() => null))).then(
-      (results) => {
-        if (cancelled) return;
-        setListings(results.filter((d): d is ListingDetail => d !== null));
-      },
-    );
+    getListingsBulk(ids)
+      .then((cards) => {
+        // Self-heal the trail: ids the backend didn't return are delisted /
+        // hidden / deleted — drop them so future visits stop requesting them
+        // (an all-stale trail then skips the API call entirely). Runs even if
+        // unmounted; only the setState below is unmount-guarded.
+        const returned = new Set(cards.map((c) => c.id));
+        removeRecentViews(ids.filter((id) => !returned.has(id)));
+        if (!cancelled) setListings(cards);
+      })
+      .catch(() => {
+        /* network/server failure → keep the section hidden; do NOT prune —
+           a transient outage must not wipe the trail */
+      });
     return () => {
       cancelled = true;
     };
@@ -87,20 +93,21 @@ export function RecentlyViewed() {
   const s = dict.homeSections.recentlyViewed;
 
   const cards: RecentlyViewedCardData[] = listings.map((d) => {
-    const { latitude, longitude } = d.location;
     const distance =
-      coords && latitude != null && longitude != null
-        ? `${haversineKm(coords, { lat: latitude, lng: longitude }).toFixed(1)} km`
+      coords && d.latitude != null && d.longitude != null
+        ? `${haversineKm(coords, { lat: d.latitude, lng: d.longitude }).toFixed(1)} km`
         : undefined;
     return {
-      id: d.locationId,
+      id: d.id,
       name: d.name,
-      image: d.featuredImage ?? d.logo ?? undefined,
-      rating: d.averageRating ?? undefined,
+      image: d.image ?? undefined,
+      // Defensive Number(): numeric columns can arrive as strings at runtime.
+      rating: d.averageRating != null ? Number(d.averageRating) : undefined,
       reviews: d.totalReviews,
       distance,
-      city: d.location.city ?? undefined,
-      href: localeHref(locale, "business", d.slug),
+      city: d.city ?? undefined,
+      // The business route resolves a location slug OR a numeric location id.
+      href: localeHref(locale, "business", d.slug ?? String(d.id)),
     };
   });
 

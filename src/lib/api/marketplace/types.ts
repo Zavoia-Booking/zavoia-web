@@ -60,6 +60,8 @@ export interface PaginatedFeed<T> {
 export interface IndustryTag {
   id: number;
   name: string;
+  /** Romanian display name; null → fall back to the English `name`. */
+  nameRo?: string | null;
   slug: string;
   icon: string;
 }
@@ -67,6 +69,8 @@ export interface IndustryTag {
 export interface Industry {
   id: number;
   name: string;
+  /** Romanian display name; null → fall back to the English `name`. */
+  nameRo?: string | null;
   slug: string;
   tags: IndustryTag[];
 }
@@ -75,6 +79,8 @@ export interface Industry {
 export interface IndustryRef {
   id: number;
   name: string;
+  /** Romanian display name; null → fall back to the English `name`. */
+  nameRo?: string | null;
 }
 
 // ============================================================================
@@ -103,8 +109,8 @@ export interface BusinessCard {
   businessId: number;
   listingId: number | null;
   primaryLocationId: number | null;
-  /** Non-enumerable slug of the primary location — detail-route nav target. */
-  slug: string;
+  /** Non-enumerable slug of the primary location — detail-route nav target (null when the location has no slug). */
+  slug: string | null;
   name: string;
   businessName: string;
   city: string | null;
@@ -219,6 +225,30 @@ export interface ReviewStats {
   averageRating: number | null;
   /** Counts keyed by star value (5→1). */
   ratingDistribution: Record<number, number>;
+}
+
+// ============================================================================
+// Bulk light cards (GET /marketplace/public/listings/bulk)
+// ============================================================================
+
+/**
+ * Light listing card returned by the bulk hydration endpoint — just enough for
+ * a mini card: image, name, rating, and coordinates/city for a client-side
+ * distance label. Max 10 ids per call; extras are ignored server-side.
+ */
+export interface ListingLightCard {
+  /** LOCATION id (route / detail-page id). */
+  id: number;
+  /** Location slug for /business/[slug]; null for legacy rows without one. */
+  slug: string | null;
+  name: string;
+  /** Location featured image, falling back to the business logo server-side. */
+  image: string | null;
+  averageRating: number | null;
+  totalReviews: number;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 // ============================================================================

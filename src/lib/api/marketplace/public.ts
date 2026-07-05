@@ -21,6 +21,7 @@ import type {
   Industry,
   LatestListingsBody,
   ListingDetail,
+  ListingLightCard,
   NearbyLocationsBody,
   NearbyLocationsResult,
   OffsetPage,
@@ -108,6 +109,25 @@ export function searchListings(
     `/marketplace/public/listings${query}`,
     { method: "GET" },
   );
+}
+
+/**
+ * GET /marketplace/public/listings/bulk — light cards for up to 10 LOCATION
+ * ids, own `{ data }` wrapper (unwrapped here). The endpoint is optimistic:
+ * ids past the first 10 and unknown/hidden ids are silently dropped, and the
+ * response preserves the request order. Sliced client-side too so callers
+ * never depend on the server cap.
+ */
+export async function getListingsBulk(
+  ids: number[],
+): Promise<ListingLightCard[]> {
+  if (ids.length === 0) return [];
+  const query = buildQuery({ ids: ids.slice(0, 10) });
+  const res = await apiFetch<{ data: ListingLightCard[] }>(
+    `/marketplace/public/listings/bulk${query}`,
+    { method: "GET" },
+  );
+  return res.data;
 }
 
 /**

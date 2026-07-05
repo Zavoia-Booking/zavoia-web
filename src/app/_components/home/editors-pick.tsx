@@ -319,6 +319,8 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
   const counterRef = useRef<HTMLSpanElement | null>(null);
   const prevRef = useRef<HTMLButtonElement | null>(null);
   const nextRef = useRef<HTMLButtonElement | null>(null);
+  const pagerRef = useRef<HTMLDivElement | null>(null);
+  const progressRef = useRef<HTMLDivElement | null>(null);
 
   const n = cards.length;
 
@@ -367,6 +369,15 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
     const frame = () => {
       const sl = rail.scrollLeft;
       const max = rail.scrollWidth - rail.clientWidth;
+      // When every card fits without scrolling (few cards / wide viewport)
+      // there is nothing to page: hide the pager + progress thumb and show
+      // all cards at full emphasis. Re-evaluated live (ResizeObserver wakes
+      // the loop), so shrinking the window brings the pager back.
+      const noScroll = max <= 2;
+      if (pagerRef.current)
+        pagerRef.current.style.display = noScroll ? "none" : "flex";
+      if (progressRef.current)
+        progressRef.current.style.display = noScroll ? "none" : "block";
       const frac = max > 0 ? Math.min(1, Math.max(0, sl / max)) : 0;
       const thumb = Math.min(1, rail.clientWidth / Math.max(1, rail.scrollWidth));
       // Active position in [0, n-1], driven by scroll PROGRESS rather than the
@@ -413,7 +424,7 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
       for (let i = 0; i < cr.length; i++) {
         const el = cr[i];
         if (!el) continue;
-        const d = Math.min(1, Math.abs(i - p));
+        const d = noScroll ? 0 : Math.min(1, Math.abs(i - p));
         const e = d * d * (3 - 2 * d);
         el.style.opacity = (1 - 0.3 * e).toFixed(3);
         el.style.transform = reduce
@@ -643,8 +654,9 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
                 </Button>
               </Link>
 
-              {/* Pager */}
+              {/* Pager (hidden by the rAF loop when the rail has no overflow) */}
               <div
+                ref={pagerRef}
                 style={{
                   marginTop: "clamp(30px, 3.2vw, 44px)",
                   display: "flex",
@@ -688,8 +700,9 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
                 </span>
               </div>
 
-              {/* Progress thumb */}
+              {/* Progress thumb (hidden alongside the pager when no overflow) */}
               <div
+                ref={progressRef}
                 style={{
                   marginTop: 18,
                   height: 3,

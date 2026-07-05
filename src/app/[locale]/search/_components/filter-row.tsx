@@ -2,7 +2,7 @@
 
 import { Chip } from "@/components/ui/chip";
 import { CatDot } from "@/components/ui/cat-dot";
-import { toCat } from "@/lib/marketplace/card-mappers";
+import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { useTranslation } from "@/i18n/useTranslation";
 import type { Industry } from "@/lib/api/marketplace/types";
 
@@ -28,7 +28,7 @@ export function FilterRow({
   availableToday,
   onToggleAvailableToday,
 }: FilterRowProps) {
-  const { dict } = useTranslation();
+  const { dict, locale } = useTranslation();
   const t = dict.search;
   const cats = industries.slice(0, 6);
 
@@ -46,7 +46,7 @@ export function FilterRow({
           }
         >
           <CatDot cat={toCat(c)} size={6} />
-          {c.name}
+          {taxonomyLabel(c, locale)}
         </Chip>
       ))}
       <span

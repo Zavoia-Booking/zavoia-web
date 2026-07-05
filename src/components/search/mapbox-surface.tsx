@@ -2,7 +2,14 @@
 
 import "mapbox-gl/dist/mapbox-gl.css";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+} from "react";
 import Map, {
   Marker,
   type MapRef,
@@ -60,6 +67,15 @@ export interface GeoPoint {
   lng: number;
 }
 
+/** Imperative camera commands — lets the page fly the map (e.g. recenter). */
+export interface MapboxSurfaceHandle {
+  flyTo: (point: GeoPoint) => void;
+}
+
+// Camera target when flying to the user's position: keep their zoom if they
+// are already closer, otherwise come down to a neighbourhood-level view.
+const RECENTER_MIN_ZOOM = 14;
+
 export interface MapboxSurfaceProps {
   pins: GeoPin[];
   selectedId: number | null;
@@ -77,6 +93,7 @@ export interface MapboxSurfaceProps {
   onSearchArea?: (area: { lat: number; lng: number }) => void;
   searchAreaLabel: string;
   children?: ReactNode;
+  ref?: Ref<MapboxSurfaceHandle>;
 }
 
 // Real Mapbox GL map for the /search page. Pins come from the same
@@ -97,8 +114,21 @@ export function MapboxSurface({
   onSearchArea,
   searchAreaLabel,
   children,
+  ref,
 }: MapboxSurfaceProps) {
   const mapRef = useRef<MapRef>(null);
+
+  useImperativeHandle(ref, () => ({
+    flyTo: (point: GeoPoint) => {
+      const map = mapRef.current;
+      if (!map) return;
+      map.flyTo({
+        center: [point.lng, point.lat],
+        zoom: Math.max(map.getZoom(), RECENTER_MIN_ZOOM),
+        duration: 900,
+      });
+    },
+  }));
 
   // Shown after a USER-initiated pan/zoom; hidden again once new results load.
   const [showSearchHere, setShowSearchHere] = useState(false);

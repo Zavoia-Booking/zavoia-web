@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { toCat } from "@/lib/marketplace/card-mappers";
+import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import type { CategoryKey } from "@/components/ui/cat-dot";
 import type { Industry } from "@/lib/api/marketplace/types";
 
@@ -94,7 +94,7 @@ export function CategoryRail({
                   whiteSpace: "nowrap",
                 }}
               >
-                {tag.name}
+                {taxonomyLabel(tag, locale)}
               </span>
             </Link>
           );

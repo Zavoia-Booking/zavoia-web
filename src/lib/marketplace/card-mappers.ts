@@ -46,25 +46,41 @@ export function toCat(
 }
 
 /**
+ * Locale-aware label for an industry or industry tag: the Romanian `nameRo`
+ * for the ro locale when the API provides one, else the English `name`.
+ */
+export function taxonomyLabel(
+  x: { name: string; nameRo?: string | null },
+  locale: Locale,
+): string {
+  return locale === "ro" && x.nameRo ? x.nameRo : x.name;
+}
+
+/**
  * BUSINESS-sourced card (latest listings / business-name hits).
- * Navigates to the primary location's detail page; when `primaryLocationId`
- * is null there is no href (the card still renders, falling back to onClick).
+ * Navigates to the primary location's detail page: slug when available,
+ * otherwise the numeric `primaryLocationId` (the detail route resolves both).
+ * Only when both are missing is there no href (the card falls back to onClick).
  */
 export function businessCardToData(
   b: BusinessCard,
   locale: Locale,
 ): BusinessCardData {
+  const navTarget = b.slug ?? b.primaryLocationId;
   return {
     id: b.id,
-    slug: b.slug,
+    slug: b.slug ?? undefined,
     name: b.name,
     cat: toCat(b.industry),
-    catLabel: b.industry?.name,
+    catLabel: b.industry ? taxonomyLabel(b.industry, locale) : undefined,
     rating: b.averageRating ?? undefined,
     reviews: b.totalReviews,
     image: b.featuredImage ?? b.logo ?? undefined,
     city: b.city ?? undefined,
-    href: b.slug ? localeHref(locale, "business", b.slug) : undefined,
+    href:
+      navTarget != null
+        ? localeHref(locale, "business", String(navTarget))
+        : undefined,
   };
 }
 
@@ -82,7 +98,7 @@ export function locationCardToData(
     slug: l.slug,
     name: l.name,
     cat: toCat(l.industry),
-    catLabel: l.industry?.name,
+    catLabel: l.industry ? taxonomyLabel(l.industry, locale) : undefined,
     rating: l.averageRating ?? undefined,
     reviews: l.totalReviews,
     image: l.featuredImage ?? undefined,
@@ -100,13 +116,13 @@ export function listingToCardData(
   locale: Locale,
 ): BusinessCardData {
   // `industry` on a listing can be the full Industry or the minimal IndustryRef.
-  const industry = d.industry as IndustryRef | { name?: string; slug?: string } | null;
+  const industry = d.industry as IndustryRef | null;
   return {
     id: d.locationId,
     slug: d.slug,
     name: d.name,
     cat: toCat(industry),
-    catLabel: industry?.name,
+    catLabel: industry ? taxonomyLabel(industry, locale) : undefined,
     rating: d.averageRating ?? undefined,
     reviews: d.totalReviews,
     image: d.featuredImage ?? d.logo ?? undefined,

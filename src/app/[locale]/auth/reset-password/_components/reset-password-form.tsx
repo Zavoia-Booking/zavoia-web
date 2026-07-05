@@ -8,6 +8,7 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { authErrorMessage } from "@/lib/api/auth-error-messages";
 import { resetPassword } from "@/lib/api/customer-auth";
+import { ApiError } from "@/lib/api/http";
 import { AuthField } from "../../_components/auth-field";
 
 // Same strong-password rule used in register-form.tsx — keep these in sync.
@@ -15,6 +16,16 @@ const PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 type Errors = Partial<Record<"password" | "confirm" | "form", string>>;
+
+// Backend token-validation failures (invalid / already used / expired) — the
+// token itself is dead, so retrying the form is pointless; offer a fresh link.
+const TOKEN_ERROR_CODES = new Set(["SYSTEM.E06", "SYSTEM.E07", "SYSTEM.E08"]);
+
+function isDeadTokenError(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return false;
+  const code = error.code ?? error.message;
+  return typeof code === "string" && TOKEN_ERROR_CODES.has(code.toUpperCase());
+}
 
 export function ResetPasswordForm({ locale }: { locale: Locale }) {
   const dict = dictionaries[locale].auth;
@@ -27,8 +38,10 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [tokenDead, setTokenDead] = useState(false);
 
   const loginHref = `${localeHref(locale, "auth")}?mode=login`;
+  const forgotPasswordHref = localeHref(locale, "auth", "forgot-password");
 
   function validate(): Errors {
     const next: Errors = {};
@@ -55,6 +68,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
       setSuccess(true);
     } catch (e) {
       setErrors({ form: authErrorMessage(e, dict.errors) });
+      setTokenDead(isDeadTokenError(e));
     } finally {
       setSubmitting(false);
     }
@@ -127,6 +141,15 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
           >
             {errors.form}
           </p>
+        )}
+
+        {tokenDead && (
+          <Link
+            href={forgotPasswordHref}
+            className="inline-block rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
+          >
+            {t.requestNewLink}
+          </Link>
         )}
 
         <button

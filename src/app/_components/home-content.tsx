@@ -27,7 +27,7 @@ export interface HomeContentProps {
 //   1. Hero .............. editorial (client: typewriter + router)
 //   2. Category rail ..... getIndustries
 //   3. Fresh on Zavoia ... getLatestListings (business cards)
-//   4. Recently viewed ... localStorage + getListing (client)
+//   4. Recently viewed ... localStorage + getListingsBulk (client, 1 call)
 //   5. Editor's pick ..... reuses the latest-listings array (no extra fetch)
 //   6. Near you .......... getNearbyLocations (client geolocation; falls
 //                          back to latest listings)
