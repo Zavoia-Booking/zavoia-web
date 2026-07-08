@@ -12,3 +12,8 @@ export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
 // origins" in Google Cloud Console for GIS to issue ID tokens.
 export const GOOGLE_CLIENT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+
+// Zavoia Business dashboard (admin-dashboard app). Overridable so staging
+// deploys can point at staging-app.zavoia.com.
+export const BUSINESS_APP_URL =
+  process.env.NEXT_PUBLIC_BUSINESS_APP_URL ?? "https://app.zavoia.com";

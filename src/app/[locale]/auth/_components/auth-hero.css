@@ -1,0 +1,127 @@
+/* Hero panel for the auth card's right side (md+ only). Ported from
+   admin-dashboard's auth-hero.css with tokens mapped to zavoia-web's
+   palette (--base → --c-canvas, --primary → --p-500, --foreground →
+   --c-ink). Static styling only — the trace+fill reveal is driven by
+   WAAPI in auth-hero.tsx so each letter gets its own timeline. */
+
+.auth-hero {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--c-canvas);
+  /* Two stacked layers under the panel:
+   *  1. Warm terracotta wash from the upper-right.
+   *  2. A near-imperceptible dot grid — paper/material texture. */
+  background-image:
+    radial-gradient(
+      circle at 92% 8%,
+      color-mix(in oklch, var(--p-500) 16%, transparent) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      circle,
+      color-mix(in oklch, var(--p-500) 7%, transparent) 0.7px,
+      transparent 1px
+    );
+  background-size: auto, 18px 18px;
+  background-position: 0 0, 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Concentric arcs sit behind the tilt layer — decoration, not signal. */
+.auth-hero-rings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-hero-rings circle {
+  fill: none;
+  stroke: url(#auth-hero-ring-fade);
+  stroke-width: 0.22;
+}
+
+/* Inner ring is the most prominent, outer rings recede. */
+.auth-hero-rings circle:nth-of-type(1) {
+  stroke-opacity: 0.48;
+}
+.auth-hero-rings circle:nth-of-type(2) {
+  stroke-opacity: 0.32;
+}
+.auth-hero-rings circle:nth-of-type(3) {
+  stroke-opacity: 0.22;
+}
+
+/* Gradient stops — terracotta at the top dissolving to transparent. */
+.auth-hero-ring-stop-top {
+  stop-color: var(--p-500);
+  stop-opacity: 1;
+}
+.auth-hero-ring-stop-bottom {
+  stop-color: var(--p-500);
+  stop-opacity: 0;
+}
+
+.auth-hero-tilt {
+  position: relative;
+  z-index: 1;
+  width: 88%;
+  max-width: 540px;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.auth-hero-asset svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Letter ink. The CSS rule overrides the inline `fill` attributes on each
+   <path>; the WAAPI reveal animations only touch fill-opacity /
+   stroke-opacity, so the color itself is owned by CSS. */
+.auth-hero-letter {
+  fill: var(--c-ink);
+  stroke: var(--c-ink);
+  stroke-width: 8;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 4;
+  fill-opacity: 0;
+  stroke-opacity: 1;
+}
+
+/* Cream-color "holes" punched through letters like 'a' and 'o'. Must match
+   the panel surface, otherwise they read as bright patches. */
+.auth-hero-counter {
+  fill: var(--c-canvas);
+}
+
+/* Dash starts hidden; WAAPI animates scaleX. scaleY thickens it slightly
+   beyond the source path's natural height. */
+.auth-hero-dash {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  transform: scaleX(0) scaleY(1.6);
+}
+
+/* Reduced motion: skip the animation, render the wordmark fully revealed. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-hero-tilt {
+    transition: none;
+  }
+  .auth-hero-letter {
+    fill-opacity: 1;
+    stroke-opacity: 0;
+  }
+  .auth-hero-dash {
+    transform: scaleX(1) scaleY(1.6);
+  }
+}

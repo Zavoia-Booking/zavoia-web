@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import type { Locale } from "@/i18n/locales";
@@ -18,7 +17,8 @@ import {
 } from "@/lib/auth/redirects";
 import { useAuth } from "@/lib/auth/useAuth";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
-import { GOOGLE_CLIENT_ID } from "@/lib/env";
+import { BUSINESS_APP_URL, GOOGLE_CLIENT_ID } from "@/lib/env";
+import { AuthCard } from "./auth-card";
 import { EnableAccessPanel } from "./enable-access-panel";
 import {
   GoogleLinkPanel,
@@ -85,105 +85,96 @@ export function AuthTabs({ locale }: { locale: Locale }) {
     }
   }
 
-  // When the email already belongs to a business account, surface the
-  // dedicated "enable marketplace access" panel instead of the tabbed forms.
-  if (linkDetails) {
-    return (
-      <main className="mx-auto max-w-md px-6 py-16">
-        <EnableAccessPanel
-          locale={locale}
-          details={linkDetails}
-          onCancel={() => setLinkDetails(null)}
-        />
-      </main>
-    );
-  }
-
-  // When the email belongs to a CUSTOMER without a linked Google account,
-  // surface the verify-then-link panel.
-  if (googleLink) {
-    return (
-      <main className="mx-auto max-w-md px-6 py-16">
-        <GoogleLinkPanel
-          locale={locale}
-          context={googleLink}
-          onCancel={() => setGoogleLink(null)}
-        />
-      </main>
-    );
-  }
+  // Sub-flows (business-account link, Google verify-then-link) replace the
+  // tabbed forms inside the same card shell, with the toggle + heading
+  // suppressed — they own their headings.
+  const panel = linkDetails ? (
+    <EnableAccessPanel
+      locale={locale}
+      details={linkDetails}
+      onCancel={() => setLinkDetails(null)}
+    />
+  ) : googleLink ? (
+    <GoogleLinkPanel
+      locale={locale}
+      context={googleLink}
+      onCancel={() => setGoogleLink(null)}
+    />
+  ) : null;
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <div
-        role="tablist"
-        aria-label={dict.pageTitle}
-        className="mb-8 grid grid-cols-2 rounded-md border border-zinc-200 p-1"
-      >
-        <Link
-          role="tab"
-          aria-selected={mode === "login"}
-          href={tabHref(locale, "login", redirect)}
-          replace
-          scroll={false}
-          className={`rounded-sm px-3 py-2 text-center text-sm font-medium transition ${
-            mode === "login"
-              ? "bg-zinc-900 text-white"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
+    <main
+      className="flex flex-col items-center justify-center px-4 py-10"
+      style={{ minHeight: "calc(100svh - var(--nav-h))" }}
+    >
+      <div className="w-full max-w-sm md:max-w-[62.5rem]">
+        <AuthCard
+          mode={mode}
+          title={mode === "login" ? dict.loginHeading : dict.registerHeading}
+          subtitle={mode === "login" ? dict.loginSubtitle : dict.registerSubtitle}
+          loginHref={tabHref(locale, "login", redirect)}
+          registerHref={tabHref(locale, "register", redirect)}
+          tabLoginLabel={dict.tabLogin}
+          tabRegisterLabel={dict.tabRegister}
+          tablistLabel={dict.pageTitle}
+          hideHeader={panel !== null}
         >
-          {dict.tabLogin}
-        </Link>
-        <Link
-          role="tab"
-          aria-selected={mode === "register"}
-          href={tabHref(locale, "register", redirect)}
-          replace
-          scroll={false}
-          className={`rounded-sm px-3 py-2 text-center text-sm font-medium transition ${
-            mode === "register"
-              ? "bg-zinc-900 text-white"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
-        >
-          {dict.tabRegister}
-        </Link>
-      </div>
+          {panel ?? (
+            <>
+              {mode === "login" ? (
+                <LoginForm locale={locale} onAccountLinkNeeded={setLinkDetails} />
+              ) : (
+                <RegisterForm
+                  locale={locale}
+                  onAccountLinkNeeded={setLinkDetails}
+                />
+              )}
 
-      {mode === "login" ? (
-        <LoginForm locale={locale} onAccountLinkNeeded={setLinkDetails} />
-      ) : (
-        <RegisterForm locale={locale} onAccountLinkNeeded={setLinkDetails} />
-      )}
+              {GOOGLE_CLIENT_ID && (
+                <div>
+                  <div
+                    className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-[rgba(28,28,26,0.10)]"
+                    aria-hidden="true"
+                  >
+                    <span className="relative z-10 bg-white px-2 text-c-600">
+                      {dict.googleDivider}
+                    </span>
+                  </div>
 
-      {GOOGLE_CLIENT_ID && (
-        <div className="mt-8">
-          <div className="flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-zinc-200" />
-            <span className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-              {dict.googleDivider}
-            </span>
-            <span className="h-px flex-1 bg-zinc-200" />
-          </div>
+                  <div className="mt-6">
+                    <GoogleSignInButton
+                      locale={locale}
+                      text={mode === "register" ? "signup_with" : "continue_with"}
+                      onCredential={handleGoogleCredential}
+                    />
+                  </div>
 
-          <div className="mt-6">
-            <GoogleSignInButton
-              locale={locale}
-              text={mode === "register" ? "signup_with" : "continue_with"}
-              onCredential={handleGoogleCredential}
-            />
-          </div>
+                  {googleError && (
+                    <p
+                      role="alert"
+                      className="mt-4 rounded-[10px] border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
+                    >
+                      {googleError}
+                    </p>
+                  )}
+                </div>
+              )}
 
-          {googleError && (
-            <p
-              role="alert"
-              className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-            >
-              {googleError}
-            </p>
+              {mode === "login" && (
+                <p className="text-center text-sm text-c-600">
+                  {dict.businessOwnerPrompt}{" "}
+                  <a
+                    href={`${BUSINESS_APP_URL}/login`}
+                    className="font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    {dict.businessOwnerCta}
+                  </a>
+                </p>
+              )}
+            </>
           )}
-        </div>
-      )}
+        </AuthCard>
+      </div>
     </main>
   );
 }

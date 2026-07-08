@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,7 @@ import { useAuthModal } from "@/components/shell/auth-modal-provider";
 import {
   Avatar,
   Button,
+  DatePicker,
   Icon,
   SignedOutGate,
   Skeleton,
@@ -28,7 +30,6 @@ import {
 import {
   changePassword,
   deleteAccount,
-  getFavorites,
   getNotificationPreferences,
   getProfile,
   getProfileSummary,
@@ -37,7 +38,6 @@ import {
   uploadProfileImage,
 } from "@/lib/api/marketplace/customer";
 import type {
-  AllFavorites,
   CustomerProfile,
   CustomerProfileSummary,
   NotificationPreferences,
@@ -200,6 +200,7 @@ function EditableRow({
   label,
   value,
   type = "text",
+  locale = "en",
   emptyLabel,
   saving,
   buttons,
@@ -209,6 +210,8 @@ function EditableRow({
   label: string;
   value: string;
   type?: "text" | "tel" | "date";
+  /** Used by the date type for calendar + display formatting. */
+  locale?: string;
   emptyLabel: string;
   saving: boolean;
   buttons: AcctDict["buttons"];
@@ -237,6 +240,15 @@ function EditableRow({
   };
 
   const muted = !value;
+  // Dates display as "15 March 1994" instead of raw ISO.
+  const displayText =
+    type === "date" && value
+      ? new Intl.DateTimeFormat(locale, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(new Date(`${value}T12:00:00`))
+      : value;
 
   return (
     <div
@@ -265,31 +277,41 @@ function EditableRow({
             {label}
           </div>
           {editing ? (
-            <input
-              ref={ref}
-              type={type}
-              value={draft}
-              disabled={saving}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") commit();
-                if (e.key === "Escape") cancel();
-              }}
-              style={{
-                marginTop: 8,
-                width: "100%",
-                maxWidth: 340,
-                boxSizing: "border-box",
-                padding: "9px 12px",
-                borderRadius: 10,
-                border: "1px solid rgba(28,28,26,0.18)",
-                fontSize: 14,
-                color: "var(--c-900)",
-                background: "#fff",
-                outline: "none",
-                fontFamily: "inherit",
-              }}
-            />
+            type === "date" ? (
+              <DatePicker
+                value={draft}
+                onChange={setDraft}
+                locale={locale}
+                disabled={saving}
+                placeholder={emptyLabel}
+              />
+            ) : (
+              <input
+                ref={ref}
+                type={type}
+                value={draft}
+                disabled={saving}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commit();
+                  if (e.key === "Escape") cancel();
+                }}
+                style={{
+                  marginTop: 8,
+                  width: "100%",
+                  maxWidth: 340,
+                  boxSizing: "border-box",
+                  padding: "9px 12px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(28,28,26,0.18)",
+                  fontSize: 14,
+                  color: "var(--c-900)",
+                  background: "#fff",
+                  outline: "none",
+                  fontFamily: "inherit",
+                }}
+              />
+            )
           ) : (
             <div
               style={{
@@ -298,7 +320,296 @@ function EditableRow({
                 marginTop: 4,
               }}
             >
-              {value || emptyLabel}
+              {displayText || emptyLabel}
+            </div>
+          )}
+        </div>
+        {editing ? (
+          <span style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
+            <button
+              type="button"
+              className="tap"
+              onClick={commit}
+              disabled={saving}
+              style={{
+                padding: "7px 14px",
+                borderRadius: 999,
+                border: 0,
+                background: "var(--c-ink)",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: saving ? "default" : "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {saving ? <Spinner size={14} color="#fff" /> : buttons.save}
+            </button>
+            <button
+              type="button"
+              className="tap"
+              onClick={cancel}
+              disabled={saving}
+              style={{
+                padding: "7px 12px",
+                borderRadius: 999,
+                border: "1px solid rgba(28,28,26,0.14)",
+                background: "#fff",
+                color: "var(--c-700)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: saving ? "default" : "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {buttons.cancel}
+            </button>
+          </span>
+        ) : (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              flexShrink: 0,
+            }}
+          >
+            {saving && <Spinner size={14} />}
+            <button
+              type="button"
+              className="tap"
+              onClick={start}
+              disabled={saving}
+              style={{
+                background: "transparent",
+                border: 0,
+                cursor: saving ? "default" : "pointer",
+                fontSize: 13.5,
+                fontWeight: 600,
+                color: "var(--c-900)",
+                textDecoration: "underline",
+                padding: "2px 0",
+                fontFamily: "inherit",
+              }}
+            >
+              {buttons.edit}
+            </button>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Address row — one "Address" entry whose edit mode opens all address inputs
+// at once (country / city / street / number / mentions), saved as ONE profile
+// update. Display mode composes "Street Number, City, Country" + mentions.
+// ─────────────────────────────────────────────
+
+function AddressRow({
+  fields,
+  buttons,
+  profile,
+  saving,
+  onSave,
+  last,
+}: {
+  fields: AcctDict["fields"];
+  buttons: AcctDict["buttons"];
+  profile: CustomerProfile;
+  saving: boolean;
+  onSave: (patch: Partial<UpdateProfileBody>) => void;
+  last?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({
+    country: "",
+    city: "",
+    street: "",
+    number: "",
+    mentions: "",
+  });
+  const firstRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (editing && firstRef.current) firstRef.current.focus();
+  }, [editing]);
+
+  const start = () => {
+    setDraft({
+      country: profile.addressCountry ?? "",
+      city: profile.addressCity ?? "",
+      street: profile.addressStreet ?? "",
+      number: profile.addressNumber ?? "",
+      mentions: profile.addressMentions ?? "",
+    });
+    setEditing(true);
+  };
+  const commit = () => {
+    setEditing(false);
+    onSave({
+      addressCountry: draft.country.trim(),
+      addressCity: draft.city.trim(),
+      addressStreet: draft.street.trim(),
+      addressNumber: draft.number.trim(),
+      addressMentions: draft.mentions.trim(),
+    });
+  };
+  const cancel = () => setEditing(false);
+
+  const summary = [
+    [profile.addressStreet, profile.addressNumber].filter(Boolean).join(" "),
+    profile.addressCity,
+    profile.addressCountry,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const inputStyle: CSSProperties = {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "9px 12px",
+    borderRadius: 10,
+    border: "1px solid rgba(28,28,26,0.18)",
+    fontSize: 14,
+    color: "var(--c-900)",
+    background: "#fff",
+    outline: "none",
+    fontFamily: "inherit",
+  };
+  const subLabelStyle: CSSProperties = {
+    display: "block",
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: "var(--c-500)",
+    marginBottom: 4,
+  };
+  const onKeys = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") commit();
+    if (e.key === "Escape") cancel();
+  };
+
+  return (
+    <div
+      style={{
+        padding: "16px 0",
+        borderBottom: last ? 0 : "1px solid rgba(28,28,26,0.06)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 16,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 14.5,
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
+              color: "var(--c-900)",
+            }}
+          >
+            {fields.address}
+          </div>
+          {editing ? (
+            <div
+              style={{
+                marginTop: 10,
+                maxWidth: 480,
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+              }}
+            >
+              <label>
+                <span style={subLabelStyle}>{fields.addressCountry}</span>
+                <input
+                  ref={firstRef}
+                  type="text"
+                  value={draft.country}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, country: e.target.value }))
+                  }
+                  onKeyDown={onKeys}
+                  style={inputStyle}
+                />
+              </label>
+              <label>
+                <span style={subLabelStyle}>{fields.addressCity}</span>
+                <input
+                  type="text"
+                  value={draft.city}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, city: e.target.value }))
+                  }
+                  onKeyDown={onKeys}
+                  style={inputStyle}
+                />
+              </label>
+              <label>
+                <span style={subLabelStyle}>{fields.addressStreet}</span>
+                <input
+                  type="text"
+                  value={draft.street}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, street: e.target.value }))
+                  }
+                  onKeyDown={onKeys}
+                  style={inputStyle}
+                />
+              </label>
+              <label>
+                <span style={subLabelStyle}>{fields.addressNumber}</span>
+                <input
+                  type="text"
+                  value={draft.number}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, number: e.target.value }))
+                  }
+                  onKeyDown={onKeys}
+                  style={inputStyle}
+                />
+              </label>
+              <label style={{ gridColumn: "1 / -1" }}>
+                <span style={subLabelStyle}>{fields.addressMentions}</span>
+                <input
+                  type="text"
+                  value={draft.mentions}
+                  disabled={saving}
+                  placeholder={fields.addressMentionsPlaceholder}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, mentions: e.target.value }))
+                  }
+                  onKeyDown={onKeys}
+                  style={inputStyle}
+                />
+              </label>
+            </div>
+          ) : (
+            <div
+              style={{
+                fontSize: 14,
+                color: summary ? "var(--c-600)" : "var(--c-400)",
+                marginTop: 4,
+              }}
+            >
+              {summary || fields.addressEmpty}
+              {summary && profile.addressMentions ? (
+                <div
+                  style={{ fontSize: 12.5, color: "var(--c-400)", marginTop: 3 }}
+                >
+                  {profile.addressMentions}
+                </div>
+              ) : null}
             </div>
           )}
         </div>
@@ -476,7 +787,6 @@ function ProfileBanner({
   locale,
   profile,
   summary,
-  savedCount,
   uploadingPhoto,
   onPickPhoto,
   onSavedClick,
@@ -485,7 +795,6 @@ function ProfileBanner({
   locale: Locale;
   profile: CustomerProfile;
   summary: CustomerProfileSummary | null;
-  savedCount: number;
   uploadingPhoto: boolean;
   onPickPhoto: (file: File) => void;
   onSavedClick?: () => void;
@@ -619,104 +928,11 @@ function ProfileBanner({
         />
         <StatChip value={reviews} label={t.stats.reviews} nf={nf} />
         <StatChip
-          value={savedCount}
+          value={summary?.totalFavorites ?? 0}
           label={t.stats.saved}
           nf={nf}
           onClick={onSavedClick}
         />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Completeness meter — computed over fillable fields the user can act on
-// (firstName, lastName, phone, dateOfBirth). Email is always present and so
-// excluded. Renders nothing at 100%.
-// ─────────────────────────────────────────────
-
-function CompletenessMeter({
-  t,
-  profile,
-}: {
-  t: AcctDict;
-  profile: CustomerProfile;
-}) {
-  const checks = [
-    !!profile.firstName,
-    !!profile.lastName,
-    !!profile.phone,
-    !!profile.dateOfBirth,
-  ];
-  const total = checks.length;
-  const done = checks.filter(Boolean).length;
-  const pct = Math.round((done / total) * 100);
-  if (pct >= 100) return null;
-  return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.08)",
-        borderRadius: 16,
-        boxShadow: "var(--sh-sm)",
-        padding: "16px 18px",
-        marginBottom: 22,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 10,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: "var(--c-900)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {format(t.meter.title, { pct: String(pct) })}
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11.5,
-            fontWeight: 600,
-            color: "var(--c-500)",
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {done}/{total}
-        </span>
-      </div>
-      <div
-        style={{
-          height: 6,
-          borderRadius: 999,
-          background: "var(--c-200)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${pct}%`,
-            borderRadius: 999,
-            background: "var(--p-500)",
-            transition: "width .5s var(--ease-out)",
-          }}
-        />
-      </div>
-      <div
-        className="txt-pretty"
-        style={{ fontSize: 12.5, color: "var(--c-600)", marginTop: 10 }}
-      >
-        {t.meter.hint}
       </div>
     </div>
   );
@@ -1568,8 +1784,7 @@ function SectionBody({
   setPrefs,
   savingField,
   saveField,
-  address,
-  setAddress,
+  saveAddress,
   onDeleted,
 }: {
   id: SectionId;
@@ -1581,11 +1796,9 @@ function SectionBody({
   setPrefs: (p: NotificationPreferences) => void;
   savingField: string | null;
   saveField: (field: keyof UpdateProfileBody, value: string) => void;
-  address: string;
-  setAddress: (v: string) => void;
+  saveAddress: (patch: Partial<UpdateProfileBody>) => void;
   onDeleted: () => Promise<void>;
 }) {
-  const toast = useToast();
   const [pwOpen, setPwOpen] = useState(false);
   if (id === "personal") {
     if (!profile) {
@@ -1598,7 +1811,6 @@ function SectionBody({
     const dobValue = profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "";
     return (
       <div>
-        <CompletenessMeter t={t} profile={profile} />
         <EditableRow
           label={t.fields.firstName}
           value={profile.firstName ?? ""}
@@ -1628,6 +1840,7 @@ function SectionBody({
           label={t.fields.dateOfBirth}
           value={dobValue}
           type="date"
+          locale={locale}
           emptyLabel={t.fields.phoneEmpty}
           saving={savingField === "dateOfBirth"}
           buttons={t.buttons}
@@ -1638,16 +1851,12 @@ function SectionBody({
           value={profile.email}
           note={t.emailReadOnlyNote}
         />
-        <EditableRow
-          label={t.fields.address}
-          value={address}
-          emptyLabel={t.fields.addressEmpty}
-          saving={false}
+        <AddressRow
+          fields={t.fields}
           buttons={t.buttons}
-          onSave={(v) => {
-            setAddress(v);
-            toast(t.toasts.profileSaved, "check");
-          }}
+          profile={profile}
+          saving={savingField === "address"}
+          onSave={saveAddress}
           last
         />
       </div>
@@ -1934,20 +2143,6 @@ function RailItem({
         if (!on) e.currentTarget.style.background = "transparent";
       }}
     >
-      {on && (
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 10,
-            bottom: 10,
-            width: 3,
-            borderRadius: 999,
-            background: "var(--p-500)",
-          }}
-        />
-      )}
       <Icon
         name={icon}
         size={18}
@@ -2148,7 +2343,6 @@ function MobileHub({
   locale,
   profile,
   summary,
-  savedCount,
   uploadingPhoto,
   onPickPhoto,
   onSavedClick,
@@ -2160,7 +2354,6 @@ function MobileHub({
   locale: Locale;
   profile: CustomerProfile;
   summary: CustomerProfileSummary | null;
-  savedCount: number;
   uploadingPhoto: boolean;
   onPickPhoto: (file: File) => void;
   onSavedClick?: () => void;
@@ -2292,7 +2485,7 @@ function MobileHub({
           <HubStat value={reviews} label={t.stats.reviews} nf={nf} />
           <span style={{ width: 1, background: "rgba(28,28,26,0.08)" }} />
           <HubStat
-            value={savedCount}
+            value={summary?.totalFavorites ?? 0}
             label={t.stats.saved}
             nf={nf}
             onClick={onSavedClick}
@@ -2387,7 +2580,6 @@ export function AccountContent({ locale }: { locale: Locale }) {
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [summary, setSummary] = useState<CustomerProfileSummary | null>(null);
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
-  const [savedCount, setSavedCount] = useState(0);
 
   const [prefsError, setPrefsError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -2395,9 +2587,6 @@ export function AccountContent({ locale }: { locale: Locale }) {
   const [savingField, setSavingField] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-
-  // Client-side only — Address has no backend field yet (lands later).
-  const [address, setAddress] = useState("");
 
   // Responsive flag — SSR-safe (starts false; authenticated content renders
   // client-side after the data load, so there is no hydration mismatch).
@@ -2423,34 +2612,18 @@ export function AccountContent({ locale }: { locale: Locale }) {
     // `loading` is initialised to true and this effect runs once auth flips to
     // authenticated, so no synchronous setState(true) is needed here.
 
-    // Independent fetches — each section degrades on its own.
-    Promise.allSettled([
-      getProfile(),
-      getProfileSummary(),
-      getNotificationPreferences(),
-      getFavorites(),
-    ]).then((results) => {
+    // Only what first paint needs: profile (editable fields + banner) and
+    // summary (stats, incl. totalFavorites). Notification preferences are
+    // deferred until the Preferences section is opened.
+    Promise.allSettled([getProfile(), getProfileSummary()]).then((results) => {
       if (!alive) return;
-      const [pRes, sRes, nRes, fRes] = results;
+      const [pRes, sRes] = results;
 
       if (pRes.status === "fulfilled") setProfile(pRes.value);
       // profile failure → null → section/banner shows sectionError fallback.
 
       if (sRes.status === "fulfilled") setSummary(sRes.value);
       // summary failure degrades silently (stats render as 0).
-
-      if (nRes.status === "fulfilled") setPrefs(nRes.value);
-      else setPrefsError(true);
-
-      if (fRes.status === "fulfilled") {
-        const fav: AllFavorites = fRes.value;
-        setSavedCount(
-          fav.businesses.length +
-            fav.locations.length +
-            fav.professionals.length,
-        );
-      }
-      // favorites failure degrades silently (Saved renders as 0).
 
       setLoading(false);
     });
@@ -2460,12 +2633,43 @@ export function AccountContent({ locale }: { locale: Locale }) {
     };
   }, [authed]);
 
+  // Notification preferences are consumed only by the Preferences section, so
+  // they load on its first activation. One-shot: setState after a section
+  // switch (or unmount) is a harmless no-op, so no cancellation is needed.
+  const prefsRequested = useRef(false);
+  useEffect(() => {
+    if (!authed || active !== "preferences" || prefsRequested.current) return;
+    prefsRequested.current = true;
+    getNotificationPreferences()
+      .then(setPrefs)
+      .catch(() => setPrefsError(true));
+  }, [authed, active]);
+
   const saveField = useCallback(
     async (field: keyof UpdateProfileBody, value: string) => {
       if (!profile) return;
       setSavingField(field);
       try {
         const updated = await updateProfile({ [field]: value });
+        setProfile(updated); // reconcile from response
+        toast(t.toasts.profileSaved, "check");
+      } catch {
+        toast(t.toasts.genericError, "pencil");
+      } finally {
+        setSavingField(null);
+      }
+    },
+    [profile, t, toast],
+  );
+
+  // All address components save as ONE request (the Address row edits them
+  // together); savingField uses the synthetic key "address".
+  const saveAddress = useCallback(
+    async (patch: Partial<UpdateProfileBody>) => {
+      if (!profile) return;
+      setSavingField("address");
+      try {
+        const updated = await updateProfile(patch);
         setProfile(updated); // reconcile from response
         toast(t.toasts.profileSaved, "check");
       } catch {
@@ -2547,7 +2751,6 @@ export function AccountContent({ locale }: { locale: Locale }) {
                 locale={locale}
                 profile={profile}
                 summary={summary}
-                savedCount={savedCount}
                 uploadingPhoto={uploadingPhoto}
                 onPickPhoto={handlePhoto}
                 onSavedClick={() => router.push(localeHref(locale, "saved"))}
@@ -2578,8 +2781,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
                 setPrefs={setPrefs}
                 savingField={savingField}
                 saveField={saveField}
-                address={address}
-                setAddress={setAddress}
+                saveAddress={saveAddress}
                 onDeleted={goHome}
               />
             </div>
@@ -2602,7 +2804,6 @@ export function AccountContent({ locale }: { locale: Locale }) {
           locale={locale}
           profile={profile}
           summary={summary}
-          savedCount={savedCount}
           uploadingPhoto={uploadingPhoto}
           onPickPhoto={handlePhoto}
           onSavedClick={() => router.push(localeHref(locale, "saved"))}
@@ -2644,8 +2845,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
             setPrefs={setPrefs}
             savingField={savingField}
             saveField={saveField}
-            address={address}
-            setAddress={setAddress}
+            saveAddress={saveAddress}
             onDeleted={goHome}
           />
         </div>

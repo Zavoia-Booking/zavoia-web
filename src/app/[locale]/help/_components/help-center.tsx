@@ -3,12 +3,16 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Icon, Kicker, type IconName } from "@/components/ui";
+import type { Dictionary } from "@/i18n/dictionaries";
+import type { Locale } from "@/i18n/locales";
+import { ReportIssue } from "./report-issue";
 
 type QA = { q: string; a: string };
 type Topic = { id: string; icon: string; label: string; items: QA[] };
 type GoodToKnowLink = { label: string; href: string };
 
 interface HelpCenterProps {
+  locale: Locale;
   head: { kicker: string; title: string; sub: string };
   searchPlaceholder: string;
   allLabel: string;
@@ -17,6 +21,7 @@ interface HelpCenterProps {
   topics: Topic[];
   goodToKnowTitle: string;
   goodToKnowLinks: GoodToKnowLink[];
+  report: Dictionary["help"]["report"];
 }
 
 // One expandable Q&A row. Mirrors ZwHelpQARow — a header button that toggles
@@ -71,6 +76,7 @@ function QARow({
 }
 
 export function HelpCenter({
+  locale,
   head,
   searchPlaceholder,
   allLabel,
@@ -79,6 +85,7 @@ export function HelpCenter({
   topics,
   goodToKnowTitle,
   goodToKnowLinks,
+  report,
 }: HelpCenterProps) {
   const [q, setQ] = useState("");
   const [topic, setTopic] = useState("all");
@@ -273,6 +280,7 @@ export function HelpCenter({
         </div>
 
         <aside className="zw-help-aside">
+          <ReportIssue t={report} locale={locale} />
           <div className="zw-help-card">
             <div
               style={{

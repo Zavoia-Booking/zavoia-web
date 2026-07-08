@@ -79,12 +79,7 @@ export function LoginForm({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {dict.loginHeading}
-      </h1>
-      <p className="mt-2 text-sm text-zinc-600">{dict.loginSubtitle}</p>
-
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <AuthField
           id="email"
           type="email"
@@ -102,24 +97,17 @@ export function LoginForm({
           onChange={setPassword}
           error={errors.password}
           autoComplete="current-password"
+          showPasswordLabel={dict.fields.showPassword}
+          hidePasswordLabel={dict.fields.hidePassword}
         />
-
-        <div className="text-right">
-          <Link
-            href={localeHref(locale, "auth", "forgot-password")}
-            className="text-sm font-medium text-zinc-600 transition hover:text-zinc-900"
-          >
-            {dict.forgotPasswordLink}
-          </Link>
-        </div>
 
         {errors.form && (
           <div role="alert">
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="rounded-[10px] border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]">
               {errors.form}
             </p>
             {GOOGLE_CLIENT_ID && (
-              <p className="mt-2 text-sm text-zinc-500">
+              <p className="mt-2 text-sm text-c-600">
                 {dict.errors.googleAccountHint}
               </p>
             )}
@@ -129,11 +117,20 @@ export function LoginForm({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 h-12 w-full cursor-pointer rounded-full bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-p-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
         >
           {submitting ? dict.loginSubmitting : dict.loginSubmit}
         </button>
       </form>
+
+      <div className="mt-4 flex justify-center">
+        <Link
+          href={localeHref(locale, "auth", "forgot-password")}
+          className="text-sm text-c-600 underline-offset-4 transition-colors hover:text-primary hover:underline"
+        >
+          {dict.forgotPasswordLink}
+        </Link>
+      </div>
     </div>
   );
 }

@@ -320,7 +320,6 @@ export interface ListingLocation {
   city: string | null;
   latitude: number | null;
   longitude: number | null;
-  isRemote: boolean;
   timezone: string;
   workingHours: WorkingHours | null;
   open247: boolean;
@@ -828,7 +827,6 @@ export interface AppointmentDetailLocation {
   address: string | null;
   phone: string | null;
   email: string | null;
-  isRemote: boolean;
   profileImage: string | null;
   averageRating: number | null;
   totalReviews: number;
@@ -991,6 +989,13 @@ export interface CustomerProfile {
   profileImage: string | null;
   /** ISO date or null. */
   dateOfBirth: string | null;
+  /** Address components — free text, no geocoding. */
+  addressCountry: string | null;
+  addressCity: string | null;
+  addressStreet: string | null;
+  addressNumber: string | null;
+  /** Extra address details (building, floor, apartment, intercom…). */
+  addressMentions: string | null;
   email_verified: boolean;
   createdAt: string;
 }
@@ -1002,6 +1007,8 @@ export interface CustomerProfileSummary {
   totalAppointments: number;
   totalBusinessReviews: number;
   totalProfessionalReviews: number;
+  /** Favorites across businesses + locations + professionals (visibility-filtered). */
+  totalFavorites: number;
 }
 
 export interface UpdateProfileBody {
@@ -1010,6 +1017,12 @@ export interface UpdateProfileBody {
   phone?: string;
   /** ISO date (YYYY-MM-DD). */
   dateOfBirth?: string;
+  /** Address components — free text; empty string clears the field. */
+  addressCountry?: string;
+  addressCity?: string;
+  addressStreet?: string;
+  addressNumber?: string;
+  addressMentions?: string;
 }
 
 export interface UploadProfileImageResult {
@@ -1212,4 +1225,22 @@ export interface CreateTicketBody {
 
 export interface AddTicketMessageBody {
   message: string;
+}
+
+/** Body for the PUBLIC (no-auth) guest ticket endpoint — for visitors without
+ * an account or who cannot log in. Email is the only return channel. */
+export interface CreateGuestTicketBody {
+  email: string;
+  name?: string;
+  locale?: "en" | "ro";
+  category: TicketCategory;
+  message: string;
+  context?: CreateTicketContext;
+}
+
+/** Guest ticket response — a reference receipt, not the full ticket (guests
+ * cannot fetch tickets back). */
+export interface GuestTicketReceipt {
+  uuid: string;
+  createdAt: string;
 }

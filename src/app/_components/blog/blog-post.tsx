@@ -15,7 +15,6 @@ import { Img } from "@/components/ui/image";
 import { CatChip } from "./cat-chip";
 import { BlogMeta } from "./blog-meta";
 import { BlogCard } from "./blog-card";
-import { Newsletter } from "./newsletter";
 import { ReadingChrome } from "./reading-chrome";
 import { Toc } from "./toc";
 import { RelatedSectionTitle } from "./related-section-title";
@@ -299,8 +298,6 @@ export function BlogPost({
           </div>
         </section>
       )}
-
-      <Newsletter />
     </div>
   );
 }

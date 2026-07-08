@@ -799,53 +799,156 @@ function TicketDetailView({
 }
 
 // ─────────────────────────────────────────────
-// Empty state
+// "Report an issue" card — ported from the Help Centre aside in the design
+// prototype `docs/web-help.jsx` (ZwHelpAside): title + response-time promise,
+// a "My tickets" snapshot of up to 3 open tickets, and the primary CTA.
+// The design's "Open inbox" action is dropped — here the full inbox renders
+// directly below the card, so the CTA always starts a new ticket.
 // ─────────────────────────────────────────────
 
-function EmptyState({ t, onNew }: { t: SupportDict; onNew: () => void }) {
+function ReportIssueCard({
+  t,
+  locale,
+  tickets,
+  onOpenTicket,
+  onNew,
+}: {
+  t: SupportDict;
+  locale: Locale;
+  tickets: TicketListItem[];
+  onOpenTicket: (id: number) => void;
+  onNew: () => void;
+}) {
+  const open = tickets.filter((tk) => ACTIVE_STATUSES.includes(tk.status));
+  const hasHistory = tickets.length > 0;
+  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+
   return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.08)",
-        borderRadius: 16,
-        boxShadow: "var(--sh-sm)",
-        padding: "40px 24px",
-        textAlign: "center",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 14,
-      }}
-    >
-      <Icon name="info" size={28} color="var(--c-400)" />
-      <div>
+    <div className="zw-help-card">
+      <div
+        style={{
+          fontSize: 16,
+          fontWeight: 600,
+          letterSpacing: "-0.02em",
+          color: "var(--c-900)",
+        }}
+      >
+        {t.report.title}
+      </div>
+      <div style={{ marginTop: 6 }}>
+        <span style={{ fontSize: 12.5, color: "var(--c-600)" }}>
+          {t.report.sub}
+        </span>
+      </div>
+
+      <div style={{ marginTop: 18 }}>
         <div
           style={{
-            fontSize: 16,
-            fontWeight: 600,
-            color: "var(--c-900)",
-            letterSpacing: "-0.01em",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: open.length ? 2 : 8,
           }}
         >
-          {t.empty.title}
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10.5,
+              fontWeight: 600,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--c-500)",
+            }}
+          >
+            {t.report.myTickets}
+          </span>
+          {open.length > 0 && (
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 10.5,
+                fontWeight: 600,
+                color: "var(--p-700)",
+              }}
+            >
+              {open.length === 1
+                ? t.report.openCountOne
+                : format(t.report.openCount, { count: String(open.length) })}
+            </span>
+          )}
         </div>
-        <p
-          className="txt-pretty"
-          style={{
-            margin: "8px 0 0",
-            fontSize: 14,
-            color: "var(--c-600)",
-            maxWidth: 360,
-          }}
-        >
-          {t.empty.body}
-        </p>
+        {open.length > 0 ? (
+          open.slice(0, 3).map((tk) => (
+            <button
+              key={tk.id}
+              type="button"
+              className="zw-help-treq tap"
+              onClick={() => onOpenTicket(tk.id)}
+            >
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: statusColor(tk.status),
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    color: "var(--c-900)",
+                    letterSpacing: "-0.01em",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {preview(tk) || categoryLabel(t, tk.category)}
+                </span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: 11.5,
+                    color: "var(--c-500)",
+                    marginTop: 1,
+                  }}
+                >
+                  {statusLabel(t, tk.status)} ·{" "}
+                  {dateFmt.format(new Date(tk.updatedAt))}
+                </span>
+              </span>
+              <Icon name="chevR" size={14} color="var(--c-400)" />
+            </button>
+          ))
+        ) : (
+          <p
+            className="txt-pretty"
+            style={{
+              margin: 0,
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: "var(--c-600)",
+            }}
+          >
+            {hasHistory ? t.report.noneOpen : t.report.nothingYet}
+          </p>
+        )}
       </div>
-      <Button kind="primary" size="md" onClick={onNew}>
-        <Icon name="plus" size={15} color="#fff" />
-        {t.newTicket}
-      </Button>
+
+      <div style={{ display: "flex", marginTop: 16 }}>
+        <Button
+          kind="primary"
+          size="md"
+          onClick={onNew}
+          style={{ flex: 1, justifyContent: "center" }}
+        >
+          {t.newTicket}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -952,56 +1055,36 @@ export function SupportSection({
     );
   }
 
-  if (tickets.length === 0) {
-    return <EmptyState t={st} onNew={() => setCreating(true)} />;
-  }
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 16,
-          flexWrap: "wrap",
-        }}
-      >
-        <p
-          className="txt-pretty"
+      <ReportIssueCard
+        t={st}
+        locale={locale}
+        tickets={tickets}
+        onOpenTicket={openTicket}
+        onNew={() => setCreating(true)}
+      />
+      {tickets.length > 0 && (
+        <div
           style={{
-            margin: 0,
-            fontSize: 14,
-            color: "var(--c-600)",
-            maxWidth: 460,
+            background: "#fff",
+            border: "1px solid rgba(28,28,26,0.08)",
+            borderRadius: 16,
+            boxShadow: "var(--sh-sm)",
+            overflow: "hidden",
           }}
         >
-          {st.intro}
-        </p>
-        <Button kind="primary" size="md" onClick={() => setCreating(true)}>
-          <Icon name="plus" size={15} color="#fff" />
-          {st.newTicket}
-        </Button>
-      </div>
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid rgba(28,28,26,0.08)",
-          borderRadius: 16,
-          boxShadow: "var(--sh-sm)",
-          overflow: "hidden",
-        }}
-      >
-        {tickets.map((ticket) => (
-          <TicketRow
-            key={ticket.id}
-            ticket={ticket}
-            t={st}
-            locale={locale}
-            onClick={() => openTicket(ticket.id)}
-          />
-        ))}
-      </div>
+          {tickets.map((ticket) => (
+            <TicketRow
+              key={ticket.id}
+              ticket={ticket}
+              t={st}
+              locale={locale}
+              onClick={() => openTicket(ticket.id)}
+            />
+          ))}
+        </div>
+      )}
       {loadError && (
         <div style={{ fontSize: 12.5, color: "var(--s-error-600)" }}>
           {st.loadError}

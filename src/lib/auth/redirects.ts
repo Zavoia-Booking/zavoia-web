@@ -15,5 +15,5 @@ export function safeRedirectTarget(
 }
 
 export function defaultPostAuthTarget(locale: Locale): string {
-  return localeHref(locale, "account");
+  return localeHref(locale);
 }

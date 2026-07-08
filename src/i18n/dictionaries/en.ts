@@ -133,12 +133,6 @@ export const en: {
     linkCopied: string;
     shareLabel: string;
     backToTop: string;
-    newsletterKicker: string;
-    newsletterHeading: string;
-    newsletterPlaceholder: string;
-    newsletterButton: string;
-    newsletterFine: string;
-    newsletterSuccess: string;
   };
   auth: {
     pageTitle: string;
@@ -160,6 +154,8 @@ export const en: {
     haveAccountPrompt: string;
     goToLogin: string;
     googleDivider: string;
+    businessOwnerPrompt: string;
+    businessOwnerCta: string;
     fields: {
       email: string;
       password: string;
@@ -167,6 +163,8 @@ export const en: {
       lastName: string;
       phone: string;
       phoneOptional: string;
+      showPassword: string;
+      hidePassword: string;
     };
     errors: {
       generic: string;
@@ -278,6 +276,12 @@ export const en: {
       phoneEmpty: string;
       dateOfBirth: string;
       address: string;
+      addressCountry: string;
+      addressCity: string;
+      addressStreet: string;
+      addressNumber: string;
+      addressMentions: string;
+      addressMentionsPlaceholder: string;
       addressEmpty: string;
     };
     logout: string;
@@ -304,10 +308,6 @@ export const en: {
       support: string;
     };
     preferencesSub: string;
-    meter: {
-      title: string;
-      hint: string;
-    };
     hubGroupLabel: string;
     backAria: string;
     buttons: {
@@ -404,6 +404,15 @@ export const en: {
     sectionError: string;
     support: {
       intro: string;
+      report: {
+        title: string;
+        sub: string;
+        myTickets: string;
+        openCount: string;
+        openCountOne: string;
+        noneOpen: string;
+        nothingYet: string;
+      };
       newTicket: string;
       backToTickets: string;
       loading: string;
@@ -633,6 +642,8 @@ export const en: {
     whatPlaceholder: string;
     browseByCategory: string;
     allInCategory: string;
+    seeMoreTags: string;
+    seeLessTags: string;
     useCurrentLocation: string;
     locationHint: string;
     locationEnabled: string;
@@ -782,6 +793,7 @@ export const en: {
     hero: {
       kicker: string;
       titleLead: string;
+      titleMid: string;
       titleMuted: string;
       subcopy: string;
       ctaPrimary: string;
@@ -801,7 +813,6 @@ export const en: {
       confirm: string;
       footnote: string;
     };
-    stats: { value: string; label: string }[];
     industries: {
       kicker: string;
       lead: string;
@@ -970,7 +981,6 @@ export const en: {
       title: string;
       sub: string;
       primary: string;
-      secondary: string;
     };
   };
   appointments: {
@@ -1039,7 +1049,6 @@ export const en: {
     atBusiness: string;
     sections: {
       where: string;
-      online: string;
       service: string;
       services: string;
       note: string;
@@ -1053,8 +1062,6 @@ export const en: {
     totalAtVenue: string;
     payDirectly: string;
     free: string;
-    onlineSessionFallback: string;
-    joinOnline: string;
     awaitingConfirmation: string;
     awaitingConfirmationBody: string;
     inProgress: string;
@@ -1129,6 +1136,31 @@ export const en: {
     goodToKnow: {
       title: string;
       items: { label: string; href: string[] }[];
+    };
+    report: {
+      title: string;
+      sub: string;
+      cta: string;
+      modal: {
+        title: string;
+        intro: string;
+        titleLabel: string;
+        titlePlaceholder: string;
+        emailLabel: string;
+        emailPlaceholder: string;
+        messageLabel: string;
+        messagePlaceholder: string;
+        submit: string;
+        cancel: string;
+        error: string;
+        errorRateLimit: string;
+        success: {
+          title: string;
+          body: string;
+          reference: string;
+          done: string;
+        };
+      };
     };
   };
   appointmentActions: {
@@ -1236,12 +1268,12 @@ export const en: {
       title: "Booking you can trust",
       items: [
         {
-          title: "Verified professionals",
-          sub: "Every business is identity-checked before it can take bookings.",
+          title: "Book local services",
+          sub: "Find and book appointments with businesses in your area.",
         },
         {
-          title: "Free cancellation",
-          sub: "Plans change — cancel free up to 24 hours before your visit.",
+          title: "Easy online booking",
+          sub: "Choose a service, pick a time, and book in just a few clicks.",
         },
         {
           title: "Pay at the venue",
@@ -1258,9 +1290,9 @@ export const en: {
       mockLabel: "Zavoia app",
     },
     bizStrip: {
-      kicker: "Own a local business?",
-      title: "Put your team in front of the whole city.",
-      meta: "No commission · simple pricing · live in an afternoon",
+      kicker: "Bring your business online",
+      title: "Get found, booked, and rebooked by local clients.",
+      meta: "No commission · simple pricing · start today",
       cta: "Zavoia for business",
       pricing: "Pricing",
     },
@@ -1330,12 +1362,6 @@ export const en: {
     linkCopied: "Link copied to clipboard",
     shareLabel: "Share",
     backToTop: "Back to top",
-    newsletterKicker: "The Journal, weekly",
-    newsletterHeading: "The best of the neighbourhood, every Thursday",
-    newsletterPlaceholder: "you@example.com",
-    newsletterButton: "Subscribe",
-    newsletterFine: "One email a week · unsubscribe anytime",
-    newsletterSuccess: "Subscribed — see you Thursday",
   },
   auth: {
     pageTitle: "Sign in or create an account — Zavoia",
@@ -1359,6 +1385,8 @@ export const en: {
     haveAccountPrompt: "Already have an account?",
     goToLogin: "Sign in",
     googleDivider: "or",
+    businessOwnerPrompt: "Business owner?",
+    businessOwnerCta: "Sign in to your dashboard",
     fields: {
       email: "Email",
       password: "Password",
@@ -1366,6 +1394,8 @@ export const en: {
       lastName: "Last name",
       phone: "Phone",
       phoneOptional: "Phone (optional)",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
     },
     errors: {
       generic: "Something went wrong. Please try again.",
@@ -1494,7 +1524,13 @@ export const en: {
       phoneEmpty: "Not provided",
       dateOfBirth: "Date of birth",
       address: "Address",
-      addressEmpty: "Add your address (optional)",
+      addressCountry: "Country",
+      addressCity: "City",
+      addressStreet: "Street",
+      addressNumber: "Number",
+      addressMentions: "Mentions",
+      addressMentionsPlaceholder: "Building, floor, apartment…",
+      addressEmpty: "Not provided",
     },
     logout: "Log out",
     loggingOut: "Logging out...",
@@ -1520,10 +1556,6 @@ export const en: {
       support: "Support",
     },
     preferencesSub: "Choose how you want to be notified.",
-    meter: {
-      title: "Profile {pct}% complete",
-      hint: "Complete your profile to get the most out of Zavoia.",
-    },
     hubGroupLabel: "Profile & account",
     backAria: "Back",
     buttons: {
@@ -1624,6 +1656,17 @@ export const en: {
     support: {
       intro:
         "Issues you've reported to our team. Track replies and reply back here.",
+      report: {
+        title: "Report an issue",
+        sub: "We look into every report, usually within a few hours",
+        myTickets: "My tickets",
+        openCount: "{count} open",
+        openCountOne: "1 open",
+        noneOpen:
+          "Nothing open right now — your past tickets are saved in your inbox.",
+        nothingYet:
+          "Nothing to report? All good. If something goes wrong, open a ticket and we'll sort it.",
+      },
       newTicket: "Report an issue",
       backToTickets: "All tickets",
       loading: "Loading your tickets...",
@@ -1856,6 +1899,8 @@ export const en: {
     whatPlaceholder: "All services and businesses",
     browseByCategory: "Browse by category",
     allInCategory: "All",
+    seeMoreTags: "See more",
+    seeLessTags: "See less",
     useCurrentLocation: "Use my current location",
     locationHint: "Tap to enable",
     locationEnabled: "Using your location",
@@ -2096,16 +2141,17 @@ export const en: {
     dashboardToast: "Opening the Zavoia Business dashboard…",
     hero: {
       kicker: "Zavoia for business",
-      titleLead: "Your calendar, full.",
-      titleMuted: "Your revenue, untouched.",
+      titleLead: "Your bookings.",
+      titleMid: "Your clients.",
+      titleMuted: "Your revenue.",
       subcopy:
-        "Salons, barbers, garages, clinics, trainers, groomers — wherever people book a time, Zavoia puts you in front of the clients searching nearby, with live availability, per-location calendars and reminders that kill no-shows. Clients pay you in person, so we never take a cut.",
+        "Salons, barbers, garages, clinics, trainers, groomers — wherever people book a time, Zavoia puts you in front of the clients searching nearby, with live availability, per-location calendars and reminders that reduce no-shows. Clients pay you in person, so we never take a cut.",
       ctaPrimary: "Get started free",
       ctaPricing: "See pricing",
       trust: {
         noCommission: "No commission",
         noFees: "No booking fees",
-        freeTrial: "14-day free trial",
+        freeTrial: "First 2 weeks free, no card required",
       },
     },
     phone: {
@@ -2117,12 +2163,6 @@ export const en: {
       confirm: "Confirm · Balayage + tone",
       footnote: "Pay at the venue · free cancellation",
     },
-    stats: [
-      { value: "2,400+", label: "partner businesses" },
-      { value: "120k", label: "bookings a month" },
-      { value: "4.8", label: "average rating" },
-      { value: "9", label: "live cities" },
-    ],
     industries: {
       kicker: "For every local service",
       lead: "Not just salons and spas — anywhere clients book a time.",
@@ -2141,9 +2181,9 @@ export const en: {
     },
     overview: {
       kicker: "One workspace",
-      title: "Your whole front desk, on one screen",
+      title: "Run your whole business from one dashboard",
       subcopy:
-        "Not four features you click between — the diary, new-client demand, no-show defence, reviews, team or solo calendars and every location all run at once, the moment you open the dashboard.",
+        "Manage bookings, calendars, team members, locations, reviews, and new client requests — all in one place.",
       tiles: {
         diary: "Today's diary",
         demand: "New-client demand",
@@ -2201,74 +2241,68 @@ export const en: {
     },
     switch: {
       kicker: "Why owners switch",
-      title: "Marketplaces rent you your own clients. We don’t.",
+      title: "Get discovered without giving up your margin.",
       subcopyLead:
-        "The big marketplaces bring clients but take a cut and keep the relationship. Standalone booking software is yours, but brings no demand. Zavoia is the only one that does both — new clients ",
+        "Big marketplaces can bring new clients, but they often take a cut and control the relationship. Booking software gives you control, but doesn’t help clients find you. Zavoia gives you both: customers discover you ",
       subcopyEm: "and",
-      subcopyTail: " ownership, with no commission.",
+      subcopyTail: " direct bookings, with no commission.",
       colZavoia: "Zavoia",
       colMarket: "Marketplace apps",
       colSoft: "Booking software",
       rows: [
         {
-          label: "Commission on every booking",
-          zav: "None, ever",
-          market: "15–30% cut",
-          soft: "None",
+          label: "Commission on bookings",
+          zav: "€0 — ever",
+          market: "Often 15–30%",
+          soft: "€0",
         },
         {
-          label: "Brings you new clients",
-          zav: "Marketplace demand",
-          market: "Yes — but rented",
-          soft: "No, bring your own",
+          label: "Helps bring new clients",
+          zav: "Yes — local marketplace discovery",
+          market: "Yes, but you pay for access",
+          soft: "No — you bring your own",
         },
         {
-          label: "The client stays yours",
-          zav: "Always",
-          market: "Locked to their app",
-          soft: "Yes",
-        },
-        {
-          label: "Multiple locations & team — or solo",
+          label: "Works for solo, teams, and multiple locations",
           zav: "Built in",
           market: "Varies",
           soft: "Varies",
         },
         {
-          label: "Clients pay you, in person",
-          zav: "Always — we never touch it",
-          market: "They process & take a cut",
-          soft: "Their processor",
+          label: "Payments",
+          zav: "Clients pay you directly",
+          market: "Platform may process and take a cut",
+          soft: "Usually their processor",
         },
         {
-          label: "Leave whenever you want",
+          label: "Commitment",
           zav: "Monthly, cancel anytime",
           market: "Varies",
-          soft: "Annual contracts",
+          soft: "Often annual contracts",
         },
       ],
-      cta: "Move your team over",
+      cta: "Create my business page",
       ctaNote:
-        "Free for 14 days · we help import your client list · no commission, ever.",
+        "Your first 2 weeks are free · Set up in minutes · No commission, ever.",
     },
     setup: {
-      title: "Live in an afternoon, not a quarter",
-      trialBadge: "{trial}-day free trial",
+      title: "Start taking bookings today",
+      trialBadge: "Your first 2 weeks are free",
       steps: [
         {
           n: "01",
-          title: "Build your profile",
-          body: "Photos, services and prices — every location and team member gets their own bookable page.",
+          title: "Create your business page",
+          body: "Add your photos, services, prices, locations, and team members in minutes.",
         },
         {
           n: "02",
-          title: "Open your calendar",
-          body: "Set availability per location and team member. Clients see real slots and book instantly.",
+          title: "Set your availability",
+          body: "Control when each location and team member can be booked. Clients only see real open times.",
         },
         {
           n: "03",
-          title: "Get booked",
-          body: "You rank in marketplace search across your city, and the rebookings follow.",
+          title: "Start getting bookings",
+          body: "Show up in local search, accept bookings online, and make it easy for clients to come back.",
         },
       ],
     },
@@ -2338,23 +2372,23 @@ export const en: {
           a: "No. Run solo with a single calendar, or give every team member their own bookable page — your call. Appointments can sit against a location directly when there is no named person to book.",
         },
         {
-          q: "Can I run more than one location?",
-          a: "Yes. Keep as many locations as you like under one business, each with its own calendars, team and opening hours. You are billed per bookable calendar across all of them.",
+          q: "Can I add multiple locations?",
+          a: "Yes. Manage all your locations from one account. Each location can have its own team, services, calendars, and opening hours. One subscription covers everything.",
         },
         {
           q: "How do we get started?",
           a: "Add your locations, services and anyone who takes appointments in the Zavoia Business dashboard, then open the calendar. Most businesses are live the same afternoon, and the first {trial} days are free.",
         },
         {
-          q: "Can we leave whenever we want?",
-          a: "Yes — monthly, with no minimum term. Export your client list and booking history at any time; it is your data.",
+          q: "Can we cancel anytime?",
+          a: "Yes. Zavoia is month-to-month, with no minimum term and no long-term contract.",
         },
       ],
     },
     ctaBand: {
       kicker: "Zavoia for business",
-      title: "Put your team in front of the whole city",
-      sub: "Free for {trial} days. Set up in an afternoon. No commission, ever.",
+      title: "Get discovered, booked, and rebooked by local clients.",
+      sub: "Your first 2 weeks are free. No commission, ever. Set up today.",
       ctaPrimary: "Get started free",
       ctaSecondary: "See pricing",
     },
@@ -2401,7 +2435,6 @@ export const en: {
       checks: [
         "No new-client acquisition fees — ever",
         "No per-booking or “boost” charges to stay visible",
-        "No feature tiers — the one plan is the top plan",
       ],
       receiptHeader: "NEW CLIENT · FIRST VISIT",
       lineService: "Balayage + tone",
@@ -2444,10 +2477,9 @@ export const en: {
     },
     cta: {
       kicker: "Ready when you are",
-      title: "Try it free with your real calendar",
-      sub: "{trial} days, every feature, no card to start.",
-      primary: "Start free trial",
-      secondary: "Learn more",
+      title: "Try Zavoia free for 2 weeks",
+      sub: "Every feature included. No card needed.",
+      primary: "Start free",
     },
   },
   appointments: {
@@ -2517,7 +2549,6 @@ export const en: {
     atBusiness: "at {business}",
     sections: {
       where: "Where",
-      online: "Online access",
       service: "Service",
       services: "Services",
       note: "Your note to the venue",
@@ -2531,8 +2562,6 @@ export const en: {
     totalAtVenue: "Total at venue",
     payDirectly: "Pay directly with {business}",
     free: "Free",
-    onlineSessionFallback: "Online session",
-    joinOnline: "Join online",
     awaitingConfirmation: "Awaiting confirmation",
     awaitingConfirmationBody:
       "{business} usually confirms within a few hours. We'll notify you the moment they do — nothing's charged until then.",
@@ -2688,6 +2717,33 @@ export const en: {
         { label: "List your business", href: ["for-business"] },
         { label: "Privacy policy", href: ["legal", "privacy"] },
       ],
+    },
+    report: {
+      title: "Report an issue",
+      sub: "We look into every report, usually within a few hours.",
+      cta: "Report an issue",
+      modal: {
+        title: "Report an issue",
+        intro:
+          "Tell us what went wrong — no account needed. We'll get back to you at the email you leave here.",
+        titleLabel: "Title",
+        titlePlaceholder: "A short summary of the issue",
+        emailLabel: "Email",
+        emailPlaceholder: "you@example.com",
+        messageLabel: "What happened?",
+        messagePlaceholder: "Describe the issue with as much detail as you can…",
+        submit: "Send report",
+        cancel: "Cancel",
+        error: "We couldn't send your report. Please try again.",
+        errorRateLimit:
+          "You've sent a few reports recently. Please wait a while and try again.",
+        success: {
+          title: "Thanks — we got your report",
+          body: "Our team looks into every report, usually within a few hours. We'll reply to {email}.",
+          reference: "Reference",
+          done: "Done",
+        },
+      },
     },
   },
   appointmentActions: {

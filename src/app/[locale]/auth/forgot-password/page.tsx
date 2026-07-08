@@ -9,6 +9,7 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
+import { AuthSkeleton } from "../_components/auth-skeleton";
 import { ForgotPasswordForm } from "./_components/forgot-password-form";
 
 export const dynamicParams = false;
@@ -49,7 +50,7 @@ export default async function ForgotPasswordPage({ params }: Props) {
   if (!isLocale(locale)) notFound();
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<AuthSkeleton />}>
       <ForgotPasswordForm locale={locale} />
     </Suspense>
   );

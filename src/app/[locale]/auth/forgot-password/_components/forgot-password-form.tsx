@@ -6,9 +6,13 @@ import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { forgotPassword } from "@/lib/api/customer-auth";
+import { AuthCard } from "../../_components/auth-card";
 import { AuthField } from "../../_components/auth-field";
 
 type Errors = Partial<Record<"email", string>>;
+
+const outlineButtonClass =
+  "flex h-12 w-full cursor-pointer items-center justify-center rounded-full border border-[rgba(28,28,26,0.14)] bg-white px-4 text-[15px] font-semibold text-ink transition hover:bg-c-100 md:h-11";
 
 export function ForgotPasswordForm({ locale }: { locale: Locale }) {
   const dict = dictionaries[locale].auth;
@@ -19,7 +23,9 @@ export function ForgotPasswordForm({ locale }: { locale: Locale }) {
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const loginHref = `${localeHref(locale, "auth")}?mode=login`;
+  const authHref = localeHref(locale, "auth");
+  const loginHref = `${authHref}?mode=login`;
+  const registerHref = `${authHref}?mode=register`;
 
   function validate(): Errors {
     const next: Errors = {};
@@ -48,54 +54,61 @@ export function ForgotPasswordForm({ locale }: { locale: Locale }) {
     }
   }
 
-  if (sent) {
-    return (
-      <main className="mx-auto max-w-md px-6 py-16">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t.sentHeading}
-        </h1>
-        <p className="mt-2 text-sm text-zinc-600">{t.sentBody}</p>
-        <Link
-          href={loginHref}
-          className="mt-6 inline-block rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
-        >
-          {t.backToLogin}
-        </Link>
-      </main>
-    );
-  }
-
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">{t.heading}</h1>
-      <p className="mt-2 text-sm text-zinc-600">{t.subtitle}</p>
-
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
-        <AuthField
-          id="email"
-          type="email"
-          label={dict.fields.email}
-          value={email}
-          onChange={setEmail}
-          error={errors.email}
-          autoComplete="email"
-        />
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+    <main
+      className="flex flex-col items-center justify-center px-4 py-10"
+      style={{ minHeight: "calc(100svh - var(--nav-h))" }}
+    >
+      <div className="w-full max-w-sm md:max-w-[62.5rem]">
+        <AuthCard
+          mode="login"
+          title={sent ? t.sentHeading : t.heading}
+          subtitle={sent ? undefined : t.subtitle}
+          loginHref={loginHref}
+          registerHref={registerHref}
+          tabLoginLabel={dict.tabLogin}
+          tabRegisterLabel={dict.tabRegister}
+          tablistLabel={dict.pageTitle}
+          isForgotMode
         >
-          {submitting ? t.submitting : t.submit}
-        </button>
-      </form>
+          {sent ? (
+            <div className="flex w-full flex-col gap-4">
+              <div className="rounded-[10px] bg-shade p-4 text-sm text-c-700">
+                {t.sentBody}
+              </div>
+              <Link href={loginHref} className={outlineButtonClass}>
+                {t.backToLogin}
+              </Link>
+            </div>
+          ) : (
+            <div className="flex w-full flex-col gap-4">
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <AuthField
+                  id="email"
+                  type="email"
+                  label={dict.fields.email}
+                  value={email}
+                  onChange={setEmail}
+                  error={errors.email}
+                  autoComplete="email"
+                />
 
-      <Link
-        href={loginHref}
-        className="mt-6 inline-block text-sm font-medium text-zinc-600 transition hover:text-zinc-900"
-      >
-        {t.backToLogin}
-      </Link>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="mt-4 h-12 w-full cursor-pointer rounded-full bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-p-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
+                >
+                  {submitting ? t.submitting : t.submit}
+                </button>
+              </form>
+
+              <Link href={loginHref} className={outlineButtonClass}>
+                {t.backToLogin}
+              </Link>
+            </div>
+          )}
+        </AuthCard>
+      </div>
     </main>
   );
 }

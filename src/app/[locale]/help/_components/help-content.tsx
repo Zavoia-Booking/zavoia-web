@@ -6,7 +6,8 @@ import { HelpCenter } from "./help-center";
 // Help centre page composition (server component). Reads the localized
 // `help` dictionary, resolves the "Good to know" link hrefs server-side, and
 // hands plain serializable props to the interactive client component. No auth
-// gating, no report-an-issue/ticket/support UI — everyone sees the same page.
+// gating — everyone sees the same page; the "Report an issue" card in the
+// aside submits to the PUBLIC guest ticket endpoint, so it works signed out.
 export function HelpContent({ locale }: { locale: Locale }) {
   const t = dictionaries[locale].help;
 
@@ -18,6 +19,7 @@ export function HelpContent({ locale }: { locale: Locale }) {
   return (
     <main>
       <HelpCenter
+        locale={locale}
         head={t.head}
         searchPlaceholder={t.searchPlaceholder}
         allLabel={t.allLabel}
@@ -26,6 +28,7 @@ export function HelpContent({ locale }: { locale: Locale }) {
         topics={t.topics}
         goodToKnowTitle={t.goodToKnow.title}
         goodToKnowLinks={goodToKnowLinks}
+        report={t.report}
       />
     </main>
   );

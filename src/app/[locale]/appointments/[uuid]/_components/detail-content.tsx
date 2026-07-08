@@ -31,7 +31,6 @@ import {
   LiveStrip,
   MobileBar,
   NotesCard,
-  OnlineCard,
   PendingBanner,
   RecurringNote,
   ReviewCard,
@@ -312,7 +311,6 @@ function ActionRail({
   const { rebook, pending: rebooking } = useRebook();
   const loc = appt.location;
   const biz = appt.business;
-  const isRemote = !!loc?.isRemote;
   const upcomingOrLive = tense === "future" || tense === "today" || tense === "now";
   const isPast = tense === "past";
   const cancelled = tone === "warning" || tone === "error";
@@ -383,12 +381,7 @@ function ActionRail({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {upcomingOrLive && !cancelled && isRemote && (
-            <RailButton kind="primary" icon="cal" href={calHref}>
-              {t.addToCalendar}
-            </RailButton>
-          )}
-          {upcomingOrLive && !cancelled && !isRemote && (
+          {upcomingOrLive && !cancelled && (
             <>
               {directionsHref && (
                 <RailButton kind="primary" icon="nav" href={directionsHref}>
@@ -500,7 +493,6 @@ function DetailBody({
   const cancelled = tone === "warning" || tone === "error";
 
   const services = [appt.primaryItemName, ...appt.additionalServices].filter(Boolean);
-  const isRemote = !!appt.location?.isRemote;
   const time = apptTime(appt.scheduled_at, locale);
   const endTime = apptTime(appt.ends_at, locale);
   const dateLabel = new Intl.DateTimeFormat(locale, {
@@ -683,15 +675,9 @@ function DetailBody({
         }}
       >
         <div style={{ minWidth: 0 }}>
-          {isRemote ? (
-            <Section label={t.sections.online}>
-              <OnlineCard t={t} appt={appt} />
-            </Section>
-          ) : (
-            <Section label={t.sections.where}>
-              <WhereCard t={t} appt={appt} locale={locale} tense={tense} tone={tone} />
-            </Section>
-          )}
+          <Section label={t.sections.where}>
+            <WhereCard t={t} appt={appt} locale={locale} tense={tense} tone={tone} />
+          </Section>
 
           <Section label={services.length > 1 ? t.sections.services : t.sections.service}>
             <ServiceCard t={t} appt={appt} locale={locale} />

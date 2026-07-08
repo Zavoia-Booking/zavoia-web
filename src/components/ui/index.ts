@@ -6,6 +6,7 @@ export { Chip, type ChipProps } from "./chip";
 export { Avatar, type AvatarProps } from "./avatar";
 export { Img, type ImgProps } from "./image";
 export { Skeleton, type SkeletonProps } from "./skeleton";
+export { DatePicker } from "./date-picker";
 export { Spinner, type SpinnerProps } from "./spinner";
 export { Stars, Rating, type StarsProps, type RatingProps } from "./rating";
 export { CatDot, type CatDotProps, type CategoryKey } from "./cat-dot";

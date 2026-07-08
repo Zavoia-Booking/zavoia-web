@@ -106,12 +106,7 @@ export function RegisterForm({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {dict.registerHeading}
-      </h1>
-      <p className="mt-2 text-sm text-zinc-600">{dict.registerSubtitle}</p>
-
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div className="grid grid-cols-2 gap-3">
           <AuthField
             id="firstName"
@@ -156,12 +151,14 @@ export function RegisterForm({
           onChange={(v) => setField("password", v)}
           error={errors.password}
           autoComplete="new-password"
+          showPasswordLabel={dict.fields.showPassword}
+          hidePasswordLabel={dict.fields.hidePassword}
         />
 
         {errors.form && (
           <p
             role="alert"
-            className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            className="rounded-[10px] border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
           >
             {errors.form}
           </p>
@@ -170,7 +167,7 @@ export function RegisterForm({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 h-12 w-full cursor-pointer rounded-full bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-p-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
         >
           {submitting ? dict.registerSubmitting : dict.registerSubmit}
         </button>

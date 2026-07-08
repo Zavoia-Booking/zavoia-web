@@ -89,7 +89,7 @@ function EditorsPickCard({
         style={{
           position: "relative",
           width: "100%",
-          aspectRatio: "4 / 3",
+          aspectRatio: "4 / 4.2",
           borderRadius: 22,
           overflow: "hidden",
           background: "var(--c-300)",
@@ -579,7 +579,11 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
 
       <div
         className="zw-split"
-        style={{ position: "relative", padding: "clamp(48px, 6vw, 92px) 0" }}
+        style={{
+          position: "relative",
+          padding: "clamp(48px, 6vw, 92px) 0",
+          minHeight: "70vh",
+        }}
       >
         {/* Intro + pager */}
         <div className="zw-split-left">

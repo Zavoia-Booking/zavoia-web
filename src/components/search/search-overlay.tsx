@@ -419,18 +419,193 @@ function Section({
           </span>
         )}
       </button>
+      {/* Grid-rows collapse (0fr ↔ 1fr) animates to the CONTENT's real height —
+          a max-height sized for the tallest section makes short ones appear to
+          snap. Children stay mounted so the close animates too; `inert` keeps
+          the hidden body out of tab order and accessibility tree. */}
       <div
+        inert={!open}
         style={{
-          maxHeight: open ? 1200 : 0,
-          opacity: open ? 1 : 0,
-          overflow: "hidden",
+          display: "grid",
+          gridTemplateRows: open ? "1fr" : "0fr",
           transition: open
-            ? "max-height .42s var(--ease-out), opacity .25s var(--ease-out) .05s"
-            : "max-height .3s var(--ease-soft), opacity .15s var(--ease-soft)",
+            ? "grid-template-rows .42s var(--ease-out)"
+            : "grid-template-rows .3s var(--ease-soft)",
         }}
       >
-        <div style={{ padding: "0 20px 20px" }}>{open && children}</div>
+        <div
+          style={{
+            overflow: "hidden",
+            minHeight: 0,
+            opacity: open ? 1 : 0,
+            transition: open
+              ? "opacity .25s var(--ease-out) .05s"
+              : "opacity .15s var(--ease-soft)",
+          }}
+        >
+          <div style={{ padding: "0 20px 20px" }}>{children}</div>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ── Browse by category: industries grouped like the dashboard amenities
+// section — an icon + name header per industry, plain tag chips beneath it,
+// and an inline "see more" that expands that industry's full tag list in
+// place (no popup, no navigation). The whole block scrolls past a reasonable
+// height. Chips carry no per-tag icon anymore; the icon lives on the header.
+const TAGS_COLLAPSED = 6;
+
+function CategoryBrowse({
+  industries,
+  industry,
+  tagIds,
+  onSelectTag,
+}: {
+  industries: Industry[];
+  industry: string;
+  tagIds: number[];
+  onSelectTag: (industrySlug: string, tagId: number) => void;
+}) {
+  const { locale, dict } = useTranslation();
+  const t = dict.searchOverlay;
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  return (
+    <div
+      className="zw-noscrollbar"
+      style={{
+        marginTop: 6,
+        maxHeight: 340,
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: 18,
+        padding: "2px 0",
+      }}
+    >
+      {industries.map((ind) => {
+        const cat = toCat(ind);
+        const isExpanded = !!expanded[ind.slug];
+        const overflow = ind.tags.length > TAGS_COLLAPSED;
+        // Collapsed → first N tags, plus any selected tag beyond the window
+        // so an active choice never disappears behind "see more".
+        const visible =
+          !overflow || isExpanded
+            ? ind.tags
+            : [
+                ...ind.tags.slice(0, TAGS_COLLAPSED),
+                ...ind.tags
+                  .slice(TAGS_COLLAPSED)
+                  .filter(
+                    (tag) => industry === ind.slug && tagIds.includes(tag.id),
+                  ),
+              ];
+        return (
+          <div key={ind.id}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 8,
+                padding: "0 2px",
+              }}
+            >
+              <Icon name={CAT_ICON[cat]} size={15} color={`var(--cat-${cat})`} />
+              <span
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  color: "var(--c-900)",
+                  letterSpacing: "-0.01em",
+                  lineHeight: 1.2,
+                }}
+              >
+                {taxonomyLabel(ind, locale)}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {visible.map((tag) => {
+                const active = industry === ind.slug && tagIds.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => onSelectTag(ind.slug, tag.id)}
+                    className="tap zw-chip-lift"
+                    aria-pressed={active}
+                    style={{
+                      flex: "0 0 auto",
+                      height: 34,
+                      padding: "0 13px",
+                      background: active ? "var(--c-ink)" : "#fff",
+                      border: `1px solid ${active ? "var(--c-ink)" : "rgba(28,28,26,0.09)"}`,
+                      borderRadius: 999,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: active ? "#fff" : "var(--c-800)",
+                        letterSpacing: "-0.008em",
+                        lineHeight: 1,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {taxonomyLabel(tag, locale)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {overflow && (
+              <button
+                type="button"
+                onClick={() =>
+                  setExpanded((prev) => ({
+                    ...prev,
+                    [ind.slug]: !prev[ind.slug],
+                  }))
+                }
+                className="tap"
+                aria-expanded={isExpanded}
+                style={{
+                  marginTop: 7,
+                  background: "transparent",
+                  border: 0,
+                  cursor: "pointer",
+                  padding: "2px 2px",
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: "var(--c-600)",
+                  letterSpacing: "-0.005em",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                {isExpanded
+                  ? t.seeLessTags
+                  : `${t.seeMoreTags} (${ind.tags.length - TAGS_COLLAPSED})`}
+                <Icon
+                  name="chevR"
+                  size={11}
+                  color="var(--c-500)"
+                  style={{
+                    transform: isExpanded ? "rotate(-90deg)" : "rotate(90deg)",
+                  }}
+                />
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -468,6 +643,10 @@ function WhatSection({
   const preview = useSearchPreview(what);
   const showPreview = what.trim().length >= 2;
   const showHint = what.trim().length === 1;
+
+  // Industries with no tags have nothing to offer in the browse list — an
+  // icon + name header with zero chips under it — so they are not rendered.
+  const browsable = industries.filter((ind) => ind.tags.length > 0);
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -669,57 +848,15 @@ function WhatSection({
         </div>
       )}
 
-      {what.trim().length === 0 && industries.length > 0 && (
+      {what.trim().length === 0 && browsable.length > 0 && (
         <div style={{ marginTop: 18 }}>
           <span style={eyebrow}>{t.browseByCategory}</span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
-            {industries.flatMap((ind) => {
-              const cat = toCat(ind);
-              return ind.tags.map((tag) => {
-                const active =
-                  industry === ind.slug && tagIds.includes(tag.id);
-                return (
-                  <button
-                    key={`${ind.id}-${tag.id}`}
-                    type="button"
-                    onClick={() => onSelectTag(ind.slug, tag.id)}
-                    className="tap zw-chip-lift"
-                    aria-pressed={active}
-                    style={{
-                      flex: "0 0 auto",
-                      height: 40,
-                      padding: "0 15px 0 12px",
-                      background: active ? "var(--c-ink)" : "#fff",
-                      border: `1px solid ${active ? "var(--c-ink)" : "rgba(28,28,26,0.09)"}`,
-                      borderRadius: 999,
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <Icon
-                      name={CAT_ICON[cat]}
-                      size={15}
-                      color={active ? "#fff" : `var(--cat-${cat})`}
-                    />
-                    <span
-                      style={{
-                        fontSize: 13.5,
-                        fontWeight: 600,
-                        color: active ? "#fff" : "var(--c-900)",
-                        letterSpacing: "-0.008em",
-                        lineHeight: 1,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {taxonomyLabel(tag, locale)}
-                    </span>
-                  </button>
-                );
-              });
-            })}
-          </div>
+          <CategoryBrowse
+            industries={browsable}
+            industry={industry}
+            tagIds={tagIds}
+            onSelectTag={onSelectTag}
+          />
         </div>
       )}
     </div>

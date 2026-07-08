@@ -64,12 +64,12 @@ export const ro: Dictionary = {
       title: "Rezervări în care poți avea încredere",
       items: [
         {
-          title: "Profesioniști verificați",
-          sub: "Fiecare afacere este verificată ca identitate înainte de a primi rezervări.",
+          title: "Rezervă servicii locale",
+          sub: "Găsește și rezervă programări la afacerile din zona ta.",
         },
         {
-          title: "Anulare gratuită",
-          sub: "Planurile se schimbă — anulezi gratuit cu până la 24 de ore înainte de vizită.",
+          title: "Rezervare online simplă",
+          sub: "Alegi un serviciu, alegi o oră și rezervi în doar câteva clicuri.",
         },
         {
           title: "Plătești la locație",
@@ -86,9 +86,9 @@ export const ro: Dictionary = {
       mockLabel: "Aplicația Zavoia",
     },
     bizStrip: {
-      kicker: "Ai o afacere locală?",
-      title: "Pune-ți echipa în fața întregului oraș.",
-      meta: "Fără comision · prețuri simple · live într-o după-amiază",
+      kicker: "Adu-ți afacerea online",
+      title: "Clienții locali te găsesc, te rezervă și revin.",
+      meta: "Fără comision · prețuri simple · începe azi",
       cta: "Zavoia pentru afaceri",
       pricing: "Prețuri",
     },
@@ -158,12 +158,6 @@ export const ro: Dictionary = {
     linkCopied: "Link copiat în clipboard",
     shareLabel: "Distribuie",
     backToTop: "Înapoi sus",
-    newsletterKicker: "Jurnalul, săptămânal",
-    newsletterHeading: "Tot ce e mai bun din vecinătate, în fiecare joi",
-    newsletterPlaceholder: "tu@exemplu.com",
-    newsletterButton: "Abonează-te",
-    newsletterFine: "Un email pe săptămână · te poți dezabona oricând",
-    newsletterSuccess: "Te-ai abonat — ne vedem joi",
   },
   auth: {
     pageTitle: "Autentificare sau cont nou — Zavoia",
@@ -187,6 +181,8 @@ export const ro: Dictionary = {
     haveAccountPrompt: "Ai deja cont?",
     goToLogin: "Autentificare",
     googleDivider: "sau",
+    businessOwnerPrompt: "Ai o afacere?",
+    businessOwnerCta: "Autentifică-te în dashboardul tău",
     fields: {
       email: "Email",
       password: "Parolă",
@@ -194,6 +190,8 @@ export const ro: Dictionary = {
       lastName: "Nume",
       phone: "Telefon",
       phoneOptional: "Telefon (opțional)",
+      showPassword: "Arată parola",
+      hidePassword: "Ascunde parola",
     },
     errors: {
       generic: "Ceva nu a funcționat. Încearcă din nou.",
@@ -327,7 +325,13 @@ export const ro: Dictionary = {
       phoneEmpty: "Necompletat",
       dateOfBirth: "Data nașterii",
       address: "Adresă",
-      addressEmpty: "Adaugă adresa ta (opțional)",
+      addressCountry: "Țară",
+      addressCity: "Oraș",
+      addressStreet: "Stradă",
+      addressNumber: "Număr",
+      addressMentions: "Mențiuni",
+      addressMentionsPlaceholder: "Bloc, etaj, apartament…",
+      addressEmpty: "Necompletat",
     },
     logout: "Deconectare",
     loggingOut: "Se deconectează...",
@@ -353,10 +357,6 @@ export const ro: Dictionary = {
       support: "Asistență",
     },
     preferencesSub: "Alege cum vrei să fii notificat.",
-    meter: {
-      title: "Profil completat {pct}%",
-      hint: "Completează-ți profilul pentru a profita la maximum de Zavoia.",
-    },
     hubGroupLabel: "Profil și cont",
     backAria: "Înapoi",
     buttons: {
@@ -459,6 +459,17 @@ export const ro: Dictionary = {
     support: {
       intro:
         "Probleme pe care le-ai raportat echipei noastre. Urmărește răspunsurile și răspunde direct de aici.",
+      report: {
+        title: "Raportează o problemă",
+        sub: "Analizăm fiecare raport, de obicei în câteva ore",
+        myTickets: "Tichetele mele",
+        openCount: "{count} deschise",
+        openCountOne: "1 deschis",
+        noneOpen:
+          "Nimic deschis momentan — tichetele tale anterioare rămân salvate aici.",
+        nothingYet:
+          "Nimic de raportat? Perfect. Dacă ceva nu merge, deschide un tichet și rezolvăm.",
+      },
       newTicket: "Raportează o problemă",
       backToTickets: "Toate tichetele",
       loading: "Se încarcă tichetele tale...",
@@ -692,6 +703,8 @@ export const ro: Dictionary = {
     whatPlaceholder: "Toate serviciile și afacerile",
     browseByCategory: "Răsfoiește pe categorii",
     allInCategory: "Toate",
+    seeMoreTags: "Vezi mai multe",
+    seeLessTags: "Vezi mai puține",
     useCurrentLocation: "Folosește locația mea curentă",
     locationHint: "Atinge pentru a activa",
     locationEnabled: "Se folosește locația ta",
@@ -932,16 +945,17 @@ export const ro: Dictionary = {
     dashboardToast: "Se deschide panoul Zavoia Business…",
     hero: {
       kicker: "Zavoia pentru afaceri",
-      titleLead: "Agenda ta, plină.",
-      titleMuted: "Încasările tale, neatinse.",
+      titleLead: "Rezervările tale.",
+      titleMid: "Clienții tăi.",
+      titleMuted: "Încasările tale.",
       subcopy:
-        "Saloane, frizerii, service-uri auto, clinici, antrenori, toaletaj — oriunde oamenii rezervă o oră, Zavoia te pune în fața clienților care caută în apropiere, cu disponibilitate live, calendare pe fiecare locație și remindere care elimină neprezentările. Clienții te plătesc pe loc, așa că nu luăm niciodată un comision.",
+        "Saloane, frizerii, service-uri auto, clinici, antrenori, toaletaj — oriunde oamenii rezervă o oră, Zavoia te pune în fața clienților care caută în apropiere, cu disponibilitate live, calendare pe fiecare locație și remindere care reduc neprezentările. Clienții te plătesc pe loc, așa că nu luăm niciodată un comision.",
       ctaPrimary: "Începe gratuit",
       ctaPricing: "Vezi prețurile",
       trust: {
         noCommission: "Fără comision",
         noFees: "Fără taxe de rezervare",
-        freeTrial: "14 zile gratuit",
+        freeTrial: "Primele 2 săptămâni gratuite, fără card",
       },
     },
     phone: {
@@ -953,12 +967,6 @@ export const ro: Dictionary = {
       confirm: "Confirmă · Balayage + tonifiere",
       footnote: "Plătești la salon · anulare gratuită",
     },
-    stats: [
-      { value: "2.400+", label: "afaceri partenere" },
-      { value: "120k", label: "rezervări pe lună" },
-      { value: "4,8", label: "rating mediu" },
-      { value: "9", label: "orașe active" },
-    ],
     industries: {
       kicker: "Pentru orice serviciu local",
       lead: "Nu doar saloane și spa-uri — oriunde clienții rezervă o oră.",
@@ -977,9 +985,9 @@ export const ro: Dictionary = {
     },
     overview: {
       kicker: "Un singur spațiu de lucru",
-      title: "Toată recepția ta, pe un singur ecran",
+      title: "Administrează-ți toată afacerea dintr-un singur dashboard",
       subcopy:
-        "Nu patru funcții între care dai click — agenda, cererea de clienți noi, protecția anti-neprezentare, recenziile, calendarele de echipă sau individuale și fiecare locație rulează simultan, din clipa în care deschizi panoul.",
+        "Gestionează rezervări, calendare, membrii echipei, locații, recenzii și cereri de clienți noi — totul într-un singur loc.",
       tiles: {
         diary: "Agenda de azi",
         demand: "Cerere clienți noi",
@@ -1037,74 +1045,68 @@ export const ro: Dictionary = {
     },
     switch: {
       kicker: "De ce migrează proprietarii",
-      title: "Marketplace-urile îți închiriază propriii clienți. Noi nu.",
+      title: "Fii descoperit fără să renunți la marja ta.",
       subcopyLead:
-        "Marketplace-urile mari aduc clienți, dar iau un comision și păstrează relația. Software-ul de rezervări de sine stătător este al tău, dar nu aduce cerere. Zavoia este singurul care face ambele — clienți noi ",
+        "Marketplace-urile mari pot aduce clienți noi, dar deseori iau un comision și controlează relația. Software-ul de rezervări îți dă control, dar nu îi ajută pe clienți să te găsească. Zavoia îți oferă ambele: clienții te descoperă ",
       subcopyEm: "și",
-      subcopyTail: " proprietatea, fără comision.",
+      subcopyTail: " rezervări directe, fără comision.",
       colZavoia: "Zavoia",
       colMarket: "Aplicații marketplace",
       colSoft: "Software de rezervări",
       rows: [
         {
-          label: "Comision la fiecare rezervare",
-          zav: "Niciodată",
-          market: "Comision 15–30%",
-          soft: "Niciun comision",
+          label: "Comision la rezervări",
+          zav: "0 € — niciodată",
+          market: "Deseori 15–30%",
+          soft: "0 €",
         },
         {
-          label: "Îți aduce clienți noi",
-          zav: "Cerere din marketplace",
-          market: "Da — dar închiriați",
-          soft: "Nu, ți-i aduci singur",
+          label: "Te ajută să aduci clienți noi",
+          zav: "Da — descoperire în marketplace-ul local",
+          market: "Da, dar plătești pentru acces",
+          soft: "Nu — ți-i aduci singur",
         },
         {
-          label: "Clientul rămâne al tău",
-          zav: "Întotdeauna",
-          market: "Blocat în aplicația lor",
-          soft: "Da",
-        },
-        {
-          label: "Locații multiple & echipă — sau individual",
+          label: "Funcționează individual, cu echipă și cu locații multiple",
           zav: "Inclus",
           market: "Variază",
           soft: "Variază",
         },
         {
-          label: "Clienții te plătesc, pe loc",
-          zav: "Întotdeauna — nu atingem banii",
-          market: "Ei procesează & iau un comision",
-          soft: "Procesatorul lor",
+          label: "Plăți",
+          zav: "Clienții te plătesc direct",
+          market: "Platforma poate procesa și lua un comision",
+          soft: "De obicei procesatorul lor",
         },
         {
-          label: "Pleci oricând vrei",
+          label: "Angajament",
           zav: "Lunar, anulezi oricând",
           market: "Variază",
-          soft: "Contracte anuale",
+          soft: "Deseori contracte anuale",
         },
       ],
-      cta: "Mută-ți echipa la noi",
+      cta: "Creează-mi pagina afacerii",
       ctaNote:
-        "Gratuit 14 zile · te ajutăm să-ți imporți lista de clienți · fără comision, niciodată.",
+        "Primele 2 săptămâni sunt gratuite · Configurare în câteva minute · Fără comision, niciodată.",
     },
     setup: {
-      title: "Funcțional într-o după-amiază, nu într-un trimestru",
-      trialBadge: "{trial} zile gratuite de probă",
+      title: "Începe să primești rezervări azi",
+      trialBadge: "Primele 2 săptămâni sunt gratuite",
       steps: [
         {
           n: "01",
-          title: "Construiește-ți profilul",
-          body: "Fotografii, servicii și prețuri — fiecare locație și membru al echipei primește propria pagină rezervabilă.",
+          title: "Creează-ți pagina afacerii",
+          body: "Adaugă fotografii, servicii, prețuri, locații și membrii echipei în câteva minute.",
         },
         {
           n: "02",
-          title: "Deschide-ți calendarul",
-          body: "Setează disponibilitatea per locație și membru al echipei. Clienții văd sloturi reale și rezervă instant.",
+          title: "Setează-ți disponibilitatea",
+          body: "Controlezi când poate fi rezervată fiecare locație și fiecare membru al echipei. Clienții văd doar orele real disponibile.",
         },
         {
           n: "03",
-          title: "Primește rezervări",
-          body: "Apari în căutările din marketplace din tot orașul, iar reprogramările vin de la sine.",
+          title: "Începe să primești rezervări",
+          body: "Apari în căutările locale, accepți rezervări online și le faci clienților ușor să revină.",
         },
       ],
     },
@@ -1174,23 +1176,23 @@ export const ro: Dictionary = {
           a: "Nu. Lucrezi singur cu un singur calendar sau dai fiecărui membru al echipei propria pagină de rezervări — tu decizi. Programările pot fi atribuite direct unei locații atunci când nu există o persoană anume de rezervat.",
         },
         {
-          q: "Pot administra mai multe locații?",
-          a: "Da. Ține câte locații vrei sub o singură afacere, fiecare cu propriile calendare, echipă și program. Ești facturat pe calendar rezervabil, pentru toate la un loc.",
+          q: "Pot adăuga mai multe locații?",
+          a: "Da. Administrezi toate locațiile dintr-un singur cont. Fiecare locație poate avea propria echipă, servicii, calendare și program. Un singur abonament acoperă tot.",
         },
         {
           q: "Cum începem?",
           a: "Adaugă-ți locațiile, serviciile și pe oricine ia programări în dashboard-ul Zavoia Business, apoi deschide calendarul. Majoritatea afacerilor sunt active chiar în aceeași după-amiază, iar primele {trial} zile sunt gratuite.",
         },
         {
-          q: "Putem pleca oricând vrem?",
-          a: "Da — lunar, fără perioadă minimă. Îți exporți lista de clienți și istoricul rezervărilor oricând; sunt datele tale.",
+          q: "Putem anula oricând?",
+          a: "Da. Zavoia funcționează lunar, fără perioadă minimă și fără contract pe termen lung.",
         },
       ],
     },
     ctaBand: {
       kicker: "Zavoia pentru afaceri",
-      title: "Pune-ți echipa în fața întregului oraș",
-      sub: "Gratuit {trial} zile. Configurare într-o după-amiază. Fără comision, niciodată.",
+      title: "Fii descoperit, rezervat și re-rezervat de clienți locali.",
+      sub: "Primele 2 săptămâni sunt gratuite. Fără comision, niciodată. Configurează-te azi.",
       ctaPrimary: "Începe gratuit",
       ctaSecondary: "Vezi prețurile",
     },
@@ -1237,7 +1239,6 @@ export const ro: Dictionary = {
       checks: [
         "Fără taxe de achiziție pentru clienți noi — niciodată",
         "Fără taxe pe rezervare sau de „promovare” ca să rămâi vizibil",
-        "Fără niveluri de funcții — singurul plan este planul complet",
       ],
       receiptHeader: "CLIENT NOU · PRIMA VIZITĂ",
       lineService: "Balayage + tonifiere",
@@ -1280,10 +1281,9 @@ export const ro: Dictionary = {
     },
     cta: {
       kicker: "Gata când ești și tu",
-      title: "Încearcă gratuit cu calendarul tău real",
-      sub: "{trial} zile, toate funcțiile, fără card pentru a începe.",
-      primary: "Începe perioada de probă gratuită",
-      secondary: "Află mai multe",
+      title: "Încearcă Zavoia gratuit timp de 2 săptămâni",
+      sub: "Toate funcțiile incluse. Fără card.",
+      primary: "Începe gratuit",
     },
   },
   appointments: {
@@ -1355,7 +1355,6 @@ export const ro: Dictionary = {
     atBusiness: "la {business}",
     sections: {
       where: "Unde",
-      online: "Acces online",
       service: "Serviciu",
       services: "Servicii",
       note: "Nota ta către locație",
@@ -1369,8 +1368,6 @@ export const ro: Dictionary = {
     totalAtVenue: "Total la locație",
     payDirectly: "Plătești direct la {business}",
     free: "Gratuit",
-    onlineSessionFallback: "Sesiune online",
-    joinOnline: "Intră online",
     awaitingConfirmation: "În așteptarea confirmării",
     awaitingConfirmationBody:
       "{business} confirmă de obicei în câteva ore. Te anunțăm imediat ce o fac — nu se percepe nimic până atunci.",
@@ -1527,6 +1524,33 @@ export const ro: Dictionary = {
         { label: "Listează-ți afacerea", href: ["for-business"] },
         { label: "Politica de confidențialitate", href: ["legal", "privacy"] },
       ],
+    },
+    report: {
+      title: "Raportează o problemă",
+      sub: "Analizăm fiecare raport, de obicei în câteva ore.",
+      cta: "Raportează o problemă",
+      modal: {
+        title: "Raportează o problemă",
+        intro:
+          "Spune-ne ce nu a mers — nu ai nevoie de cont. Îți răspundem la adresa de email lăsată aici.",
+        titleLabel: "Titlu",
+        titlePlaceholder: "Un rezumat scurt al problemei",
+        emailLabel: "Email",
+        emailPlaceholder: "tu@exemplu.com",
+        messageLabel: "Ce s-a întâmplat?",
+        messagePlaceholder: "Descrie problema cu cât mai multe detalii…",
+        submit: "Trimite raportul",
+        cancel: "Anulează",
+        error: "Nu am putut trimite raportul. Te rugăm să încerci din nou.",
+        errorRateLimit:
+          "Ai trimis mai multe rapoarte recent. Te rugăm să aștepți puțin și să încerci din nou.",
+        success: {
+          title: "Mulțumim — am primit raportul tău",
+          body: "Echipa noastră analizează fiecare raport, de obicei în câteva ore. Îți vom răspunde la {email}.",
+          reference: "Referință",
+          done: "Gata",
+        },
+      },
     },
   },
   appointmentActions: {

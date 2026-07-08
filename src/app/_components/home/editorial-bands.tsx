@@ -10,7 +10,7 @@ import { Icon, type IconName } from "@/components/ui/icon";
 // ─────────────────────────────────────────────
 export function TrustBand({ locale }: { locale: Locale }) {
   const s = dictionaries[locale].homeSections.trust;
-  const icons: IconName[] = ["shield", "cal", "wallet"];
+  const icons: IconName[] = ["pin", "cal", "wallet"];
 
   return (
     <section className="zw-container" style={{ paddingTop: 76 }}>

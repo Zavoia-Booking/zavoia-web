@@ -49,7 +49,6 @@ export function PricingContent({ locale }: { locale: Locale }) {
         title={t.cta.title}
         sub={format(t.cta.sub, { trial })}
         primaryLabel={t.cta.primary}
-        secondaryLabel={t.cta.secondary}
       />
     </main>
   );

@@ -16,7 +16,6 @@ import { BlogTabs } from "./blog-tabs";
 import { BlogFeatured } from "./blog-featured";
 import { BlogCard } from "./blog-card";
 import { Pagination } from "./pagination";
-import { Newsletter } from "./newsletter";
 import type { BlogCardVM } from "./types";
 
 const PAGE_SIZE = 6;
@@ -239,8 +238,6 @@ export function BlogList({
           </div>
         )}
       </div>
-
-      <Newsletter />
     </div>
   );
 }

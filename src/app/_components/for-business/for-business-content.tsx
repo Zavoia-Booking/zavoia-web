@@ -56,9 +56,6 @@ function FbHero({
   const { dict } = useTranslation();
   const s = dict.forBusiness.hero;
   const phone = dict.forBusiness.phone;
-  const stats = dict.forBusiness.stats;
-  // The rating stat (3rd) gets the inline star.
-  const STAR_INDEX = 2;
   const SELECTED_TIME = "15:30";
 
   return (
@@ -108,9 +105,9 @@ function FbHero({
           >
             {s.titleLead}
             <br />
-            <span style={{ color: "rgba(255,255,255,0.42)" }}>
-              {s.titleMuted}
-            </span>
+            {s.titleMid}
+            <br />
+            {s.titleMuted}
           </h1>
           <p
             className="txt-pretty"
@@ -340,69 +337,6 @@ function FbHero({
         </div>
       </div>
 
-      {/* Stat strip — marketplace scale social proof. */}
-      <div
-        style={{
-          position: "relative",
-          borderTop: "1px solid rgba(255,255,255,0.10)",
-        }}
-      >
-        <div
-          className="zw-container"
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "14px clamp(28px, 5vw, 72px)",
-            padding: "22px var(--gutter)",
-            alignItems: "baseline",
-          }}
-        >
-          {stats.map((stat, i) => (
-            <span
-              key={stat.label}
-              style={{
-                display: "inline-flex",
-                alignItems: "baseline",
-                gap: 9,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 21,
-                  fontWeight: 700,
-                  letterSpacing: "-0.03em",
-                  fontVariantNumeric: "tabular-nums",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                }}
-              >
-                {stat.value}
-                {i === STAR_INDEX && (
-                  <Icon
-                    name="star"
-                    size={13}
-                    color="var(--p-400)"
-                    style={{ transform: "translateY(-1px)" }}
-                  />
-                )}
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.5)",
-                }}
-              >
-                {stat.label}
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }
