@@ -719,11 +719,6 @@ export const en: {
   industryTags: Record<string, string>;
   footer: {
     tagline: string;
-    journalWeekly: string;
-    emailPlaceholder: string;
-    emailAria: string;
-    subscribe: string;
-    subscribed: string;
     explore: string;
     zavoia: string;
     support: string;
@@ -2060,11 +2055,6 @@ export const en: {
   footer: {
     tagline:
       "Book trusted local professionals — beauty, health, home and more — in a couple of clicks.",
-    journalWeekly: "The Journal, weekly",
-    emailPlaceholder: "you@example.com",
-    emailAria: "Email address",
-    subscribe: "Subscribe",
-    subscribed: "Subscribed — see you Thursday",
     explore: "Explore",
     zavoia: "Zavoia",
     support: "Support",

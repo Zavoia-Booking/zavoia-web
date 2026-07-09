@@ -1,75 +1,14 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import Link from "next/link";
-import { Button, Icon, useToast } from "@/components/ui";
+import { Icon } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { LOCALES, type Locale } from "@/i18n/locales";
 
-// Port of ZwFooter + ZwFooterNewsletter (docs/web-shell.jsx). All labels i18n'd.
-// Newsletter has no endpoint this slice — submit just toasts "Subscribed".
+// Port of ZwFooter (docs/web-shell.jsx). All labels i18n'd.
 // Language switch lives in the bottom bar (en/ro via localeHref).
-
-function Newsletter() {
-  const { dict } = useTranslation();
-  const toast = useToast();
-  const [email, setEmail] = useState("");
-  const t = dict.footer;
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-    toast(t.subscribed, "check");
-    setEmail("");
-  };
-
-  return (
-    <form
-      onSubmit={submit}
-      style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 300 }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10.5,
-          fontWeight: 600,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "var(--c-500)",
-        }}
-      >
-        {t.journalWeekly}
-      </span>
-      <div style={{ display: "flex", gap: 6 }}>
-        <input
-          type="email"
-          value={email}
-          required
-          placeholder={t.emailPlaceholder}
-          onChange={(e) => setEmail(e.target.value)}
-          aria-label={t.emailAria}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            border: "1px solid rgba(28,28,26,0.14)",
-            borderRadius: 999,
-            padding: "9px 15px",
-            fontSize: 13,
-            background: "#fff",
-            color: "var(--c-900)",
-            outline: "none",
-            letterSpacing: "-0.01em",
-            fontFamily: "inherit",
-          }}
-        />
-        <Button kind="primary" size="sm" type="submit">
-          {t.subscribe}
-        </Button>
-      </div>
-    </form>
-  );
-}
 
 export function Footer({ locale }: { locale: Locale }) {
   const { dict } = useTranslation();
@@ -135,7 +74,6 @@ export function Footer({ locale }: { locale: Locale }) {
             >
               {t.tagline}
             </p>
-            <Newsletter />
           </div>
 
           <div style={col}>

@@ -871,11 +871,6 @@ export const ro: Dictionary = {
   footer: {
     tagline:
       "Rezervă profesioniști locali de încredere — frumusețe, sănătate, casă și altele — în câteva clicuri.",
-    journalWeekly: "Jurnalul, săptămânal",
-    emailPlaceholder: "tu@exemplu.com",
-    emailAria: "Adresă de email",
-    subscribe: "Abonează-te",
-    subscribed: "Te-ai abonat — ne vedem joi",
     explore: "Explorează",
     zavoia: "Zavoia",
     support: "Asistență",
