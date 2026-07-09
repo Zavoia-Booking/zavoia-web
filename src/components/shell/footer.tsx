@@ -150,16 +150,6 @@ export function Footer({ locale }: { locale: Locale }) {
           </div>
 
           <div style={col}>
-            <div style={head}>{t.nearYou}</div>
-            {fLink(t.nearHairSoho, link, "l", "soho", "hair")}
-            {fLink(t.nearBarbersShoreditch, link, "l", "shoreditch", "hair")}
-            {fLink(t.nearNailsNottingHill, link, "l", "notting-hill", "nails")}
-            {fLink(t.nearMassageMayfair, link, "l", "mayfair", "massage")}
-            {fLink(t.nearCleaningHackney, link, "l", "hackney", "cleaning")}
-            {fLink(t.nearAllLondon, link, "l", "london")}
-          </div>
-
-          <div style={col}>
             <div style={head}>{t.zavoia}</div>
             {fLink(t.about, link, "about")}
             {fLink(t.journal, link, "blog")}

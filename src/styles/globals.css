@@ -462,10 +462,10 @@ img.zw-img--in { opacity: 1; }
 .zv-card-in  { animation: zv-card-in  0.34s var(--ease-spring) both; }
 .zv-card-out { animation: zv-card-out 0.24s var(--ease-out) forwards; }
 
-/* Footer grid — brand + 4 link columns, clean collapse */
+/* Footer grid — brand + 3 link columns, clean collapse */
 .zw-footer-grid {
   display: grid; gap: 40px;
-  grid-template-columns: minmax(200px, 1.3fr) repeat(4, minmax(130px, 1fr));
+  grid-template-columns: minmax(200px, 1.3fr) repeat(3, minmax(130px, 1fr));
 }
 @media (max-width: 1080px) {
   .zw-footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }

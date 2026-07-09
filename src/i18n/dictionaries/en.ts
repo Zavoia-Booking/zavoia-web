@@ -725,7 +725,6 @@ export const en: {
     subscribe: string;
     subscribed: string;
     explore: string;
-    nearYou: string;
     zavoia: string;
     support: string;
     about: string;
@@ -747,12 +746,6 @@ export const en: {
     catDental: string;
     catAuto: string;
     catCleaning: string;
-    nearHairSoho: string;
-    nearBarbersShoreditch: string;
-    nearNailsNottingHill: string;
-    nearMassageMayfair: string;
-    nearCleaningHackney: string;
-    nearAllLondon: string;
   };
   accountMenu: {
     appointments: string;
@@ -2073,7 +2066,6 @@ export const en: {
     subscribe: "Subscribe",
     subscribed: "Subscribed — see you Thursday",
     explore: "Explore",
-    nearYou: "Near you",
     zavoia: "Zavoia",
     support: "Support",
     about: "About",
@@ -2095,12 +2087,6 @@ export const en: {
     catDental: "Dental",
     catAuto: "Auto",
     catCleaning: "Cleaning",
-    nearHairSoho: "Hair in Soho",
-    nearBarbersShoreditch: "Barbers in Shoreditch",
-    nearNailsNottingHill: "Nails in Notting Hill",
-    nearMassageMayfair: "Massage in Mayfair",
-    nearCleaningHackney: "Cleaning in Hackney",
-    nearAllLondon: "All of London",
   },
   accountMenu: {
     appointments: "Appointments",
