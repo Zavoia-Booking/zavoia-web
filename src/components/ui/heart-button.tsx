@@ -11,7 +11,9 @@ export interface HeartButtonProps {
 }
 
 // Shared favorite affordance. Ported from ZwHeartBtn. Pulses (.zv-heart-pop)
-// on click; floating adds a frosted white background.
+// on click; floating adds a frosted white background. Cards render inside a
+// <Link>, so the click must also preventDefault — stopPropagation alone does
+// not cancel the anchor's navigation.
 export function HeartButton({ active, onClick, size = 34, floating = true }: HeartButtonProps) {
   const [pop, setPop] = useState(false);
   return (
@@ -20,6 +22,7 @@ export function HeartButton({ active, onClick, size = 34, floating = true }: Hea
       aria-label={active ? "Remove from saved" : "Save"}
       aria-pressed={active}
       onClick={(e: MouseEvent) => {
+        e.preventDefault();
         e.stopPropagation();
         setPop(true);
         setTimeout(() => setPop(false), 600);

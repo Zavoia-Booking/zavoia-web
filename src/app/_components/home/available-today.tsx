@@ -45,7 +45,7 @@ export function AvailableToday({ cards }: { cards: BusinessCardData[] }) {
               key={b.id}
               b={b}
               favorited={fav.isFavorited(Number(b.id))}
-              onFavorite={fav.toggle}
+              onFavorite={fav.canFavorite ? fav.toggle : undefined}
             />
           ))}
         </div>

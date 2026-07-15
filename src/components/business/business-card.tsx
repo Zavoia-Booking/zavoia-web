@@ -13,6 +13,7 @@ export interface BusinessCardProps {
   b: BusinessCardData;
   onClick?: () => void;
   favorited?: boolean;
+  /** Favorite handler — the heart only renders when provided (signed-in). */
   onFavorite?: (id: BusinessCardData["id"]) => void;
 }
 
@@ -64,9 +65,11 @@ export function BusinessCard({ b, onClick, favorited, onFavorite }: BusinessCard
           <CatDot cat={b.cat} />
           {b.catLabel}
         </span>
-        <span style={{ position: "absolute", top: 10, right: 10 }}>
-          <HeartButton active={favorited} onClick={() => onFavorite?.(b.id)} size={36} />
-        </span>
+        {onFavorite && (
+          <span style={{ position: "absolute", top: 10, right: 10 }}>
+            <HeartButton active={favorited} onClick={() => onFavorite(b.id)} size={36} />
+          </span>
+        )}
       </div>
       <div style={{ padding: "15px 17px 17px", display: "flex", flexDirection: "column" }}>
         <div

@@ -223,18 +223,12 @@ export const ro: Dictionary = {
       heading: "Activează accesul în marketplace",
       greeting: "Salut, {name},",
       explanation:
-        "Ai deja un cont de business Zavoia cu acest email. Activează accesul în marketplace ca să rezervi servicii și să-ți gestionezi rezervările ca client — fără un cont nou.",
-      confirm: "Activează accesul în marketplace",
-      confirming: "Se activează...",
-      cancel: "Înapoi la autentificare",
-      sendLinkPrompt:
-        "Preferi să confirmi prin email? Îți putem trimite un link securizat.",
-      sendLink: "Trimite-mi un link pe email",
+        "Ai deja un cont de business Zavoia cu acest email. Pentru siguranța contului, îți trimitem un link securizat pe email — deschide-l și confirmă-ți parola pentru a activa accesul în marketplace. Fără un cont nou.",
+      sendLink: "Trimite-mi linkul securizat pe email",
       sending: "Se trimite...",
       sentFallback:
         "Dacă emailul este asociat unui cont de business, ți-am trimis un link pentru activarea accesului în marketplace.",
-      error:
-        "Nu am putut activa accesul. Încearcă din nou sau folosește linkul pe email.",
+      cancel: "Înapoi la autentificare",
     },
     googleLink: {
       heading: "Conectează contul tău Google",
@@ -248,15 +242,46 @@ export const ro: Dictionary = {
       error:
         "Nu am putut conecta contul. Verifică parola și încearcă din nou.",
     },
+    googleCallback: {
+      pageTitle: "Autentificare cu Google — Zavoia",
+      completing: "Finalizăm autentificarea cu Google...",
+      invalid:
+        "Această încercare de autentificare este invalidă sau a expirat. Te rugăm să încerci din nou.",
+      errorHeading: "Autentificarea cu Google a eșuat",
+      backToSignIn: "Înapoi la autentificare",
+      backToAccount: "Înapoi la setările contului",
+    },
+    confirmAccess: {
+      heading: "Activezi accesul în marketplace?",
+      greeting: "Salut {name},",
+      explanation:
+        "Contul tău Google este deja conectat la un cont de business Zavoia ({email}). Activează accesul în marketplace ca să poți căuta și rezerva servicii cu același cont — fără un cont nou.",
+      confirm: "Activează accesul în marketplace",
+      confirming: "Se activează...",
+      cancel: "Înapoi la autentificare",
+      error:
+        "Nu am putut activa accesul în marketplace — confirmarea poate să fi expirat. Te rugăm să te autentifici din nou cu Google.",
+    },
     verifyLink: {
       pageTitle: "Activează accesul în marketplace — Zavoia",
       pageDescription:
         "Confirmă accesul în marketplace pentru contul tău Zavoia.",
       verifying: "Se verifică linkul...",
+      confirmHeading: "Confirmă că ești tu",
+      confirmBody:
+        "Pentru a activa accesul în marketplace pentru {email}, confirmă parola contului tău.",
+      googleOnlyBody:
+        "Contul {email} folosește autentificarea cu Google. Continuă cu Google pentru a activa accesul în marketplace.",
+      passwordLabel: "Parolă",
+      passwordRequired: "Te rugăm să introduci parola.",
+      wrongPassword: "Parolă incorectă. Încearcă din nou.",
+      confirm: "Activează accesul în marketplace",
+      confirming: "Se confirmă...",
+      orDivider: "sau",
       successHeading: "Acces în marketplace activat",
       successBody:
-        "Contul tău poate folosi acum marketplace-ul Zavoia. Autentifică-te ca să începi să rezervi servicii.",
-      goToLogin: "Autentificare",
+        "Ești autentificat și poți începe să rezervi servicii pe Zavoia.",
+      continueCta: "Începe să explorezi",
       errorHeading: "Acest link nu poate fi folosit",
       errorBody:
         "Linkul este invalid sau a expirat. Te rugăm să soliciți unul nou din pagina de autentificare.",
@@ -413,8 +438,6 @@ export const ro: Dictionary = {
       passwordLabel: "Parolă",
       confirmDisconnect: "Deconectează",
       cancel: "Anulează",
-      needsPasswordNote:
-        "Setează mai întâi o parolă ca să te poți autentifica după deconectare. Această opțiune va fi disponibilă în curând.",
       connectedToast: "Google conectat",
       disconnectedToast: "Google deconectat",
     },
@@ -637,8 +660,7 @@ export const ro: Dictionary = {
     pendingBody: "{services} la {business} — în așteptarea confirmării.",
     viewAppointment: "Vezi programarea",
     done: "Gata",
-    addToCalendar: "Adaugă în calendar",
-    addedToCalendar: "Adăugat în calendarul tău",
+    close: "Închide",
     cancellationDeadline: "Anulare gratuită până pe {date}.",
     rescheduleDeadline: "Reprogramare gratuită până pe {date}.",
     cancellationRescheduleDeadline: "Anulează sau reprogramează gratuit până pe {date}.",
@@ -691,7 +713,7 @@ export const ro: Dictionary = {
     when: "Când",
     anything: "Orice",
     anyTime: "Oricând",
-    defaultWhere: "Centru, București",
+    defaultWhere: "Oriunde",
     searchAria: "Caută",
   },
   searchOverlay: {
@@ -745,7 +767,6 @@ export const ro: Dictionary = {
     updating: "Se actualizează…",
     allServices: "Toate serviciile",
     sortLabel: "Sortează",
-    sortRecommended: "Recomandate",
     sortTopRated: "Cele mai apreciate",
     sortNearest: "Cele mai apropiate",
     filterAll: "Toate",
@@ -754,7 +775,6 @@ export const ro: Dictionary = {
     emptyTitle: "Niciun loc nu corespunde acestor filtre",
     emptyBody: "Încearcă să lărgești filtrele sau să elimini categoria.",
     clearFilters: "Șterge filtrele",
-    fallbackNotice: "Am lărgit căutarea pentru a afișa mai multe rezultate ({reason}).",
     showOnMap: "Hartă",
     showList: "Listă",
     loadMore: "Arată mai multe locuri",
@@ -1371,7 +1391,6 @@ export const ro: Dictionary = {
     edit: "Editează",
     getDirections: "Obține indicații",
     callVenue: "Sună locația",
-    addToCalendar: "Adaugă în calendar",
     leaveReview: "Lasă o recenzie",
     bookAgain: "Rezervă din nou",
     directions: "Indicații",

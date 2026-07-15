@@ -14,6 +14,7 @@ export interface BusinessRowProps {
   onClick?: () => void;
   selected?: boolean;
   favorited?: boolean;
+  /** Favorite handler — the heart only renders when provided (signed-in). */
   onFavorite?: (id: BusinessCardData["id"]) => void;
   onHover?: () => void;
   onLeave?: () => void;
@@ -90,12 +91,14 @@ export function BusinessRow({
           >
             {b.name}
           </span>
-          <HeartButton
-            active={favorited}
-            onClick={() => onFavorite?.(b.id)}
-            size={28}
-            floating={false}
-          />
+          {onFavorite && (
+            <HeartButton
+              active={favorited}
+              onClick={() => onFavorite(b.id)}
+              size={28}
+              floating={false}
+            />
+          )}
         </div>
         <div
           style={{

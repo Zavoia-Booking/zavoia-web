@@ -61,16 +61,24 @@ export function taxonomyLabel(
  * Navigates to the primary location's detail page: slug when available,
  * otherwise the numeric `primaryLocationId` (the detail route resolves both).
  * Only when both are missing is there no href (the card falls back to onClick).
+ *
+ * `preferLocationName` titles the card with the primary location's name
+ * (home rails, where the card stands in for the location it links to);
+ * brand search hits keep the business name.
  */
 export function businessCardToData(
   b: BusinessCard,
   locale: Locale,
+  opts?: { preferLocationName?: boolean },
 ): BusinessCardData {
   const navTarget = b.slug ?? b.primaryLocationId;
   return {
     id: b.id,
     slug: b.slug ?? undefined,
-    name: b.name,
+    name:
+      opts?.preferLocationName && b.primaryLocationName
+        ? b.primaryLocationName
+        : b.name,
     cat: toCat(b.industry),
     catLabel: b.industry ? taxonomyLabel(b.industry, locale) : undefined,
     rating: b.averageRating ?? undefined,
@@ -120,7 +128,8 @@ export function listingToCardData(
   return {
     id: d.locationId,
     slug: d.slug,
-    name: d.name,
+    // The card stands in for the LOCATION it links to — lead with its name.
+    name: d.location?.name || d.name,
     cat: toCat(industry),
     catLabel: industry ? taxonomyLabel(industry, locale) : undefined,
     rating: d.averageRating ?? undefined,

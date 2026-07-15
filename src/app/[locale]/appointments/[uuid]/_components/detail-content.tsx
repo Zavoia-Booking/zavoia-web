@@ -276,24 +276,6 @@ function ManageRow({
   );
 }
 
-/**
- * Builds a Google Calendar "add event" template URL from the appointment.
- * Format: YYYYMMDDTHHMMSSZ/YYYYMMDDTHHMMSSZ in UTC.
- */
-function calendarUrl(appt: AppointmentDetail): string {
-  const fmt = (iso: string) =>
-    new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const title = appt.primaryItemName || appt.bookedItemName || "Appointment";
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: title,
-    dates: `${fmt(appt.scheduled_at)}/${fmt(appt.ends_at)}`,
-  });
-  const where = appt.location?.address ?? appt.location?.name ?? "";
-  if (where) params.set("location", where);
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
 function ActionRail({
   t,
   appt,
@@ -320,7 +302,6 @@ function ActionRail({
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
     : null;
   const phone = loc?.phone ?? biz?.phone ?? null;
-  const calHref = calendarUrl(appt);
   // "Book again" re-opens the booking drawer pre-filled from this appointment
   // via useRebook (which re-fetches the live listing for authoritative pricing +
   // the booking listingId/timezone). It falls back to the business detail page
@@ -437,29 +418,6 @@ function ActionRail({
               disabled={!loc?.allowCustomerReschedule}
               onClick={() => openReschedule(appt)}
             />
-            <a
-              href={calHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="tap zw-hover-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                width: "100%",
-                background: "transparent",
-                border: 0,
-                textDecoration: "none",
-                padding: "12px 14px",
-                borderRadius: 11,
-                fontSize: 14,
-                fontWeight: 500,
-                color: "var(--c-800)",
-              }}
-            >
-              <Icon name="cal" size={16} color="var(--c-600)" />
-              {t.addToCalendar}
-            </a>
             <ManageRow
               icon="x"
               label={t.cancelAppointment}

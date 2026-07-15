@@ -111,6 +111,8 @@ export interface BusinessCard {
   primaryLocationId: number | null;
   /** Non-enumerable slug of the primary location — detail-route nav target (null when the location has no slug). */
   slug: string | null;
+  /** Name of the primary location — location-led card titles (home rails). Null when the business has no public location. */
+  primaryLocationName: string | null;
   name: string;
   businessName: string;
   city: string | null;

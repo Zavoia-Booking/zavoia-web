@@ -1193,7 +1193,7 @@ function GoogleConnectionRow({
   last?: boolean;
 }) {
   const toast = useToast();
-  const { user, linkGoogle, unlinkGoogle } = useAuth();
+  const { user, unlinkGoogle } = useAuth();
   const g = t.googleConnection;
 
   const isLinked = !!user?.googleSub;
@@ -1202,26 +1202,10 @@ function GoogleConnectionRow({
   // refreshUser resolves. The gate only bites on an explicit `false`.
   const hasPassword = user?.hasPassword !== false;
 
-  const [connecting, setConnecting] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const onCredential = useCallback(
-    async (idToken: string) => {
-      setConnecting(true);
-      try {
-        await linkGoogle(idToken);
-        toast(g.connectedToast, "check");
-      } catch (e) {
-        toast(authErrorMessage(e, authErrors), "warn");
-      } finally {
-        setConnecting(false);
-      }
-    },
-    [linkGoogle, toast, g.connectedToast, authErrors],
-  );
 
   const submitDisconnect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1291,19 +1275,6 @@ function GoogleConnectionRow({
           <div style={{ fontSize: 12.5, color: "var(--c-500)", marginTop: 8 }}>
             {isLinked ? g.connectedCaption : g.connectCaption}
           </div>
-          {isLinked && !hasPassword && (
-            <div
-              className="txt-pretty"
-              style={{
-                fontSize: 12.5,
-                color: "var(--c-600)",
-                marginTop: 8,
-                maxWidth: 420,
-              }}
-            >
-              {g.needsPasswordNote}
-            </div>
-          )}
         </div>
 
         <div style={{ flexShrink: 0 }}>
@@ -1328,17 +1299,15 @@ function GoogleConnectionRow({
               {g.disconnect}
             </button>
           ) : canConnect ? (
-            connecting ? (
-              <Spinner size={16} />
-            ) : (
-              <div style={{ minWidth: 200 }}>
-                <GoogleSignInButton
-                  text="continue_with"
-                  locale={locale}
-                  onCredential={onCredential}
-                />
-              </div>
-            )
+            /* Full-page redirect to Google; the /auth/callback page completes
+               the link and returns here (the row then shows Connected). */
+            <div style={{ minWidth: 200 }}>
+              <GoogleSignInButton
+                intent="link"
+                locale={locale}
+                redirect={localeHref(locale, "account")}
+              />
+            </div>
           ) : null}
         </div>
       </div>

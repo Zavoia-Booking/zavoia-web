@@ -9,7 +9,7 @@ import {
   type CSSProperties,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, Button, Icon, Spinner, useToast } from "@/components/ui";
+import { Avatar, Button, Icon, Spinner } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
@@ -231,7 +231,6 @@ function cancellationRescheduleLines(
 export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const { dict, locale } = useTranslation();
   const router = useRouter();
-  const toast = useToast();
   const { status } = useAuth();
   const { openAuthModal } = useAuthModal();
   const { closeForAuth } = useBooking();
@@ -788,7 +787,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
               router.push(href);
               onClose();
             }}
-            onAddToCalendar={() => toast(t.addedToCalendar, "cal")}
+            onClose={onClose}
           />
         ) : (
           <>
@@ -1973,7 +1972,7 @@ function SuccessScreen({
   bookingPolicy,
   t,
   onViewAppointment,
-  onAddToCalendar,
+  onClose,
 }: {
   pending: boolean;
   scheduledAt: string;
@@ -1984,7 +1983,7 @@ function SuccessScreen({
   bookingPolicy: BookingPolicy | null;
   t: BookingDict;
   onViewAppointment: () => void;
-  onAddToCalendar: () => void;
+  onClose: () => void;
 }) {
   const when = new Intl.DateTimeFormat(locale, {
     weekday: "short",
@@ -2123,8 +2122,8 @@ function SuccessScreen({
         <Button kind="primary" size="md" onClick={onViewAppointment}>
           {t.viewAppointment}
         </Button>
-        <Button kind="secondary" size="md" onClick={onAddToCalendar}>
-          {t.addToCalendar}
+        <Button kind="secondary" size="md" onClick={onClose}>
+          {t.close}
         </Button>
       </div>
     </div>

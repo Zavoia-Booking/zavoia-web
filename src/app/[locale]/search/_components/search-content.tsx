@@ -49,6 +49,7 @@ import {
 import { LocationPermissionModal } from "@/components/search/location-permission-modal";
 import { MapFloatingCard } from "@/components/search/map-floating-card";
 import { ipLocate } from "@/lib/geocoding";
+import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { SortMenu, type SortId } from "./sort-menu";
 import { FilterRow } from "./filter-row";
 
@@ -100,6 +101,10 @@ export function SearchContent({
   const sp = useSearchParams();
   const toast = useToast();
   const { openSearch } = useSearchOverlay();
+  // Result rows are location-sourced; the supplementary business rows use the
+  // business endpoint family. Hearts hide entirely when signed out.
+  const locFav = useFavoriteToggle("location");
+  const bizFav = useFavoriteToggle("business");
 
   // ── Derive the request from URL params ──────────────────────────────────
   const derived: DerivedParams = useMemo(() => {
@@ -145,7 +150,6 @@ export function SearchContent({
     initialResult.locations,
   );
   const [businesses, setBusinesses] = useState(initialResult.businesses);
-  const [fallback, setFallback] = useState(initialResult.fallback);
   const [loading, setLoading] = useState(false);
 
   // Skip the very first fetch when the server already provided a matching
@@ -214,7 +218,6 @@ export function SearchContent({
       // + pins stay visible while refetching.
       // TODO(i18n slice): if res.total > res.locations.length, show a
       // "showing first 300" note. Deferred — no new i18n keys this slice.
-      setFallback(res.fallback);
       setLocations(res.locations);
       setBusinesses(res.businesses);
       setSelectedId(null);
@@ -632,20 +635,6 @@ export function SearchContent({
           })
         }
       />
-      {fallback.applied && (
-        <div
-          style={{
-            fontSize: 12.5,
-            color: "var(--c-600)",
-            background: "var(--c-100)",
-            border: "1px solid rgba(28,28,26,0.08)",
-            borderRadius: 12,
-            padding: "9px 12px",
-          }}
-        >
-          {format(t.fallbackNotice, { reason: fallback.reason ?? "" })}
-        </div>
-      )}
     </div>
   );
 
@@ -694,6 +683,8 @@ export function SearchContent({
               <BusinessRow
                 b={data}
                 selected={id === selectedId || id === hoverId}
+                favorited={locFav.isFavorited(id)}
+                onFavorite={locFav.canFavorite ? locFav.toggle : undefined}
                 onHover={() => setHoverId(id)}
                 onLeave={() => setHoverId(null)}
               />
@@ -701,7 +692,11 @@ export function SearchContent({
           ))}
           {businessRows.map(({ id, data }) => (
             <div key={`biz-${id}`}>
-              <BusinessRow b={data} />
+              <BusinessRow
+                b={data}
+                favorited={bizFav.isFavorited(id)}
+                onFavorite={bizFav.canFavorite ? bizFav.toggle : undefined}
+              />
             </div>
           ))}
         </>
@@ -739,6 +734,8 @@ export function SearchContent({
         <MapFloatingCard
           key={selectedCardData.id}
           data={selectedCardData}
+          favorited={locFav.isFavorited(Number(selectedCardData.id))}
+          onFavorite={locFav.canFavorite ? locFav.toggle : undefined}
           onClose={() => setSelectedId(null)}
           closeAria={t.closePinCard}
           bottomOffset={isMobile ? 150 : 28}

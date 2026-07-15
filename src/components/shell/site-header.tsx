@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { Suspense, useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Avatar, Icon } from "@/components/ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -25,7 +25,14 @@ import { NotifPanel } from "./notif-panel";
 
 const EXPLORE_KEYS = ["search", "businesses", "business", "l"];
 
-function SearchPill({ onOpen }: { onOpen: (step: SearchStep) => void }) {
+function SearchPill({
+  onOpen,
+  active,
+}: {
+  onOpen: (step: SearchStep) => void;
+  /** Live values from the current search query; placeholders when absent. */
+  active?: { what?: string; where?: string; when?: string };
+}) {
   const { dict } = useTranslation();
   const t = dict.searchPill;
 
@@ -110,11 +117,11 @@ function SearchPill({ onOpen }: { onOpen: (step: SearchStep) => void }) {
           "0 1px 2px rgba(28,28,26,0.05), 0 4px 12px rgba(28,28,26,0.04)",
       }}
     >
-      {seg(t.what, t.anything, true, "what")}
+      {seg(t.what, active?.what || t.anything, true, "what")}
       {divider}
-      {seg(t.where, t.defaultWhere, true, "where")}
+      {seg(t.where, active?.where || t.defaultWhere, true, "where")}
       {divider}
-      {seg(t.when, t.anyTime, false, "when")}
+      {seg(t.when, active?.when || t.anyTime, false, "when")}
       <button
         type="button"
         className="tap zw-pill-go"
@@ -138,6 +145,67 @@ function SearchPill({ onOpen }: { onOpen: (step: SearchStep) => void }) {
       </button>
     </div>
   );
+}
+
+/** "hair-salon" → "Hair salon" — readable fallback when only an industry slug is in the URL. */
+function unslug(slug: string): string {
+  const words = slug.replace(/-/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** Local (not UTC) YYYY-MM-DD, so "today"/"tomorrow" match the user's clock. */
+function localIso(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * SearchPill fed with the live URL query on the search route. `useSearchParams`
+ * confines the prerender bailout to this component — SiteHeader mounts it under
+ * a Suspense boundary whose fallback is the placeholder pill, so the rest of
+ * the header still prerenders statically.
+ */
+function LiveSearchPill({
+  onOpen,
+  onSearchRoute,
+}: {
+  onOpen: (step: SearchStep) => void;
+  onSearchRoute: boolean;
+}) {
+  const sp = useSearchParams();
+  const { dict, locale } = useTranslation();
+  const to = dict.searchOverlay;
+
+  let active: { what?: string; where?: string; when?: string } | undefined;
+  if (onSearchRoute) {
+    const search = sp.get("search")?.trim();
+    const industry = sp.get("industry")?.trim();
+    const city = sp.get("city")?.trim();
+    const hasGeo = !!sp.get("lat") && !!sp.get("lng");
+    const date = sp.get("date")?.trim();
+
+    let when: string | undefined;
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const now = new Date();
+      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      if (date === localIso(now)) when = to.dateToday;
+      else if (date === localIso(tomorrow)) when = to.dateTomorrow;
+      else {
+        const [y, m, d] = date.split("-").map(Number);
+        when = new Intl.DateTimeFormat(locale, {
+          day: "numeric",
+          month: "short",
+        }).format(new Date(y, m - 1, d));
+      }
+    }
+
+    active = {
+      what: search || (industry ? unslug(industry) : undefined),
+      where: city || (hasGeo ? to.currentLocationFallback : undefined),
+      when,
+    };
+  }
+
+  return <SearchPill onOpen={onOpen} active={active} />;
 }
 
 export function SiteHeader({ locale }: { locale: Locale }) {
@@ -178,8 +246,8 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   // On the search route, best-effort prefill the overlay from the current URL
   // params so editing preserves the active query; elsewhere open empty. Params
   // are read lazily from window.location at click time (not via
-  // useSearchParams) so this header stays statically prerenderable — using the
-  // hook in the root-layout header would force a Suspense bailout on every page.
+  // useSearchParams) so this handler doesn't force the whole header into the
+  // pill's Suspense bailout (see LiveSearchPill).
   const open = (step: SearchStep, extra?: InitialQuery) => {
     let initial: InitialQuery | undefined;
     if (key === "search" && typeof window !== "undefined") {
@@ -292,7 +360,12 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                 display: "flex",
               }}
             >
-              <SearchPill onOpen={(step) => open(step)} />
+              <Suspense fallback={<SearchPill onOpen={(step) => open(step)} />}>
+                <LiveSearchPill
+                  onOpen={(step) => open(step)}
+                  onSearchRoute={key === "search"}
+                />
+              </Suspense>
             </div>
           )}
         </div>

@@ -59,6 +59,9 @@ export function BusinessDetail({ listing, locale }: Props) {
   const currency = listing.businessCurrency;
   const locationId = listing.locationId;
   const canBook = listing.allowOnlineBooking;
+  // The page is a LOCATION page — lead with the location's name (the
+  // business-level listing name is the fallback for legacy payloads).
+  const displayName = listing.location?.name || listing.name;
 
   // Distance from the visitor (client-only geolocation). Null until resolved or
   // when coords/listing position are unavailable → the segment is simply omitted.
@@ -206,7 +209,7 @@ export function BusinessDetail({ listing, locale }: Props) {
   const onShare = useCallback(() => {
     const url = typeof window !== "undefined" ? window.location.href : "";
     if (typeof navigator !== "undefined" && navigator.share) {
-      navigator.share({ title: listing.name, url }).catch(() => {});
+      navigator.share({ title: displayName, url }).catch(() => {});
       return;
     }
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -215,7 +218,7 @@ export function BusinessDetail({ listing, locale }: Props) {
         .then(() => toast(t.shareCopied, "copy"))
         .catch(() => {});
     }
-  }, [listing.name, t.shareCopied, toast]);
+  }, [displayName, t.shareCopied, toast]);
 
   const industry = listing.industry as IndustryRef | null;
   const cat = toCat(industry);
@@ -285,7 +288,7 @@ export function BusinessDetail({ listing, locale }: Props) {
                   color: "var(--c-900)",
                 }}
               >
-                {listing.name}
+                {displayName}
               </h1>
               <div
                 style={{
@@ -434,7 +437,7 @@ export function BusinessDetail({ listing, locale }: Props) {
           >
             {selectedItems.length > 0
               ? `${selectedItems.length} · ${formatMoney(totalMinor, currency, locale)}`
-              : listing.name}
+              : displayName}
           </div>
           {!canBook && (
             <div
@@ -460,8 +463,9 @@ export function BusinessDetail({ listing, locale }: Props) {
 
 // ─────────────────────────────────────────────
 // Favorite heart — reuses useFavoriteToggle("location"), seeded from
-// listing.isFavorited. The hook owns the endpoint/auth/toast/revert logic; we
+// listing.isFavorited. The hook owns the endpoint/toast/revert logic; we
 // blend the seed with the hook's post-interaction state for the visual.
+// Hidden entirely for signed-out visitors (same rule as the home/search cards).
 // ─────────────────────────────────────────────
 function FavoriteHeart({
   locationId,
@@ -470,9 +474,10 @@ function FavoriteHeart({
   locationId: number;
   seeded: boolean;
 }) {
-  const { isFavorited, toggle } = useFavoriteToggle("location");
+  const { canFavorite, isFavorited, toggle } = useFavoriteToggle("location");
   const [touched, setTouched] = useState(false);
   const active = touched ? isFavorited(locationId) : seeded;
+  if (!canFavorite) return null;
   return (
     <HeartButton
       active={active}
@@ -536,6 +541,7 @@ function Gallery({
 }) {
   const { dict } = useTranslation();
   const t = dict.business;
+  const displayName = listing.location?.name || listing.name;
   const photos = useMemo(() => {
     const urls: string[] = [];
     if (listing.featuredImage) urls.push(listing.featuredImage);
@@ -570,7 +576,7 @@ function Gallery({
         >
           <Img
             src={photos[0]}
-            alt={listing.name}
+            alt={displayName}
             label={cat}
             style={{ width: "100%", height: "100%" }}
           />
@@ -584,7 +590,7 @@ function Gallery({
             >
               <Img
                 src={p}
-                alt={`${listing.name} ${i + 2}`}
+                alt={`${displayName} ${i + 2}`}
                 label={cat}
                 style={{ width: "100%", height: "100%" }}
               />

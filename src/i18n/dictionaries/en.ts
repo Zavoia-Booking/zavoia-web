@@ -192,14 +192,10 @@ export const en: {
       heading: string;
       greeting: string;
       explanation: string;
-      confirm: string;
-      confirming: string;
-      cancel: string;
-      sendLinkPrompt: string;
       sendLink: string;
       sending: string;
       sentFallback: string;
-      error: string;
+      cancel: string;
     };
     googleLink: {
       heading: string;
@@ -210,13 +206,39 @@ export const en: {
       cancel: string;
       error: string;
     };
+    googleCallback: {
+      pageTitle: string;
+      completing: string;
+      invalid: string;
+      errorHeading: string;
+      backToSignIn: string;
+      backToAccount: string;
+    };
+    confirmAccess: {
+      heading: string;
+      greeting: string;
+      explanation: string;
+      confirm: string;
+      confirming: string;
+      cancel: string;
+      error: string;
+    };
     verifyLink: {
       pageTitle: string;
       pageDescription: string;
       verifying: string;
+      confirmHeading: string;
+      confirmBody: string;
+      googleOnlyBody: string;
+      passwordLabel: string;
+      passwordRequired: string;
+      wrongPassword: string;
+      confirm: string;
+      confirming: string;
+      orDivider: string;
       successHeading: string;
       successBody: string;
-      goToLogin: string;
+      continueCta: string;
       errorHeading: string;
       errorBody: string;
       backToLogin: string;
@@ -362,7 +384,6 @@ export const en: {
       passwordLabel: string;
       confirmDisconnect: string;
       cancel: string;
-      needsPasswordNote: string;
       connectedToast: string;
       disconnectedToast: string;
     };
@@ -576,8 +597,7 @@ export const en: {
     pendingBody: string;
     viewAppointment: string;
     done: string;
-    addToCalendar: string;
-    addedToCalendar: string;
+    close: string;
     cancellationDeadline: string;
     rescheduleDeadline: string;
     cancellationRescheduleDeadline: string;
@@ -684,7 +704,6 @@ export const en: {
     updating: string;
     allServices: string;
     sortLabel: string;
-    sortRecommended: string;
     sortTopRated: string;
     sortNearest: string;
     filterAll: string;
@@ -693,7 +712,6 @@ export const en: {
     emptyTitle: string;
     emptyBody: string;
     clearFilters: string;
-    fallbackNotice: string;
     showOnMap: string;
     showList: string;
     loadMore: string;
@@ -1064,7 +1082,6 @@ export const en: {
     edit: string;
     getDirections: string;
     callVenue: string;
-    addToCalendar: string;
     leaveReview: string;
     bookAgain: string;
     directions: string;
@@ -1415,17 +1432,12 @@ export const en: {
       heading: "Enable marketplace access",
       greeting: "Hi {name},",
       explanation:
-        "You already have a Zavoia business account with this email. Enable marketplace access to book services and manage your bookings as a customer — no new account needed.",
-      confirm: "Enable marketplace access",
-      confirming: "Enabling...",
-      cancel: "Back to sign in",
-      sendLinkPrompt:
-        "Prefer to confirm by email? We can send a secure link instead.",
-      sendLink: "Send me an email link",
+        "You already have a Zavoia business account with this email. To keep your account safe, we'll email you a secure link — open it and confirm your password to enable marketplace access. No new account needed.",
+      sendLink: "Email me the secure link",
       sending: "Sending...",
       sentFallback:
         "If the email is associated with a business account, we've sent a link to enable marketplace access.",
-      error: "We couldn't enable access. Please try again or use the email link.",
+      cancel: "Back to sign in",
     },
     googleLink: {
       heading: "Link your Google account",
@@ -1438,14 +1450,45 @@ export const en: {
       cancel: "Back to sign in",
       error: "We couldn't link your account. Check your password and try again.",
     },
+    googleCallback: {
+      pageTitle: "Signing you in with Google — Zavoia",
+      completing: "Completing Google sign-in...",
+      invalid:
+        "This sign-in attempt is invalid or has expired. Please try again.",
+      errorHeading: "Google sign-in failed",
+      backToSignIn: "Back to sign in",
+      backToAccount: "Back to account settings",
+    },
+    confirmAccess: {
+      heading: "Enable marketplace access?",
+      greeting: "Hi {name},",
+      explanation:
+        "Your Google account is already connected to a Zavoia business account ({email}). Enable marketplace access to also browse and book services with this account — no new account needed.",
+      confirm: "Enable marketplace access",
+      confirming: "Enabling...",
+      cancel: "Back to sign in",
+      error:
+        "We couldn't enable marketplace access — the confirmation may have expired. Please sign in with Google again.",
+    },
     verifyLink: {
       pageTitle: "Enable marketplace access — Zavoia",
       pageDescription: "Confirm marketplace access for your Zavoia account.",
-      verifying: "Verifying your link...",
+      verifying: "Checking your link...",
+      confirmHeading: "Confirm it's you",
+      confirmBody:
+        "To enable marketplace access for {email}, confirm your account password.",
+      googleOnlyBody:
+        "The account {email} uses Google sign-in. Continue with Google to enable marketplace access.",
+      passwordLabel: "Password",
+      passwordRequired: "Please enter your password.",
+      wrongPassword: "Incorrect password. Please try again.",
+      confirm: "Enable marketplace access",
+      confirming: "Confirming...",
+      orDivider: "or",
       successHeading: "Marketplace access enabled",
       successBody:
-        "Your account can now use the Zavoia marketplace. Sign in to start booking services.",
-      goToLogin: "Sign in",
+        "You're signed in and ready to book services on Zavoia.",
+      continueCta: "Start exploring",
       errorHeading: "This link can't be used",
       errorBody:
         "The link is invalid or has expired. Please request a new one from the sign-in page.",
@@ -1599,8 +1642,6 @@ export const en: {
       passwordLabel: "Password",
       confirmDisconnect: "Disconnect",
       cancel: "Cancel",
-      needsPasswordNote:
-        "Set a password first so you can still sign in after disconnecting. This will be available soon.",
       connectedToast: "Google connected",
       disconnectedToast: "Google disconnected",
     },
@@ -1821,8 +1862,7 @@ export const en: {
     pendingBody: "{services} at {business} — awaiting confirmation.",
     viewAppointment: "View appointment",
     done: "Done",
-    addToCalendar: "Add to calendar",
-    addedToCalendar: "Added to your calendar",
+    close: "Close",
     cancellationDeadline: "Cancel for free until {date}.",
     rescheduleDeadline: "Reschedule for free until {date}.",
     cancellationRescheduleDeadline: "Cancel or reschedule for free until {date}.",
@@ -1875,7 +1915,7 @@ export const en: {
     when: "When",
     anything: "Anything",
     anyTime: "Any time",
-    defaultWhere: "Soho, London",
+    defaultWhere: "Anywhere",
     searchAria: "Search",
   },
   searchOverlay: {
@@ -1929,7 +1969,6 @@ export const en: {
     updating: "Updating…",
     allServices: "All services",
     sortLabel: "Sort",
-    sortRecommended: "Recommended",
     sortTopRated: "Top rated",
     sortNearest: "Nearest",
     filterAll: "All",
@@ -1938,7 +1977,6 @@ export const en: {
     emptyTitle: "No places match those filters",
     emptyBody: "Try widening your filters or clearing the category.",
     clearFilters: "Clear filters",
-    fallbackNotice: "We widened your search to show more results ({reason}).",
     showOnMap: "Map",
     showList: "List",
     loadMore: "Show more places",
@@ -2553,7 +2591,6 @@ export const en: {
     edit: "Edit",
     getDirections: "Get directions",
     callVenue: "Call venue",
-    addToCalendar: "Add to calendar",
     leaveReview: "Leave a review",
     bookAgain: "Book again",
     directions: "Directions",

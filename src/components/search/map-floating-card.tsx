@@ -8,6 +8,9 @@ export interface MapFloatingCardProps {
   data: BusinessCardData | null;
   onClose: () => void;
   closeAria: string;
+  favorited?: boolean;
+  /** Forwarded to the BusinessRow — the heart only renders when provided. */
+  onFavorite?: (id: BusinessCardData["id"]) => void;
   /** Distance from the bottom of the map area (kept clear of the mobile toggle). */
   bottomOffset?: number;
   /** Left inset of the card region (e.g. past the desktop results panel). */
@@ -31,6 +34,8 @@ export function MapFloatingCard({
   data,
   onClose,
   closeAria,
+  favorited,
+  onFavorite,
   bottomOffset = 28,
   insetLeft = "0px",
   insetRight = "0px",
@@ -86,7 +91,7 @@ export function MapFloatingCard({
           padding: 6,
         }}
       >
-        <BusinessRow b={data} />
+        <BusinessRow b={data} favorited={favorited} onFavorite={onFavorite} />
         <button
           type="button"
           className="tap"

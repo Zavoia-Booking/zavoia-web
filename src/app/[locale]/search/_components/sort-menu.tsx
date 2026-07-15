@@ -14,19 +14,20 @@ export interface SortMenuProps {
 }
 
 // Sort dropdown — ported from ZwSortMenu (docs/web-search.jsx). Labels i18n'd.
+// "rec" is the unlabelled default (server relevance order): the trigger shows
+// the generic "Sort" label and re-clicking the active option clears back to it.
 export function SortMenu({ sort, setSort, allowNearest }: SortMenuProps) {
   const { dict } = useTranslation();
   const t = dict.search;
   const [open, setOpen] = useState(false);
 
   const opts: { id: SortId; label: string }[] = [
-    { id: "rec", label: t.sortRecommended },
     { id: "rating", label: t.sortTopRated },
     ...(allowNearest
       ? [{ id: "near" as SortId, label: t.sortNearest }]
       : []),
   ];
-  const current = opts.find((o) => o.id === sort) ?? opts[0];
+  const current = opts.find((o) => o.id === sort);
 
   return (
     <div style={{ position: "relative" }}>
@@ -49,7 +50,7 @@ export function SortMenu({ sort, setSort, allowNearest }: SortMenuProps) {
         }}
       >
         <Icon name="sliders" size={14} color="var(--c-700)" />
-        {current.label}
+        {current?.label ?? t.sortLabel}
         <Icon name="chevD" size={13} color="var(--c-600)" />
       </button>
       {open && (
@@ -89,7 +90,7 @@ export function SortMenu({ sort, setSort, allowNearest }: SortMenuProps) {
                 key={o.id}
                 className="tap zw-hover-row"
                 onClick={() => {
-                  setSort(o.id);
+                  setSort(o.id === sort ? "rec" : o.id);
                   setOpen(false);
                 }}
                 style={rowStyle}

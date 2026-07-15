@@ -31,10 +31,14 @@ export function GoogleLinkPanel({
   locale,
   context,
   onCancel,
+  redirect,
 }: {
   locale: Locale;
   context: GoogleLinkContext;
   onCancel: () => void;
+  /** Post-auth target carried by the caller (e.g. the OAuth flow context on
+   *  /auth/callback, where the URL has no ?redirect param of its own). */
+  redirect?: string | null;
 }) {
   const dict = dictionaries[locale].auth;
   const t = dict.googleLink;
@@ -50,13 +54,13 @@ export function GoogleLinkPanel({
   useEffect(() => {
     if (status === "authenticated") {
       const target = safeRedirectTarget(
-        searchParams.get("redirect"),
+        redirect ?? searchParams.get("redirect"),
         locale,
         defaultPostAuthTarget(locale),
       );
       router.replace(target);
     }
-  }, [status, locale, router, searchParams]);
+  }, [status, locale, router, searchParams, redirect]);
 
   const explanation = context.email
     ? t.explanation.replace("{email}", context.email)

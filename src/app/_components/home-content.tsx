@@ -38,7 +38,11 @@ export interface HomeContentProps {
 // Deferred for v1 (no public endpoint / auth-only): Offers row, Visits strip,
 // Book again / Rebook.
 export function HomeContent({ locale, industries, latest }: HomeContentProps) {
-  const latestCards = latest.map((b) => businessCardToData(b, locale));
+  // Home rails link each card to its primary location's page, so the cards
+  // lead with the location name (business name is the fallback).
+  const latestCards = latest.map((b) =>
+    businessCardToData(b, locale, { preferLocationName: true }),
+  );
 
   return (
     <main>

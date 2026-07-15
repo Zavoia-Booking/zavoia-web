@@ -1,6 +1,7 @@
 import { apiFetch, ApiError } from "@/lib/api/http";
 import type {
   AccountLinkNeededDetails,
+  AccountLinkValidation,
   AuthResponse,
   AuthUser,
   ChangeEmailResponse,
@@ -12,7 +13,6 @@ import type {
   ReauthForGoogleLinkResponse,
   ResetPasswordResponse,
   SendAccountLinkResponse,
-  VerifyAccountLinkResponse,
   VerifyEmailResponse,
 } from "@/lib/auth/types";
 
@@ -60,20 +60,6 @@ export async function getCurrentUser(): Promise<AuthUser> {
 }
 
 /**
- * Confirms an account link from a 409 confirmationToken. The backend adds the
- * CUSTOMER role and issues tokens — same response shape as login/register
- * (AuthResponse), i.e. it auto-logs-in.
- */
-export async function confirmAccountLink(
-  confirmationToken: string,
-): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>("/marketplace/auth/confirm-account-link", {
-    method: "POST",
-    body: JSON.stringify({ confirmationToken }),
-  });
-}
-
-/**
  * Requests an email link that lets an existing business user enable marketplace
  * access. The backend always responds with a neutral confirmation message to
  * avoid leaking account existence.
@@ -92,16 +78,36 @@ export async function sendAccountLink(
 }
 
 /**
- * Verifies an account-link email token. The backend adds the CUSTOMER role and
- * returns the user, but does NOT issue tokens (no auto-login).
+ * Pre-flight for the emailed-link landing page: validates the token WITHOUT
+ * consuming it and returns how the user can confirm account ownership —
+ * password, or Google for passwordless accounts. Throws SYSTEM.E06-08 when the
+ * token is invalid/used/expired and CUSTOMER_AUTH.E10 when the account already
+ * has marketplace access.
  */
-export async function verifyAccountLink(
+export async function validateAccountLink(
   token: string,
-): Promise<VerifyAccountLinkResponse> {
-  return apiFetch<VerifyAccountLinkResponse>(
-    `/marketplace/auth/verify-account-link?token=${encodeURIComponent(token)}`,
+): Promise<AccountLinkValidation> {
+  return apiFetch<AccountLinkValidation>(
+    `/marketplace/auth/verify-account-link/validate?token=${encodeURIComponent(token)}`,
     { method: "GET" },
   );
+}
+
+/**
+ * Completes the emailed account-link flow: the token proves the email was
+ * received, the password proves account ownership. The backend adds the
+ * CUSTOMER role and issues tokens (AuthResponse — auto-login). Errors: 401
+ * CUSTOMER_AUTH.E38 (wrong password), 400 `google_login_required`
+ * (passwordless Google-only account), SYSTEM.E06-08 (bad token).
+ */
+export async function completeAccountLink(
+  token: string,
+  password: string,
+): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/marketplace/auth/verify-account-link", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
 }
 
 /**
@@ -156,21 +162,44 @@ export async function resetPassword(
 }
 
 /**
- * Native Google Sign-In / Register. Sends the Google ID token (a JWT obtained
- * from GIS) and the user's intent. On success the backend returns the same
- * AuthResponse shape as login/register (auto-login). On a collision it throws
- * an ApiError 409 — either `account_exists_unlinked_google` (CUSTOMER without a
- * linked Google) or `account_exists_needs_marketplace_access` (business user
- * without the CUSTOMER role).
+ * Web Google Sign-In / Register (authorization code flow). Sends the ?code=
+ * that Google returned to /auth/callback plus the EXACT redirectUri that
+ * obtained it; the backend exchanges and verifies it server-side. On success
+ * the backend returns the same AuthResponse shape as login/register
+ * (auto-login). On a collision it throws an ApiError 409 — either
+ * `account_exists_unlinked_google` (CUSTOMER without a linked Google) or
+ * `account_exists_needs_marketplace_access` (business user without the
+ * CUSTOMER role). The Google-issued code is single-use and expires in
+ * minutes, so a retry needs a fresh round-trip through Google.
  */
 export async function googleAuth(
-  idToken: string,
+  code: string,
+  redirectUri: string,
   intent: GoogleAuthIntent,
 ): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>("/marketplace/auth/google", {
+  return apiFetch<AuthResponse>("/marketplace/auth/google/web", {
     method: "POST",
-    body: JSON.stringify({ idToken, intent }),
+    body: JSON.stringify({ code, redirectUri, intent }),
   });
+}
+
+/**
+ * Step 2 of confirm-enable-marketplace: exchanges the `tx_id` from the 409
+ * `confirm_enable_marketplace` variant for tokens, granting the CUSTOMER role
+ * to the Google-linked business account (auto-login). The tx is single-use
+ * with a ~10 min TTL — on CUSTOMER_AUTH.E49 the user must sign in with Google
+ * again.
+ */
+export async function confirmMarketplaceAccess(
+  txId: string,
+): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>(
+    "/marketplace/auth/google/web/confirm-access",
+    {
+      method: "POST",
+      body: JSON.stringify({ tx_id: txId }),
+    },
+  );
 }
 
 /**
@@ -208,18 +237,20 @@ export async function linkGoogle(
 }
 
 /**
- * Links (connects) a Google account to the ALREADY-AUTHENTICATED account from a
- * GIS ID token. On success the backend issues NEW session tokens — the response
- * has the same AuthResponse shape as googleSignIn and must be adopted the same
- * way. Errors: CUSTOMER_AUTH.E45 (Google email ≠ account email), E26 (missing
- * idToken), E27 (verify failed).
+ * Links (connects) a Google account to the ALREADY-AUTHENTICATED account using
+ * the authorization code from /auth/callback (web twin of the mobile app's
+ * /link/google/native). On success the backend issues NEW session tokens — the
+ * response has the same AuthResponse shape as googleSignIn and must be adopted
+ * the same way. Errors: CUSTOMER_AUTH.E45 (Google email ≠ account email), E26
+ * (missing code/redirectUri), E27 (exchange/verify failed).
  */
-export async function linkGoogleNative(
-  idToken: string,
+export async function linkGoogleWeb(
+  code: string,
+  redirectUri: string,
 ): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>("/marketplace/auth/link/google/native", {
+  return apiFetch<AuthResponse>("/marketplace/auth/link/google/web", {
     method: "POST",
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ code, redirectUri }),
   });
 }
 
@@ -261,6 +292,8 @@ export async function changeEmail(
  * The backend's exception filter serializes the body as
  * `{ statusCode, code, details, ... }`, so the structured payload lives at
  * `ApiError.data.details` while the machine code lives at `ApiError.code`.
+ * The backend's snake_case `tx_id` (present on the `confirm_enable_marketplace`
+ * variant) is normalized to camelCase `txId`.
  */
 export function getAccountLinkNeededDetails(
   error: unknown,
@@ -268,18 +301,22 @@ export function getAccountLinkNeededDetails(
   if (!(error instanceof ApiError)) return null;
   if (error.status !== 409) return null;
   if (error.code !== ACCOUNT_LINK_NEEDED_CODE) return null;
-  const data = error.data as { details?: AccountLinkNeededDetails } | null;
+  const data = error.data as {
+    details?: AccountLinkNeededDetails & { tx_id?: unknown };
+  } | null;
   const details = data?.details;
   if (!details || typeof details.email !== "string") return null;
-  return details;
+  const txId = typeof details.tx_id === "string" ? details.tx_id : undefined;
+  return { ...details, txId };
 }
 
 /**
  * Type guard that detects the HTTP 409 `account_exists_unlinked_google` error
- * and extracts the transaction id. Mirrors getAccountLinkNeededDetails: the
- * backend serializes the structured payload at `ApiError.data.details` (here
- * `{ suggestedNext, tx_id }`) and the machine code at `ApiError.code`. The
- * backend does NOT include the email — callers decode it from the ID token.
+ * and extracts the transaction id + email. Mirrors getAccountLinkNeededDetails:
+ * the backend serializes the structured payload at `ApiError.data.details`
+ * (here `{ suggestedNext, tx_id, email }`) and the machine code at
+ * `ApiError.code`. The web endpoint includes the email (the browser never sees
+ * an ID token to decode it from); treat it as optional for safety.
  */
 export function getGoogleUnlinkedDetails(
   error: unknown,
@@ -287,8 +324,11 @@ export function getGoogleUnlinkedDetails(
   if (!(error instanceof ApiError)) return null;
   if (error.status !== 409) return null;
   if (error.code !== GOOGLE_UNLINKED_CODE) return null;
-  const data = error.data as { details?: { tx_id?: unknown } } | null;
+  const data = error.data as {
+    details?: { tx_id?: unknown; email?: unknown };
+  } | null;
   const txId = data?.details?.tx_id;
   if (typeof txId !== "string" || txId.length === 0) return null;
-  return { txId };
+  const email = data?.details?.email;
+  return { txId, email: typeof email === "string" ? email : undefined };
 }

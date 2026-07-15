@@ -12,6 +12,7 @@ export interface BusinessOverlayCardProps {
   b: BusinessCardData;
   onClick?: () => void;
   favorited?: boolean;
+  /** Favorite handler — the heart only renders when provided (signed-in). */
   onFavorite?: (id: BusinessCardData["id"]) => void;
 }
 
@@ -60,9 +61,11 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
         }}
       />
 
-      <span style={{ position: "absolute", top: 12, right: 12 }}>
-        <HeartButton active={favorited} onClick={() => onFavorite?.(b.id)} size={34} />
-      </span>
+      {onFavorite && (
+        <span style={{ position: "absolute", top: 12, right: 12 }}>
+          <HeartButton active={favorited} onClick={() => onFavorite(b.id)} size={34} />
+        </span>
+      )}
 
       <div
         style={{ position: "absolute", left: 18, right: 18, bottom: 18, color: "#fff", textAlign: "left" }}

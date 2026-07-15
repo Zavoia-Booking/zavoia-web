@@ -10,11 +10,12 @@ import {
 } from "react";
 import {
   changeEmail as changeEmailApi,
-  confirmAccountLink as confirmAccountLinkApi,
+  completeAccountLink as completeAccountLinkApi,
+  confirmMarketplaceAccess as confirmMarketplaceAccessApi,
   getCurrentUser,
   googleAuth as googleAuthApi,
   linkGoogle as linkGoogleApi,
-  linkGoogleNative as linkGoogleNativeApi,
+  linkGoogleWeb as linkGoogleWebApi,
   loginCustomer,
   logoutCustomer,
   refreshSession,
@@ -32,6 +33,7 @@ import {
   clearCookie,
   readCookie,
 } from "@/lib/auth/cookies";
+import { googleOAuthRedirectUri } from "@/lib/auth/google-oauth";
 import { getJwtExpiryMs } from "@/lib/auth/jwt";
 import type {
   AuthContextValue,
@@ -168,7 +170,7 @@ export function AuthProvider({ children }: Props) {
   }, [handleUnauthenticated]);
 
   // Single internal session-establishment path shared by login(), register()
-  // and confirmAccountLink(): store the access token (which schedules proactive
+  // and completeAccountLink(): store the access token (which schedules proactive
   // refresh), resolve the user, flip status to authenticated, and broadcast the
   // login to other tabs. Keeping this in one place guarantees identical
   // post-auth state across every entry point.
@@ -219,40 +221,71 @@ export function AuthProvider({ children }: Props) {
     [adoptSession],
   );
 
-  const confirmAccountLink = useCallback(
-    async (confirmationToken: string) => {
+  // Completes the emailed account-link flow (token + password) and adopts the
+  // returned session. Unlike login(), status is NOT flipped around the call:
+  // the page owns its own pending/error UI and a wrong password must not kick
+  // the whole app into a transient loading/unauthenticated churn. Re-throws so
+  // the page can branch on status 401 / code `google_login_required`.
+  const completeAccountLink = useCallback(
+    async (token: string, password: string) => {
       setError(null);
-      setStatus("loading");
       try {
-        const response = await confirmAccountLinkApi(confirmationToken);
+        const response = await completeAccountLinkApi(token, password);
         await adoptSession(response);
       } catch (e) {
-        const message =
-          e instanceof ApiError ? e.message : "Unable to enable access";
-        setError(message);
-        setStatus("unauthenticated");
+        if (e instanceof ApiError) {
+          setError(e.message);
+        }
         throw e;
       }
     },
     [adoptSession],
   );
 
-  // Google sign-in / register. On a 200 we adopt the session like login();
-  // on any error (notably the 409 collisions) we reset status and RE-THROW the
-  // original ApiError so the UI can branch on the code without it being
-  // swallowed into a generic message.
+  // Google sign-in / register: exchanges the OAuth authorization code from
+  // /auth/callback (paired with the exact redirectUri that obtained it). On a
+  // 200 we adopt the session like login(); on any error (notably the 409
+  // collisions) we reset status and RE-THROW the original ApiError so the UI
+  // can branch on the code without it being swallowed into a generic message.
   const googleSignIn = useCallback(
-    async (idToken: string, intent: GoogleAuthIntent) => {
+    async (code: string, intent: GoogleAuthIntent) => {
       setError(null);
       setStatus("loading");
       try {
-        const response = await googleAuthApi(idToken, intent);
+        const response = await googleAuthApi(
+          code,
+          googleOAuthRedirectUri(),
+          intent,
+        );
         await adoptSession(response);
       } catch (e) {
         setStatus("unauthenticated");
         if (e instanceof ApiError) {
           setError(e.message);
         }
+        throw e;
+      }
+    },
+    [adoptSession],
+  );
+
+  // Completes confirm-enable-marketplace: exchanges the tx_id from the
+  // `confirm_enable_marketplace` 409 for tokens (the Google sign-in moments
+  // ago already proved ownership) and establishes the session (auto-login).
+  const confirmMarketplaceAccess = useCallback(
+    async (txId: string) => {
+      setError(null);
+      setStatus("loading");
+      try {
+        const response = await confirmMarketplaceAccessApi(txId);
+        await adoptSession(response);
+      } catch (e) {
+        const message =
+          e instanceof ApiError
+            ? e.message
+            : "Unable to enable marketplace access";
+        setError(message);
+        setStatus("unauthenticated");
         throw e;
       }
     },
@@ -280,15 +313,16 @@ export function AuthProvider({ children }: Props) {
     [adoptSession],
   );
 
-  // Link (connect) a Google account to the ALREADY-authenticated account. The
-  // backend returns NEW session tokens, so we adopt them via the shared
-  // adoptSession path (identical to googleSignIn). adoptSession re-fetches /me,
-  // so `user` ends up carrying the fresh googleSub. We re-THROW the ApiError so
-  // the UI can map the collision codes (e.g. E45) instead of swallowing them.
+  // Link (connect) a Google account to the ALREADY-authenticated account using
+  // the OAuth code from /auth/callback. The backend returns NEW session
+  // tokens, so we adopt them via the shared adoptSession path (identical to
+  // googleSignIn). adoptSession re-fetches /me, so `user` ends up carrying the
+  // fresh googleSub. We re-THROW the ApiError so the UI can map the collision
+  // codes (e.g. E45) instead of swallowing them.
   const linkGoogle = useCallback(
-    async (idToken: string) => {
+    async (code: string) => {
       try {
-        const response = await linkGoogleNativeApi(idToken);
+        const response = await linkGoogleWebApi(code, googleOAuthRedirectUri());
         await adoptSession(response);
       } catch (e) {
         if (e instanceof ApiError) {
@@ -382,10 +416,11 @@ export function AuthProvider({ children }: Props) {
       register,
       logout,
       refresh,
-      confirmAccountLink,
+      completeAccountLink,
       sendAccountLink,
       googleSignIn,
       linkGoogleAccount,
+      confirmMarketplaceAccess,
       refreshUser,
       linkGoogle,
       unlinkGoogle,
@@ -399,10 +434,11 @@ export function AuthProvider({ children }: Props) {
       register,
       logout,
       refresh,
-      confirmAccountLink,
+      completeAccountLink,
       sendAccountLink,
       googleSignIn,
       linkGoogleAccount,
+      confirmMarketplaceAccess,
       refreshUser,
       linkGoogle,
       unlinkGoogle,

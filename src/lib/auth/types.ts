@@ -57,7 +57,7 @@ export type AuthResponse = {
   isNewUser?: boolean;
 };
 
-/** Intent passed to the native Google auth endpoint. */
+/** Intent passed to the web Google auth endpoint. */
 export type GoogleAuthIntent = "login" | "register";
 
 export type RefreshResponse = {
@@ -69,29 +69,44 @@ export type RefreshResponse = {
  * Details carried in the `data.details` of the HTTP 409
  * `account_exists_needs_marketplace_access` ApiError. Returned by the backend
  * when an email already belongs to a business OWNER/TEAM_MEMBER that does not
- * yet have a CUSTOMER (marketplace) role.
+ * yet have a CUSTOMER (marketplace) role. Two variants, keyed by
+ * `suggestedNext`:
+ *
+ * - `enable_marketplace_access` — identity NOT yet proven for this account;
+ *   access is enabled only through the emailed link plus a password (or
+ *   Google) confirmation. No instant token.
+ * - `confirm_enable_marketplace` — the Google sign-in matched the account's
+ *   LINKED Google identity, so ownership is already proven; the user just has
+ *   to explicitly opt in. Carries `txId` (single-use, ~10 min TTL) consumed
+ *   by POST /marketplace/auth/google/web/confirm-access.
+ *
+ * The name/role fields are present only on paths where the backend has
+ * already verified identity (login, Google); register proves nothing, so
+ * there they are omitted.
  */
 export type AccountLinkNeededDetails = {
-  suggestedNext: "enable_marketplace_access";
+  suggestedNext: "enable_marketplace_access" | "confirm_enable_marketplace";
+  /** Only on `confirm_enable_marketplace`: tx for the confirm endpoint. */
+  txId?: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  existingRoles: {
+  firstName?: string;
+  lastName?: string;
+  existingRoles?: {
     owner: boolean;
     teamMember: boolean;
   };
-  /** In-memory token (~10 min TTL) used to confirm the link via API. */
-  confirmationToken: string;
 };
 
 /**
- * Response shape of GET /marketplace/auth/verify-account-link. The backend adds
- * the CUSTOMER role and returns the user, but does NOT issue tokens — i.e. it
- * does not auto-login. The user must sign in afterwards.
+ * Response of GET /marketplace/auth/verify-account-link/validate. Pre-flight
+ * for the emailed-link landing page: says nothing has been consumed yet and
+ * tells the page how the user can confirm account ownership — password, or
+ * Google for passwordless accounts.
  */
-export type VerifyAccountLinkResponse = {
-  message: string;
-  user: AuthUser;
+export type AccountLinkValidation = {
+  email: string;
+  hasPassword: boolean;
+  googleLinked: boolean;
 };
 
 export type SendAccountLinkResponse = {
@@ -135,13 +150,14 @@ export type ResetPasswordResponse = {
 /**
  * Details carried in the `data.details` of the HTTP 409
  * `account_exists_unlinked_google` ApiError. Returned by POST
- * /marketplace/auth/google when an email already belongs to a CUSTOMER whose
- * Google account is NOT yet linked. The backend does NOT include the email
- * here — the UI decodes it from the Google ID token instead.
+ * /marketplace/auth/google/web when an email already belongs to a CUSTOMER
+ * whose Google account is NOT yet linked.
  */
 export type GoogleUnlinkedDetails = {
   /** Transaction id that ties the re-auth + link steps to this attempt. */
   txId: string;
+  /** Account email, needed for the re-auth step. Optional for safety. */
+  email?: string;
 };
 
 /**
@@ -161,11 +177,12 @@ export type AuthContextValue = {
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   /**
-   * Confirm an account-link from a 409 confirmationToken. Performs the API call
-   * AND establishes the session, leaving the user authenticated (identical
-   * post-state to a normal login).
+   * Complete the emailed account-link flow: exchanges the emailed token plus
+   * the account password for tokens and establishes the session (auto-login).
+   * Re-throws the ApiError on failure (wrong password, expired token,
+   * `google_login_required`) so the page can branch on status/code.
    */
-  confirmAccountLink: (confirmationToken: string) => Promise<void>;
+  completeAccountLink: (token: string, password: string) => Promise<void>;
   /**
    * Request an email link to enable marketplace access. Does not change the
    * session. Returns the backend confirmation message.
@@ -175,17 +192,25 @@ export type AuthContextValue = {
     locale?: "en" | "ro",
   ) => Promise<string>;
   /**
-   * Sign in / register with a Google ID token (from GIS). On a 200 it
-   * establishes the session (identical post-state to login). On a 409 it
-   * re-THROWS the ApiError so the UI can branch on the collision code
-   * (`account_exists_unlinked_google` or `account_exists_needs_marketplace_access`).
+   * Sign in / register with the Google OAuth authorization code returned to
+   * /auth/callback. On a 200 it establishes the session (identical post-state
+   * to login). On a 409 it re-THROWS the ApiError so the UI can branch on the
+   * collision code (`account_exists_unlinked_google` or
+   * `account_exists_needs_marketplace_access`).
    */
-  googleSignIn: (idToken: string, intent: GoogleAuthIntent) => Promise<void>;
+  googleSignIn: (code: string, intent: GoogleAuthIntent) => Promise<void>;
   /**
    * Complete the verify-then-link flow: exchanges a tx_id + re-auth proof for
    * tokens and establishes the session (auto-login).
    */
   linkGoogleAccount: (txId: string, proof: string) => Promise<void>;
+  /**
+   * Complete the confirm-enable-marketplace flow: exchanges the tx_id from
+   * the `confirm_enable_marketplace` 409 for tokens, granting the CUSTOMER
+   * role to the Google-linked business account (auto-login). Re-throws the
+   * ApiError on failure (expired/consumed tx) so the UI can offer a retry.
+   */
+  confirmMarketplaceAccess: (txId: string) => Promise<void>;
   /**
    * Re-fetch GET /marketplace/auth/me and reflect it into `user`. Needed so the
    * account page has authoritative `googleSub` / `hasPassword` even when the
@@ -193,12 +218,13 @@ export type AuthContextValue = {
    */
   refreshUser: () => Promise<void>;
   /**
-   * Link (connect) a Google account to the authenticated account using a Google
-   * ID token (from GIS). Adopts the NEW session tokens the backend returns
-   * (exactly like googleSignIn) and reflects the updated user (now carrying
-   * `googleSub`). Re-throws the ApiError on failure so callers can map codes.
+   * Link (connect) a Google account to the authenticated account using the
+   * OAuth authorization code returned to /auth/callback. Adopts the NEW
+   * session tokens the backend returns (exactly like googleSignIn) and
+   * reflects the updated user (now carrying `googleSub`). Re-throws the
+   * ApiError on failure so callers can map codes.
    */
-  linkGoogle: (idToken: string) => Promise<void>;
+  linkGoogle: (code: string) => Promise<void>;
   /**
    * Unlink (disconnect) the linked Google account. Requires the account
    * password. Keeps the current session and clears `googleSub` in-memory.

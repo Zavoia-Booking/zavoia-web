@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import {
   addFavoriteBusiness,
   addFavoriteLocation,
+  getFavoriteBusinesses,
+  getFavoriteLocations,
   removeFavoriteBusiness,
   removeFavoriteLocation,
 } from "@/lib/api/marketplace/customer";
@@ -20,6 +22,11 @@ import {
 export type FavoriteKind = "business" | "location";
 
 export interface FavoriteToggle {
+  /**
+   * True once the visitor is an authenticated customer. Hearts are hidden for
+   * signed-out visitors — pass `onFavorite` to a card only when this is true.
+   */
+  canFavorite: boolean;
   /** Whether the given (numeric) id is currently favorited. */
   isFavorited: (id: number) => boolean;
   /** Optimistic toggle wired to the card's `onFavorite(id)` callback. */
@@ -29,18 +36,52 @@ export interface FavoriteToggle {
 /**
  * Auth-aware favorite toggling for a home section.
  *
- * Authenticated: optimistic Set update + the correct endpoint by `kind`; toast
- * on success, revert + nothing-loud on failure. Unauthenticated: a "Sign in to
- * save" toast and no state change.
- *
- * TODO(later slice): wire the header auth modal here so an unauthenticated tap
- * opens sign-in instead of only toasting.
+ * Authenticated: the set is seeded from the customer's existing favorites
+ * (`kind` picks the endpoint family), then optimistic Set updates + the
+ * correct endpoint per toggle; toast on success, revert + generic toast on
+ * failure. Unauthenticated: `canFavorite` is false and callers hide the heart
+ * (the toast branch below is a safety net for stray calls).
  */
 export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
   const { status } = useAuth();
   const toast = useToast();
   const { dict } = useTranslation();
   const [favorited, setFavorited] = useState<Set<number>>(new Set());
+
+  // Seed from the API so already-saved items render active and toggling them
+  // removes instead of re-adding. Merged into (not replacing) the current set
+  // so an optimistic add made while the seed is in flight survives.
+  useEffect(() => {
+    let cancelled = false;
+    if (status !== "authenticated") {
+      // Signed out (or logged out mid-session) → drop any stale hearts.
+      // Deferred to a microtask (same pattern as NearYouSection) so the
+      // effect body has no synchronous setState.
+      Promise.resolve().then(() => {
+        if (!cancelled) {
+          setFavorited((prev) => (prev.size ? new Set<number>() : prev));
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    const fetchIds =
+      kind === "business"
+        ? () => getFavoriteBusinesses().then((rows) => rows.map((r) => r.business.id))
+        : () => getFavoriteLocations().then((rows) => rows.map((r) => r.location.id));
+    fetchIds()
+      .then((ids) => {
+        if (cancelled || ids.length === 0) return;
+        setFavorited((prev) => new Set([...prev, ...ids]));
+      })
+      .catch(() => {
+        // Seeding is best-effort; toggling still works from an empty set.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, kind]);
 
   const isFavorited = useCallback(
     (id: number) => favorited.has(id),
@@ -94,5 +135,5 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
     [status, favorited, kind, toast, dict],
   );
 
-  return { isFavorited, toggle };
+  return { canFavorite: status === "authenticated", isFavorited, toggle };
 }

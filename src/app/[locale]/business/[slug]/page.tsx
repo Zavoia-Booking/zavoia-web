@@ -29,7 +29,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (!slug) return {};
     const listing = await getListing(slug);
     return {
-      title: listing.name,
+      // Location page → the location's own name titles the tab (business-level
+      // listing name only as fallback).
+      title: listing.location?.name || listing.name,
       description: listing.description ?? undefined,
       // Personalised / live-data page — keep it out of the index.
       robots: { index: false, follow: true },
