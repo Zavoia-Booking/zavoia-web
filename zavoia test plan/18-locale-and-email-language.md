@@ -1,5 +1,7 @@
 # 18. Locale & Email Language — Test Scenarios
 
+> **QA 2026-07-24 — MECHANISM IS DEPLOYED** (admin-api 7ced520 + zavoia-web 6684f72, live ~11:00; the header note above is now historical): x-locale transport found in the deployed web bundle (18.1 ✓); guest tickets accept ro/RO/fr/absent without 400s (18.2 ✓ API-side); forgot-password chain exercised live (18.8/18.9 — body-ro, body-en, header-only-ro, nothing → expected RO/EN/RO/EN emails to +51, human to confirm); dashboard header-less flows unchanged (18.13 ✓). **BLOCKED: all fresh-registration email evidence (18.3/18.4/18.5) — EMAIL_ALLOWLIST only delivers to +50/+51/base which are already registered; allowlist a +7x range to unlock.** 18.10 rate-limited (E08) this run; 18.11 skipped (would risk fixture email). Google/mobile/CRM branches blocked as usual.
+
 **Covers:** [Web] [Mobile] [CRM]
 
 > **Context (mechanism shipped 2026-07-24, uncommitted):** zavoia-web now sends the active UI language on **every** API call as the `x-locale: en|ro` header (read from `<html lang>`, pathname fallback; client-side only). admin-api reads it via the `@RequestLocale()` decorator and uses it as a fallback wherever a transactional email is sent or a user is created. Resolution order everywhere: **explicit body `locale` → `x-locale` header → persisted `user.locale` / derived business country → `en`**. Register (email + both Google flows) now persists the locale on the User row. Deploy **zavoia-web + admin-api together** before running this file (either alone is non-breaking but the bug stays).

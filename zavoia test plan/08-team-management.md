@@ -28,10 +28,11 @@
 
 ### 08.3 Seat limit blocks invite [Dashboard]
 **Steps:**
-1. Fill all paid seats (active + pending members = `paidTeamSeats`).
+1. On an **active (post-payment) subscription**, fill all paid seats (active + pending members = `paidTeamSeats`).
 2. Open the Invite slider.
 3. Attempt the invite via API anyway.
-**Expected:** Slider shows the no-seats state and its primary button routes to billing (`/account?tab=billing`) instead of inviting. API → 403 `AUTH.E05` with `details.limit`. Applies on trial too (trial does not bypass the seat cap).
+**Expected:** Slider shows the no-seats state and its primary button routes to billing (`/account?tab=billing`) instead of inviting. API → 403 `AUTH.E05` with `details.limit`.
+**Seat-cap basis (verified 2026-07-24, `entitlements.service.ts` `canInviteTeamMember`):** the effective cap depends on subscription state — **during trial it is the plan's `maxTeamMembers`** (e.g. 20 for STANDARD), NOT `paidTeamSeats`; **after subscription it is `min(paidTeamSeats, maxTeamMembers)`**. So a trial business with `paidTeamSeats: 0` **can still invite** up to `maxTeamMembers` — an invite on a 0-paid-seat STANDARD trial returns `AUTH.S01`, not `AUTH.E05` (this is intended: trial grants the plan's full seat ceiling; the paid-seat cap only bites once a paid subscription is active). To exercise `AUTH.E05` on trial you must reach `maxTeamMembers`; on an active subscription you reach `paidTeamSeats`.
 
 ### 08.4 Invite an email that already has a customer account [Dashboard] [Web]
 **Steps:**

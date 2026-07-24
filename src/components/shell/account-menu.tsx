@@ -88,7 +88,11 @@ export function AccountMenu({ locale, onClose }: Props) {
             padding: "16px 18px 14px",
           }}
         >
-          <Avatar name={fullName} size={44} />
+          <Avatar
+            name={fullName}
+            src={user?.profileImage ?? undefined}
+            size={44}
+          />
           <div style={{ minWidth: 0 }}>
             <div
               style={{

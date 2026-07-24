@@ -1,5 +1,7 @@
 # 10. Reviews & Ratings — Test Scenarios
 
+> **QA 2026-07-24 (API, fixtures +50/+51):** 10.1/10.3–10.6/10.8/10.9/10.11–10.15/10.18/10.19 all PASS — full review lifecycle live (completed-future status-wins ✓, one-per-appointment ✓, aggregates recompute ✓, platform-review slots for +50/+51 now permanently burned as `pending`). averageRating arrives as a NUMBER on listing detail but still a numeric STRING in the favorites payload. Owner-as-staff is NOT exposed via public team-member endpoints (404 — needs team_member role). Dashboard reviewWidget counts business reviews only; /review/stats overall combines professional. CRM/mobile scenarios still blocked.
+
 > Verified on staging 2026-07-23 (10.1–10.15, 10.18–10.19 incl. the full web review modal end-to-end; CRM 10.16/10.17/10.20 need CRM creds; mobile + push delivery unverifiable headless).
 > Fixed in zavoia-web the same day, retest after deploy: the appointment detail rail now treats `status === "completed"` as past regardless of slot time — a completed-but-future appointment shows "Leave a review"/"Book again" and never Reschedule/Cancel (previously the rail was purely time-gated via `deriveTense`).
 > Notes: public listing `averageRating` now arrives as a number (the old numeric-string crash no longer reproduces — keep the `Number()` coercion as belt-and-braces). Submit body is `{appointmentUuid, locationRating?, locationComment?, professionalRatings?: [{professionalId, rating, comment?}]}`; customer cancel body is `{uuid}`.

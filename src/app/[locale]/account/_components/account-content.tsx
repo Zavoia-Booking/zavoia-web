@@ -2543,7 +2543,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
   const t = dictionaries[locale].account;
   const router = useRouter();
   const toast = useToast();
-  const { status, logout } = useAuth();
+  const { status, logout, refreshUser } = useAuth();
   const { openAuthModal } = useAuthModal();
 
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
@@ -2658,6 +2658,8 @@ export function AccountContent({ locale }: { locale: Locale }) {
         setProfile((prev) =>
           prev ? { ...prev, profileImage: res.profileImage } : prev,
         );
+        // Header avatar reads useAuth().user — reflect the new photo there too.
+        void refreshUser().catch(() => {});
         toast(t.toasts.photoUpdated, "check");
       } catch {
         toast(t.toasts.genericError, "pencil");
@@ -2665,7 +2667,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
         setUploadingPhoto(false);
       }
     },
-    [t, toast],
+    [t, toast, refreshUser],
   );
 
   const goHome = useCallback(async () => {

@@ -1,5 +1,7 @@
 # 12. Support & Tickets — Test Scenarios
 
+> **QA 2026-07-24 (API):** create/read/reply/close/guards all PASS (12.2/12.3/12.4/12.6/12.9/12.18–12.20). **Deployed guard configs confirmed live (7ced520): guest = 10/hour counting only successes (12.8's 3/hour is outdated), authenticated create = 15/5min per IP+user (12.11's 3/5min is outdated)** — update both scenarios. 12.10 validation matrix not re-burned (verified 2026-07-23). CRM group still blocked.
+
 > **QA 2026-07-23 (API-level; CRM agent, guest email, and mobile scenarios skipped — no CRM creds / no inbox / no device):**
 > - **12.3 context is FLAT**: `context: {type, label, businessId?, locationId?, appointmentUuid?, listingId?, teamMemberId?}` — NOT nested under an `ids` object (the plan's `{type, label, ids}` is rejected with 400 "context.property ids should not exist"). Verified stored under `details.context`.
 > - **12.8 / 12.10 (fixed 2026-07-23):** the `GuestTicketRateLimitGuard` counted even malformed requests, so 3 fat-fingered guest submits locked the IP out for an hour. Fixed: the guard now has a `countOnlySuccess` mode (only 2xx/3xx responses count, via a response finish hook) and the cap was raised 3→10/hour — failed submits are free and there is generous headroom. Verified error codes: missing/long email → 400, `category` other → 400. Retest after deploy.

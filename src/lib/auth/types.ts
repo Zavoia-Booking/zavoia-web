@@ -5,6 +5,12 @@ export type AuthUser = {
   lastName: string;
   phone?: string;
   /**
+   * Profile photo URL, or null when none is uploaded. Only GET
+   * /marketplace/auth/me guarantees this field; `undefined` means "unknown
+   * yet" (e.g. a login response that omitted it).
+   */
+  profileImage?: string | null;
+  /**
    * Google account subject id, or null when no Google account is linked. Only
    * GET /marketplace/auth/me guarantees this field, so it is optional — derive
    * `isGoogleLinked = !!googleSub` and treat `undefined` as "unknown yet".
@@ -37,10 +43,14 @@ export type AuthStatus =
 
 /**
  * Best-effort identity used to render optimistic chrome (header avatar
- * initials) while the initial session check is in flight. Cached display name
- * from the previous session; empty strings when the cache is cold.
+ * initials / photo) while the initial session check is in flight. Cached
+ * display name + profile image from the previous session; empty strings /
+ * null when the cache is cold.
  */
-export type OptimisticUser = Pick<AuthUser, "firstName" | "lastName">;
+export type OptimisticUser = Pick<
+  AuthUser,
+  "firstName" | "lastName" | "profileImage"
+>;
 
 export type RegisterDTO = {
   email: string;

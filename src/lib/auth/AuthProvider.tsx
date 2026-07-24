@@ -50,9 +50,10 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 
 const PROACTIVE_REFRESH_LEAD_MS = 60_000;
 
-// Last-known display name, persisted so the header can render the correct
-// avatar initials during the initial session check instead of flashing the
-// logged-out icon. Cosmetic only — never used for authorization decisions.
+// Last-known display name + profile image, persisted so the header can render
+// the correct avatar (photo or initials) during the initial session check
+// instead of flashing the logged-out icon. Cosmetic only — never used for
+// authorization decisions.
 const LAST_DISPLAY_NAME_KEY = "zv.auth.lastDisplayName:v1";
 
 function readCachedDisplayName(): OptimisticUser | null {
@@ -63,6 +64,8 @@ function readCachedDisplayName(): OptimisticUser | null {
     return {
       firstName: typeof parsed.firstName === "string" ? parsed.firstName : "",
       lastName: typeof parsed.lastName === "string" ? parsed.lastName : "",
+      profileImage:
+        typeof parsed.profileImage === "string" ? parsed.profileImage : null,
     };
   } catch {
     return null;
@@ -73,7 +76,11 @@ function writeCachedDisplayName(user: OptimisticUser): void {
   try {
     window.localStorage.setItem(
       LAST_DISPLAY_NAME_KEY,
-      JSON.stringify({ firstName: user.firstName, lastName: user.lastName }),
+      JSON.stringify({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImage: user.profileImage ?? null,
+      }),
     );
   } catch {
     // best-effort: storage may be unavailable (private mode, quota)

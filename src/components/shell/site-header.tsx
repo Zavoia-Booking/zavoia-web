@@ -340,6 +340,8 @@ export function SiteHeader({ locale }: { locale: Locale }) {
     : optimisticUser
       ? `${optimisticUser.firstName} ${optimisticUser.lastName}`.trim()
       : "";
+  const avatarSrc =
+    (user ? user.profileImage : optimisticUser?.profileImage) ?? undefined;
 
   const iconBtn: CSSProperties = {
     width: 38,
@@ -503,9 +505,11 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                     : "0 0 0 1px rgba(28,28,26,0.08)",
                 }}
               >
-                {/* Cold optimistic cache has no name: keep the circle empty
-                    rather than showing a "?" initial. */}
-                {fullName ? <Avatar name={fullName} size={34} /> : null}
+                {/* Cold optimistic cache has no name/photo: keep the circle
+                    empty rather than showing a "?" initial. */}
+                {fullName || avatarSrc ? (
+                  <Avatar name={fullName} src={avatarSrc} size={34} />
+                ) : null}
               </button>
             </>
           ) : showNeutralCorner ? (

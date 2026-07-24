@@ -1,5 +1,7 @@
 # 11. Notifications (Push / SMS / Email) — Test Scenarios
 
+> **QA 2026-07-24 (API):** bells/inbox/prefs/push-token mechanics PASS (11.1/11.2/11.4–11.8/11.14/11.16/11.18/11.19). **BUG 11.3: customer reschedule sends NO customer notice on any channel** — `rescheduleAppointment` misses the `customer` relation so `prepareAndSendInstant` bails; fixed in admin-api 2026-07-24 (uncommitted). Customer-inbox rows carry `type` inside `data` JSON (no column); inbox `limit>50` → 400 by DTO (not a silent cap). **ENV GAP: staging sms_region_pricing/sms_package tables are empty** → /sms/packages `{data:[],region:null}` even for RO, 11.12/11.13 blocked until CRM seeds. Reminder internals (11.9–11.11) need DB access. needsAttention pending/SMS rows are frontend-composed (see 16).
+
 **Covers:** [Dashboard] [Web] [Mobile] [CRM]
 **Preconditions:**
 - Business (countryCode RO) with active subscription, 1 owner + 1 team member; booking settings: `emailEnabled=true`, `smsEnabled=true`, `reminderHoursBefore=24`; `smsCredits` > 10 (Twilio configured; on staging the target phone must be in `SMS_WHITELIST_E164` or sends fail with "Number not in staging whitelist")
