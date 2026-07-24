@@ -1,5 +1,10 @@
 # 17. Account Deletion — Test Scenarios
 
+> **QA 2026-07-23 (API-level with throwaway accounts; mobile + team-member deletion skipped — no TM login):**
+> - **CRITICAL 17.1/17.4 (fixed 2026-07-23):** `POST /marketplace/customer/delete` 500'd for any customer who had booked (favorites-only deleted fine) and — because the CUSTOMER role was dropped outside the purge transaction — left the account permanently broken. Root cause: the auto-created `business_customer` row has a RESTRICT FK to `user` (`@ManyToOne(User)` with no `onDelete`) that blocks the final user delete. Fixed in `account-deletion.service.ts`: `purgeUserRows` now deletes `business_customer` (by `userId`) before the user, and `deleteCustomerAccount` runs role-removal + orphan check + purge in ONE transaction so a failure rolls back cleanly. Retest after deploy.
+> - **17.13 / 17.14**: a wrong-context token (marketplace token on `/auth/account/delete`, or dashboard token on `/marketplace/customer/delete`) → **401** from the JWT guard, NOT `ACCOUNT.E03`/403 — the token type is rejected before the role check. Owner with no businessId → 400 `ACCOUNT.E02` ✓; no token → 401 ✓.
+> - Verified exactly: 17.1 (favorites-only → `{userDeleted:true}`, re-login `CUSTOMER_AUTH.E38`), 17.5 (PLUS-active owner → 400 `ACCOUNT.E09` `has_active_subscription`, nothing deleted), 17.6/17.7 (non-blocking trial owner → `ACCOUNT.S03`, businessDeleted+userDeleted, dead token/login), 17.9 (`x-native-app: capacitor` → 400 `ACCOUNT.E10` `deletion_instructions_sent`), 17.17 (owner sessions dead after purge). 17.3 partial: enable-access gate confirmed (register-then-marketplace-login → 409 `CUSTOMER_AUTH.E15`), the `userDeleted:false` combo path needs the full enable flow to seed both roles.
+
 **Covers:** [Dashboard] [Web] [Mobile]
 **Preconditions:**
 - Seed users: customer-only; email with CUSTOMER + OWNER roles; owner with a full business (team members incl. a pending invite, appointments, customers, reviews, listing, logo + portfolio images, map point); team member with and without roles at other businesses.

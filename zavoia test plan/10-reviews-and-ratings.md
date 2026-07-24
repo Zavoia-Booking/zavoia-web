@@ -1,5 +1,9 @@
 # 10. Reviews & Ratings — Test Scenarios
 
+> Verified on staging 2026-07-23 (10.1–10.15, 10.18–10.19 incl. the full web review modal end-to-end; CRM 10.16/10.17/10.20 need CRM creds; mobile + push delivery unverifiable headless).
+> Fixed in zavoia-web the same day, retest after deploy: the appointment detail rail now treats `status === "completed"` as past regardless of slot time — a completed-but-future appointment shows "Leave a review"/"Book again" and never Reschedule/Cancel (previously the rail was purely time-gated via `deriveTense`).
+> Notes: public listing `averageRating` now arrives as a number (the old numeric-string crash no longer reproduces — keep the `Number()` coercion as belt-and-braces). Submit body is `{appointmentUuid, locationRating?, locationComment?, professionalRatings?: [{professionalId, rating, comment?}]}`; customer cancel body is `{uuid}`.
+
 **Covers:** [Dashboard] [Web] [Mobile] [CRM] — platform-review group is [API]-level (no UI built in any app yet)
 **Preconditions:**
 - Seeded business with a public location, ≥2 team members, and a marketplace customer holding one COMPLETED, one CANCELLED, and one upcoming (CONFIRMED) appointment at that location; no reviews yet.
@@ -30,7 +34,7 @@
 1. Open the CANCELLED appointment detail on web and mobile.
 2. Open the upcoming CONFIRMED appointment detail.
 3. Inspect actions rail / drawer entry points.
-**Expected:** "Leave a review" is absent in all cases — API detail payload sets `reviews.canLeaveBusinessReview` and `professionals[].canLeaveReview` true only when `status === 'completed'` and no review exists. Same for `no_show`.
+**Expected:** "Leave a review" is absent in all cases — API detail payload sets `reviews.canLeaveBusinessReview` and `professionals[].canLeaveReview` true only when `status === 'completed'` and no review exists. Same for `no_show`. Conversely, a COMPLETED appointment shows the CTA even if its slot time is still in the future (status wins over time — post 2026-07-23 web fix).
 
 ### 10.4 One review per appointment — resubmission blocked [Web] [Mobile]
 **Steps:**

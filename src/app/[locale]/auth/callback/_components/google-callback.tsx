@@ -60,15 +60,25 @@ type View =
  * already spent) shows the "invalid" screen with a way back — never a dead
  * end. User cancellation on Google's screen returns silently to the origin
  * page.
+ *
+ * The redirect URI registered with Google is locale-less, so this page always
+ * mounts under the DEFAULT locale — the flow's real locale rides in the
+ * stored context and is adopted once it's consumed. Every outgoing redirect
+ * and message must derive from the context locale, or a Romanian user comes
+ * back from Google to an English page.
  */
 export function GoogleCallback({ locale }: { locale: Locale }) {
-  const dict = dictionaries[locale].auth;
-  const t = dict.googleCallback;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status, googleSignIn, linkGoogle } = useAuth();
 
   const [view, setView] = useState<View>({ kind: "working" });
+  // Prop locale is only the fallback (no/invalid context); the effect below
+  // swaps in the locale the flow actually started from.
+  const [effectiveLocale, setEffectiveLocale] = useState<Locale>(locale);
+
+  const dict = dictionaries[effectiveLocale].auth;
+  const t = dict.googleCallback;
 
   // consumeGoogleOAuthContext is destructive (removes the stored context), so
   // it must run exactly once; refs carry its result to the link-intent effect
@@ -78,8 +88,7 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
   const contextRef = useRef<GoogleOAuthContext | null>(null);
   const codeRef = useRef<string | null>(null);
 
-  const authHref = localeHref(locale, "auth");
-  const accountHref = localeHref(locale, "account");
+  const authHref = localeHref(effectiveLocale, "auth");
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -106,13 +115,23 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
       return;
     }
 
+    // Adopt the locale the flow started from (see component doc). The
+    // navigations below must use it directly — this render's hrefs were
+    // built from the stale default locale.
+    setEffectiveLocale(context.locale);
+    const loc = context.locale;
+    const locDict = dictionaries[loc].auth;
+    const locT = locDict.googleCallback;
+    const locAuthHref = localeHref(loc, "auth");
+    const locAccountHref = localeHref(loc, "account");
+
     if (oauthError || !code) {
       // Cancelled on Google's screen (error=access_denied) or no code came
       // back — return silently to where the flow started.
       router.replace(
         context.intent === "link"
-          ? accountHref
-          : `${authHref}?mode=${context.intent}`,
+          ? locAccountHref
+          : `${locAuthHref}?mode=${context.intent}`,
       );
       return;
     }
@@ -125,11 +144,7 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
       try {
         await googleSignIn(code, intent);
         router.replace(
-          safeRedirectTarget(
-            context.redirect,
-            locale,
-            defaultPostAuthTarget(locale),
-          ),
+          safeRedirectTarget(context.redirect, loc, defaultPostAuthTarget(loc)),
         );
       } catch (e) {
         // Branch 1: business account without CUSTOMER role. Two variants:
@@ -168,22 +183,13 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
         }
         setView({
           kind: "error",
-          message: authErrorMessage(e, dict.errors),
-          backHref: authHref,
-          backLabel: t.backToSignIn,
+          message: authErrorMessage(e, locDict.errors),
+          backHref: locAuthHref,
+          backLabel: locT.backToSignIn,
         });
       }
     })();
-  }, [
-    searchParams,
-    router,
-    googleSignIn,
-    locale,
-    dict.errors,
-    t,
-    authHref,
-    accountHref,
-  ]);
+  }, [searchParams, router, googleSignIn, t, authHref]);
 
   // intent === "link": the account page started this flow while signed in, but
   // the full-page redirect dropped the in-memory access token. AuthProvider
@@ -193,9 +199,19 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
     const code = codeRef.current;
     if (!context || context.intent !== "link" || !code) return;
 
+    // Same locale adoption as above — this effect can fire before the
+    // effectiveLocale state update has re-derived the rendered hrefs.
+    const loc = context.locale;
+    const locDict = dictionaries[loc].auth;
+    const locT = locDict.googleCallback;
+    const locAuthHref = localeHref(loc, "auth");
+    const locAccountHref = localeHref(loc, "account");
+
     if (status === "unauthenticated") {
       // Session gone — sign in first, then reconnect from the account page.
-      router.replace(`${authHref}?redirect=${encodeURIComponent(accountHref)}`);
+      router.replace(
+        `${locAuthHref}?redirect=${encodeURIComponent(locAccountHref)}`,
+      );
       return;
     }
     if (status !== "authenticated" || linkStartedRef.current) return;
@@ -204,17 +220,17 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
     void (async () => {
       try {
         await linkGoogle(code);
-        router.replace(accountHref);
+        router.replace(locAccountHref);
       } catch (e) {
         setView({
           kind: "error",
-          message: authErrorMessage(e, dict.errors),
-          backHref: accountHref,
-          backLabel: t.backToAccount,
+          message: authErrorMessage(e, locDict.errors),
+          backHref: locAccountHref,
+          backLabel: locT.backToAccount,
         });
       }
     })();
-  }, [status, router, linkGoogle, dict.errors, t, authHref, accountHref]);
+  }, [status, router, linkGoogle]);
 
   return (
     <main
@@ -262,7 +278,7 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
 
           {view.kind === "googleLink" && (
             <GoogleLinkPanel
-              locale={locale}
+              locale={effectiveLocale}
               context={view.context}
               redirect={view.redirect}
               onCancel={() => router.replace(authHref)}
@@ -271,7 +287,7 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
 
           {view.kind === "confirmAccess" && (
             <ConfirmAccessPanel
-              locale={locale}
+              locale={effectiveLocale}
               context={view.context}
               redirect={view.redirect}
               onCancel={() => router.replace(authHref)}
@@ -280,7 +296,7 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
 
           {view.kind === "enableAccess" && (
             <EnableAccessPanel
-              locale={locale}
+              locale={effectiveLocale}
               details={view.details}
               onCancel={() => router.replace(authHref)}
             />

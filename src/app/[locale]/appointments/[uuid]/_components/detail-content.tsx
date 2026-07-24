@@ -293,8 +293,13 @@ function ActionRail({
   const { rebook, pending: rebooking } = useRebook();
   const loc = appt.location;
   const biz = appt.business;
-  const upcomingOrLive = tense === "future" || tense === "today" || tense === "now";
-  const isPast = tense === "past";
+  // A completed appointment is settled regardless of its slot time — the backend
+  // can mark it completed early, and it must then read as past (review + rebook),
+  // never as manageable (reschedule/cancel).
+  const completed = appt.status === "completed";
+  const upcomingOrLive =
+    (tense === "future" || tense === "today" || tense === "now") && !completed;
+  const isPast = tense === "past" || completed;
   const cancelled = tone === "warning" || tone === "error";
 
   const address = loc?.address ?? null;

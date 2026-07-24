@@ -1,5 +1,8 @@
 # 09. Onboarding & Business Setup — Test Scenarios
 
+> Verified on staging 2026-07-23 (full wizard with fresh owner → business 4 "QA Studio Gamma"); expectations updated to the actual implementation. Fixed in admin-api the same day, retest after deploy: `/wizard/complete` now validates its DTO (was unvalidated — a 1-char name created business 6 "Q"), and the category cap moved into `CategoryService.create` (raised to 50) with case-insensitive name reuse. Accepted as-is: `businessCurrency` allows any 3-letter code at API level (UI restricts; a Postman foot-gun we don't guard).
+> DTO shapes: services use `price_amount_minor` / `duration` / `locations[]` / `category: {categoryId | name+color}`; bundles use lowercase `priceType: sum|fixed|discount` + `discountPercentage`.
+
 **Covers:** [Dashboard] [Web] [Mobile]
 **Preconditions:**
 - Fresh OWNER account registered + email verified, `wizardCompleted: false` (lands on `/welcome`). A second, fully set-up OWNER business on an active STANDARD trial with a published marketplace listing (for cross-app checks).
@@ -10,7 +13,7 @@
 
 ### 09.1 Full wizard run — all 3 steps happy path [Dashboard]
 **Steps:**
-1. Log in as fresh OWNER → app routes to `/welcome` (SetupWizard, steps: Business Info → Location → Team).
+1. Log in as fresh OWNER → `/dashboard` shows a "SETUP · REQUIRED" gate card; its CTA opens `/welcome` (SetupWizard, steps: Business Info → Location → Team).
 2. Step 1: fill business name, business email, phone (E.164), pick industry, country, timezone, business currency; Continue.
 3. Step 2: fill location name, address (autocomplete), confirm map pin, contact (or "use business contact"), set working hours; Continue.
 4. Step 3: toggle "works solo" (no invites); click Finish Setup (`POST /wizard/complete`).
@@ -22,7 +25,7 @@
 2. Enter 1-char business name, then a name with `<>` characters.
 3. Step 2: try Continue with empty location name, empty address, unconfirmed map pin, invalid email.
 4. Bypass UI: `POST /wizard/complete` with 1-char name via API client.
-**Expected:** Each field blocks progression with inline error (phone/currency/country/timezone required messages). API DTO rejects: `"Enter at least 2 characters"`, `"Maximum 70 characters allowed"`, `"Please remove special characters (only - ' & . ( ) allowed)"`, phone regex message. No business created.
+**Expected:** Each field blocks progression with inline error (phone/currency/country/timezone required messages). API (post 2026-07-23 fix): `POST /wizard/complete` validates `CompleteWizardDTO` → 400 with `"Enter at least 2 characters"`, `"Maximum 70 characters allowed"`, `"Please remove special characters (only - ' & . ( ) allowed)"`, phone regex message; empty-string optional fields (social URLs, location contact when using business contact) are tolerated. No business created.
 
 ### 09.3 Abandon wizard mid-way and resume (draft persistence) [Dashboard]
 **Steps:**
@@ -69,7 +72,7 @@
 1. In `/account?tab=profile` change `businessCurrency` (e.g. eur → ron); save.
 2. Open `/services` and check a service price display.
 3. Open the web listing and the booking drawer price lines.
-**Expected:** Currency accepted only from whitelist (invalid → inline currency error). Services list and web booking display amounts formatted in the new currency (prices stored as `price_amount_minor`, no numeric conversion — same minor units, new symbol).
+**Expected:** UI offers only whitelisted currencies (the API itself accepts any 3-letter code — accepted limitation, do not test via API). Services list and web booking display amounts formatted in the new currency (prices stored as `price_amount_minor`, no numeric conversion — same minor units, new symbol).
 
 ### 09.9 Dashboard language switcher (en/ro) [Dashboard]
 **Steps:**
@@ -103,8 +106,8 @@
 **Steps:**
 1. Try deleting a location that has assigned staff, services, and a future appointment (EditLocationSlider → delete, `DELETE /locations/:id`).
 2. Note the blocking dialog contents.
-3. Unassign services/staff and resolve appointments, then delete again.
-**Expected:** First attempt returns `canDelete: false`, message `LOCATION.E07`, with `activeUsersCount`, `pendingUsersCount`, `servicesCount`, `appointmentsCount`; nothing deleted. After unlinking → `canDelete: true`, `LOCATION.S03`; location gone from list and from web/mobile listing.
+3. Clear the location's staff links via `PUT /assignments/locations/:id` with `{services: [], bundles: [], userIds: []}` (note: `POST /team-members/:uid/unassign-location/:loc` refuses the OWNER with 403 `SYSTEM.E04`), resolve appointments, then delete again.
+**Expected:** First attempt returns `canDelete: false`, message `LOCATION.E07`, with `activeUsersCount`, `pendingUsersCount`, `servicesCount`, `appointmentsCount`, `websiteGalleryImagesCount`; nothing deleted — a freshly created location always starts blocked because its creator is auto-linked. After unlinking → `canDelete: true`, `LOCATION.S03`; location gone from list and from web/mobile listing.
 
 ### 09.14 Multiple locations behave independently [Dashboard] [Web]
 **Steps:**
@@ -126,15 +129,15 @@
 **Steps:**
 1. On `/services`, open Manage categories (in ServiceFilters/CategorySection): add a category, rename one inline, shuffle its color, delete an unused one; Apply.
 2. Create a duplicate-named category (case-insensitive) from the service form.
-3. Via API, create categories until 25 exist, then one more.
-**Expected:** Apply batches create/update/delete (`POST /categories/create`, `PUT /categories/:id`, `DELETE /categories/:id`) then reloads list; services re-render with new names/colors. Duplicate name reuses the existing category (no dup row). 26th → 403 `CATEGORY.E06` (max 25 per account).
+3. Via API, create categories until 50 exist, then one more.
+**Expected:** Apply batches create/update/delete (`POST /categories/create`, `PUT /categories/:id`, `DELETE /categories/:id`) then reloads list; services re-render with new names/colors. Duplicate name reuses the existing category (no dup row; returns the existing id). 51st → 403 `CATEGORY.E06` with `{maxCategories: 50, currentCount}` — enforced inside `CategoryService.create` so every path (categories/create, service form, bulk apply) hits it; being over the cap no longer blocks `POST /services/create` when no new category is being created. (Fixed 2026-07-23 — retest after deploy.)
 
 ### 09.17 Delete service with future appointments — guard [Dashboard]
 **Steps:**
 1. Book a future appointment for a service (web booking or dashboard calendar).
 2. Delete that service (`DELETE /services/:id`).
-3. Remove links (locations/staff) and resolve the appointment, delete again.
-**Expected:** First attempt: `canDelete: false`, message `SERVICE.E08`, with `teamMembersCount`, `locationsCount`, `appointmentsCount`; service intact. After cleanup: `canDelete: true`, `SERVICE.S03`; service disappears from dashboard and web listing.
+3. Remove links (locations/staff) and cancel the appointment, delete again.
+**Expected:** First attempt: `canDelete: false`, message `SERVICE.E08`, with `teamMembersCount`, `locationsCount`, `appointmentsCount`; service intact. The appointment count includes ALL appointments regardless of status or date — cancelled/past bookings still block, so a service that was ever booked stays undeletable (by design; history preservation). Only link cleanup reduces the other counts.
 
 ### 09.18 Role boundary — team member cannot mutate setup entities [Dashboard]
 **Steps:**
@@ -158,4 +161,4 @@
 2. On web `/business/[slug]`, open booking drawer → bundles listed alongside services; pick the bundle, staff, and slot; confirm booking (payload uses `bundleId`, not `serviceId`).
 3. Book with a staff member who can't perform all bundle services (API).
 4. Delete the bundle with the future bundle appointment pending (`DELETE /bundles/:id`).
-**Expected:** Booking succeeds → `MARKETPLACE_BOOKING.S01`, appointment spans all bundle services. Incapable staff → `MARKETPLACE_BOOKING.E17`. Delete → `canDelete: false`, message `BUNDLE.E10` with `locationsCount`/`appointmentsCount`; after unlinking/resolving → `BUNDLE.S03`.
+**Expected:** Booking succeeds → `MARKETPLACE_BOOKING.S01`, appointment spans all bundle services. Incapable staff → `MARKETPLACE_BOOKING.E17`. Delete → `canDelete: false`, message `BUNDLE.E10` with `locationsCount`/`appointmentsCount`. Unassigning clears `locationsCount`, but the appointment count includes cancelled/past bookings — a bundle that was ever booked stays undeletable (by design, same as services).

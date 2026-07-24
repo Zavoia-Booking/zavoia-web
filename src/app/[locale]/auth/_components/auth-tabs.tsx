@@ -31,6 +31,23 @@ export function AuthTabs({ locale }: { locale: Locale }) {
   const [linkDetails, setLinkDetails] =
     useState<AccountLinkNeededDetails | null>(null);
 
+  // Terms consent for register mode. Lives here (not in RegisterForm) because
+  // the Google button below the form must gate on the same checkbox — users
+  // must accept the terms whether they register with email or with Google.
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState(false);
+
+  // Switching login/register tabs only changes the ?mode param — this
+  // component stays mounted — so reset the consent state on tab change
+  // (guarded adjust-during-render): the checkbox unticks so returning to
+  // register always asks for a fresh, deliberate acceptance.
+  const [prevMode, setPrevMode] = useState(mode);
+  if (prevMode !== mode) {
+    setPrevMode(mode);
+    setTermsAccepted(false);
+    setTermsError(false);
+  }
+
   // Sub-flow (business-account link) replaces the tabbed forms inside the same
   // card shell, with the toggle + heading suppressed — it owns its heading.
   // The Google collision panels live on /auth/callback now: the Google button
@@ -68,6 +85,13 @@ export function AuthTabs({ locale }: { locale: Locale }) {
                 <RegisterForm
                   locale={locale}
                   onAccountLinkNeeded={setLinkDetails}
+                  termsAccepted={termsAccepted}
+                  termsError={termsError}
+                  onTermsChange={(accepted) => {
+                    setTermsAccepted(accepted);
+                    if (accepted) setTermsError(false);
+                  }}
+                  onTermsInvalid={() => setTermsError(true)}
                 />
               )}
 
@@ -87,9 +111,48 @@ export function AuthTabs({ locale }: { locale: Locale }) {
                       intent={mode}
                       locale={locale}
                       redirect={redirect}
+                      onBeforeStart={
+                        mode === "register"
+                          ? () => {
+                              if (!termsAccepted) {
+                                setTermsError(true);
+                                return false;
+                              }
+                              return true;
+                            }
+                          : undefined
+                      }
                     />
                   </div>
                 </div>
+              )}
+
+              {mode === "login" && (
+                /* New Google users are auto-registered by the backend even on
+                   login intent, so the login tab carries the passive consent
+                   notice (register has the explicit checkbox instead) —
+                   mirroring the admin-dashboard AuthLayout footer. */
+                <p className="text-center text-xs text-c-500">
+                  {dict.terms.continueNotice}{" "}
+                  <a
+                    href={localeHref(locale, "legal", "terms")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    {dict.terms.termsLink}
+                  </a>{" "}
+                  {dict.terms.and}{" "}
+                  <a
+                    href={localeHref(locale, "legal", "privacy")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    {dict.terms.privacyLink}
+                  </a>
+                  .
+                </p>
               )}
 
               {mode === "login" && (

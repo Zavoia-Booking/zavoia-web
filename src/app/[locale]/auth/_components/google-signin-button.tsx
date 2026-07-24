@@ -37,6 +37,12 @@ type Props = {
   locale: Locale;
   /** In-app post-auth target; re-validated by the callback page. */
   redirect?: string | null;
+  /**
+   * Called before the OAuth redirect starts; return false to block it (e.g.
+   * required terms checkbox not ticked). Same contract as the
+   * admin-dashboard's GoogleSignInButton.
+   */
+  onBeforeStart?: () => boolean;
 };
 
 /**
@@ -53,13 +59,21 @@ type Props = {
  *
  * Renders nothing when GOOGLE_CLIENT_ID is unset (feature flag).
  */
-export function GoogleSignInButton({ intent, locale, redirect }: Props) {
+export function GoogleSignInButton({
+  intent,
+  locale,
+  redirect,
+  onBeforeStart,
+}: Props) {
   if (!GOOGLE_CLIENT_ID) return null;
 
   return (
     <button
       type="button"
-      onClick={() => beginGoogleOAuth({ intent, locale, redirect })}
+      onClick={() => {
+        if (onBeforeStart && !onBeforeStart()) return;
+        beginGoogleOAuth({ intent, locale, redirect });
+      }}
       className="flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-[10px] border border-[rgba(28,28,26,0.14)] bg-white text-[15px] font-medium text-ink shadow-[var(--sh-sm)] transition-colors hover:bg-c-50"
     >
       <GoogleG />

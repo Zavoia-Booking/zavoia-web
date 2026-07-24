@@ -8,6 +8,8 @@
 
 Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_show`. Booking sources selectable in the add slider: `admin`, `phone`, `walk_in` (marketplace bookings arrive as `marketplace`). Dashboard create uses `POST /appointments/admin-create-group`; edit uses `PUT /appointments/:id`; cancel uses `POST /appointments/:id/cancel`.
 
+> **Change under test (2026-07-23): location-only booking removed.** Staff is now required on EVERY admin booking path — `admin-create` requires `staffUserIds` (min 1), `admin-create-group` requires `staffUserId` on every item, and `PUT /appointments/:id` rejects `staffUserIds: []`. There is no longer any branch that books "the location" when it has zero team members; such a location is intentionally unbookable (see 04.5). Legacy staff-less appointment rows created before this change must remain viewable and reschedulable (see 04.31). Deploy note: admin-api and admin-dashboard must ship together — an old dashboard bundle can still send staff-less payloads, which the new API 400s.
+
 ## Appointment creation
 
 ### 04.1 Create single-service appointment for existing client [Dashboard]
@@ -36,12 +38,13 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 2. Save.
 **Expected:** TWO independent appointment rows created back-to-back (item 2 starts exactly when item 1 ends), one per staff member, each with its own price/duration. Both staff receive `APPOINTMENT_ASSIGNED` notifications. Cancelling one row does not affect the other.
 
-### 04.5 Booking at a location with no team members (location-only) [Dashboard]
+### 04.5 Location with no team members is NOT bookable (location-only booking removed) [Dashboard]
 **Steps:**
-1. Use a location that has services but zero assigned team members.
-2. Create an appointment (no staff picker should be required).
-3. Try to create a second overlapping appointment at the same location.
-**Expected:** First appointment saves with no staff. Second is rejected 409: "Another appointment at this location overlaps the selected time."
+1. Use a location that has services assigned but zero team members.
+2. Add appointment at that location: add a service item; observe the staff picker and the date/time step.
+3. Request `POST /calendar/available-slots` for that location on any date.
+4. Force creates via API: `POST /appointments/admin-create-group` with an item missing `staffUserId`; `POST /appointments/admin-create` with `staffUserIds` omitted and again with `staffUserIds: []`.
+**Expected:** The staff picker always renders (it is no longer hidden for staff-less locations) but offers no candidates, so the item never validates, slots are never fetched, date/time stays locked, and submit stays disabled. Step 3 returns no available slots. Step 4: missing per-item staff → 400 "Staff member is required for each item."; `admin-create` with `staffUserIds` omitted or `[]` → 400 validation "At least one staff member is required." No appointment row is created by any of these attempts — the old behavior (appointment saved with no staff, location-level 409 on overlap) must NOT occur.
 
 ### 04.6 Past time and minimum-advance validation [Dashboard]
 **Steps:**
@@ -105,8 +108,8 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 ### 04.15 Reassign staff on an existing appointment [Dashboard]
 **Steps:**
 1. Edit appointment → change staff from A to B (B qualified for the service) → save.
-2. Repeat with an empty staff selection at a location that has team members (API call).
-**Expected:** Step 1: appointment moves to B's column; B gets `APPOINTMENT_ASSIGNED`, A gets `APPOINTMENT_UNASSIGNED` ("Appointment removed from your schedule"); staffSnapshot rebuilt; availability re-checked for B. Step 2: 400 "At least one staff member is required. Use a non-empty list to reassign."
+2. Send `PUT /appointments/:id` with `staffUserIds: []` (API call).
+**Expected:** Step 1: appointment moves to B's column; B gets `APPOINTMENT_ASSIGNED`, A gets `APPOINTMENT_UNASSIGNED` ("Appointment removed from your schedule"); staffSnapshot rebuilt; availability re-checked for B. Step 2: 400 "At least one staff member is required. Use a non-empty list to reassign." — this now applies at EVERY location; the old carve-out that accepted `[]` at a location with no team members ("This location has no team members; do not assign staff.") is gone, so stripping staff off an appointment is impossible.
 
 ### 04.16 Change service on an existing appointment; composite is blocked [Dashboard]
 **Steps:**
@@ -139,7 +142,7 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 1. Open the same appointment in two tabs.
 2. Tab 1: reschedule to 14:00, save. Tab 2 (stale data): reschedule to 15:00, save.
 3. Refresh both tabs.
-**Expected:** No optimistic locking — both PUTs succeed, last write wins (appointment at 15:00). No crash or duplicate rows; second save still passes conflict/hours validation against current DB state. Both tabs show 15:00 after refetch.
+**Expected:** No optimistic locking, but each save re-runs conflict/hours validation against the current DB state. When the two PUTs race, one succeeds and the other may return **409** (it validates against the state the first write just created) — this is acceptable and preferable to a silent double-write. Whichever save is applied last wins; there is no crash and no duplicate rows. Both tabs converge on the persisted time after refetch. (Verified 2026-07-23: concurrent 14:00/14:30 PUTs returned 200 + 409, final state clean.)
 
 ### 04.21 Delete a service that has appointments [Dashboard]
 **Steps:**
@@ -182,15 +185,6 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 3. Enable the setting but keep `staffBlockCalendarTypes` at default `holidays,timeOff,sickDays`; try reason `meeting`, then reason `vacation`.
 **Expected:** Step 1 → 403 "Team members can only create staff-scoped (personal) blocks." (blocks for another user → "You can only create blocks for yourself."). Step 2 → 403 "Calendar blocking without approval is not allowed for your role." Step 3: `meeting` → 400 "This block reason is not allowed by your business settings."; `vacation` (maps from `timeOff`) succeeds. Team member can edit/delete only their own staff blocks.
 
-## Staff schedules
-
-### 04.27 Staff weekly schedule constrains marketplace slots, not dashboard booking [Dashboard] [Web] [Mobile]
-**Steps:**
-1. Via API (`POST /staff-schedule`, owner token — no dashboard UI calls these endpoints), set staff A's weekly hours: e.g. `monday: "9:00-13:00"`, `sunday: "closed"`.
-2. As a customer on web/mobile, open the booking flow for a service performed by A; inspect offered slots for a Monday afternoon and a Sunday.
-3. In the dashboard, book A manually on Monday at 15:00 (inside location hours, outside A's schedule).
-**Expected:** Marketplace slot capacity filters by the StaffSchedule day strings — A offers no Monday-afternoon or Sunday slots (staff with no schedule row remain always-available). Dashboard admin-create ignores the weekly schedule (only location hours, conflicts, blocks apply): the 15:00 booking saves. `POST /staff-schedule` for a non-team-member → 400 "Only team members can have schedules"; second create for same user → 409 "Schedule already exists for this user".
-
 ## Roles, views & timezone
 
 ### 04.28 Team-member scoping and edit/cancel permission flags [Dashboard]
@@ -212,3 +206,20 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 2. Change OS/browser timezone to e.g. America/New_York, reload `/calendar` (day and week views), and open the appointment detail.
 3. Book an appointment near midnight local time and verify which calendar day it lands on.
 **Expected:** Appointment still renders at 10:00 wall-clock — all calendar rendering, slot generation, day boundaries, and date pickers use the location timezone (resolved as location.timezone falling back to business timezone), never the browser's. The stored instant is unchanged; the day/summary buckets match the location's calendar day.
+
+## Location-only booking removal — regression on existing flows
+
+### 04.31 Legacy staff-less appointments still render and reschedule [Dashboard]
+**Preconditions:** at least one appointment row created BEFORE 2026-07-23 with no assigned staff (empty `staffSnapshot`, no `appointment_staff_users` rows) — seed one directly in the DB if staging has none left.
+**Steps:**
+1. Open the day containing the legacy staff-less appointment in Day GRID and LIST views (also Week and Month).
+2. Reschedule it via the edit slider — change only date/time, leave staff untouched — and save.
+3. In Day GRID, drag it from the Unassigned column onto a qualified staff member's column and confirm; separately, try dropping any appointment onto the Unassigned column.
+4. Edit it and assign a staff member via the edit slider.
+**Expected:** The row renders in the Unassigned column with no crash and correct filtering (staff filters exclude it; "unassigned only" style filters still find it). Step 2 succeeds — with an empty staff list the conflict check degrades to business/location block validation only (no staff-conflict false positive, no 500, no resurrected location-level 409). Step 3: the drop onto a staff column sends `staffUserIds: [staffId]` and reassigns normally; any drop onto Unassigned is still rejected client-side with the "unassigned" toast (no API call) — DnD can never produce a staff-less payload. Step 4 assigns normally (staffSnapshot rebuilt, `APPOINTMENT_ASSIGNED` fires). Per 04.15, staff can never be stripped back off, so the row leaves the staff-less state permanently once reassigned.
+
+### 04.32 Staffed-location flows are unaffected by the removal [Dashboard]
+**Steps:**
+1. At the normal precondition location (with team members), re-run the core happy paths as a smoke pass: 04.1 (single create), 04.3/04.4 (multi-item runs), 04.10 (staff conflict 409), 04.13 (reschedule), 04.23 (staff block).
+2. While doing so, watch the network tab on create: every `admin-create-group` item must carry a `staffUserId`.
+**Expected:** All referenced scenarios behave exactly as specified — the staff-requirement change must not alter behavior where staff already existed. Slot generation (`/calendar/available-slots`), conflict checks, notifications, and DnD are unchanged for staffed locations; no payload is ever sent without staff.

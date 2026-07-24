@@ -1,5 +1,9 @@
 # 13. Search & Discovery (Marketplace) — Test Scenarios
 
+> **QA 2026-07-23 (API + web; mobile + CRM-block skipped):** search mechanics all verified, but **staging has only ONE published listing** (business 2, Rădăuți), so multi-result ranking, AND-combined cross-business filters, and the specific "widened search" reason codes (`NO_MATCH_FOR_TAGS` / `EXPANDED_RADIUS` / `SAME_INDUSTRY_NEARBY`) can't be exercised — every no-match falls back to that single recommendation. Reseed ≥3 listings to fully cover 13.4/13.6/13.7.
+> Corrections: **13.5** a far geo anchor (single listing outside the 20 km radius) returns `fallback.reason: "NO_RESULTS"` — there is NO automatic radius expansion to a distant lone listing (this is also the cleanest way to hit the true-zero `NO_RESULTS` state 13.7 wants). **13.10** by-slug detail resolves 200 (the location name just sits under a different response key). **Free-text param is `search=`** (not `q`). `averageRating` still arrives as a numeric string (`"3.9"`) in the favorites payload. **13.21** the lone Rădăuți listing isn't in the curated SEO city set, so its city page 404s — only the clean-404-on-unknown-combo behavior is verifiable here.
+> Verified exactly: 13.1/13.2/13.3 (name/fuzzy/bilingual tag + typos), 13.11 (isPublic=false removes from search + 404s detail, restore returns), 13.13/13.14/13.15/13.16 (favorites add/remove/errors, unified list, unlisted-drop, professional-hide-filter), 13.18 (bulk omits unlisted/unknown), 13.19 (rails), 13.20 (limit 501 / offset -1 → 400).
+
 **Covers:** [Dashboard] [Web] [Mobile] [CRM]
 **Preconditions:**
 - ≥3 businesses with published marketplace listings (`isListed=true`, not `hiddenBySystem`/`blockedByPlatform`), each with ≥1 public location with coordinates + city, industry, and industry tags set; one business with 2 locations.

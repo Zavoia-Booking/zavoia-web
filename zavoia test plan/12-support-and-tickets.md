@@ -1,5 +1,11 @@
 # 12. Support & Tickets — Test Scenarios
 
+> **QA 2026-07-23 (API-level; CRM agent, guest email, and mobile scenarios skipped — no CRM creds / no inbox / no device):**
+> - **12.3 context is FLAT**: `context: {type, label, businessId?, locationId?, appointmentUuid?, listingId?, teamMemberId?}` — NOT nested under an `ids` object (the plan's `{type, label, ids}` is rejected with 400 "context.property ids should not exist"). Verified stored under `details.context`.
+> - **12.8 / 12.10 (fixed 2026-07-23):** the `GuestTicketRateLimitGuard` counted even malformed requests, so 3 fat-fingered guest submits locked the IP out for an hour. Fixed: the guard now has a `countOnlySuccess` mode (only 2xx/3xx responses count, via a response finish hook) and the cap was raised 3→10/hour — failed submits are free and there is generous headroom. Verified error codes: missing/long email → 400, `category` other → 400. Retest after deploy.
+> - **12.20**: a dashboard token on `/marketplace/support/*` (and no token) → **401** from the JWT guard (wrong token type never reaches the ownership check). Cross-user + dashboard-GET-of-marketplace-ticket → 404 `SUPPORT.E03` ✓.
+> - Verified exactly: 12.2 (S01, MARKETPLACE, createdBy=userId), 12.4 (S01, DASHBOARD, businessId), 12.11 (4th create/5min → 429), 12.18 (seen/seenByAdmin flip), 12.19 (close S05 → reply E04).
+
 **Covers:** [Dashboard] [Web] [Mobile] [CRM]
 **Preconditions:**
 - Seeded accounts: marketplace customer (web + mobile login), business owner with dashboard access, CRM agent (admin-crm login).

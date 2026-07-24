@@ -183,6 +183,15 @@ export const ro: Dictionary = {
     googleDivider: "sau",
     businessOwnerPrompt: "Ai o afacere?",
     businessOwnerCta: "Autentifică-te în dashboardul tău",
+    terms: {
+      agreementPrefix: "Sunt de acord cu",
+      termsLink: "Termenii și condițiile",
+      cookiesLink: "Politica de cookie-uri",
+      and: "și",
+      privacyLink: "Politica de confidențialitate",
+      required: "Trebuie să accepți termenii pentru a continua.",
+      continueNotice: "Continuând, ești de acord cu",
+    },
     fields: {
       email: "Email",
       password: "Parolă",
@@ -206,7 +215,10 @@ export const ro: Dictionary = {
         "Parola trebuie să conțină literă mică, mare, cifră și un caracter special.",
       firstNameRequired: "Prenumele este obligatoriu.",
       lastNameRequired: "Numele este obligatoriu.",
+      nameTooShort: "Trebuie să aibă cel puțin 2 caractere.",
+      nameTooLong: "Trebuie să aibă mai puțin de 50 de caractere.",
       phoneInvalid: "Numărul de telefon nu este valid.",
+      emailAlreadyRegistered: "Emailul este deja folosit.",
       googleEmailMismatch:
         "Emailul acelui cont Google nu corespunde cu emailul contului tău.",
       googleNotLinked: "Niciun cont Google nu este conectat la contul tău.",
@@ -218,6 +230,24 @@ export const ro: Dictionary = {
       sameEmail: "Emailul nou trebuie să fie diferit de cel actual.",
       resetLinkInvalid: "Acest link este invalid sau a fost deja folosit.",
       resetLinkExpired: "Acest link a expirat.",
+    },
+    passwordStrength: {
+      label: "Puterea parolei",
+      ratings: {
+        veryWeak: "Foarte slabă",
+        weak: "Slabă",
+        fair: "Acceptabilă",
+        strong: "Puternică",
+        veryStrong: "Foarte puternică",
+        excellent: "Excelentă",
+      },
+      rules: {
+        minLength: "Cel puțin 8 caractere",
+        lowercase: "Cel puțin o literă mică (a–z)",
+        uppercase: "Cel puțin o literă mare (A–Z)",
+        number: "Cel puțin o cifră (0–9)",
+        special: "Cel puțin un caracter special (ex. #, @, !, %)",
+      },
     },
     enableAccess: {
       heading: "Activează accesul în marketplace",

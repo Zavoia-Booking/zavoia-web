@@ -19,6 +19,13 @@ const CODE_TO_KEY: Record<string, keyof AuthErrorsDict> = {
   // password — intentionally generic, so the message must not distinguish them.
   "CUSTOMER_AUTH.E38": "invalidCredentials",
 
+  // ── Register ──
+  // E14: the email already has a marketplace account. The 409 body carries
+  // both forms (message code E14 + top-level `email_already_registered`);
+  // either one lands here.
+  "CUSTOMER_AUTH.E14": "emailAlreadyRegistered",
+  EMAIL_ALREADY_REGISTERED: "emailAlreadyRegistered",
+
   // ── Google link/unlink (account settings) ──
   // E45: the linked Google account's email doesn't match the account email.
   "CUSTOMER_AUTH.E45": "googleEmailMismatch",
@@ -76,6 +83,7 @@ function isCodeShaped(value: string): boolean {
 }
 
 const BACKEND_CODE_RE = /^[A-Z_]+\.[A-Z0-9]+$/i;
-// Plain UPPER_SNAKE codes with no dot (change-email codes). Requires an
-// underscore so ordinary words/messages don't get misread as codes.
-const PLAIN_CODE_RE = /^[A-Z]+(_[A-Z]+)+$/;
+// Plain snake-case codes with no dot: change-email's UPPER_SNAKE codes and
+// 409 conflicts' lowercase codes (e.g. `email_already_registered`). Requires
+// an underscore so ordinary words/messages don't get misread as codes.
+const PLAIN_CODE_RE = /^[A-Z]+(_[A-Z]+)+$/i;

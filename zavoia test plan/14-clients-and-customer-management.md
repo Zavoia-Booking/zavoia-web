@@ -1,5 +1,11 @@
 # 14. Clients & Customer Management (Dashboard) — Test Scenarios
 
+> **QA 2026-07-23 (API + dashboard; mobile + team-member-login + expired-sub skipped):**
+> - **14.16 self-merge (fixed 2026-07-23):** `POST /business-customers/merge` blindly treated the passed id as the marketplace record, so resolving from the MANUAL side self-merged (manual→merged, marketplace stayed flagged). Fixed: `mergeDuplicates` now resolves the pair from the clicked record's `source` so the marketplace record always survives regardless of which id the UI passes, rejecting with `E01` when a valid pair can't be resolved. Retest after deploy.
+> - **14.4 validation (fixed 2026-07-23):** `AddCustomerManuallyDTO` + both update DTOs now enforce firstName/lastName `@MinLength(2)`/`@MaxLength(50)`, notes `@MaxLength(500)`, email `@MaxLength(254)` — matching the UI. (Previously bare `@IsString()` accepted a 1-char name and 501-char notes.) Email + phone format validation already worked. Retest after deploy.
+> - Drift: **14.15** merge success code is `BUSINESS_CUSTOMER.S02` (same as edit); `GET /business-customers/:id/history` returns a bare data array (not `{history, pagination}`); `mergedIntoCustomerId` is absent from the GET projection (confirms the plan's dead-redirect note). **14.18** dashboard_user → 403 RolesGuard generic (not `SYSTEM.E04`). DTO note: `add-manually` / `edit` succeed with `BUSINESS_CUSTOMER.S01`/`S02`.
+> - Verified exactly: 14.1 (auto-create, no dup on 2nd booking), 14.5 (dup manual email diff-case → 409 E02), 14.6 (manual=mkt email allowed), 14.8 (edit lowercases email), 14.9 (mkt personal edit → 400 E03, notes-only → 201), 14.13 (search all fields + both name orders), 14.14 (booking flags duplicate_detected + duplicateOfId), 14.20 (unknown id → 404 E01, appointment SET NULL on remove).
+
 **Covers:** [Dashboard] [Web] [Mobile]
 **Preconditions:**
 - Business owner account with entitled subscription, ≥1 location/service/staff bookable on marketplace; dashboard `/customers` reachable.

@@ -156,6 +156,15 @@ export const en: {
     googleDivider: string;
     businessOwnerPrompt: string;
     businessOwnerCta: string;
+    terms: {
+      agreementPrefix: string;
+      termsLink: string;
+      cookiesLink: string;
+      and: string;
+      privacyLink: string;
+      required: string;
+      continueNotice: string;
+    };
     fields: {
       email: string;
       password: string;
@@ -177,7 +186,10 @@ export const en: {
       passwordWeak: string;
       firstNameRequired: string;
       lastNameRequired: string;
+      nameTooShort: string;
+      nameTooLong: string;
       phoneInvalid: string;
+      emailAlreadyRegistered: string;
       googleEmailMismatch: string;
       googleNotLinked: string;
       googleUnlinkNoPassword: string;
@@ -187,6 +199,24 @@ export const en: {
       sameEmail: string;
       resetLinkInvalid: string;
       resetLinkExpired: string;
+    };
+    passwordStrength: {
+      label: string;
+      ratings: {
+        veryWeak: string;
+        weak: string;
+        fair: string;
+        strong: string;
+        veryStrong: string;
+        excellent: string;
+      };
+      rules: {
+        minLength: string;
+        lowercase: string;
+        uppercase: string;
+        number: string;
+        special: string;
+      };
     };
     enableAccess: {
       heading: string;
@@ -1392,6 +1422,15 @@ export const en: {
     googleDivider: "or",
     businessOwnerPrompt: "Business owner?",
     businessOwnerCta: "Sign in to your dashboard",
+    terms: {
+      agreementPrefix: "I agree to the",
+      termsLink: "Terms and Conditions",
+      cookiesLink: "Cookie Policy",
+      and: "and",
+      privacyLink: "Privacy Policy",
+      required: "You must accept the terms to continue.",
+      continueNotice: "By continuing, you agree to our",
+    },
     fields: {
       email: "Email",
       password: "Password",
@@ -1415,7 +1454,10 @@ export const en: {
         "Password must include lowercase, uppercase, digit and a special character.",
       firstNameRequired: "First name is required.",
       lastNameRequired: "Last name is required.",
+      nameTooShort: "Must be at least 2 characters.",
+      nameTooLong: "Must be fewer than 50 characters.",
       phoneInvalid: "Phone number is not valid.",
+      emailAlreadyRegistered: "Email already in use.",
       googleEmailMismatch:
         "That Google account's email doesn't match your account email.",
       googleNotLinked: "No Google account is linked to your account.",
@@ -1427,6 +1469,24 @@ export const en: {
       sameEmail: "New email must be different from your current one.",
       resetLinkInvalid: "This link is invalid or has already been used.",
       resetLinkExpired: "This link has expired.",
+    },
+    passwordStrength: {
+      label: "Password strength",
+      ratings: {
+        veryWeak: "Very weak",
+        weak: "Weak",
+        fair: "Fair",
+        strong: "Strong",
+        veryStrong: "Very strong",
+        excellent: "Excellent",
+      },
+      rules: {
+        minLength: "At least 8 characters",
+        lowercase: "At least one lowercase letter (a–z)",
+        uppercase: "At least one uppercase letter (A–Z)",
+        number: "At least one number (0–9)",
+        special: "At least one special character (e.g. #, @, !, %)",
+      },
     },
     enableAccess: {
       heading: "Enable marketplace access",

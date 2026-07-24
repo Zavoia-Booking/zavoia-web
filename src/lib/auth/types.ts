@@ -35,12 +35,26 @@ export type AuthStatus =
   | "unauthenticated"
   | "error";
 
+/**
+ * Best-effort identity used to render optimistic chrome (header avatar
+ * initials) while the initial session check is in flight. Cached display name
+ * from the previous session; empty strings when the cache is cold.
+ */
+export type OptimisticUser = Pick<AuthUser, "firstName" | "lastName">;
+
 export type RegisterDTO = {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
   phone?: string;
+  /**
+   * UI language at registration time — persisted on the User row so ALL future
+   * transactional emails (verification, reset, …) are sent in it. The backend
+   * falls back to the x-locale header apiFetch sends, but the explicit field
+   * keeps the persisted preference independent of transport concerns.
+   */
+  locale?: "en" | "ro";
 };
 
 export type LoginDTO = {
@@ -171,6 +185,21 @@ export type ReauthForGoogleLinkResponse = {
 export type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
+  /**
+   * True until the initial session check settles: covers both the
+   * pre-hydration frame ("idle") and the hinted /refresh + /me round-trip.
+   * Chrome (header, mobile tabs) renders a neutral or optimistic account
+   * corner while this is true instead of flashing the logged-out UI.
+   * login()/register() do NOT re-enter this state.
+   */
+  initializing: boolean;
+  /**
+   * Non-null only while `initializing` AND a session hint (CSRF cookie)
+   * exists: the previous session's cached display name, or empty strings when
+   * the cache is cold. Never authoritative — cleared as soon as the real
+   * session resolves (either way).
+   */
+  optimisticUser: OptimisticUser | null;
   error: string | null;
   login: (dto: LoginDTO) => Promise<void>;
   register: (dto: RegisterDTO) => Promise<void>;

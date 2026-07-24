@@ -41,26 +41,52 @@ export function AuthField({
   label,
   value,
   onChange,
+  onBlur,
+  onFocus,
   error,
   autoComplete,
   showPasswordLabel = "Show password",
   hidePasswordLabel = "Hide password",
+  reserveErrorSpace = false,
+  suppressErrorText = false,
 }: {
   id: string;
   type?: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
+  onFocus?: () => void;
   error?: string;
   autoComplete?: string;
   showPasswordLabel?: string;
   hidePasswordLabel?: string;
+  /** Keep a fixed-height error slot so messages don't shift the layout. */
+  reserveErrorSpace?: boolean;
+  /**
+   * Red border only, no message — for fields whose error is conveyed by a
+   * companion UI (e.g. the password strength meter).
+   */
+  suppressErrorText?: boolean;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
   const isEmail = type === "email";
   const inputType = isPassword && showPassword ? "text" : type;
   const hasAdornment = isPassword || isEmail;
+  const showErrorText = Boolean(error) && !suppressErrorText;
+
+  const errorNode = showErrorText ? (
+    <p
+      id={`${id}-error`}
+      role="alert"
+      aria-live="polite"
+      className="flex items-center gap-1.5 text-xs text-[var(--s-error-600)]"
+    >
+      <Icon name="warn" size={13} />
+      <span>{error}</span>
+    </p>
+  ) : null;
 
   return (
     <div className="space-y-1.5">
@@ -73,9 +99,11 @@ export function AuthField({
           type={inputType}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          onFocus={onFocus}
           autoComplete={autoComplete}
           aria-invalid={Boolean(error)}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-describedby={showErrorText ? `${id}-error` : undefined}
           className={`h-12 w-full rounded-[10px] border bg-white px-3 text-[15px] text-ink shadow-[var(--sh-sm)] outline-none transition-all md:h-11 ${
             hasAdornment ? "pr-11" : ""
           } ${
@@ -104,11 +132,7 @@ export function AuthField({
           </button>
         )}
       </div>
-      {error && (
-        <p id={`${id}-error`} className="text-xs text-[var(--s-error-600)]">
-          {error}
-        </p>
-      )}
+      {reserveErrorSpace ? <div className="h-5">{errorNode}</div> : errorNode}
     </div>
   );
 }

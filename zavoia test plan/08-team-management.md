@@ -1,5 +1,7 @@
 # 08. Team Management — Test Scenarios
 
+> Verified on staging 2026-07-23; expectations below updated to the actual implementation. The pending-duplicate-invite 500 was fixed in admin-api the same day (now 409 `AUTH.E03`) — retest after deploy. Invite-acceptance flows (08.6/08.7/08.8-accept/08.20) need inbox access for the emailed token; 08.21 is billing-mutating — run manually.
+
 **Covers:** [Dashboard] [Web] [Mobile]
 **Preconditions:**
 - Owner account with active (or trial) subscription and at least 1 free team seat (`paidTeamSeats`); business with ≥2 locations, ≥2 services, published marketplace listing; a second active team member to use as reassignment target.
@@ -22,7 +24,7 @@
 2. Try submitting with no location selected.
 3. Via API, send `locationIds: []`, then a locationId belonging to another business.
 4. Invite an email that is already a pending or active team member of this business.
-**Expected:** Own email → `AUTH.E02`. No location → UI blocks with location-required validation; API with `[]` → `AUTH.E04`; foreign locationId → 403 `AUTH.E07`. Duplicate invite → 409 `AUTH.E01`.
+**Expected:** Own email → `AUTH.E02`. No location → UI blocks with location-required validation; API with `[]` → `AUTH.E04`; foreign locationId → 403 `AUTH.E07`. Duplicate of an ACTIVE member → 409 `AUTH.E01`; duplicate of a PENDING member → 409 `AUTH.E03` (fixed 2026-07-23 — previously 500 `AUTH.E06`).
 
 ### 08.3 Seat limit blocks invite [Dashboard]
 **Steps:**
@@ -82,7 +84,7 @@
 3. Open the NEW emailed link.
 4. Resend again within 24h.
 5. Via API, resend for an already-active member.
-**Expected:** `TEAM.S03`; old token invalidated → old link shows error; new link works. Second resend within 24h → `TEAM.E10`. Active member → `TEAM.E09`. Unknown user id → `TEAM.E05`.
+**Expected:** the 24h throttle counts the ORIGINAL invite email — any resend within 24h of inviting → `TEAM.E10` (i.e. `TEAM.S03` + old-token invalidation is only observable ≥24h after the invite). Active member → 403 `SYSTEM.E04`. Unknown user id → `TEAM.E05`.
 
 ### 08.10 Cancel (revoke) a pending invitation [Dashboard]
 **Steps:**
@@ -90,7 +92,7 @@
 2. Open the emailed invite link.
 3. If invitee was a brand-new placeholder: re-invite the same email. If invitee was an existing customer: log into marketplace web.
 4. Via API, cancel for an active member.
-**Expected:** `TEAM.S02`; member removed from pending list; link dead. Placeholder user with no other roles is fully deleted (fresh re-invite works); existing customer keeps CUSTOMER role and web login. Cancel on active member → `TEAM.E07`; cross-business cancel → 403 `TEAM.E06`.
+**Expected:** `TEAM.S02`; member removed from pending list; link dead. Placeholder user with no other roles is fully deleted (fresh re-invite works); existing customer keeps CUSTOMER role and web login. Cancel on an active member and cross-business cancel both → 403 `TEAM.E06` (the lookup only matches pending roles, so a non-pending target reads as "not yours").
 
 ## Roles & permissions
 
@@ -104,7 +106,7 @@
 
 ### 08.12 API role boundaries for team member [Dashboard]
 **Steps:**
-1. With a team-member access token, call: `GET /team-members/:id`, `PUT /team-members/:id`, `DELETE /team-members/:id`, `POST /team-members/resend-invitation/:id`, `GET /assignments/locations/:id/full`, `GET /staff-schedule/business/:businessId`.
+1. With a team-member access token, call: `GET /team-members/:id`, `PUT /team-members/:id`, `DELETE /team-members/:id`, `POST /team-members/resend-invitation/:id`, `GET /assignments/locations/:id/full`. (`GET /staff-schedule/business/:businessId` removed from this list 2026-07-24 — the staff-schedule module was deleted; the route was never mounted and now returns 404, not 403.)
 2. Call `POST /team-members/list` and `GET /team-member-account/assigned-locations`.
 **Expected:** All owner-only endpoints → 403 (RolesGuard, `@Roles(OWNER)`). `POST /team-members/list` and team-member-account endpoints → 200.
 
@@ -117,14 +119,6 @@
 3. On web `/{locale}/business/[slug]`, start booking Service X → reach the staff step; on mobile, open the listing → booking → StaffPicker.
 4. Back as owner, disable Service X for the member; re-check web/mobile staff pickers (`POST /marketplace/public/booking/calendar` → `staffDirectory`).
 **Expected:** After assign, member's My Assignments shows the location + Service X, and the member appears as selectable staff on web and mobile. After unassign, the member no longer appears in the staff picker for Service X (only `canPerform = true` staff are returned).
-
-### 08.14 Per-member staff schedule limits bookable slots [Web] [Mobile]
-**Steps:**
-1. Create a schedule for the member: `POST /staff-schedule` with `{ userId, monday: "09:00-13:00", ... }` (owner token).
-2. On web, book Service X at that location for a Monday with THIS member selected → load slots (`POST /marketplace/public/booking/slots`).
-3. Select the other staff member (no schedule row) and compare.
-4. Update the schedule (`PUT /staff-schedule/:userId`) and re-check.
-**Expected:** With the member selected, only slots inside 09:00–13:00 are offered on Monday; a member with no schedule row falls back to full location working hours. Slot changes reflect on web and mobile after schedule update.
 
 ## Member profile
 
@@ -150,10 +144,10 @@
 **Steps:**
 1. Ensure the member has ≥2 upcoming appointments; open their profile slider → Remove.
 2. Review offboard preview (`GET /team-members/:id/offboard-preview`): appointments list + `eligibleStaffMap` + `orphanedAppointmentIds`.
-3. Reassign one appointment to the eligible second member, cancel the other; submit `POST /team-members/:id/offboard`.
+3. Reassign one appointment to the eligible second member, cancel the other; submit `POST /team-members/:id/offboard` (body field is `appointmentActions`).
 4. As the affected customer on web `/{locale}/appointments`, check both appointments.
-5. Negative: submit a reassignment to the removed member themselves, then to a non-eligible staff; try offboarding yourself (owner id).
-**Expected:** `TEAM.S05`; member removed (role deleted, removal email), reassigned appointment shows new staff, the other is cancelled. Reassign-to-removed → `TEAM.E18`; ineligible/unavailable target → `TEAM.E19`; self-offboard → 403 `SYSTEM.E04`; removing an OWNER role → 403 `TEAM.E16`.
+5. Negative: submit a reassignment to the removed member themselves, then to a non-eligible staff; try the endpoints with the owner's own id.
+**Expected:** `TEAM.S05`; member removed (role deleted, removal email), reassigned appointment shows new staff, the other is cancelled. Reassign-to-removed → `TEAM.E18`; ineligible/unavailable target → `TEAM.E19`. Note (verified 2026-07-23): `DELETE /team-members/:id` and `offboard-preview` accept the owner's own id — the owner is only protected by the linked-data guard (`TEAM.E15` + counts), no dedicated `TEAM.E16` fires on these paths.
 
 ### 08.18 Unassign a member from a single location [Dashboard]
 **Steps:**

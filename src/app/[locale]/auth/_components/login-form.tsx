@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
@@ -35,6 +35,10 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  // `submitting` state disables the button only after a re-render, so a
+  // fast double activation can pass the check twice; the ref locks
+  // synchronously on the first call.
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -58,22 +62,25 @@ export function LoginForm({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLockRef.current) return;
     const validation = validate();
     setErrors(validation);
     if (Object.keys(validation).length > 0) return;
 
+    submitLockRef.current = true;
     setSubmitting(true);
     try {
       await login({ email: email.trim(), password });
+      // Success: stay locked until the authenticated effect redirects.
     } catch (e) {
+      submitLockRef.current = false;
+      setSubmitting(false);
       const linkDetails = getAccountLinkNeededDetails(e);
       if (linkDetails) {
         onAccountLinkNeeded(linkDetails);
         return;
       }
       setErrors({ form: authErrorMessage(e, dict.errors) });
-    } finally {
-      setSubmitting(false);
     }
   }
 

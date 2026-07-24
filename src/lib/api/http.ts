@@ -2,6 +2,7 @@ import { API_URL } from "@/lib/env";
 import { CSRF_COOKIE_NAME, clearCookie, readCookie } from "@/lib/auth/cookies";
 import { getJwtExpiryMs } from "@/lib/auth/jwt";
 import type { RefreshResponse } from "@/lib/auth/types";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locales";
 
 export type TokenStore = {
   get: () => string | null;
@@ -56,6 +57,26 @@ function needsCsrfHeader(path: string): boolean {
 
 // Matches a backend message code like "CUSTOMER_AUTH.E38".
 const BACKEND_CODE_RE = /^[A-Z_]+\.[A-Z0-9]+$/i;
+
+const LOCALE_HEADER = "x-locale";
+
+/**
+ * The UI language the user is currently browsing in, sent to the backend on
+ * EVERY request as the `x-locale` header so transactional emails (verification,
+ * password reset, account link, …) come back in the language the user was
+ * looking at — the backend treats it as a fallback wherever a request body has
+ * no explicit `locale`. Reads `<html lang>` (set by the [locale] layout, which
+ * tracks the active dictionary even though the default locale is unprefixed in
+ * the URL) and falls back to the pathname prefix. Returns null server-side —
+ * there is no active document to read from.
+ */
+function getActiveLocale(): Locale | null {
+  if (typeof document === "undefined") return null;
+  const lang = document.documentElement.lang;
+  if (isLocale(lang)) return lang;
+  const segment = window.location.pathname.split("/")[1] ?? "";
+  return isLocale(segment) ? segment : DEFAULT_LOCALE;
+}
 
 async function parseError(response: Response): Promise<ApiError> {
   let data: unknown = null;
@@ -123,6 +144,10 @@ function buildHeaders(
   }
   if (accessToken && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+  if (!headers.has(LOCALE_HEADER)) {
+    const locale = getActiveLocale();
+    if (locale) headers.set(LOCALE_HEADER, locale);
   }
   if (needsCsrfHeader(path) && !headers.has("x-csrf-token")) {
     const csrf = readCookie(CSRF_COOKIE_NAME);
@@ -244,6 +269,10 @@ export async function apiFetch<T>(
       }
       if (!retryHeaders.has("Accept")) {
         retryHeaders.set("Accept", "application/json");
+      }
+      if (!retryHeaders.has(LOCALE_HEADER)) {
+        const locale = getActiveLocale();
+        if (locale) retryHeaders.set(LOCALE_HEADER, locale);
       }
       retryHeaders.set("Authorization", `Bearer ${newToken}`);
       const retryResponse = await fetch(`${API_URL}${path}`, {

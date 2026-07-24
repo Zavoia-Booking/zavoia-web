@@ -42,12 +42,51 @@ import type {
   AuthUser,
   GoogleAuthIntent,
   LoginDTO,
+  OptimisticUser,
   RegisterDTO,
 } from "@/lib/auth/types";
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 const PROACTIVE_REFRESH_LEAD_MS = 60_000;
+
+// Last-known display name, persisted so the header can render the correct
+// avatar initials during the initial session check instead of flashing the
+// logged-out icon. Cosmetic only — never used for authorization decisions.
+const LAST_DISPLAY_NAME_KEY = "zv.auth.lastDisplayName:v1";
+
+function readCachedDisplayName(): OptimisticUser | null {
+  try {
+    const raw = window.localStorage.getItem(LAST_DISPLAY_NAME_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<OptimisticUser>;
+    return {
+      firstName: typeof parsed.firstName === "string" ? parsed.firstName : "",
+      lastName: typeof parsed.lastName === "string" ? parsed.lastName : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedDisplayName(user: OptimisticUser): void {
+  try {
+    window.localStorage.setItem(
+      LAST_DISPLAY_NAME_KEY,
+      JSON.stringify({ firstName: user.firstName, lastName: user.lastName }),
+    );
+  } catch {
+    // best-effort: storage may be unavailable (private mode, quota)
+  }
+}
+
+function clearCachedDisplayName(): void {
+  try {
+    window.localStorage.removeItem(LAST_DISPLAY_NAME_KEY);
+  } catch {
+    // best-effort
+  }
+}
 
 type Props = {
   children: React.ReactNode;
@@ -56,7 +95,16 @@ type Props = {
 export function AuthProvider({ children }: Props) {
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [optimisticUser, setOptimisticUser] = useState<OptimisticUser | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
+
+  // "Initial session check still in flight": the pre-hydration frame ("idle")
+  // or the hinted /refresh + /me round-trip (optimisticUser set). login() and
+  // register() also pass through "loading" but never set optimisticUser, so
+  // they don't re-enter this state.
+  const initializing = status === "idle" || optimisticUser !== null;
 
   const accessTokenRef = useRef<string | null>(null);
   const proactiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,6 +125,7 @@ export function AuthProvider({ children }: Props) {
     setStatus("unauthenticated");
     clearProactiveTimer();
     clearCookie(CSRF_COOKIE_NAME);
+    clearCachedDisplayName();
   }, [clearProactiveTimer]);
 
   const scheduleProactiveRefresh = useCallback(
@@ -149,6 +198,12 @@ export function AuthProvider({ children }: Props) {
       setStatus("unauthenticated");
       return;
     }
+    // A session almost certainly exists: surface the cached display name so
+    // chrome can render the authenticated corner optimistically while the
+    // round-trip below confirms it.
+    setOptimisticUser(
+      readCachedDisplayName() ?? { firstName: "", lastName: "" },
+    );
     setStatus("loading");
     let cancelled = false;
     (async () => {
@@ -162,12 +217,22 @@ export function AuthProvider({ children }: Props) {
       } catch {
         if (cancelled) return;
         handleUnauthenticated();
+      } finally {
+        if (!cancelled) setOptimisticUser(null);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [handleUnauthenticated]);
+
+  // Keep the optimistic-chrome cache in sync with the live identity so the
+  // next refresh renders the correct initials before /me resolves.
+  useEffect(() => {
+    if (user) {
+      writeCachedDisplayName(user);
+    }
+  }, [user]);
 
   // Single internal session-establishment path shared by login(), register()
   // and completeAccountLink(): store the access token (which schedules proactive
@@ -411,6 +476,8 @@ export function AuthProvider({ children }: Props) {
     () => ({
       status,
       user,
+      initializing,
+      optimisticUser,
       error,
       login,
       register,
@@ -429,6 +496,8 @@ export function AuthProvider({ children }: Props) {
     [
       status,
       user,
+      initializing,
+      optimisticUser,
       error,
       login,
       register,

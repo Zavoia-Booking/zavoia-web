@@ -44,7 +44,7 @@
 1. Upload an image >10MB.
 2. Upload a .gif or .pdf.
 3. Re-upload an image with identical filename + size as an existing one.
-**Expected:** 400 "Image file size exceeds maximum allowed size of 10MB"; 400 "Invalid image file type. Allowed types: image/jpeg, image/jpg, image/png, image/webp, image/avif"; dashboard blocks the duplicate client-side (toast, no upload sent, no second copy in the grid) — the API's own dedup (`alreadyExisted: true` by matching filename+size) only fires on a direct call that bypasses this check.
+**Expected:** Oversize → **413 "File too large"** (rejected at the HTTP body-size layer before the app's own message — verified 2026-07-23); invalid type → 400 "Invalid image file type. Allowed types: image/jpeg, image/jpg, image/png, image/webp, image/avif"; dashboard blocks the duplicate client-side (toast, no upload sent, no second copy in the grid) — the API's own dedup (`alreadyExisted: true` by matching filename+size) only fires on a direct call that bypasses this check.
 
 ### 06.6 Change cover, delete photos, cover promotion [Dashboard] [Web]
 **Steps:**
@@ -53,13 +53,6 @@
 3. Delete down to the last photo — dashboard disables its remove button (min 1 required); delete it via direct API call instead.
 4. Call the featured endpoint with a URL not in the portfolio (API-level).
 **Expected:** Cover switches instantly; deleting the cover promotes the first remaining image to cover. Dashboard UI never lets a location drop to zero photos; deleting the last one via the API leaves cover `null`. Foreign URL → 400 "Image not found in portfolio". Web card/detail reflects the new cover.
-
-### 06.7 Hero image upload / replace / delete [Dashboard]
-**Steps:**
-1. On Business tab upload a hero image (HeroImageUpload) — `POST /marketplace-listing/hero`.
-2. Upload a second hero image over it.
-3. Delete the hero image (`DELETE /marketplace-listing/hero`).
-**Expected:** Same 10MB/type validation as 06.5. Replace swaps `heroImageUrl` and best-effort deletes the old R2 object; delete nulls `heroImageUrl`/`heroImageKey`. Works even before first publish (listing row auto-created with `isListed=false`).
 
 ## Industry & marketplace tags
 
@@ -133,8 +126,8 @@
 **Steps:**
 1. Disable a service at location A (location-service assignment) and unassign one team member from location A.
 2. Reload `/{locale}/business/{slugA}` and the mobile listing screen.
-3. Re-enable/re-assign and recheck.
-**Expected:** Public detail only returns location-enabled services (`isEnabled=true`) and active users assigned to that location; removed items disappear from Services/Team sections and the booking staff picker; restored items return. Team cards prefer marketplace-profile `displayName`/`professionalTitle`, falling back to the user's name.
+3. Re-enable the service WITHOUT re-assigning staff, reload — the service must stay hidden (no capable staff). Then re-assign a staff member and recheck.
+**Expected:** Public detail only returns location-enabled services (`isEnabled=true`) **that have at least one active team member who `canPerform` them** — a service with zero capable staff is hidden from the Services section and the booking picker (it would otherwise dead-end at booking with `MARKETPLACE_BOOKING.E05`/`CUSTOMER_BOOKING.E07`). Note: disabling a location service **deletes** its staff `canPerform` assignments, so re-enabling alone is not enough — the service reappears only after a staff member is re-assigned to it. Team section shows active users assigned to the location; removed items disappear from Services/Team and the staff picker; restored items return. Team cards prefer marketplace-profile `displayName`/`professionalTitle`, falling back to the user's name.
 
 ## Team-member marketplace opt-out (hiddenFromMarketplace)
 

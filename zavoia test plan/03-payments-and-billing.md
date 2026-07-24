@@ -5,28 +5,23 @@
 - Stripe **test mode** keys; `stripe listen` (or configured endpoint) forwarding events to `POST /billing/webhook` with matching `STRIPE_WEBHOOK_SECRET`.
 - OWNER account with a trial business, `countryCode: RO`; a second OWNER business with a non-RO country (e.g. DE). Plans `STANDARD` and `PLUS` seeded; a `plan_pricing` row whose `countryCodes` includes `RO` (RON price IDs); default plan prices in EUR.
 - Oblio test credentials configured (`IS_VAT_PAYER = false` in code); website catalog seeded with ≥2 paid variants and ≥1 paid section unlock, at least one with a regional pricing row for RO.
+- **Invoice billing details must be filled first.** The billing tab requires the owner to complete "Invoice billing details" (Company or Individual) before any checkout is allowed; otherwise Subscribe/Upgrade shows *"Please fill in your invoice billing details before paying."* Fill these once per business before running the checkout cases below.
 
 ## Subscription checkout (Stripe test mode)
 
-### 03.1 Subscribe happy path with 4242 card [Dashboard]
-**Steps:**
-1. Log in as OWNER (trial RO business) → `/account?tab=billing`.
-2. Pick STANDARD + 1 seat → Subscribe (POST `/billing/checkout` → redirect to Stripe Checkout).
-3. Pay with `4242 4242 4242 4242`, any future expiry/CVC.
-4. Follow redirect to `/info?type=subscription-success`, return to billing tab.
-**Expected:** `checkout.session.completed` creates a `Subscription` row (status `active`, `teamSeats: 1`); business gets `plan`, `stripeCustomerId`, `stripeSubscriptionId`, `paidTeamSeats: 1`, `trialEndsAt` cleared. Billing tab shows Active with plan + seats.
+> The subscribe happy-path (STANDARD via Stripe Checkout with `4242`) is covered by **02.5**. The cases below reuse that flow; "checkout as in 02.5" means: billing tab → pick plan → Subscribe → pay on Stripe Checkout. Note the dashboard has **no seat picker in the subscribe flow** — a business subscribes with 0 seats and adds seats afterward via the seat stepper (see 02.21).
 
 ### 03.2 3D-Secure card [Dashboard]
 **Steps:**
-1. Start checkout as in 03.1.
+1. Start checkout as in 02.5.
 2. Pay with `4000 0025 0000 3155` → 3DS challenge appears.
 3. Click "Complete authentication".
 4. New checkout, same card, click "Fail authentication".
-**Expected:** Complete → identical result to 03.1. Fail → error stays on Stripe Checkout; no `Subscription` row; business stays on trial.
+**Expected:** Complete → identical result to 02.5. Fail → error stays on Stripe Checkout; no `Subscription` row; business stays on trial.
 
 ### 03.3 Declined card [Dashboard]
 **Steps:**
-1. Start checkout as in 03.1.
+1. Start checkout as in 02.5.
 2. Pay with `4000 0000 0000 0002`.
 3. Use the back link → returns to cancel URL `/account`.
 **Expected:** Stripe shows "Your card was declined."; no fulfillment webhook, no `Subscription` row, still trial. Billing tab unchanged.
@@ -96,7 +91,7 @@
 
 ### 03.12 Webhook retry idempotency [Dashboard]
 **Steps:**
-1. Complete a subscription checkout (03.1).
+1. Complete a subscription checkout (02.5).
 2. Resend the same `checkout.session.completed` event (Stripe dashboard "Resend").
 3. Resend the fulfillment event of a variant purchase (03.8).
 **Expected:** No duplicate `Subscription` row (log: "already exists, skipping creation (webhook retry)"); variant purchases already COMPLETED are skipped; Oblio invoice not re-issued (idempotent on payment-intent key).
@@ -147,8 +142,9 @@
 ## Invoices (Oblio + CRM)
 
 ### 03.19 Oblio invoice with correct lines/VAT + dashboard visibility [Dashboard]
+**Preconditions:** Invoice billing details filled (see file preconditions) — the Oblio invoice is issued to that entity. The Stripe webhook endpoint **must** forward `invoice.paid`; without it, subscription payments never generate an Oblio invoice (`/billing/invoices` stays empty for subscriptions). Seat-purchase proration invoices flow through the same `invoice.paid` path.
 **Steps:**
-1. Complete a subscription payment (03.1) → `invoice.paid` fires.
+1. Complete a subscription payment (02.5) → `invoice.paid` fires. (Alternatively, a seat increase via 02.21 produces a proration `invoice.paid`.)
 2. Open billing tab invoice list (GET `/billing/invoices`) and the `oblioLink` PDF.
 3. Compare a RO business vs an EU `COMPANY` (`billingEntityType`) vs a non-EU business.
 **Expected:** `oblio_invoice` row status `success` with series+number; owner gets the "invoice ready" email. VAT (with `IS_VAT_PAYER=false`): RO → 0% rule `ro_non_vat_payer`; EU company → 0% reverse charge with mention "Taxare inversa conform art. 331 din Directiva 2006/112/CE"; non-EU → 0% `export_services`. Language RO for RO clients, EN otherwise.

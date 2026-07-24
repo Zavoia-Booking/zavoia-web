@@ -22,9 +22,12 @@ type Tab = {
 
 export function MobileTabs({ locale }: { locale: Locale }) {
   const pathname = usePathname();
-  const { status, user } = useAuth();
+  const { status, user, optimisticUser } = useAuth();
   const { dict } = useTranslation();
-  const isAuthed = status === "authenticated" && !!user;
+  // optimisticUser: session hint present while the initial check is in
+  // flight — show the authenticated tab set immediately instead of flashing
+  // Offers → Bookings/Saved ~1s after every refresh.
+  const isAuthed = (status === "authenticated" && !!user) || optimisticUser !== null;
   const t = dict.mobileTabs;
 
   const key = routeKey(pathname);

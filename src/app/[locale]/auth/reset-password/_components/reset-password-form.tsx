@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
@@ -12,8 +12,10 @@ import { ApiError } from "@/lib/api/http";
 import { AuthField } from "../../_components/auth-field";
 
 // Same strong-password rule used in register-form.tsx — keep these in sync.
+// Mirrors admin-api's PASSWORD_REGEX: any non-alphanumeric counts as the
+// special character (so # or - work, not just @$!%*?&).
 const PASSWORD_REGEX =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 type Errors = Partial<Record<"password" | "confirm" | "form", string>>;
 
@@ -39,6 +41,12 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [tokenDead, setTokenDead] = useState(false);
+  // `submitting` state disables the button only after a re-render, so a
+  // fast double activation can pass the check twice; the ref locks
+  // synchronously on the first call. Critical here: the reset token is
+  // single-use, so a duplicate call errors with "link invalid" right after
+  // the password was actually reset.
+  const submitLockRef = useRef(false);
 
   const loginHref = `${localeHref(locale, "auth")}?mode=login`;
   const forgotPasswordHref = localeHref(locale, "auth", "forgot-password");
@@ -57,20 +65,22 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!token) return;
+    if (!token || submitLockRef.current) return;
     const validation = validate();
     setErrors(validation);
     if (Object.keys(validation).length > 0) return;
 
+    submitLockRef.current = true;
     setSubmitting(true);
     try {
       await resetPassword(token, password);
+      // Success: stay locked — the success screen replaces the form.
       setSuccess(true);
     } catch (e) {
+      submitLockRef.current = false;
+      setSubmitting(false);
       setErrors({ form: authErrorMessage(e, dict.errors) });
       setTokenDead(isDeadTokenError(e));
-    } finally {
-      setSubmitting(false);
     }
   }
 

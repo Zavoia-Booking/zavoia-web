@@ -1,5 +1,10 @@
 # 16. Dashboard Home & Analytics — Test Scenarios
 
+> **QA 2026-07-23 (API-level; team-member-scoping + timezone + needs-attention-active-items skipped — no TM login, no API-seedable past-due):**
+> - **16.3 cross-tenant leak (fixed 2026-07-23):** `GET /dashboard/{foreignLocationId}` returned 200 with a foreign location's name + open state (appointments/revenue/staff were already zeroed). Fixed: `getDashboardData` now has a tenant-isolation guard — it confirms the location belongs to the caller's business (a location maps to exactly one business, covering every downstream query) and otherwise returns the same zeroed "Unknown Location" dashboard via `buildEmptyDashboard`. Retest after deploy.
+> - **16.4**: a marketplace CUSTOMER token → **401** (JWT guard rejects the wrong token type before RolesGuard), NOT 403. dashboard_user → 403. nonexistent location → 200 "Unknown Location", zeroed ✓.
+> - Verified exactly: 16.1 (DASHBOARD.S01, all 5 widgets), 16.2 (per-location scoping), 16.5 (counts include cancelled, revenue excludes cancelled — 40 total = 11 active + 29 cancelled, rev 530 RON), 16.10 (zero-booking location → 0%/100%, no NaN), 16.11 (status buckets sum to period total), 16.12 (upcoming max 5 ascending future confirmed/pending), 16.13 (reviews business-wide — identical on every location), 16.19 (fresh business → all zeros, no crash).
+
 **Covers:** [Dashboard]
 **Preconditions:**
 - Business with 2+ locations, each with `workingHours` + timezone set (e.g. Europe/Bucharest); optionally one location with `open247: true`. Seeded appointments at known prices/durations spread over today / this week / this month covering all 5 statuses (`pending`, `confirmed`, `completed`, `no_show`, `cancelled`).

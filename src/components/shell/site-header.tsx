@@ -16,6 +16,9 @@ import type {
   InitialQuery,
   SearchStep,
 } from "@/components/search/search-overlay";
+import { getIndustries } from "@/lib/api/marketplace/public";
+import type { Industry } from "@/lib/api/marketplace/types";
+import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { routeKey } from "./active-route";
 import { AccountMenu } from "./account-menu";
 import { NotifPanel } from "./notif-panel";
@@ -153,6 +156,18 @@ function unslug(slug: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+// Industries fetched once per session, only to resolve a `tagIds` URL param
+// into the tag's display name for the pill. On failure the cache resets so a
+// later mount can retry; callers fall back to the unslugged industry.
+let industriesPromise: Promise<Industry[]> | null = null;
+function loadIndustries(): Promise<Industry[]> {
+  industriesPromise ??= getIndustries().catch(() => {
+    industriesPromise = null;
+    return [];
+  });
+  return industriesPromise;
+}
+
 /** Local (not UTC) YYYY-MM-DD, so "today"/"tomorrow" match the user's clock. */
 function localIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -174,6 +189,42 @@ function LiveSearchPill({
   const sp = useSearchParams();
   const { dict, locale } = useTranslation();
   const to = dict.searchOverlay;
+
+  // A tag search puts only ids in the URL (`tagIds`), so the first id is
+  // resolved to its display name here; until then (or on failure) the pill
+  // falls back to the industry label below.
+  const firstTagId = onSearchRoute
+    ? ((raw) => {
+        const n = Number(raw?.split(",")[0]?.trim());
+        return Number.isFinite(n) ? n : null;
+      })(sp.get("tagIds") ?? undefined)
+    : null;
+  const [resolvedTag, setResolvedTag] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+  useEffect(() => {
+    if (firstTagId == null) return;
+    let alive = true;
+    loadIndustries().then((list) => {
+      if (!alive) return;
+      const tag = list
+        .flatMap((i) => i.tags)
+        .find((tg) => tg.id === firstTagId);
+      setResolvedTag(
+        tag ? { id: firstTagId, name: taxonomyLabel(tag, locale) } : null,
+      );
+    });
+    return () => {
+      alive = false;
+    };
+  }, [firstTagId, locale]);
+  // The id check keeps a stale resolution (previous tag, or tag removed from
+  // the URL) from being shown while the effect catches up.
+  const tagName =
+    firstTagId != null && resolvedTag?.id === firstTagId
+      ? resolvedTag.name
+      : undefined;
 
   let active: { what?: string; where?: string; when?: string } | undefined;
   if (onSearchRoute) {
@@ -199,7 +250,7 @@ function LiveSearchPill({
     }
 
     active = {
-      what: search || (industry ? unslug(industry) : undefined),
+      what: search || tagName || (industry ? unslug(industry) : undefined),
       where: city || (hasGeo ? to.currentLocationFallback : undefined),
       when,
     };
@@ -210,13 +261,19 @@ function LiveSearchPill({
 
 export function SiteHeader({ locale }: { locale: Locale }) {
   const pathname = usePathname();
-  const { status, user } = useAuth();
+  const { status, user, initializing, optimisticUser } = useAuth();
   const { dict } = useTranslation();
   const { openSearch } = useSearchOverlay();
 
   const key = routeKey(pathname);
   const onHome = key === "";
   const isAuthed = status === "authenticated" && !!user;
+  // While the initial session check is in flight, a session hint
+  // (optimisticUser) renders the authenticated corner with the cached
+  // initials so a refresh doesn't flash the logged-out icon for ~1s; with no
+  // hint yet (pre-hydration frame) a neutral circle is shown instead.
+  const showAuthedCorner = isAuthed || (initializing && optimisticUser !== null);
+  const showNeutralCorner = !showAuthedCorner && initializing;
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
@@ -278,7 +335,11 @@ export function SiteHeader({ locale }: { locale: Locale }) {
     openSearch(opts);
   };
 
-  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
+  const fullName = user
+    ? `${user.firstName} ${user.lastName}`.trim()
+    : optimisticUser
+      ? `${optimisticUser.firstName} ${optimisticUser.lastName}`.trim()
+      : "";
 
   const iconBtn: CSSProperties = {
     width: 38,
@@ -401,7 +462,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             <Icon name="search" size={18} color="var(--c-800)" />
           </button>
 
-          {isAuthed ? (
+          {showAuthedCorner ? (
             <>
               <button
                 type="button"
@@ -442,9 +503,24 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                     : "0 0 0 1px rgba(28,28,26,0.08)",
                 }}
               >
-                <Avatar name={fullName} size={34} />
+                {/* Cold optimistic cache has no name: keep the circle empty
+                    rather than showing a "?" initial. */}
+                {fullName ? <Avatar name={fullName} size={34} /> : null}
               </button>
             </>
+          ) : showNeutralCorner ? (
+            <span
+              aria-hidden="true"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: "50%",
+                marginLeft: 6,
+                flexShrink: 0,
+                background: "var(--c-300)",
+                boxShadow: "0 0 0 1px rgba(28,28,26,0.08)",
+              }}
+            />
           ) : (
             <button
               type="button"
