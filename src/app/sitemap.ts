@@ -4,6 +4,7 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { CITY_ENTRIES, INDUSTRY_ENTRIES } from "@/data/seo";
 import { localeHref } from "@/i18n/routes";
 import { listPostsForSitemap } from "@/sanity/queries";
+import { LEGAL_DOCUMENTS } from "@/data/legal";
 
 function abs(path: string): string {
   return `${SITE_URL}${path}`;
@@ -101,10 +102,49 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return entries;
   });
 
+  const legalHubLanguages = Object.fromEntries(
+    LOCALES.map((l) => [l, abs(localeHref(l, "terms"))]),
+  ) as Record<Locale, string>;
+
+  const legalEntries: MetadataRoute.Sitemap = [
+    ...LOCALES.map((locale) => ({
+      url: abs(localeHref(locale, "terms")),
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.4,
+      alternates: {
+        languages: {
+          ...legalHubLanguages,
+          "x-default": legalHubLanguages[DEFAULT_LOCALE],
+        },
+      },
+    })),
+    ...LOCALES.flatMap((locale) =>
+      LEGAL_DOCUMENTS.map((doc) => {
+        const languages = Object.fromEntries(
+          LOCALES.map((l) => [l, abs(localeHref(l, "terms", doc.slug))]),
+        ) as Record<Locale, string>;
+        return {
+          url: abs(localeHref(locale, "terms", doc.slug)),
+          lastModified: now,
+          changeFrequency: "monthly" as const,
+          priority: 0.3,
+          alternates: {
+            languages: {
+              ...languages,
+              "x-default": languages[DEFAULT_LOCALE],
+            },
+          },
+        };
+      }),
+    ),
+  ];
+
   return [
     ...homeEntries,
     ...categoryEntries,
     ...blogIndexEntries,
     ...postEntries,
+    ...legalEntries,
   ];
 }

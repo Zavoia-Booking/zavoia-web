@@ -9,8 +9,16 @@ import {
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { HomeContent } from "@/app/_components/home-content";
-import { getIndustries, getLatestListings } from "@/lib/api/marketplace/public";
-import type { BusinessCard, Industry } from "@/lib/api/marketplace/types";
+import {
+  getBrands,
+  getIndustries,
+  getLatestListings,
+} from "@/lib/api/marketplace/public";
+import type {
+  BrandCard,
+  Industry,
+  LocationCard,
+} from "@/lib/api/marketplace/types";
 
 // The home fetches live marketplace data, so it must NOT be statically
 // prerendered at build time (the backend may be down during `next build`).
@@ -66,7 +74,7 @@ export default async function Home({ params }: Props) {
     industries = [];
   }
 
-  let latest: BusinessCard[] = [];
+  let latest: LocationCard[] = [];
   try {
     const res = await getLatestListings({ limit: 10 });
     latest = res.data;
@@ -74,7 +82,20 @@ export default async function Home({ params }: Props) {
     latest = [];
   }
 
+  let brands: BrandCard[] = [];
+  try {
+    const res = await getBrands({ limit: 10 });
+    brands = res.data;
+  } catch {
+    brands = [];
+  }
+
   return (
-    <HomeContent locale={localeParam} industries={industries} latest={latest} />
+    <HomeContent
+      locale={localeParam}
+      industries={industries}
+      latest={latest}
+      brands={brands}
+    />
   );
 }

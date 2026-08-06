@@ -15,18 +15,20 @@ import { apiFetch } from "@/lib/api/http";
 import { buildQuery } from "./query";
 import type {
   BrandCard,
-  BusinessCard,
+  BrandDetail,
   Envelope,
   GetBrandsParams,
   Industry,
   LatestListingsBody,
   ListingDetail,
   ListingLightCard,
+  LocationCard,
   NearbyLocationsBody,
   NearbyLocationsResult,
   OffsetPage,
   PaginatedFeed,
   ProfessionalReview,
+  PublicWebsite,
   Review,
   ReviewPageParams,
   SearchListingsParams,
@@ -60,11 +62,12 @@ export function getBrands(
   });
 }
 
-/** POST /marketplace/public/latest-listings — own paginated wrapper (BusinessCard). */
+/** POST /marketplace/public/latest-listings — newest public LOCATIONS, one card
+ * per location (same LocationCard shape as search/nearby). Own paginated wrapper. */
 export function getLatestListings(
   body: LatestListingsBody = {},
-): Promise<OffsetPage<BusinessCard>> {
-  return apiFetch<OffsetPage<BusinessCard>>(
+): Promise<OffsetPage<LocationCard>> {
+  return apiFetch<OffsetPage<LocationCard>>(
     "/marketplace/public/latest-listings",
     {
       method: "POST",
@@ -151,6 +154,30 @@ export function getListingReviews(
   const query = buildQuery({ offset: params.offset, limit: params.limit });
   return apiFetch<PaginatedFeed<Review>>(
     `/marketplace/public/listing/${locationId}/reviews${query}`,
+    { method: "GET" },
+  );
+}
+
+/**
+ * GET /marketplace/public/brand/:idOrSlug — RAW BrandDetail.
+ * `slug` is a businessSlug (vanity URL); the backend also resolves a numeric
+ * business id, so a string param is correct.
+ */
+export function getBrand(slug: string): Promise<BrandDetail> {
+  return apiFetch<BrandDetail>(
+    `/marketplace/public/brand/${encodeURIComponent(slug)}`,
+    { method: "GET" },
+  );
+}
+
+/**
+ * GET /marketplace/public/website/:slug — RAW PublicWebsite (published Website
+ * Builder site for zavoia.com/[businessSlug]). Slug only — numeric business ids
+ * are not resolved. 404s unless the site is published and entitled.
+ */
+export function getPublicWebsite(slug: string): Promise<PublicWebsite> {
+  return apiFetch<PublicWebsite>(
+    `/marketplace/public/website/${encodeURIComponent(slug)}`,
     { method: "GET" },
   );
 }

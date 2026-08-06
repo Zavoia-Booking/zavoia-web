@@ -32,6 +32,12 @@ export const en: {
       action: string;
       empty: string;
     };
+    brands: {
+      kicker: string;
+      title: string;
+      action: string;
+      empty: string;
+    };
     nearYou: {
       kicker: string;
       title: string;
@@ -598,6 +604,17 @@ export const en: {
     backToExplore: string;
     browseBusinesses: string;
   };
+  brandPage: {
+    locationsTitle: string;
+    locationsTitleOne: string;
+    locationsCount: string;
+    locationsCountOne: string;
+    teamTitle: string;
+    aboutTitle: string;
+    since: string;
+    viewLocation: string;
+    worksAt: string;
+  };
   booking: {
     stepServicesTitle: string;
     stepDateTimeTitle: string;
@@ -789,6 +806,25 @@ export const en: {
     catDental: string;
     catAuto: string;
     catCleaning: string;
+  };
+  legal: {
+    hubTitle: string;
+    hubDescription: string;
+    hubKicker: string;
+    hubHeading: string;
+    hubIntro: string;
+    hubHelp: string;
+    audienceGeneral: string;
+    audienceCustomer: string;
+    audienceBusiness: string;
+    draftNotice: string;
+    onThisPage: string;
+    backToLegal: string;
+    lastUpdated: string;
+    readDocument: string;
+    statusDraft: string;
+    printDocument: string;
+    relatedTitle: string;
   };
   accountMenu: {
     appointments: string;
@@ -1277,6 +1313,12 @@ export const en: {
       title: "Fresh on Zavoia",
       action: "See all",
       empty: "New places are joining all the time — check back soon.",
+    },
+    brands: {
+      kicker: "Discover",
+      title: "Brands",
+      action: "See all",
+      empty: "Brands will show up here soon — check back.",
     },
     nearYou: {
       kicker: "Near you",
@@ -1893,6 +1935,17 @@ export const en: {
     backToExplore: "Back to Explore",
     browseBusinesses: "Browse businesses",
   },
+  brandPage: {
+    locationsTitle: "Choose a location",
+    locationsTitleOne: "The location",
+    locationsCount: "{count} locations",
+    locationsCountOne: "1 location",
+    teamTitle: "The people",
+    aboutTitle: "About {name}",
+    since: "Since {year}",
+    viewLocation: "View & book",
+    worksAt: "at {location}",
+  },
   booking: {
     stepServicesTitle: "Choose services",
     stepDateTimeTitle: "Pick a date & time",
@@ -2175,6 +2228,28 @@ export const en: {
     catDental: "Dental",
     catAuto: "Auto",
     catCleaning: "Cleaning",
+  },
+  legal: {
+    hubTitle: "Legal — Terms & Policies",
+    hubDescription:
+      "Zavoia's legal documents: terms of use, customer and business terms, booking, privacy and cookie policies.",
+    hubKicker: "Legal",
+    hubHeading: "Terms & policies",
+    hubIntro:
+      "Everything that governs how Zavoia works — for visitors, customers and the businesses on our platform. Documents marked as drafts are outlines under legal review and not yet binding.",
+    hubHelp: "Can't find what you're looking for?",
+    audienceGeneral: "For everyone",
+    audienceCustomer: "For customers",
+    audienceBusiness: "For businesses",
+    draftNotice:
+      "This document is a draft outline under legal review. It describes the structure of the final document and is not yet a binding agreement.",
+    onThisPage: "On this page",
+    backToLegal: "All terms & policies",
+    lastUpdated: "Last updated",
+    readDocument: "Read document",
+    statusDraft: "Draft",
+    printDocument: "Print",
+    relatedTitle: "Related documents",
   },
   accountMenu: {
     appointments: "Appointments",

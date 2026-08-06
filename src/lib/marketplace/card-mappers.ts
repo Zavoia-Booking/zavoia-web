@@ -11,6 +11,7 @@ import { localeHref } from "@/i18n/routes";
 import type { CategoryKey } from "@/components/ui/cat-dot";
 import type { BusinessCardData } from "@/components/business/types";
 import type {
+  BrandCard,
   BusinessCard,
   IndustryRef,
   ListingDetail,
@@ -57,28 +58,21 @@ export function taxonomyLabel(
 }
 
 /**
- * BUSINESS-sourced card (latest listings / business-name hits).
- * Navigates to the primary location's detail page: slug when available,
- * otherwise the numeric `primaryLocationId` (the detail route resolves both).
- * Only when both are missing is there no href (the card falls back to onClick).
- *
- * `preferLocationName` titles the card with the primary location's name
- * (home rails, where the card stands in for the location it links to);
- * brand search hits keep the business name.
+ * BUSINESS-sourced card (business-name search hits). Titles lead with the
+ * business name. Navigates to the primary location's detail page: slug when
+ * available, otherwise the numeric `primaryLocationId` (the detail route
+ * resolves both). Only when both are missing is there no href (the card falls
+ * back to onClick).
  */
 export function businessCardToData(
   b: BusinessCard,
   locale: Locale,
-  opts?: { preferLocationName?: boolean },
 ): BusinessCardData {
   const navTarget = b.slug ?? b.primaryLocationId;
   return {
     id: b.id,
     slug: b.slug ?? undefined,
-    name:
-      opts?.preferLocationName && b.primaryLocationName
-        ? b.primaryLocationName
-        : b.name,
+    name: b.name,
     cat: toCat(b.industry),
     catLabel: b.industry ? taxonomyLabel(b.industry, locale) : undefined,
     rating: b.averageRating ?? undefined,
@@ -88,6 +82,35 @@ export function businessCardToData(
     href:
       navTarget != null
         ? localeHref(locale, "business", String(navTarget))
+        : undefined,
+  };
+}
+
+/**
+ * BRAND-sourced card (Brands browse feed). `id` is the businessId (favorites
+ * toggle the business endpoint). Everything shown is business-level: brand name,
+ * brand profile image (location photo only as fallback), business-wide rating.
+ * Navigates to the BRAND page (businessSlug); brands without one fall back to
+ * their primary location's detail page.
+ */
+export function brandCardToData(b: BrandCard, locale: Locale): BusinessCardData {
+  const locationTarget = b.primaryLocationSlug ?? b.primaryLocationId;
+  return {
+    id: b.businessId,
+    slug: b.slug ?? undefined,
+    name: b.name,
+    cat: toCat(b.industry),
+    catLabel: b.industry ? taxonomyLabel(b.industry, locale) : undefined,
+    rating: b.averageRating ?? undefined,
+    reviews: b.totalReviews,
+    // Business profile image ONLY — no location-photo fallback: a brand card
+    // without a logo shows the placeholder rather than borrowing a location's photo.
+    image: b.profileImage ?? undefined,
+    city: b.city ?? undefined,
+    href: b.slug
+      ? localeHref(locale, "brand", b.slug)
+      : locationTarget != null
+        ? localeHref(locale, "business", String(locationTarget))
         : undefined,
   };
 }

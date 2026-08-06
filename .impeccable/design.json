@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-05T00:00:00Z",
+  "title": "Design System: Zavoia Web",
+  "extensions": {
+    "colorMeta": {
+      "terracotta": {
+        "role": "primary",
+        "displayName": "Terracotta",
+        "canonical": "oklch(53% 0.15 38)",
+        "tonalRamp": [
+          "oklch(28% 0.10 38)",
+          "oklch(40% 0.14 38)",
+          "oklch(47% 0.15 38)",
+          "oklch(53% 0.15 38)",
+          "oklch(70% 0.13 38)",
+          "oklch(88% 0.08 38)",
+          "oklch(94% 0.05 38)",
+          "oklch(97% 0.03 38)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1C1C1A",
+        "tonalRamp": [
+          "oklch(15% 0.004 70)",
+          "oklch(25% 0.005 70)",
+          "oklch(35% 0.006 70)",
+          "oklch(48% 0.008 70)",
+          "oklch(62% 0.009 70)",
+          "oklch(80% 0.010 70)",
+          "oklch(92% 0.009 70)",
+          "oklch(99% 0.004 70)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Warm Paper Canvas",
+        "canonical": "#FAFAF7",
+        "tonalRamp": [
+          "#1C1C1A",
+          "#6B6862",
+          "#E8E3D8",
+          "#F0EEE4",
+          "#FAFAF7",
+          "oklch(96% 0.008 70)",
+          "oklch(98% 0.006 70)",
+          "oklch(99% 0.004 70)"
+        ]
+      },
+      "success": {
+        "role": "status",
+        "displayName": "Herb Green",
+        "canonical": "oklch(48% 0.10 158)",
+        "tonalRamp": ["oklch(48% 0.10 158)", "oklch(80% 0.04 158)", "oklch(96% 0.04 158)"]
+      },
+      "warning": {
+        "role": "status",
+        "displayName": "Amber Clay",
+        "canonical": "oklch(60% 0.13 76)",
+        "tonalRamp": ["oklch(60% 0.13 76)", "oklch(85% 0.12 76)", "oklch(95% 0.04 76)"]
+      },
+      "error": {
+        "role": "status",
+        "displayName": "Brick Red",
+        "canonical": "oklch(58% 0.18 25)",
+        "tonalRamp": ["oklch(58% 0.18 25)", "oklch(75% 0.16 25)", "oklch(95% 0.05 25)"]
+      },
+      "info": {
+        "role": "status",
+        "displayName": "Slate Blue",
+        "canonical": "oklch(55% 0.13 259)",
+        "tonalRamp": ["oklch(55% 0.13 259)", "oklch(90% 0.08 259)", "oklch(96.5% 0.02 259)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Home hero only; second line ghosts to --c-400." },
+      "headline": { "displayName": "Headline", "purpose": "SectionTitle h2 above every section, txt-balance, preceded by a mono Kicker." },
+      "title": { "displayName": "Title", "purpose": "Card names and row titles; one-line ellipsis truncation." },
+      "body": { "displayName": "Body", "purpose": "Prose 15.5/1.75 in 58ch reading columns; card blurbs 13.5/1.4." },
+      "label": { "displayName": "Label (Mono)", "purpose": "Geist Mono kickers, indices, counts; never over ~13px, never a sentence." }
+    },
+    "shadows": [
+      { "name": "sh-sm", "value": "0 1px 2px rgba(28,28,26,0.04), 0 1px 1px rgba(28,28,26,0.03)", "purpose": "Resting white cards, chips, search fields." },
+      { "name": "sh-md", "value": "0 2px 6px rgba(28,28,26,0.05), 0 4px 16px rgba(28,28,26,0.04)", "purpose": "Overlay cards at rest; raised hover for small elements." },
+      { "name": "sh-lg", "value": "0 6px 16px rgba(28,28,26,0.08), 0 18px 40px rgba(28,28,26,0.12)", "purpose": "Hover-lift destination shadow." },
+      { "name": "sh-xl", "value": "0 8px 24px rgba(28,28,26,0.10), 0 24px 64px rgba(28,28,26,0.18)", "purpose": "Modals and elements floating above the page." },
+      { "name": "sh-up", "value": "0 -2px 8px rgba(28,28,26,0.04), 0 -8px 24px rgba(28,28,26,0.06)", "purpose": "Bars rising from the bottom edge." },
+      { "name": "btn-hover", "value": "0 2px 6px rgba(28,28,26,0.10), 0 8px 20px rgba(28,28,26,0.12)", "purpose": "Button lift on hover (.zw-btn)." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(.2, .7, .3, 1)", "purpose": "Movement — lifts, rises, entrances." },
+      { "name": "ease-soft", "value": "cubic-bezier(.4, 0, .2, 1)", "purpose": "Color, border, background transitions." },
+      { "name": "ease-spring", "value": "cubic-bezier(.34, 1.56, .64, 1)", "purpose": "Delight — heart pop, toast, tab indicator, switch knob." }
+    ],
+    "breakpoints": [
+      { "name": "share-rail", "value": "1380px" },
+      { "name": "footer-2col", "value": "1080px" },
+      { "name": "toc-drop", "value": "1024px" },
+      { "name": "rail-2up", "value": "980px" },
+      { "name": "desktop-mobile", "value": "920px" },
+      { "name": "split-stack", "value": "880px" },
+      { "name": "grid-1col", "value": "640px" },
+      { "name": "gutter-min", "value": "600px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink pill for commit actions; lifts on hover, settles on press.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Continue</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; border-radius: 9999px; white-space: nowrap; cursor: pointer; font-family: var(--font-sans, 'Geist', system-ui, sans-serif); transition: transform .2s cubic-bezier(.2,.7,.3,1), box-shadow .25s cubic-bezier(.2,.7,.3,1), filter .2s cubic-bezier(.4,0,.2,1); } .ds-btn-primary { background: var(--c-ink, #1C1C1A); color: #fff; border: 1px solid var(--c-ink, #1C1C1A); } .ds-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(28,28,26,0.10), 0 8px 20px rgba(28,28,26,0.12); filter: brightness(1.05); } .ds-btn:active { transform: translateY(0) scale(0.975); box-shadow: none; filter: brightness(0.98); } .ds-btn:focus-visible { outline: 2px solid var(--p-500, oklch(53% 0.15 38)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Accent Button",
+      "kind": "button",
+      "refersTo": "button-accent",
+      "description": "Terracotta pill reserved for the booking action.",
+      "html": "<button class=\"ds-btn2 ds-btn2-accent\">Book now</button>",
+      "css": ".ds-btn2 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; border-radius: 9999px; white-space: nowrap; cursor: pointer; font-family: var(--font-sans, 'Geist', system-ui, sans-serif); transition: transform .2s cubic-bezier(.2,.7,.3,1), box-shadow .25s cubic-bezier(.2,.7,.3,1), filter .2s cubic-bezier(.4,0,.2,1); } .ds-btn2-accent { background: var(--p-500, oklch(53% 0.15 38)); color: #fff; border: 1px solid var(--p-500, oklch(53% 0.15 38)); } .ds-btn2:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(28,28,26,0.10), 0 8px 20px rgba(28,28,26,0.12); filter: brightness(1.05); } .ds-btn2:active { transform: translateY(0) scale(0.975); box-shadow: none; } .ds-btn2:focus-visible { outline: 2px solid var(--p-500, oklch(53% 0.15 38)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "White hairline pill for quieter actions.",
+      "html": "<button class=\"ds-btn3\">View all</button>",
+      "css": ".ds-btn3 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; border-radius: 9999px; white-space: nowrap; cursor: pointer; font-family: var(--font-sans, 'Geist', system-ui, sans-serif); background: #fff; color: var(--c-900, oklch(15% 0.004 70)); border: 1px solid rgba(28,28,26,0.14); transition: transform .2s cubic-bezier(.2,.7,.3,1), box-shadow .25s cubic-bezier(.2,.7,.3,1); } .ds-btn3:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(28,28,26,0.10), 0 8px 20px rgba(28,28,26,0.12); } .ds-btn3:active { transform: scale(0.975); box-shadow: none; } .ds-btn3:focus-visible { outline: 2px solid var(--p-500, oklch(53% 0.15 38)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "White hairline pill; active state inverts to ink.",
+      "html": "<span style=\"display:inline-flex;gap:8px\"><button class=\"ds-chip\">Massage</button><button class=\"ds-chip ds-chip-on\">Hair</button></span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9999px; font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; cursor: pointer; font-family: var(--font-sans, 'Geist', system-ui, sans-serif); background: #fff; color: var(--c-800, oklch(25% 0.005 70)); border: 1px solid rgba(28,28,26,0.12); transition: transform .2s cubic-bezier(.2,.7,.3,1), background-color .15s cubic-bezier(.4,0,.2,1), border-color .15s cubic-bezier(.4,0,.2,1); } .ds-chip:hover { transform: translateY(-1px); } .ds-chip:active { transform: scale(0.97); } .ds-chip-on { background: var(--c-ink, #1C1C1A); color: #fff; border-color: var(--c-ink, #1C1C1A); } .ds-chip:focus-visible { outline: 2px solid var(--p-500, oklch(53% 0.15 38)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Kicker + Section Title",
+      "kind": "custom",
+      "refersTo": "headline",
+      "description": "Mono uppercase eyebrow over a tight bold headline — the header of every section.",
+      "html": "<div><div class=\"ds-kicker\">Just added</div><h2 class=\"ds-sectitle\">Fresh on Zavoia</h2></div>",
+      "css": ".ds-kicker { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--p-600, oklch(47% 0.15 38)); margin-bottom: 8px; } .ds-sectitle { margin: 0; font-size: clamp(22px, 2.4vw, 30px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.06; color: var(--c-900, oklch(15% 0.004 70)); text-wrap: balance; font-family: var(--font-sans, 'Geist', system-ui, sans-serif); }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "custom",
+      "refersTo": "label",
+      "description": "6px status dot + colored label + fused '· closes' suffix.",
+      "html": "<span class=\"ds-status\"><span class=\"ds-status-dot\"></span><span class=\"ds-status-lbl\">Open</span><span class=\"ds-status-sub\">· closes 20:00</span></span>",
+      "css": ".ds-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; letter-spacing: -0.005em; color: var(--c-700, oklch(35% 0.006 70)); font-family: var(--font-sans, 'Geist', system-ui, sans-serif); } .ds-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--s-success-600, oklch(48% 0.10 158)); flex-shrink: 0; } .ds-status-lbl { color: var(--s-success-600, oklch(48% 0.10 158)); font-weight: 600; } .ds-status-sub { color: var(--c-600, oklch(48% 0.008 70)); white-space: nowrap; }"
+    },
+    {
+      "name": "Business Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "White 18px-radius card: photo header with frosted category pill, name + rating baseline, fused meta row; hover = 3px lift + sh-lg.",
+      "html": "<a class=\"ds-card\" href=\"#\"><span class=\"ds-card-img\"><span class=\"ds-card-cat\"><span class=\"ds-card-catdot\"></span>Hair salon</span></span><span class=\"ds-card-body\"><span class=\"ds-card-row\"><span class=\"ds-card-name\">Atelier Glow</span><span class=\"ds-card-rating\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"currentColor\" style=\"color:oklch(53% 0.15 38)\"><path d=\"M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.3l7.1-.7z\"/></svg><span>4.8</span><span class=\"ds-card-rev\">(126)</span></span></span><span class=\"ds-card-meta\"><span>1.2 km</span><span class=\"ds-card-dotsep\"></span><span class=\"ds-card-open\">Open</span></span></span></a>",
+      "css": ".ds-card { display: flex; flex-direction: column; width: 280px; background: #fff; border: 1px solid rgba(28,28,26,0.06); border-radius: var(--card-r, 18px); overflow: hidden; text-decoration: none; box-shadow: 0 1px 2px rgba(28,28,26,0.04), 0 1px 1px rgba(28,28,26,0.03); cursor: pointer; font-family: var(--font-sans, 'Geist', system-ui, sans-serif); transition: transform .25s cubic-bezier(.2,.7,.3,1), box-shadow .25s cubic-bezier(.2,.7,.3,1); } .ds-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(28,28,26,0.08), 0 18px 40px rgba(28,28,26,0.12); } .ds-card-img { position: relative; display: block; aspect-ratio: 16 / 10; background: repeating-linear-gradient(45deg, rgba(28,28,26,0.04) 0 8px, rgba(28,28,26,0.06) 8px 16px), var(--c-mist, #E8E3D8); } .ds-card-cat { position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.94); backdrop-filter: blur(10px); padding: 5px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; color: var(--c-800, oklch(25% 0.005 70)); letter-spacing: -0.005em; } .ds-card-catdot { width: 6px; height: 6px; border-radius: 50%; background: var(--cat-hair, oklch(62% 0.18 38)); } .ds-card-body { display: flex; flex-direction: column; padding: 15px 17px 17px; } .ds-card-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; } .ds-card-name { font-size: 18px; font-weight: 600; letter-spacing: -0.022em; color: var(--c-900, oklch(15% 0.004 70)); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; } .ds-card-rating { display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; font-weight: 600; color: var(--c-900, oklch(15% 0.004 70)); font-variant-numeric: tabular-nums; } .ds-card-rev { color: var(--c-600, oklch(48% 0.008 70)); font-weight: 400; } .ds-card-meta { margin-top: 9px; display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--c-600, oklch(48% 0.008 70)); letter-spacing: -0.005em; white-space: nowrap; } .ds-card-dotsep { width: 3px; height: 3px; border-radius: 50%; background: var(--c-400, oklch(80% 0.010 70)); flex-shrink: 0; } .ds-card-open { color: var(--s-success-600, oklch(48% 0.10 158)); font-weight: 600; }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": "label",
+      "description": "Quiet Apple-style text link — color alone carries hover/active state.",
+      "html": "<nav style=\"display:flex;gap:22px\"><a class=\"ds-navlink ds-navlink-on\" href=\"#\">Explore</a><a class=\"ds-navlink\" href=\"#\">Journal</a><a class=\"ds-navlink\" href=\"#\">For business</a></nav>",
+      "css": ".ds-navlink { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; color: var(--c-600, oklch(48% 0.008 70)); text-decoration: none; white-space: nowrap; padding: 8px 2px; font-family: var(--font-sans, 'Geist', system-ui, sans-serif); transition: color .15s cubic-bezier(.4,0,.2,1); } .ds-navlink:hover { color: var(--c-900, oklch(15% 0.004 70)); } .ds-navlink-on { color: var(--c-900, oklch(15% 0.004 70)); } .ds-navlink:focus-visible { outline: 2px solid var(--p-500, oklch(53% 0.15 38)); outline-offset: 2px; border-radius: 6px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "body",
+      "description": "White hairline field; focus warms the border to terracotta with a tinted glow.",
+      "html": "<div class=\"ds-field\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" style=\"color:oklch(48% 0.008 70);flex-shrink:0\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"M21 21l-4.3-4.3\"/></svg><input class=\"ds-field-input\" placeholder=\"Search help articles\" /></div>",
+      "css": ".ds-field { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid rgba(28,28,26,0.12); border-radius: 14px; padding: 6px 6px 6px 16px; box-shadow: 0 1px 2px rgba(28,28,26,0.04), 0 1px 1px rgba(28,28,26,0.03); max-width: 420px; transition: border-color .18s cubic-bezier(.4,0,.2,1), box-shadow .18s cubic-bezier(.2,.7,.3,1); } .ds-field:focus-within { border-color: var(--p-400, oklch(70% 0.13 38)); box-shadow: 0 0 0 4px var(--p-100, oklch(94% 0.05 38)); } .ds-field-input { flex: 1; border: 0; background: transparent; outline: none; font-size: 14.5px; padding: 8px 0; color: var(--c-900, oklch(15% 0.004 70)); font-family: var(--font-sans, 'Geist', system-ui, sans-serif); } .ds-field-input::placeholder { color: var(--c-500, oklch(62% 0.009 70)); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Warm-Paper Shop Window",
+    "overview": "Zavoia's marketplace reads like an editorial magazine laid on warm paper. The canvas is a warm off-white, the entire neutral text ramp is a warm gray built in OKLCH at hue 70, and every hard surface is either white card stock or near-black ink. Terracotta is the single brand accent — it marks ratings, active states, focus rings, and the book action, and it stays rare enough that ink does most of the talking. Photography does the selling: business cards are photo-forward, and the chrome around them stays quiet — hairlines, frosted bars, mono eyebrows. The system's voice is confident but unhurried: tight negative letter-spacing on sans headings, a mono uppercase kicker above every section, tabular numerals for every number, and a single authored motion vocabulary (rise + fade on entry, lift on hover, spring on delight moments). There is no dark mode; the system is one light world. Scrollbars are hidden site-wide. All copy exists in both English and Romanian.",
+    "keyCharacteristics": [
+      "Warm paper canvas; white cards; ink pills; terracotta as the only accent",
+      "One sans (Geist) for everything readable, one mono (Geist Mono) for labels, indices, and counts",
+      "Photo-forward cards with dark scrims or frosted white overlays",
+      "Hairline rules (rgba(28,28,26,0.06–0.14)) carry structure; heavy borders don't exist",
+      "One motion grammar: rise-in with stagger, hover-lift, spring pops for delight"
+    ],
+    "rules": [
+      { "name": "The c-600 Floor Rule", "body": "Secondary text on the canvas must be var(--c-600) or darker. --c-500 fails the 4.5:1 contrast floor at body sizes — it is reserved for decorative, large, or redundant text.", "section": "colors" },
+      { "name": "The One Voice Rule", "body": "Terracotta is the only brand accent and it stays scarce. Structure and state are carried by ink; terracotta marks the action or the live thing on a screen — stars, book, focus, progress.", "section": "colors" },
+      { "name": "The Dot-Not-Wash Rule", "body": "Status and category color arrive as a 6px dot next to neutral text, never as a tinted background behind content (warning callouts excepted).", "section": "colors" },
+      { "name": "The Tabular Number Rule", "body": "Every number that can change — ratings, counts, prices, indices, pagination — sets font-variant-numeric: tabular-nums.", "section": "typography" },
+      { "name": "The Mono Whisper Rule", "body": "The mono never exceeds ~13px and never carries a sentence. It labels, indexes, and counts; the sans speaks.", "section": "typography" },
+      { "name": "The Earned Shadow Rule", "body": "Big shadows are earned by state. Rest = hairline + sh-sm/md; hover/lift = sh-lg; floating above the page (modal, receipt) = sh-xl.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do put every user-facing string in both dictionaries (src/i18n/dictionaries/en.ts and ro.ts); the Dictionary type enforces key parity — English first, then mirror in Romanian.",
+      "Do keep secondary text at var(--c-600) or darker on the canvas (the c-600 Floor Rule); reserve --c-500/--c-400 for decorative or large text.",
+      "Do join meta segments with --c-400 \"·\" separators, interleaving only the segments that exist (use the joinDot pattern), and keep each separator fused in a nowrap span with the item that follows it.",
+      "Do use ink for structure and state (active chips/tabs/pagination invert to ink + white) and terracotta only for the accent action, ratings, focus, and live signals.",
+      "Do give every card var(--card-r, 18px), .zw-hover-lift, and a .zw-zoom-wrap around its image so hover = 3px rise + sh-lg + 1.045× zoom, together.",
+      "Do set tabular-nums on every mutable number and use Geist Mono (≤13px, 600, wide-tracked uppercase) for kickers, indices, and counts.",
+      "Do use non-enumerable slugs for detail routes (/business/<locationSlug>, /brand/<businessSlug>, numeric-id fallback) — never sequential IDs in URLs.",
+      "Do gate entrance animation behind prefers-reduced-motion: no-preference and offset sticky elements against calc(var(--nav-h) + N)."
+    ],
+    "donts": [
+      "Don't use --c-500 for body-size secondary text — it fails the 4.5:1 contrast floor on the canvas.",
+      "Don't back the page with white or tint content surfaces with status color; the page is --c-canvas, cards are white, and status arrives as a 6px dot.",
+      "Don't introduce a second accent, gray-hex borders (hairlines are ink-alpha), pure-black shadows (shadow color is rgba(28,28,26,…)), or a dark mode.",
+      "Don't show visible scrollbars, orphan a dot separator at a line end, or let a card grid orphan a lone third card (use the explicit 3→2→1 grid).",
+      "Don't exceed the one authored motion grammar — no parallax, no continuous ambient animation beyond the sanctioned pulses (live dots, radar rings), nothing that ignores prefers-reduced-motion."
+    ]
+  }
+}

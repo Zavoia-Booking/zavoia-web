@@ -87,15 +87,116 @@ export interface IndustryRef {
 // Discovery cards (search / brands / latest / nearby)
 // ============================================================================
 
-/** One card per BUSINESS — homepage "Brands" list. */
+/** Lean public location embedded in a BrandCard / BrandDetail (nav target: its detail page). */
+export interface BrandLocation {
+  id: number;
+  slug: string | null;
+  name: string;
+  address: string | null;
+  city: string | null;
+  featuredImage: string | null;
+  averageRating: number | null;
+  totalReviews: number;
+}
+
+/**
+ * Lean public team member embedded in a BrandCard. `locationId`/`locationSlug`
+ * point at the location page where their profile lives (deep-link target).
+ */
+export interface BrandTeamMember {
+  id: number;
+  displayName: string | null;
+  professionalTitle: string | null;
+  profileImage: string | null;
+  averageRating: number | null;
+  totalReviews: number;
+  locationId: number;
+  locationSlug: string | null;
+}
+
+/**
+ * One card per BUSINESS — "Brands" browse feed. Carries the brand identity plus
+ * its public locations and team members (lists capped server-side at 5/8; the
+ * `*Count` fields always hold the full totals). `primaryLocation*` is the card's
+ * own nav target and stays populated even when the lists are hidden by the
+ * listing's show flags (which then yield empty arrays + zero counts).
+ */
 export interface BrandCard {
   businessId: number;
+  /** businessSlug — the brand page's route target (null when the business has none). */
+  slug: string | null;
   name: string;
   description: string | null;
   profileImage: string | null;
+  featuredImage: string | null;
+  city: string | null;
+  primaryLocationId: number | null;
+  primaryLocationSlug: string | null;
   industry: IndustryRef | null;
   averageRating: number | null;
   totalReviews: number;
+  locations: BrandLocation[];
+  locationsCount: number;
+  teamMembers: BrandTeamMember[];
+  teamMembersCount: number;
+}
+
+/**
+ * Brand page payload — full public profile of one BUSINESS (`GET
+ * /marketplace/public/brand/:idOrSlug`, RAW). Same visibility gating as the
+ * Brands feed; locations/team are UNCAPPED here (still gated by the listing's
+ * show flags). Microsite identity fields are all nullable.
+ */
+export interface BrandDetail {
+  businessId: number;
+  slug: string | null;
+  /** BusinessMarketplaceListing id — location-scoped team-member profile context. */
+  listingId: number | null;
+  name: string;
+  description: string | null;
+  logo: string | null;
+  country: string | null;
+  industry: IndustryRef | null;
+  averageRating: number | null;
+  totalReviews: number;
+  tagline: string | null;
+  aboutContent: string | null;
+  establishedYear: number | null;
+  heroImageUrl: string | null;
+  locations: BrandLocation[];
+  locationsCount: number;
+  teamMembers: BrandTeamMember[];
+  teamMembersCount: number;
+}
+
+/** Canonical Business identity block on the published-website payload (all contact fields nullable). */
+export interface PublicWebsiteIdentity {
+  name: string;
+  logo: string | null;
+  businessCurrency: string;
+  email: string | null;
+  phone: string | null;
+  description: string | null;
+  instagramUrl: string | null;
+  facebookUrl: string | null;
+  tiktokUrl: string | null;
+  pinterestUrl: string | null;
+  websiteUrl: string | null;
+}
+
+/**
+ * Published Website Builder site (`GET /marketplace/public/website/:slug`, RAW) —
+ * powers zavoia.com/[businessSlug]. `website` is the frozen published snapshot
+ * (hero, tagline, pageLayout, pageTheme, faq, announcement, …); kept loose until
+ * the real renderer pins the section shapes. 404 unless published + entitled.
+ */
+export interface PublicWebsite {
+  businessId: number;
+  slug: string;
+  identity: PublicWebsiteIdentity;
+  website: Record<string, unknown>;
+  publishedVersion: number | null;
+  publishedAt: string | null;
 }
 
 /**

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Avatar,
   Button,
@@ -81,7 +82,19 @@ export function BusinessDetail({ listing, locale }: Props) {
     pushRecentView(locationId);
   }, [locationId]);
 
-  const [tab, setTab] = useState<Tab>("services");
+  // Deep-link support (brand page → team member profile): `?tab=<tab>` opens
+  // that tab, `?member=<id>` additionally opens that member's profile modal on
+  // the team tab. Read once as initial state — in-page navigation stays local.
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = searchParams.get("tab");
+    return t === "team" || t === "reviews" || t === "about" ? t : "services";
+  });
+  const [initialMemberId] = useState<number | null>(() => {
+    const raw = searchParams.get("member");
+    const n = raw ? Number(raw) : NaN;
+    return Number.isInteger(n) && n > 0 ? n : null;
+  });
 
   // Single ordered selection list so the appointment summary preserves the exact
   // order the user picked items in (services and bundles interleaved as chosen),
@@ -372,7 +385,12 @@ export function BusinessDetail({ listing, locale }: Props) {
               dict={t}
             />
           )}
-          {tab === "team" && <TeamTab members={listing.teamMembers} />}
+          {tab === "team" && (
+            <TeamTab
+              members={listing.teamMembers}
+              initialMemberId={initialMemberId}
+            />
+          )}
           {tab === "reviews" && (
             <ReviewsTab listing={listing} locale={locale} dict={t} />
           )}
@@ -1107,8 +1125,17 @@ function ToggleAddButton({
 // ─────────────────────────────────────────────
 // Team tab — grid of cards; clicking opens a read-only modal.
 // ─────────────────────────────────────────────
-function TeamTab({ members }: { members: ListingTeamMember[] }) {
-  const [open, setOpen] = useState<ListingTeamMember | null>(null);
+function TeamTab({
+  members,
+  initialMemberId,
+}: {
+  members: ListingTeamMember[];
+  initialMemberId?: number | null;
+}) {
+  // Deep-linked member (?member=<id>) starts with their profile modal open.
+  const [open, setOpen] = useState<ListingTeamMember | null>(
+    () => members.find((m) => m.id === initialMemberId) ?? null,
+  );
   if (members.length === 0) return null;
   return (
     <div

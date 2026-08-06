@@ -7,14 +7,15 @@ import { SectionTitle } from "@/components/ui/section-title";
 import { BusinessOverlayCard, type BusinessCardData } from "@/components/business";
 import { useFavoriteToggle } from "./use-favorite-toggle";
 
-// "Fresh on Zavoia" — overlay-card grid of the newest LOCATIONS (location
-// sourced; favorites toggle the location endpoint). Cards are pre-mapped on
-// the server; this thin client wrapper adds the favorite toggle + nav.
-export function AvailableToday({ cards }: { cards: BusinessCardData[] }) {
+// "Brands" — overlay-card grid of listed brands (business sourced; favorites
+// toggle the business endpoint). Cards are pre-mapped on the server and, until
+// the dedicated brand page exists, link to each brand's primary location page.
+// Styling mirrors the "Fresh on Zavoia" section.
+export function BrandsSection({ cards }: { cards: BusinessCardData[] }) {
   const { locale, dict } = useTranslation();
   const router = useRouter();
-  const fav = useFavoriteToggle("location");
-  const s = dict.homeSections.available;
+  const fav = useFavoriteToggle("business");
+  const s = dict.homeSections.brands;
 
   return (
     <section className="zw-container" style={{ paddingTop: 60 }}>

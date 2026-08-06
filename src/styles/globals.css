@@ -1171,3 +1171,305 @@ img.zw-img--in { opacity: 1; }
 .zw-help-qlink:hover { color: var(--p-700); }
 .zw-help-qlink:hover svg { transform: translateX(3px); }
 .zw-help-qlink svg { transition: transform .2s var(--ease-out); }
+
+/* ─────────────────────────────────────────────
+   Legal — terms & policies library
+   A quiet reading surface for long-form legal prose: an editorial index of
+   documents, then a measured article column with a sticky numbered contents
+   rail. Uses the marketplace vocabulary throughout (mono eyebrows, hairline
+   rules, shade→ink icon badges, terracotta as the active/structural accent).
+   ───────────────────────────────────────────── */
+
+/* Both surfaces sit on a narrower page than the 1232px marketplace grid —
+   legal reading wants a centred column, not the full shop window. */
+.zw-legal-shell { max-width: 880px; margin: 0 auto; }
+/* Once the contents rail drops away, the document's masthead, callouts and
+   article all collapse onto the single measure — otherwise the banner runs
+   300px wider than the prose it introduces. */
+@media (max-width: 1024px) {
+  .zw-legal-shell--doc { max-width: 58ch; }
+}
+
+/* ── Hub — audience groups ── */
+.zw-legal-group + .zw-legal-group { margin-top: clamp(34px, 4vw, 46px); }
+.zw-legal-grouphead { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.zw-legal-grouplbl {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-600);
+  white-space: nowrap;
+}
+.zw-legal-grouprule { flex: 1; height: 1px; background: rgba(28,28,26,0.10); }
+.zw-legal-groupn {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  color: var(--c-400); font-variant-numeric: tabular-nums;
+}
+
+/* ── Document row — shared by the hub index and the "related" footer ── */
+/* Negative gutter so the row's hover field bleeds past the text column while
+   the text itself stays optically aligned with the section label above it. */
+.zw-legal-rows { margin: 0 -16px; }
+.zw-legal-row {
+  position: relative; display: flex; align-items: flex-start; gap: 15px;
+  padding: 17px 16px; border-radius: var(--r-lg); text-decoration: none;
+  transition: background-color .18s var(--ease-soft);
+}
+/* Hairlines live on the row, not between wrappers, so hiding the pair around
+   the hovered row leaves a clean floating field with no orphaned rule. */
+.zw-legal-row + .zw-legal-row::before {
+  content: ''; position: absolute; left: 16px; right: 16px; top: 0; height: 1px;
+  background: rgba(28,28,26,0.08); transition: opacity .18s var(--ease-soft);
+}
+.zw-legal-row:hover { background: rgba(28,28,26,0.03); }
+.zw-legal-row:hover::before,
+.zw-legal-row:hover + .zw-legal-row::before { opacity: 0; }
+
+.zw-legal-ic {
+  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--c-shade); color: var(--c-700);
+  transition: background-color .25s var(--ease-soft), color .25s var(--ease-soft),
+              transform .3s var(--ease-spring);
+}
+.zw-legal-row:hover .zw-legal-ic { background: var(--c-ink); color: #fff; transform: translateY(-1px); }
+
+.zw-legal-rbody { min-width: 0; flex: 1; }
+.zw-legal-rt {
+  font-size: 16px; font-weight: 600; letter-spacing: -0.018em; line-height: 1.35;
+  color: var(--c-900); transition: color .15s var(--ease-soft);
+}
+.zw-legal-row:hover .zw-legal-rt { color: var(--p-700); }
+.zw-legal-rd {
+  margin: 5px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--c-600);
+  max-width: 56ch;
+}
+/* Status and affordance share a right cluster, so the row's far edge carries
+   meaning instead of trailing off into empty space. */
+.zw-legal-rcluster {
+  margin-left: auto; align-self: center; flex-shrink: 0;
+  display: flex; align-items: center; gap: 16px;
+}
+.zw-legal-go {
+  flex-shrink: 0; color: var(--c-400); display: inline-flex;
+  transition: transform .25s var(--ease-out), color .2s var(--ease-soft);
+}
+.zw-legal-row:hover .zw-legal-go { transform: translateX(3px); color: var(--c-800); }
+/* On a phone the whole row is the tap target and width is scarce: the chevron
+   goes, and the status drops to its own line under the description rather than
+   stealing a third of the row's width from it. */
+@media (max-width: 640px) {
+  .zw-legal-row { flex-wrap: wrap; row-gap: 9px; }
+  .zw-legal-rbody { flex: 1 1 calc(100% - 55px); }
+  .zw-legal-rcluster { flex: 1 1 100%; margin-left: 55px; align-self: auto; gap: 0; }
+  .zw-legal-rcluster:not(:has(.zw-legal-badge)) { display: none; }
+  .zw-legal-rcluster .zw-legal-go { display: none; }
+}
+
+/* Draft marker — StatusPill's dot-plus-label vocabulary. The amber dot carries
+   the signal so the label can stay at a high-contrast neutral. */
+.zw-legal-badge {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--c-600);
+}
+.zw-legal-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--s-warning-600); flex-shrink: 0;
+}
+
+/* Hub footer — quiet hand-off to the help centre */
+.zw-legal-hubfoot {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px 20px;
+  margin-top: clamp(44px, 5vw, 64px); padding-top: 22px;
+  border-top: 1px solid rgba(28,28,26,0.09);
+}
+.zw-legal-hubfoot-q { font-size: 14.5px; color: var(--c-600); letter-spacing: -0.01em; }
+.zw-legal-hubfoot-a {
+  display: inline-flex; align-items: center; gap: 7px; text-decoration: none;
+  font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; color: var(--p-700);
+}
+.zw-legal-hubfoot-a svg { transition: transform .2s var(--ease-out); }
+.zw-legal-hubfoot-a:hover svg { transform: translateX(3px); }
+
+/* ── Document — reading column + contents rail ── */
+/* space-between pins the rail to the shell's right edge, so the masthead rules
+   above span exactly the article plus its rail rather than an arbitrary width. */
+.zw-legal-grid {
+  display: grid; grid-template-columns: minmax(0, 58ch) 196px;
+  justify-content: space-between; column-gap: 40px; align-items: start;
+}
+/* 58ch of Geist at the container's 16px resolves to ~72 characters of the
+   15.5px prose below it — inside the comfortable measure at every viewport,
+   including the wide one where the contents rail is hidden. */
+.zw-legal-main { max-width: 58ch; min-width: 0; }
+.zw-legal-aside { position: relative; min-width: 0; align-self: stretch; }
+@media (max-width: 1024px) {
+  .zw-legal-grid { grid-template-columns: minmax(0, 1fr); }
+  .zw-legal-aside { display: none; }
+}
+
+/* Meta strip under the title — audience, status, print */
+.zw-legal-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
+  margin-top: clamp(22px, 2.6vw, 30px); padding: 12px 0;
+  border-top: 1px solid rgba(28,28,26,0.09);
+  border-bottom: 1px solid rgba(28,28,26,0.09);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--c-600);
+}
+.zw-legal-meta-sep { color: var(--c-300); }
+.zw-legal-print {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 7px;
+  background: transparent; border: 1px solid rgba(28,28,26,0.14);
+  border-radius: 999px; padding: 6px 13px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-700);
+  transition: background-color .2s var(--ease-soft), border-color .2s var(--ease-soft),
+              color .2s var(--ease-soft), transform .15s var(--ease-out);
+}
+.zw-legal-print:hover { background: var(--c-ink); border-color: var(--c-ink); color: #fff; }
+.zw-legal-print:active { transform: scale(0.96); }
+
+/* Callouts — the draft banner and inline drafting notes share one family */
+.zw-legal-callout {
+  display: flex; gap: 12px; align-items: flex-start;
+  border: 1px solid color-mix(in oklch, var(--s-warning-600) 26%, transparent);
+  background: color-mix(in oklch, var(--s-warning-100) 80%, var(--c-canvas));
+  border-radius: var(--r-lg); padding: 14px 16px;
+}
+.zw-legal-callout svg { flex-shrink: 0; margin-top: 1px; }
+.zw-legal-callout p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--c-700); }
+.zw-legal-callout--banner { margin-top: clamp(24px, 3vw, 32px); }
+.zw-legal-callout--banner p { font-size: 14px; }
+
+/* Sections — a hairline and a mono index above each heading */
+.zw-legal-sec {
+  padding-top: clamp(28px, 3.2vw, 38px); margin-top: clamp(28px, 3.2vw, 38px);
+  border-top: 1px solid rgba(28,28,26,0.08);
+  scroll-margin-top: calc(var(--nav-h) + 28px);
+}
+.zw-legal-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.zw-legal-secn {
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.16em; color: var(--c-400); font-variant-numeric: tabular-nums;
+  margin-bottom: 9px;
+}
+.zw-legal-h2 {
+  margin: 0; font-size: clamp(19px, 2vw, 22px); font-weight: 600;
+  letter-spacing: -0.026em; line-height: 1.28; color: var(--c-900);
+}
+.zw-legal-p {
+  margin: 14px 0 0; font-size: 15.5px; line-height: 1.75;
+  letter-spacing: -0.003em; color: var(--c-700);
+}
+.zw-legal-ul {
+  margin: 14px 0 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.zw-legal-ul li {
+  position: relative; padding-left: 24px;
+  font-size: 15.5px; line-height: 1.7; letter-spacing: -0.003em; color: var(--c-700);
+}
+.zw-legal-ul li::before {
+  content: ''; position: absolute; left: 6px; top: 0.68em;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--p-400);
+}
+.zw-legal-note { margin-top: 18px; }
+
+/* Contents rail — mirrors the Journal's TOC so the two reading surfaces
+   share one navigation gesture. */
+.zw-legal-toc { position: sticky; top: calc(var(--nav-h) + 32px); }
+.zw-legal-toc-lbl {
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-500);
+  margin-bottom: 14px; padding-left: 15px;
+  display: flex; align-items: baseline; gap: 8px;
+}
+.zw-legal-toc-total { color: var(--c-400); font-variant-numeric: tabular-nums; }
+.zw-legal-toc-link {
+  display: flex; align-items: baseline; gap: 9px;
+  padding: 7px 0 7px 15px; margin-left: -1px;
+  border-left: 2px solid rgba(28,28,26,0.10);
+  font-size: 12.5px; line-height: 1.4; color: var(--c-500);
+  text-decoration: none; letter-spacing: -0.005em;
+  transition: color .2s var(--ease-soft), border-color .2s var(--ease-soft),
+              padding-left .25s var(--ease-out);
+}
+.zw-legal-toc-link:hover { color: var(--c-800); }
+.zw-legal-toc-link[data-on="1"] {
+  color: var(--c-900); font-weight: 600; border-color: var(--p-500); padding-left: 19px;
+}
+.zw-legal-toc-n {
+  font-family: var(--font-mono); font-size: 10px; color: var(--c-400);
+  font-variant-numeric: tabular-nums; flex-shrink: 0;
+  transition: color .2s var(--ease-soft);
+}
+.zw-legal-toc-link[data-on="1"] .zw-legal-toc-n { color: var(--p-500); }
+
+/* Contents on narrow viewports — a native disclosure above the article, so the
+   rail's wayfinding survives the breakpoint instead of disappearing with it. */
+.zw-legal-toc-m {
+  display: none; margin-top: clamp(24px, 3vw, 32px);
+  border: 1px solid rgba(28,28,26,0.10); border-radius: var(--r-lg);
+  background: #fff; box-shadow: var(--sh-sm); overflow: hidden;
+}
+@media (max-width: 1024px) { .zw-legal-toc-m { display: block; } }
+.zw-legal-toc-m > summary {
+  list-style: none; cursor: pointer; padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-700);
+}
+.zw-legal-toc-m > summary::-webkit-details-marker { display: none; }
+.zw-legal-toc-chev { display: inline-flex; transition: transform .25s var(--ease-out); }
+.zw-legal-toc-m[open] .zw-legal-toc-chev { transform: rotate(180deg); }
+.zw-legal-toc-mlist { padding: 0 16px 12px; display: flex; flex-direction: column; }
+.zw-legal-toc-mlink {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 11px 0; border-top: 1px solid rgba(28,28,26,0.07);
+  font-size: 14.5px; line-height: 1.4; letter-spacing: -0.01em;
+  color: var(--c-700); text-decoration: none;
+}
+.zw-legal-toc-mlink:active { color: var(--p-700); }
+
+/* Reading progress — a 2px hairline pinned under the site nav */
+.zw-legal-prog {
+  position: fixed; top: var(--nav-h); left: 0; right: 0; height: 2px;
+  z-index: 80; pointer-events: none;
+}
+.zw-legal-prog-fill {
+  height: 100%; background: var(--p-500); transform-origin: left center;
+  transition: transform .1s linear;
+}
+
+/* Back to the index — same affordance as the hub's hand-off link, mirrored */
+.zw-legal-back {
+  display: inline-flex; align-items: center; gap: 7px; text-decoration: none;
+  font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; color: var(--c-700);
+  transition: color .15s var(--ease-soft);
+}
+.zw-legal-back svg { transition: transform .2s var(--ease-out); }
+.zw-legal-back:hover { color: var(--c-900); }
+.zw-legal-back:hover svg { transform: translateX(-3px); }
+
+/* Related documents */
+.zw-legal-related {
+  margin-top: clamp(52px, 6vw, 76px); padding-top: clamp(24px, 3vw, 32px);
+  border-top: 1px solid rgba(28,28,26,0.09);
+}
+
+/* ── Print — legal pages are saved and filed, so give them a real sheet ── */
+@media print {
+  body:has(.zw-legal-page) { background: #fff; }
+  body:has(.zw-legal-page) header,
+  body:has(.zw-legal-page) footer,
+  body:has(.zw-legal-page) .zw-only-mobile,
+  .zw-legal-page .zw-legal-noprint { display: none !important; }
+  .zw-legal-page .zw-legal-shell,
+  .zw-legal-page .zw-legal-main { max-width: none !important; }
+  .zw-legal-page .zw-legal-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .zw-legal-page .zw-legal-sec { break-inside: avoid; }
+  .zw-legal-page .zw-legal-h2 { break-after: avoid; }
+  .zw-legal-page .zw-legal-p,
+  .zw-legal-page .zw-legal-ul li { color: #000; }
+}

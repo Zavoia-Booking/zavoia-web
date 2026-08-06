@@ -100,7 +100,7 @@ export function Footer({ locale }: { locale: Locale }) {
             <div style={head}>{t.support}</div>
             {fLink(t.helpCentre, link, "help")}
             {fLink(t.myTickets, link, "support")}
-            {fLink(t.cancellation, link, "legal", "cancellation")}
+            {fLink(t.cancellation, link, "terms", "booking-policy")}
           </div>
         </div>
 
@@ -119,8 +119,8 @@ export function Footer({ locale }: { locale: Locale }) {
           }}
         >
           <span>{t.rights}</span>
-          {fLink(t.privacy.toUpperCase(), monoLink, "legal", "privacy")}
-          {fLink(t.terms.toUpperCase(), monoLink, "legal", "terms")}
+          {fLink(t.privacy.toUpperCase(), monoLink, "terms", "privacy-policy")}
+          {fLink(t.terms.toUpperCase(), monoLink, "terms")}
           <span style={{ flex: 1 }} />
           <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>

@@ -39,6 +39,12 @@ export const ro: Dictionary = {
       action: "Vezi toate",
       empty: "Mereu se alătură locuri noi — revino în curând.",
     },
+    brands: {
+      kicker: "Descoperă",
+      title: "Branduri",
+      action: "Vezi toate",
+      empty: "Brandurile vor apărea aici în curând — revino.",
+    },
     nearYou: {
       kicker: "Lângă tine",
       title: "Mai multe locuri în apropiere",
@@ -661,6 +667,17 @@ export const ro: Dictionary = {
     backToExplore: "Înapoi la Explorare",
     browseBusinesses: "Răsfoiește businessuri",
   },
+  brandPage: {
+    locationsTitle: "Alege o locație",
+    locationsTitleOne: "Locația",
+    locationsCount: "{count} locații",
+    locationsCountOne: "1 locație",
+    teamTitle: "Oamenii",
+    aboutTitle: "Despre {name}",
+    since: "Din {year}",
+    viewLocation: "Vezi și rezervă",
+    worksAt: "la {location}",
+  },
   booking: {
     stepServicesTitle: "Alege serviciile",
     stepDateTimeTitle: "Alege data și ora",
@@ -943,6 +960,28 @@ export const ro: Dictionary = {
     catDental: "Stomatologie",
     catAuto: "Auto",
     catCleaning: "Curățenie",
+  },
+  legal: {
+    hubTitle: "Legal — Termeni și politici",
+    hubDescription:
+      "Documentele legale Zavoia: termeni de utilizare, termeni pentru clienți și afaceri, politici de programări, confidențialitate și cookie-uri.",
+    hubKicker: "Legal",
+    hubHeading: "Termeni și politici",
+    hubIntro:
+      "Tot ce guvernează modul în care funcționează Zavoia — pentru vizitatori, clienți și afacerile de pe platforma noastră. Documentele marcate ca schițe sunt în curs de revizuire juridică și nu sunt încă obligatorii.",
+    hubHelp: "Nu găsești ce cauți?",
+    audienceGeneral: "Pentru toți",
+    audienceCustomer: "Pentru clienți",
+    audienceBusiness: "Pentru afaceri",
+    draftNotice:
+      "Acest document este o schiță în curs de revizuire juridică. Descrie structura documentului final și nu constituie încă un acord obligatoriu.",
+    onThisPage: "Pe această pagină",
+    backToLegal: "Toți termenii și politicile",
+    lastUpdated: "Ultima actualizare",
+    readDocument: "Citește documentul",
+    statusDraft: "Schiță",
+    printDocument: "Printează",
+    relatedTitle: "Documente conexe",
   },
   accountMenu: {
     appointments: "Programări",
