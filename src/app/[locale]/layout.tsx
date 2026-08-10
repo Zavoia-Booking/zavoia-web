@@ -14,6 +14,9 @@ import { MobileTabs } from "@/components/shell/mobile-tabs";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { AuthModalProvider } from "@/components/shell/auth-modal-provider";
 import { BookingProvider } from "@/lib/booking";
+import { ConsentProvider } from "@/lib/consent/ConsentProvider";
+import { CookieBanner } from "@/components/shell/cookie-banner";
+import { AnalyticsGate } from "@/components/shell/analytics-gate";
 
 export async function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -50,6 +53,7 @@ export default async function LocaleRootLayout({ children, params }: Props) {
       <body className={`${fontVariables} antialiased`}>
         <AuthProvider>
           <I18nProvider locale={locale}>
+            <ConsentProvider>
             <ToastProvider>
               {/* The auth modal is owned once here so the header's "Sign in"
                   button and the booking drawer's sign-in gate can both open it
@@ -73,10 +77,15 @@ export default async function LocaleRootLayout({ children, params }: Props) {
                 <ConditionalFooter locale={locale} />
                 <MobileTabs locale={locale} />
                 <ToastHost />
+                {/* GDPR consent: banner asks on first visit; GA mounts only
+                    after "accept" (AnalyticsGate) — nothing loads before. */}
+                <CookieBanner locale={locale} />
+                <AnalyticsGate />
               </SearchOverlayProvider>
               </BookingProvider>
               </AuthModalProvider>
             </ToastProvider>
+            </ConsentProvider>
           </I18nProvider>
         </AuthProvider>
       </body>

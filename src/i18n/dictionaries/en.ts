@@ -806,6 +806,15 @@ export const en: {
     catDental: string;
     catAuto: string;
     catCleaning: string;
+    cookieSettings: string;
+  };
+  consent: {
+    title: string;
+    body: string;
+    policyLink: string;
+    accept: string;
+    reject: string;
+    close: string;
   };
   legal: {
     hubTitle: string;
@@ -2228,6 +2237,15 @@ export const en: {
     catDental: "Dental",
     catAuto: "Auto",
     catCleaning: "Cleaning",
+    cookieSettings: "Cookies",
+  },
+  consent: {
+    title: "Cookies & analytics",
+    body: "We use Google Analytics to understand how Zavoia is used and make it better. Analytics runs only if you accept — essential cookies (like staying signed in) work either way.",
+    policyLink: "Cookie policy",
+    accept: "Accept",
+    reject: "Reject",
+    close: "Close",
   },
   legal: {
     hubTitle: "Legal — Terms & Policies",

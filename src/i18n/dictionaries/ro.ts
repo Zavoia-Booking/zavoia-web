@@ -960,6 +960,15 @@ export const ro: Dictionary = {
     catDental: "Stomatologie",
     catAuto: "Auto",
     catCleaning: "Curățenie",
+    cookieSettings: "Cookie-uri",
+  },
+  consent: {
+    title: "Cookie-uri și analiză",
+    body: "Folosim Google Analytics ca să înțelegem cum este folosit Zavoia și să-l îmbunătățim. Analiza rulează doar dacă accepți — cookie-urile esențiale (precum autentificarea) funcționează oricum.",
+    policyLink: "Politica de cookie-uri",
+    accept: "Accept",
+    reject: "Refuz",
+    close: "Închide",
   },
   legal: {
     hubTitle: "Legal — Termeni și politici",

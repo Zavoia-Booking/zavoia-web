@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { LOCALES, type Locale } from "@/i18n/locales";
+import { useConsent } from "@/lib/consent/ConsentProvider";
 
 // Port of ZwFooter (docs/web-shell.jsx). All labels i18n'd.
 // Language switch lives in the bottom bar (en/ro via localeHref).
@@ -13,6 +14,7 @@ import { LOCALES, type Locale } from "@/i18n/locales";
 export function Footer({ locale }: { locale: Locale }) {
   const { dict } = useTranslation();
   const t = dict.footer;
+  const { openSettings } = useConsent();
 
   const col: CSSProperties = { display: "flex", flexDirection: "column", gap: 11 };
   const head: CSSProperties = {
@@ -121,6 +123,16 @@ export function Footer({ locale }: { locale: Locale }) {
           <span>{t.rights}</span>
           {fLink(t.privacy.toUpperCase(), monoLink, "terms", "privacy-policy")}
           {fLink(t.terms.toUpperCase(), monoLink, "terms")}
+          {/* Reopens the consent banner — GDPR requires withdrawing consent
+              to be as easy as giving it. */}
+          <button
+            type="button"
+            className="zw-link tap"
+            onClick={openSettings}
+            style={{ ...monoLink, cursor: "pointer", textTransform: "uppercase" }}
+          >
+            {t.cookieSettings.toUpperCase()}
+          </button>
           <span style={{ flex: 1 }} />
           <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>

@@ -1473,3 +1473,28 @@ img.zw-img--in { opacity: 1; }
   .zw-legal-page .zw-legal-p,
   .zw-legal-page .zw-legal-ul li { color: #000; }
 }
+
+/* ---- Cookie consent banner (GDPR opt-in for analytics) ---- */
+.zw-cookie-banner {
+  position: fixed;
+  left: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 120; /* above the mobile tab bar (95) */
+  width: min(400px, calc(100vw - 32px));
+  background: #fff;
+  border: 1px solid rgba(28,28,26,0.10);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-lg);
+  padding: 18px 20px 20px;
+}
+@media (max-width: 920px) {
+  /* Clear the fixed frosted tab bar on mobile. */
+  .zw-cookie-banner { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .zw-cookie-banner { animation: zwConsentIn .35s var(--ease-out) both; }
+}
+@keyframes zwConsentIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
