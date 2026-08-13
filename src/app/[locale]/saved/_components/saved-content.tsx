@@ -34,6 +34,10 @@ import {
   removeFavoriteProfessional,
 } from "@/lib/api/marketplace/customer";
 import type { AllFavorites } from "@/lib/api/marketplace/types";
+import {
+  TeamMemberProfileModal,
+  type TeamMemberSeed,
+} from "@/app/[locale]/business/_components/team-member-profile-modal";
 
 type SavedDict = (typeof dictionaries)[Locale]["saved"];
 
@@ -64,6 +68,8 @@ interface SavedRow {
   /** Coordinates (locations only) for distance display; null otherwise. */
   lat?: number | null;
   lng?: number | null;
+  /** Person rows only: lean identity seed for the profile modal. */
+  person?: TeamMemberSeed;
 }
 
 // Haversine distance in km between two {lat,lng} points.
@@ -179,6 +185,16 @@ function buildRows(fav: AllFavorites, locale: Locale): SavedRow[] {
         pinSubtitle: false,
         href: null,
         createdAt: f.createdAt,
+        person: {
+          id: p.id,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          displayName: p.displayName,
+          profileImage: p.profileImage,
+          professionalTitle: p.professionalTitle,
+          averageRating: toRating(p.averageRating),
+          totalReviews: p.totalReviews ?? 0,
+        },
       };
     });
 
@@ -312,6 +328,7 @@ function Row({
   distance,
   onRemove,
   onOpen,
+  onOpenPerson,
   t,
 }: {
   row: SavedRow;
@@ -321,14 +338,17 @@ function Row({
   distance?: string;
   onRemove: (row: SavedRow) => void;
   onOpen: (href: string) => void;
+  /** Person rows navigate to a modal, not a route. */
+  onOpenPerson: (person: TeamMemberSeed) => void;
   t: SavedDict;
 }) {
-  const navigable = row.href != null;
+  const navigable = row.href != null || row.person != null;
   const mediaSize = row.round ? 60 : 64;
   const stamp = row.createdAt ? savedAgo(locale, row.createdAt, now) : null;
 
   const open = () => {
     if (row.href) onOpen(row.href);
+    else if (row.person) onOpenPerson(row.person);
   };
 
   return (
@@ -622,6 +642,10 @@ export function SavedContent({ locale }: { locale: Locale }) {
     [router],
   );
 
+  // Person rows open the shared team-member profile modal in its favorites
+  // (unscoped) mode — venues + menus resolve from the booking context.
+  const [openPerson, setOpenPerson] = useState<TeamMemberSeed | null>(null);
+
   const removeApi = useCallback((row: SavedRow) => {
     if (row.kind === "business") return removeFavoriteBusiness(row.entityId);
     if (row.kind === "location") return removeFavoriteLocation(row.entityId);
@@ -862,6 +886,7 @@ export function SavedContent({ locale }: { locale: Locale }) {
                     distance={distance}
                     onRemove={handleRemove}
                     onOpen={openHref}
+                    onOpenPerson={setOpenPerson}
                     t={t}
                   />
                 );
@@ -869,6 +894,14 @@ export function SavedContent({ locale }: { locale: Locale }) {
             </div>
           )}
         </>
+      )}
+
+      {openPerson && (
+        <TeamMemberProfileModal
+          member={openPerson}
+          locale={locale}
+          onClose={() => setOpenPerson(null)}
+        />
       )}
     </div>
   );

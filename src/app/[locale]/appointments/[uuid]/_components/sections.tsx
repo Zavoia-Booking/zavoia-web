@@ -492,7 +492,8 @@ export function ServiceCard({
                   style={{
                     display: "block",
                     fontFamily: "var(--font-mono)",
-                    fontSize: 10.5,
+                    fontSize: 11.5,
+                    fontWeight: 700,
                     color: "var(--c-600)",
                     marginTop: 2,
                   }}
@@ -1100,13 +1101,11 @@ export function CloserBand({
   t,
   appt,
   locale,
-  tense,
   tone,
 }: {
   t: ApptDict;
   appt: AppointmentDetail;
   locale: Locale;
-  tense: Tense;
   tone: StatusTone;
 }) {
   const cancelled = tone === "warning" || tone === "error";
@@ -1169,16 +1168,10 @@ export function CloserBand({
     );
   }
 
-  const loc = appt.location;
-  const upcoming = tense === "now" || tense === "today" || tense === "future";
   const createdDate = new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "short",
   }).format(new Date(appt.createdAt));
-  const windowHours =
-    loc && loc.cancellationWindowMinutes
-      ? Math.round(loc.cancellationWindowMinutes / 60)
-      : null;
   // Map the booking source to a localized suffix; unknown values get no suffix.
   const sourceWord =
     appt.bookingSource === "marketplace"
@@ -1205,21 +1198,6 @@ export function CloserBand({
         textAlign: "center",
       }}
     >
-      {upcoming && loc?.allowCustomerCancellation && windowHours != null && (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 13.5,
-            fontWeight: 500,
-            color: "var(--c-800)",
-          }}
-        >
-          <Icon name="shield" size={15} color="var(--s-success-600)" />
-          {format(t.freeCancellationUpTo, { n: String(windowHours) })}
-        </span>
-      )}
       <span
         style={{
           fontFamily: "var(--font-mono)",

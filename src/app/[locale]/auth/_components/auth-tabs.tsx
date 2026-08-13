@@ -135,7 +135,7 @@ export function AuthTabs({ locale }: { locale: Locale }) {
                 <p className="text-center text-xs text-c-500">
                   {dict.terms.continueNotice}{" "}
                   <a
-                    href={localeHref(locale, "legal", "terms")}
+                    href={localeHref(locale, "terms", "customer-terms")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline underline-offset-4 hover:text-primary"
@@ -144,7 +144,7 @@ export function AuthTabs({ locale }: { locale: Locale }) {
                   </a>{" "}
                   {dict.terms.and}{" "}
                   <a
-                    href={localeHref(locale, "legal", "privacy")}
+                    href={localeHref(locale, "terms", "privacy-policy")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline underline-offset-4 hover:text-primary"

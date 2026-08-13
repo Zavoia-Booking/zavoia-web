@@ -1,0 +1,426 @@
+{
+  "businessPage": {
+    "builder": {
+      "preview": {
+        "allHidden": "All sections are hidden. Show at least one to preview your page.",
+        "book": "Book now",
+        "bookNow": "Book now",
+        "getStarted": "Book now",
+        "menu": "Menu",
+        "closeMenu": "Close menu",
+        "aria": {
+          "announcement": "Announcement",
+          "dismissAnnouncement": "Dismiss announcement",
+          "closeGallery": "Close gallery",
+          "previousImage": "Previous image",
+          "nextImage": "Next image",
+          "openGalleryImage": "Open gallery image {{number}}",
+          "goToGalleryImage": "Go to gallery image {{number}}",
+          "focusGalleryImage": "Focus gallery image {{number}}",
+          "expandGalleryImage": "Expand gallery image {{number}}",
+          "collapseGalleryImage": "Collapse gallery image {{number}}",
+          "previousGalleryPage": "Previous gallery page",
+          "nextGalleryPage": "Next gallery page",
+          "previousServicesPage": "Previous services page",
+          "nextServicesPage": "Next services page",
+          "bookService": "Book {{name}}",
+          "selectServicesLocation": "Choose a location for the service menu",
+          "previousTeamMember": "Previous team member",
+          "nextTeamMember": "Next team member"
+        },
+        "businessNamePlaceholder": "Your business",
+        "aboutTitle": "About us",
+        "aboutGhostLede": "What we do, and why it matters.",
+        "aboutGhostBody": "Learn about our approach, what we offer, and what you can expect when you choose us.",
+        "aboutStory": "Our story",
+        "aboutSince": "Our story — since {{year}}",
+        "aboutEstablished": "Our story — est. {{year}}",
+        "aboutEstablishedShort": "Est. {{year}}",
+        "aboutBookVisit": "Book a visit",
+        "servicesHeading": "Find the right service.",
+        "servicesSubledeSingle": "Browse services, compare prices and book the option that works for you.",
+        "servicesSubledeMultiple": "Browse services by location, compare prices and book the option that works for you.",
+        "servicesEmpty": "Services will appear here once they're added.",
+        "servicesPricesFrom": "prices from",
+        "servicesFrom": "from",
+        "servicesPrevious": "Previous",
+        "servicesNext": "Next",
+        "servicesPageOf": "page {{page}} of {{pages}}",
+        "servicesBook": "Book",
+        "servicesIncludes": "Includes",
+        "servicesPackages": "Bundles",
+        "servicesCategoryFallback": "Services",
+        "serviceFallback": "Service",
+        "servicesCount_one": "{{count}} service",
+        "servicesCount_other": "{{count}} services",
+        "locationsTitle": "Locations",
+        "locationsEmpty": "Location details will appear here once they're added.",
+        "noAddress": "Address coming soon",
+        "galleryTitle": "Gallery",
+        "galleryEmpty": "Photos will appear here once they're added.",
+        "teamTitle": "Our team",
+        "teamEmpty": "Team members will appear here once they're added.",
+        "teamMember": "Team member",
+        "teamRoleOwner": "Owner",
+        "teamFind": "Works at {{location}}",
+        "teamSwitchLabel": "Locations",
+        "teamBookWith": "Book with {{name}}",
+        "testimonialsTitle": "What clients say",
+        "testimonialsEmpty": "Customer reviews will appear here as they're collected.",
+        "reviewsCount_one": "{{count}} review",
+        "reviewsCount_other": "{{count}} reviews",
+        "inTheTeam": "in the team",
+        "bookAt": "Book at {{name}}",
+        "callLabel": "Call {{name}}",
+        "emailLabel": "Email {{name}}",
+        "mapLabel": "View {{name}} on the map",
+        "tagsShowAll": "Show all",
+        "tagsShowLess": "Show less",
+        "faqTitle": "FAQ",
+        "faqEmpty": "Your questions will appear here once they're added.",
+        "faqFrequentlyAsked": "Frequently asked",
+        "faqInShort": "In short",
+        "faqBookVisit": "Book a visit",
+        "statLocations_one": "Location",
+        "statLocations_other": "Locations",
+        "statTeam_one": "Team member",
+        "statTeam_other": "Team members",
+        "statRating": "Average rating",
+        "statEstablished": "Year established",
+        "contactTitle": "Get in touch",
+        "galleryHeading": "A closer look.",
+        "galleryViewFull": "View full",
+        "reviewsHeading": "In their own words.",
+        "reviewsVerifiedCount_one": "{{count}} verified review",
+        "reviewsVerifiedCount_other": "{{count}} verified reviews",
+        "reviewsOutOf": "Average rating out of 5",
+        "reviewsVerified": "Verified",
+        "reviewsPrev": "Previous review",
+        "reviewsNext": "Next review",
+        "reviewsDeckHint": "Select a card to show another review",
+        "reviewsVerifiedReviews": "verified reviews",
+        "reviewsFiveStarShare": "{{pct}}% five-star",
+        "reviewsAverageWord": "average",
+        "reviewsVoice": "Review {{n}}",
+        "contactHeadingLoc": "Visit {{name}}.",
+        "contactReach": "Contact",
+        "footerComeFind": "Find us here.",
+        "footerWhere": "Location",
+        "footerMore": "more locations",
+        "footerReady": "Ready when you are",
+        "footerBookVisit": "Book now",
+        "footerBookAVisit": "Book now",
+        "footerWrite": "Write",
+        "footerWriteToUs": "Write to us",
+        "footerCall": "Call us",
+        "footerCallLoc": "Call {{name}}",
+        "footerFollow": "Follow us",
+        "footerExplore": "Explore",
+        "footerStayConnected": "Follow us",
+        "contactHours": "Opening hours",
+        "contactClosed": "Closed",
+        "contactOpen247": "Open 24 hours",
+        "statusOpenUntil": "Open until {{time}}",
+        "statusOpensAt": "Opens at {{time}}",
+        "statusOpenNowUntil": "Open now · until {{time}}",
+        "statusOpens": "Opens {{time}}",
+        "statusClosedToday": "Closed today",
+        "statusClosedNow": "Closed now",
+        "locBook": "Book now",
+        "locBookHere": "Book here",
+        "locVisit": "Visit us",
+        "locAmenities": "Amenities",
+        "locAmenitiesExpand": "Show all amenities for {{name}}",
+        "locAmenitiesCollapse": "Collapse amenities for {{name}}",
+        "locAmenitiesMore_one": "+{{count}} other",
+        "locAmenitiesMore_other": "+{{count}} others",
+        "locAmenitiesMoreLabel_one": "{{count}} additional amenity",
+        "locAmenitiesMoreLabel_other": "{{count}} additional amenities",
+        "locGettingHere": "Getting here",
+        "locMeetTeam": "Meet the team",
+        "locPrevious": "Previous",
+        "locPrev": "Prev",
+        "locNext": "Next",
+        "days": {
+          "monday": "Mon",
+          "tuesday": "Tue",
+          "wednesday": "Wed",
+          "thursday": "Thu",
+          "friday": "Fri",
+          "saturday": "Sat",
+          "sunday": "Sun"
+        },
+        "daysFull": {
+          "monday": "Monday",
+          "tuesday": "Tuesday",
+          "wednesday": "Wednesday",
+          "thursday": "Thursday",
+          "friday": "Friday",
+          "saturday": "Saturday",
+          "sunday": "Sunday"
+        },
+        "locationCount_one": "{{count}} location",
+        "locationCount_other": "{{count}} locations",
+        "footer": {
+          "poweredBy": "Powered by Zavoia",
+          "rights": "© {{year}} {{name}}"
+        },
+        "hero": {
+          "locationsAcross": "{{num}} locations across {{place}}"
+        },
+        "subhead": {
+          "locations_one": "Find us here.",
+          "locations_other": "Find us in {{count}} locations.",
+          "team": "Meet the team.",
+          "faq": "Questions, answered."
+        },
+        "sublede": {
+          "locations_one": "Find our address, opening hours, and contact details below.",
+          "locations_other": "Choose a location to see its address, opening hours, and contact details.",
+          "team": "Meet the people behind the business."
+        },
+        "kicker": {
+          "about": "About",
+          "services": "Services",
+          "locations": "Locations",
+          "gallery": "Gallery",
+          "team": "Team",
+          "reviews": "Reviews",
+          "faq": "FAQ"
+        }
+      },
+      "announcement": {
+        "messageLabel": "Short message",
+        "messagePlaceholder": "e.g. New hours, a special offer, or an important update",
+        "messageHint": "Keep the bar concise. Add longer context in Details.",
+        "messageRequiredHint": "A message is required while the announcement is shown; add one or hide the section.",
+        "detailsLabel": "Details",
+        "detailsPlaceholder": "Add the complete announcement for visitors who want to read more.",
+        "detailsHint": "When added, visitors can open the full announcement from the bar.",
+        "optional": "Optional",
+        "readMore": "Read more",
+        "closeDetails": "Close announcement details",
+        "sampleMessage": "An important update from our team",
+        "sampleCta": "Learn more",
+        "endsIn": "Ends in {{time}}",
+        "tone": {
+          "title": "Emphasis",
+          "hint": "Choose how strongly the announcement stands out.",
+          "neutral": "Neutral",
+          "offer": "Offer",
+          "alert": "Important"
+        },
+        "cta": {
+          "title": "Button",
+          "enableLabel": "Show a button",
+          "enableHint": "Link to booking, an offer, or another page.",
+          "labelLabel": "Button text",
+          "labelPlaceholder": "e.g. Learn more, View offer",
+          "labelHint": "The button appears once you add text.",
+          "labelRequiredHint": "Add button text or turn the button off before publishing.",
+          "urlLabel": "Link",
+          "placementEyebrow": "Display behavior",
+          "placementNote": "Because Details are present, the bar shows “Read more” and this button appears inside the expanded announcement.",
+          "newTab": "Open in a new tab",
+          "showArrow": "Show arrow",
+          "urlRequiredHint": "Add a link so the button works on your page."
+        },
+        "schedule": {
+          "title": "Display period",
+          "enableLabel": "Set display period",
+          "hint": "Optional. When enabled, both dates are required.",
+          "start": "Show from",
+          "end": "Hide after",
+          "datePlaceholder": "Select a date",
+          "tz": "Dates use the {{tz}} time zone.",
+          "showCountdown": "Show “Ends in” countdown",
+          "showCountdownHint": "Displays the remaining time inside the announcement details.",
+          "requiredError": "Select both a start date and an end date.",
+          "orderError": "The start date cannot be after the end date.",
+          "invalidError": "Choose real calendar dates, or turn the display period off and set it again.",
+          "timezoneError": "This display period uses an invalid time zone. Turn it off and set it again."
+        }
+      }
+    },
+    "sections": {
+      "announcement": {
+        "label": "Announcement",
+        "description": "Highlight an offer or update at the top of your website."
+      },
+      "nav": {
+        "label": "Navigation",
+        "description": "Help visitors browse your website and book."
+      },
+      "hero": {
+        "label": "Hero",
+        "description": "Introduce your business with a cover image, name, subtitle, and booking action."
+      },
+      "marquee": {
+        "label": "Strip",
+        "description": "Run your services through a moving strip between sections."
+      },
+      "about": {
+        "label": "About",
+        "description": "Explain what makes your business worth choosing."
+      },
+      "services": {
+        "label": "Services",
+        "description": "Present every service by location with prices, timings, and a direct booking action."
+      },
+      "locations": {
+        "label": "Locations",
+        "description": "Show where to find you, opening hours, contact details, and booking."
+      },
+      "gallery": {
+        "label": "Gallery",
+        "description": "Showcase portfolio photos from your locations."
+      },
+      "team": {
+        "label": "Team",
+        "description": "Introduce your team and where each person works."
+      },
+      "testimonials": {
+        "label": "Reviews",
+        "description": "Build trust with your rating and verified customer reviews."
+      },
+      "faq": {
+        "label": "FAQ",
+        "description": "Answer common questions before visitors book."
+      },
+      "footer": {
+        "label": "Footer",
+        "description": "Close with your locations, contact details, and booking action."
+      },
+      "variants": {
+        "default": "Default",
+        "scroll": "Scroll",
+        "loop": "Loop",
+        "bar": "Top bar",
+        "ribbon": "Ribbon",
+        "ticker": "Ticker",
+        "pill": "Pill",
+        "inline": "Inline",
+        "split": "Split",
+        "simple": "Simple",
+        "portrait": "Portrait",
+        "switcher": "Switcher",
+        "showcase": "Showcase",
+        "panorama": "Panorama",
+        "feature": "Feature",
+        "cards": "Cards",
+        "atlas": "Atlas",
+        "list": "List",
+        "grid": "Grid",
+        "carousel": "Carousel",
+        "accordion": "Accordion",
+        "quote": "Quote",
+        "portraits": "Portraits",
+        "roster": "Roster",
+        "columns": "Columns",
+        "editorial": "Editorial",
+        "directory": "Directory",
+        "signature": "Signature",
+        "masthead": "Masthead",
+        "marque": "Marque",
+        "capsule": "Capsule",
+        "underlay": "Underlay",
+        "bento": "Bento",
+        "masonry": "Masonry",
+        "chips": "Chips",
+        "index": "Index",
+        "mosaic": "Mosaic",
+        "fan": "Fan",
+        "manifesto": "Manifesto",
+        "sticky": "Story",
+        "ledger": "Ledger",
+        "poster": "Poster",
+        "minimal": "Minimal",
+        "hairline": "Hairline",
+        "wall": "Wall",
+        "mega": "Mega",
+        "marquee": "Strip",
+        "spotlight": "Spotlight",
+        "deck": "Deck",
+        "textPanel": "Text panel",
+        "cinematic": "Cinematic",
+        "portal": "Portal",
+        "drift": "Drift",
+        "tumble": "Tumble"
+      },
+      "variantDescriptions": {
+        "announcement": {
+          "bar": "A slim strip above the nav.",
+          "split": "The message glides past on repeat.",
+          "hairline": "A floating capsule, not a bar."
+        },
+        "nav": {
+          "default": "A classic lookbook bar with the brand, centered section links, and booking action.",
+          "editorial": "A classic lookbook bar with the brand, centered section links, and booking action.",
+          "capsule": "A full-width navigation that condenses into a centered dark-glass capsule on scroll.",
+          "split": "Section links flank a centered wordmark, with a split composition on smaller screens.",
+          "underlay": "A minimal bar that slides the page aside to reveal a navigation panel underneath."
+        },
+        "hero": {
+          "default": "Accent field with no cover; a text panel over your cover once added.",
+          "cinematic": "Full-bleed cover photo with a bottom-left lockup.",
+          "poster": "Giant stacked wordmark over a dark light-curtain.",
+          "portal": "An arched portrait that opens to full-bleed on scroll.",
+          "drift": "A slow aurora mesh behind an all-caps statement.",
+          "tumble": "Your business name falls as ink glyphs onto warm paper."
+        },
+        "marquee": {
+          "scroll": "Services move with the page as visitors scroll.",
+          "loop": "Services move continuously at a calm, even pace."
+        },
+        "about": {
+          "manifesto": "A centred ink statement with live business facts.",
+          "editorial": "A magazine feature with a ruled masthead, drop cap, location photograph, and live business facts.",
+          "sticky": "A pinned headline beside numbered story beats and a live reading-progress rail."
+        },
+        "services": {
+          "feature": "A photo-led menu with a sticky location portrait and detailed category rows.",
+          "bento": "A full-height dark price poster with one service category per page.",
+          "grid": "Category cards group every service with timings, prices, and a booking action."
+        },
+        "locations": {
+          "panorama": "Full-width sweep, one location at a time.",
+          "showcase": "One location shown large, with the others in a numbered index.",
+          "cards": "One location per slide in a destination-style bento, with Previous and Next controls.",
+          "atlas": "Location tabs over a wide photo stage and a detailed visit sheet."
+        },
+        "gallery": {
+          "bento": "Mixed-size tiles, tightly packed.",
+          "carousel": "A slow horizontal reel.",
+          "masonry": "Columns of staggered photos.",
+          "index": "A fluid photo wall that grows the selected image in place.",
+          "fan": "A curved wall of photos visitors can drag through."
+        },
+        "team": {
+          "portraits": "A lookbook grid of large team portraits.",
+          "roster": "A numbered editorial list of your team with ratings.",
+          "columns": "A row of expanding doors — one location's team at a time.",
+          "carousel": "A centre-stage rail visitors drag through."
+        },
+        "testimonials": {
+          "default": "A featured review with rating summary.",
+          "wall": "A multi-column wall of customer reviews.",
+          "marquee": "Two moving rows of customer reviews.",
+          "spotlight": "One review at a time with simple navigation.",
+          "deck": "A stack of reviews visitors can browse."
+        },
+        "faq": {
+          "grid": "Every answer stays open in a scannable two-column card grid.",
+          "accordion": "A hairline accordion with one answer open at a time.",
+          "index": "A question index with a sticky answer panel that becomes an inline accordion on smaller screens."
+        },
+        "footer": {
+          "directory": "Dark sitemap columns with a live status pill.",
+          "editorial": "Columns above a giant wordmark.",
+          "signature": "A giant wordmark over a newsletter and link columns.",
+          "masthead": "Dark sitemap columns beneath a colossal wordmark.",
+          "marque": "Greige monospace index lists over a colossal type-mark."
+        }
+      }
+    }
+  }
+}

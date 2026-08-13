@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/locales";
 import { getPublicWebsite } from "@/lib/api/marketplace/public";
 import type { PublicWebsite } from "@/lib/api/marketplace/types";
+import { BusinessMicrosite } from "./_components/business-microsite";
 
 // Published business website — zavoia.com/[businessSlug].
 //
@@ -30,8 +31,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: site.identity.name,
       description: site.identity.description ?? undefined,
-      // Scaffold dump — do not index until the real renderer ships.
-      robots: { index: false, follow: false },
     };
   } catch {
     return {};
@@ -54,19 +53,7 @@ export default async function BusinessWebsitePage({ params }: Props) {
 
   if (!site) notFound();
 
-  // Scaffold: raw payload dump. The real renderer will consume site.website
-  // (the frozen published snapshot: pageLayout, pageTheme, hero, faq, …) plus
-  // site.identity for name/logo/contact.
-  return (
-    <pre
-      style={{
-        padding: "1rem",
-        fontSize: "0.75rem",
-        lineHeight: 1.5,
-        overflowX: "auto",
-      }}
-    >
-      {JSON.stringify(site, null, 2)}
-    </pre>
-  );
+  // The published microsite: the copied Website Builder renderer consuming the
+  // frozen snapshot (site.website) + live locations/reviews/tags off the payload.
+  return <BusinessMicrosite site={site} locale={locale} />;
 }

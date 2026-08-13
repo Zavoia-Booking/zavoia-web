@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import type { Locale } from "@/i18n/locales";
-import { routeKey } from "./active-route";
+import { routeKey, isFullBleedPath } from "./active-route";
 
 // Port of ZwMobileTabs (docs/web-shell.jsx). Fixed bottom frosted bar, mobile
 // only. Tabs depend on auth state; active state derived from the pathname.
@@ -54,6 +54,9 @@ export function MobileTabs({ locale }: { locale: Locale }) {
     if (segment === "help") return key === "help" || key === "support";
     return key === segment;
   };
+
+  // Business microsites are full-bleed: the published site owns the viewport.
+  if (isFullBleedPath(pathname)) return null;
 
   return (
     <nav

@@ -22,8 +22,13 @@
  */
 
 import Link from "next/link";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, CatDot, Icon, Img, Rating } from "@/components/ui";
+import {
+  TeamMemberProfileModal,
+  type TeamMemberSeed,
+} from "@/app/[locale]/business/_components/team-member-profile-modal";
 import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/dictionaries";
@@ -73,6 +78,10 @@ export function BrandDetail({ brand, locale }: Props) {
 
   const aboutText = brand.aboutContent ?? brand.description;
   const multiLocation = brand.locations.length > 1;
+
+  // Team member profile opens in place (favorites-flow modal: unscoped profile
+  // + booking-context venues, so multi-location members get the venue picker).
+  const [openMember, setOpenMember] = useState<TeamMemberSeed | null>(null);
 
   return (
     <main className="zw-container" style={{ paddingTop: 22, width: "100%" }}>
@@ -257,7 +266,7 @@ export function BrandDetail({ brand, locale }: Props) {
         </section>
       )}
 
-      {/* Team — click a person → their profile on their location's page */}
+      {/* Team — click a person → their profile modal over this page */}
       {brand.teamMembers.length > 0 && (
         <section style={{ marginTop: "clamp(38px, 5.5vw, 60px)" }}>
           <h2
@@ -282,7 +291,6 @@ export function BrandDetail({ brand, locale }: Props) {
               <TeamMemberCard
                 key={m.id}
                 m={m}
-                locale={locale}
                 locationName={
                   multiLocation
                     ? (brand.locations.find((l) => l.id === m.locationId)
@@ -290,10 +298,31 @@ export function BrandDetail({ brand, locale }: Props) {
                     : null
                 }
                 worksAtLabel={t.worksAt}
+                onOpen={() =>
+                  setOpenMember({
+                    id: m.id,
+                    firstName: null,
+                    lastName: null,
+                    displayName: m.displayName,
+                    profileImage: m.profileImage,
+                    professionalTitle: m.professionalTitle,
+                    averageRating: m.averageRating,
+                    totalReviews: m.totalReviews,
+                  })
+                }
               />
             ))}
           </div>
         </section>
+      )}
+
+      {openMember && (
+        <TeamMemberProfileModal
+          member={openMember}
+          businessId={brand.businessId}
+          locale={locale}
+          onClose={() => setOpenMember(null)}
+        />
       )}
 
       {/* About — story and proof close the page */}
@@ -463,36 +492,33 @@ function LocationCard({
 }
 
 /**
- * Team member card → deep-links to the member's profile modal on their
- * location's page (?tab=team&member=<id>). Same card grammar as the location
- * page's team tab.
+ * Team member card → opens the member's profile modal in place (favorites
+ * flow: multi-location members get the venue picker). Same card grammar as
+ * the location page's team tab.
  */
 function TeamMemberCard({
   m,
-  locale,
   locationName,
   worksAtLabel,
+  onOpen,
 }: {
   m: BrandTeamMember;
-  locale: Locale;
   locationName: string | null;
   worksAtLabel: string;
+  onOpen: () => void;
 }) {
-  const href = `${locationHref(locale, {
-    slug: m.locationSlug,
-    id: m.locationId,
-  })}?tab=team&member=${m.id}`;
   return (
-    <Link
-      href={href}
-      className="zw-hover-lift"
+    <button
+      type="button"
+      onClick={onOpen}
+      className="zw-hover-lift tap"
       style={{
         background: "#fff",
         border: "1px solid rgba(28,28,26,0.07)",
         borderRadius: 18,
         padding: "22px 16px 18px",
         textAlign: "center",
-        textDecoration: "none",
+        cursor: "pointer",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -530,6 +556,6 @@ function TeamMemberCard({
           {format(worksAtLabel, { location: locationName })}
         </div>
       )}
-    </Link>
+    </button>
   );
 }

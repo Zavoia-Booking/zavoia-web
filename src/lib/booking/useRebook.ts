@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
+import { format } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { getListing } from "@/lib/api/marketplace/public";
 import type { AppointmentDetail } from "@/lib/api/marketplace/types";
@@ -49,28 +50,53 @@ export function useRebook(): {
         const servicesById = new Map(listing.services.map((s) => [s.id, s]));
 
         // Reconstruct each booked service from the CURRENT ServiceSummary so
-        // pricing/duration are authoritative. Skip items without a serviceId or
-        // whose service no longer exists in the live menu.
+        // pricing/duration are authoritative. Skip items without a serviceId;
+        // services gone from the live menu are collected by name so the user
+        // gets an honest, named message instead of a vague one.
+        const missingNames: string[] = [];
         const mapped: BookingSelectionItem[] = appt.items.flatMap((item) => {
           if (item.serviceId == null) return [];
           const s = servicesById.get(item.serviceId);
-          return s
-            ? [
-                {
-                  serviceId: s.id,
-                  name: s.name,
-                  priceAmountMinor: s.priceAmountMinor,
-                  duration: s.duration,
-                },
-              ]
-            : [];
+          if (!s) {
+            if (item.name) missingNames.push(item.name);
+            return [];
+          }
+          return [
+            {
+              serviceId: s.id,
+              name: s.name,
+              priceAmountMinor: s.priceAmountMinor,
+              duration: s.duration,
+            },
+          ];
         });
 
         if (mapped.length === 0) {
-          // Nothing rebuildable (e.g. bundle-only, or all services retired).
-          toast(dict.booking.rebookError, "warn");
+          // Nothing rebuildable: name what disappeared when we can (single
+          // retired service), fall back to honest generic copy otherwise
+          // (several retired, or bundle-only appointments we can't rebuild).
+          const message =
+            missingNames.length === 1
+              ? format(dict.booking.rebookServiceGone, {
+                  service: missingNames[0],
+                })
+              : missingNames.length > 1
+                ? dict.booking.rebookServicesGone
+                : dict.booking.rebookError;
+          toast(message, "warn");
           router.push(businessHref);
           return;
+        }
+
+        // Partial rebuild: open the drawer with what survives, but say what
+        // was dropped rather than silently shrinking the booking.
+        if (missingNames.length > 0) {
+          toast(
+            format(dict.booking.rebookPartialGone, {
+              service: missingNames.join(", "),
+            }),
+            "warn",
+          );
         }
 
         openBooking({

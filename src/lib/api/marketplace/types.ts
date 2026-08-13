@@ -17,6 +17,20 @@
  * endpoints return `{ message, data }`; clients unwrap and return `data` (T).
  */
 
+// Published-website payload building blocks — the microsite renderer's own contracts
+// (copied 1:1 from admin-dashboard) are the source of truth for these shapes.
+import type {
+  AnnouncementContent,
+  FaqItem,
+  PageTheme,
+  SectionEntry,
+  WebsiteBuilderLocation,
+} from "@/features/website/types";
+import type {
+  PreviewReview,
+  RatingBars,
+} from "@/features/website/components/builder/preview/shared/types";
+
 // ============================================================================
 // Envelope & pagination helpers
 // ============================================================================
@@ -174,6 +188,7 @@ export interface PublicWebsiteIdentity {
   name: string;
   logo: string | null;
   businessCurrency: string;
+  timezone: string | null;
   email: string | null;
   phone: string | null;
   description: string | null;
@@ -184,19 +199,64 @@ export interface PublicWebsiteIdentity {
   websiteUrl: string | null;
 }
 
+/** Frozen published snapshot written by publish (layout/theme/copy only — never live data). */
+export interface PublishedWebsiteSnapshot {
+  heroImageUrl: string | null;
+  heroImageKey: string | null;
+  tagline: string | null;
+  aboutContent: string | null;
+  establishedYear?: number | null;
+  brandColorHex: string | null;
+  brandColorKey?: string | null;
+  pageLayout: SectionEntry[] | null;
+  pageTheme: PageTheme | null;
+  faq: FaqItem[] | null;
+  announcement: AnnouncementContent | null;
+  layoutVersion: number;
+}
+
+/** One canonical tag row per dictionary group (`name` is the canonical English label). */
+export interface PublicTagDictionaryEntry {
+  id: number;
+  slug: string;
+  name: string;
+}
+
+/** Aggregate review stats served with the published site (business bars + per-member ratings). */
+export interface PublicWebsiteReviewStats {
+  ratingDistribution: RatingBars;
+  teamMembers: Array<{
+    teamMemberId: number;
+    averageRating: number | null;
+    totalReviews: number;
+  }>;
+}
+
 /**
  * Published Website Builder site (`GET /marketplace/public/website/:slug`, RAW) —
  * powers zavoia.com/[businessSlug]. `website` is the frozen published snapshot
- * (hero, tagline, pageLayout, pageTheme, faq, announcement, …); kept loose until
- * the real renderer pins the section shapes. 404 unless published + entitled.
+ * (hero, tagline, pageLayout, pageTheme, faq, announcement, …); `locations`,
+ * `reviews`, `reviewStats` and `tagDictionaries` are LIVE render data served
+ * alongside it (same projections the builder preview renders from). 404 unless
+ * published + entitled.
  */
 export interface PublicWebsite {
   businessId: number;
   slug: string;
   identity: PublicWebsiteIdentity;
-  website: Record<string, unknown>;
+  website: PublishedWebsiteSnapshot;
   publishedVersion: number | null;
   publishedAt: string | null;
+  /** Exact GET /website-builder location projection (services, hours, portfolio, team). */
+  locations: WebsiteBuilderLocation[];
+  /** Curated 5★ quotes pre-shaped to the renderer's PreviewReview contract. */
+  reviews: PreviewReview[];
+  reviewStats: PublicWebsiteReviewStats;
+  tagDictionaries: {
+    amenities: PublicTagDictionaryEntry[];
+    paymentMethods: PublicTagDictionaryEntry[];
+    languages: PublicTagDictionaryEntry[];
+  } | null;
 }
 
 /**
@@ -456,6 +516,9 @@ export interface ListingDetail {
   id: number;
   locationId: number;
   businessId: number;
+  /** Brand-page route target (vanity URL); null when the business has none.
+   *  The brand endpoint also resolves the numeric businessId as a fallback. */
+  businessSlug: string | null;
   listingId: number;
   /** Non-enumerable location slug — also mirrored on `location.slug`. */
   slug: string;
@@ -535,7 +598,9 @@ export interface TeamMemberProfile {
   about: TeamMemberAbout | null;
   /** Services the member can perform; empty when fetched without a listing context. */
   services: Array<Omit<ServiceSummary, "locationIds">>;
-  portfolio: string[];
+  /** Portfolio images — object rows ({ url, key, … }) from the admin uploader,
+   *  but legacy/seed rows may be bare URL strings; consumers must accept both. */
+  portfolio: Array<ListingPortfolioImage | string>;
   reviews: ProfessionalReview[];
   reviewStats: {
     totalCount: number;
@@ -895,6 +960,9 @@ export interface AppointmentBreakdownItem {
   type?: "service" | "bundle";
   serviceId?: number | null;
   serviceUuid?: string | null;
+  /** Numeric bundle id (type="bundle" only); null when not resolvable. */
+  bundleId?: number | null;
+  bundleUuid?: string | null;
   description?: string | null;
   duration?: number | null; // minutes
   price?: number | null; // integer MINOR units

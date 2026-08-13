@@ -13,6 +13,17 @@ const MONTHLY: Record<PricingCurrency, number> = {
   EUR: 20,
 };
 
+/**
+ * One-time price range for a premium Web Studio section style, by currency.
+ * Mirrors the backend catalogue: EUR is the default row price on
+ * `website_section_variant`; RON is the RO regional override in
+ * `website_variant_pricing`. Kept beside MONTHLY so the two can never drift.
+ */
+const PREMIUM_STYLE_RANGE: Record<PricingCurrency, [number, number]> = {
+  EUR: [9, 24],
+  RON: [45, 120],
+};
+
 /** Free-trial length in days (locale-independent). */
 export const TRIAL_DAYS = 14;
 
@@ -44,6 +55,26 @@ export function getPricing(locale: string): Pricing {
     currency,
     monthly: MONTHLY[currency],
     trialDays: TRIAL_DAYS,
+  };
+}
+
+/**
+ * Formatted one-time pricing for a premium Web Studio style, in the locale's
+ * own currency — never a EUR figure beside a RON plan price.
+ *
+ * `range` carries the currency once, where the language puts it: EUR prefixes
+ * each figure ("€9–€24"), RON suffixes the pair ("45–120 RON"). Repeating the
+ * unit on both ends reads as machine-made in Romanian.
+ */
+export function premiumStylePrices(locale: string): { min: string; range: string } {
+  const currency = currencyForLocale(locale);
+  const [min, max] = PREMIUM_STYLE_RANGE[currency];
+  return {
+    min: formatPrice(min, currency),
+    range:
+      currency === "EUR"
+        ? `${formatPrice(min, currency)}–${formatPrice(max, currency)}`
+        : `${min}–${formatPrice(max, currency)}`,
   };
 }
 

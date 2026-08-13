@@ -1,0 +1,54 @@
+{
+  "tags": {
+    "amenities": {
+      "wifi": "Free Wi-Fi",
+      "parking-onsite": "On-site parking",
+      "parking-street": "Street parking nearby",
+      "air-conditioning": "Air conditioning",
+      "pet-friendly": "Pets allowed",
+      "kid-friendly": "Kids welcome",
+      "bike-parking": "Bike parking",
+      "outdoor-seating": "Outdoor seating",
+      "private-treatment-room": "Private treatment room",
+      "showers": "Showers",
+      "lockers": "Lockers"
+    },
+    "paymentMethods": {
+      "cash": "Cash",
+      "card": "Cards accepted",
+      "apple-pay": "Apple Pay",
+      "google-pay": "Google Pay",
+      "bank-transfer": "Bank transfer",
+      "corporate-invoice": "Corporate invoice"
+    },
+    "languages": {
+      "en": "English",
+      "ro": "Romanian",
+      "de": "German",
+      "fr": "French",
+      "it": "Italian",
+      "es": "Spanish",
+      "pt": "Portuguese",
+      "nl": "Dutch",
+      "sv": "Swedish",
+      "da": "Danish",
+      "no": "Norwegian",
+      "fi": "Finnish",
+      "pl": "Polish",
+      "hu": "Hungarian",
+      "cs": "Czech",
+      "sk": "Slovak",
+      "el": "Greek",
+      "bg": "Bulgarian",
+      "hr": "Croatian",
+      "sl": "Slovenian",
+      "sr": "Serbian",
+      "et": "Estonian",
+      "lv": "Latvian",
+      "lt": "Lithuanian",
+      "tr": "Turkish",
+      "ru": "Russian",
+      "uk": "Ukrainian"
+    }
+  }
+}

@@ -7,19 +7,46 @@ import { useTranslation } from "@/i18n/useTranslation";
 import {
   addFavoriteBusiness,
   addFavoriteLocation,
+  addFavoriteProfessional,
   getFavoriteBusinesses,
   getFavoriteLocations,
+  getFavoriteProfessionals,
   removeFavoriteBusiness,
   removeFavoriteLocation,
+  removeFavoriteProfessional,
 } from "@/lib/api/marketplace/customer";
 
 /**
  * Which entity kind a card's id refers to. This decides WHICH favorite
  * endpoint is called:
- *  - "business"  → business-sourced cards (latest listings) → favorite/business/:id
- *  - "location"  → location-sourced cards (near-you, recently-viewed) → favorite/location/:id
+ *  - "business"     → business-sourced cards (latest listings) → favorite/business/:id
+ *  - "location"     → location-sourced cards (near-you, recently-viewed) → favorite/location/:id
+ *  - "professional" → team-member profiles → favorite/professional/:id
  */
-export type FavoriteKind = "business" | "location";
+export type FavoriteKind = "business" | "location" | "professional";
+
+const FETCH_IDS: Record<FavoriteKind, () => Promise<number[]>> = {
+  business: () =>
+    getFavoriteBusinesses().then((rows) => rows.map((r) => r.business.id)),
+  location: () =>
+    getFavoriteLocations().then((rows) => rows.map((r) => r.location.id)),
+  professional: () =>
+    getFavoriteProfessionals().then((rows) =>
+      rows.map((r) => r.professional.id),
+    ),
+};
+
+const ADD: Record<FavoriteKind, (id: number) => Promise<unknown>> = {
+  business: addFavoriteBusiness,
+  location: addFavoriteLocation,
+  professional: addFavoriteProfessional,
+};
+
+const REMOVE: Record<FavoriteKind, (id: number) => Promise<unknown>> = {
+  business: removeFavoriteBusiness,
+  location: removeFavoriteLocation,
+  professional: removeFavoriteProfessional,
+};
 
 export interface FavoriteToggle {
   /**
@@ -66,11 +93,7 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
         cancelled = true;
       };
     }
-    const fetchIds =
-      kind === "business"
-        ? () => getFavoriteBusinesses().then((rows) => rows.map((r) => r.business.id))
-        : () => getFavoriteLocations().then((rows) => rows.map((r) => r.location.id));
-    fetchIds()
+    FETCH_IDS[kind]()
       .then((ids) => {
         if (cancelled || ids.length === 0) return;
         setFavorited((prev) => new Set([...prev, ...ids]));
@@ -107,10 +130,7 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
         return next;
       });
 
-      const add = kind === "business" ? addFavoriteBusiness : addFavoriteLocation;
-      const remove =
-        kind === "business" ? removeFavoriteBusiness : removeFavoriteLocation;
-      const action = wasFavorited ? remove : add;
+      const action = wasFavorited ? REMOVE[kind] : ADD[kind];
 
       action(id)
         .then(() => {

@@ -12,6 +12,12 @@ export type SanityImage = {
   hotspot?: { x: number; y: number };
 };
 
+export type PostFaqItem = {
+  _key: string;
+  question: Localized<string>;
+  answer: Localized<string>;
+};
+
 export type Post = {
   _id: string;
   title: Localized<string>;
@@ -20,6 +26,7 @@ export type Post = {
   excerpt?: Localized<string>;
   body?: Localized<PortableTextBlock[]>;
   coverImage?: SanityImage;
+  faq?: PostFaqItem[];
   publishedAt: string;
   seo?: {
     title?: Localized<string>;

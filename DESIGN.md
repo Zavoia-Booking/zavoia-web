@@ -281,6 +281,15 @@ top-border on the comparison table's highlighted column, the 2px TOC active
 rail). Images are always clipped by their container (`overflow: hidden` +
 `.zw-zoom-wrap`) so the 1.045× hover zoom never escapes the radius.
 
+### Named Rules
+**The Structural Hairline Rule.** A hairline may darken to 26% ink *at rest*
+only where the rule itself is the structure — the top rule over each numbered
+step column in Web Studio's "How it ships" (`1px solid rgba(28,28,26,0.26)`),
+which has no card, no fill, and nothing else to hold it. Everything that merely
+separates stays at the 6–10% divider strength; the same section keeps its own
+group divider at 10%. Strength buys structure, never emphasis, and it never
+buys a second pixel.
+
 ## Components
 
 Component philosophy: quiet at rest, tactile on contact. Every pressable
@@ -346,6 +355,80 @@ scale-fade. Team-member profiles open as modals on the team tab
 Ink pill rising from the bottom (`.zv-toast`, spring), with a terracotta circle
 icon and optional action button; holds 2600ms (4200ms with an action), exits
 with a soft drop.
+
+### Web Studio — specimen catalogue
+
+Character: a museum plate, not a screenshot. Where a surface must *show* the
+product rather than describe it, it runs the real renderer inside a numbered,
+captioned plate and lets the inventory do the selling. Five devices, introduced
+by `/web-studio` and reusable anywhere the product can be exhibited.
+
+- **Specimen plate** (`SpecimenPlate`): the real renderer (`LivePreview`) laid
+  out at a fixed *virtual* width (default 1240px) and CSS-scaled down to the
+  plate's measured width — a browser-zoom, not a narrow container. The virtual
+  width is keyed to the **viewport, not the plate**: a ~560px-wide desktop plate
+  still shows the desktop arrangement, while ≤600px viewports switch to
+  `max(plateWidth, 430)` so a phone renders near 1:1 and shows the true phone
+  arrangement (hamburger nav and all). The box **hugs its specimen** — height
+  follows the scaled content, clamped between `minHeight` (140) and `maxHeight`
+  (620), so a short nav and a tall locations section each get a plate that fits.
+  Only a specimen taller than the clamp is cropped, and only then does an 84px
+  bottom fade (transparent → 92% canvas) appear, so the crop reads as a
+  deliberate catalogue detail rather than an accident. The plate rests on
+  `--c-shade` (the specimen paints its own paper over it, keeping the first
+  frame calm), and the subtree is **`inert` + `aria-hidden`** — the specimen
+  contains real links and buttons that must never be reachable. `inert` is
+  passed as a boolean; `inert=""` reads as false in React 19 and would leave
+  them focusable. Plates are remounted (keyed on section+variant) rather than
+  height-animated, so no layout property ever lands on the animation path.
+- **Plate mark** (`№ NN`): the catalogue's index mark — Geist Mono, tabular
+  figures, zero-padded to two digits, `--p-600` on canvas and 50% white on ink.
+  It opens the caption; it never labels anything that isn't a plate.
+- **Museum caption**: a mono strip under **every** plate — 10.5px/600,
+  `0.13em` tracking, uppercase, tabular, `--c-600` on canvas / 52% white on ink,
+  12px below the plate, wrapping with a `4px 10px` gap. Segments after the first
+  are `CapSeg`: each fuses its introducing `·` (in `--c-400` / 28% white,
+  `aria-hidden`) into the same `nowrap` span as the text it introduces, so a
+  wrap can never strand a dot at line-end — the mono restatement of the
+  `joinDot` rule. Because the plate is `aria-hidden`, the caption is the only
+  thing that can narrate a change: the stage's caption carries
+  `aria-live="polite"`, and the cover's leads with a 6px dot — `--s-success-600`
+  for a live site, `--p-500` for the authored demonstration.
+- **Spec strip**: the catalogue's own measurements, docking the ink cover. Four
+  equal cells over a single `rgba(255,255,255,0.14)` top hairline, no fills and
+  no boxes; each cell is a large white figure (`clamp(28px, 3.4vw, 40px)`, 600,
+  `-0.04em`, lh 1, tabular) over an 8px gap and a mono uppercase label
+  (10.5px/600, `0.14em`, 55% white). Folds 4→2 columns ≤760px.
+- **Index + stage**: the signature pairing. Desktop is a `228px` rail beside the
+  stage — a mono section header over a hairline, then a numbered list where each
+  row is `NN · label · variant-count`, mono at both ends and 14.5px sans in the
+  middle; the current row goes `--c-900`/600 with its number in `--p-600`, the
+  rest sit at `--c-600` over 6% dividers. The stage carries the style chips
+  (standard chip grammar: white pill, 12% hairline, **active = ink**), the
+  plate, its caption and the section's description. At ≤920px the pairing folds
+  to one column and the index **becomes a horizontal chip rail** above the stage
+  (header hidden, `overflow-x: auto`, scrollbar hidden, rows become nowrap white
+  pills, `aria-current` inverts to ink) so the live specimen keeps the full
+  width on a phone — see the `[data-ws-*]` block in `globals.css`.
+
+**Accent row** (account menu): the sanctioned way to mark exactly **one** offer
+row inside a menu of destinations. Same row geometry as its siblings, but the
+icon takes `--p-600` and the label takes `--p-700` at weight 600, against the
+default `--c-600` icon / `--c-800` label at 500. Terracotta-as-text keeps it
+legible at 14px; one row per menu keeps it an offer rather than a second
+navigation level.
+
+**The Derived Figure Rule.** A marketing surface never types a product count or
+a price as a literal. Counts come from the real registry — Web Studio's 12
+sections, 47 styles, 14 fonts and 30 accents are computed from `SECTION_META` /
+`SECTION_TYPES`, `FONT_CATALOG` and `BRAND_ACCENT_CATALOG`, and the page throws
+at module load if its reading order ever lists fewer sections than the registry
+holds. Money comes from `src/lib/marketing/pricing.ts` (`getPricing`,
+`premiumStylePrices`, `formatPrice`, `TRIAL_DAYS`), never from the
+dictionaries — the figure is interpolated into copy, in the locale's own
+currency. A commercial figure that does not yet exist is **marked, not
+invented**: the price plate carries a dashed-border "price to confirm" panel
+rather than a plausible number.
 
 ### Motion Vocabulary (applies across components)
 Three eases: `--ease-out` (.2,.7,.3,1) for movement, `--ease-soft` (.4,0,.2,1)

@@ -22,9 +22,14 @@ export default async function RegisterPage({ params, searchParams }: Props) {
     ? sp.redirect[0]
     : sp.redirect;
 
+  // Campaign attribution (e.g. the /try flyer QR) must survive this hop —
+  // dropping it here would make every scanned signup look like direct traffic.
+  const sourceParam = Array.isArray(sp.src) ? sp.src[0] : sp.src;
+
   const query = new URLSearchParams();
   query.set("mode", "register");
   if (redirectParam) query.set("redirect", redirectParam);
+  if (sourceParam) query.set("src", sourceParam);
 
   redirect(`${localeHref(locale, "auth")}?${query.toString()}`);
 }

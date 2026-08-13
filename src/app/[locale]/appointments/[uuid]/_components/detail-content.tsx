@@ -687,7 +687,7 @@ function DetailBody({
               </Section>
             )}
 
-          <CloserBand t={t} appt={appt} locale={locale} tense={tense} tone={tone} />
+          <CloserBand t={t} appt={appt} locale={locale} tone={tone} />
         </div>
 
         {/* Right rail — desktop sticky */}

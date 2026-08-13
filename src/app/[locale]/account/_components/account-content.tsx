@@ -118,81 +118,6 @@ function SectionError({ message }: { message: string }) {
 }
 
 // ─────────────────────────────────────────────
-// Toggle switch (.zw-switch) — role=switch, aria-checked, data-on.
-// ─────────────────────────────────────────────
-
-function SwitchRow({
-  label,
-  caption,
-  on,
-  busy,
-  onToggle,
-  last,
-}: {
-  label: string;
-  caption: string;
-  on: boolean;
-  busy: boolean;
-  onToggle: () => void;
-  last?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={busy}
-      onClick={onToggle}
-      className="tap"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        width: "100%",
-        textAlign: "left",
-        padding: "15px 18px",
-        background: "transparent",
-        border: 0,
-        cursor: busy ? "default" : "pointer",
-        font: "inherit",
-        borderBottom: last ? 0 : "1px solid rgba(28,28,26,0.06)",
-        opacity: busy ? 0.6 : 1,
-      }}
-    >
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span
-          style={{
-            display: "block",
-            fontSize: 15,
-            fontWeight: 600,
-            letterSpacing: "-0.012em",
-            color: "var(--c-900)",
-          }}
-        >
-          {label}
-        </span>
-        <span
-          style={{
-            display: "block",
-            fontSize: 12.5,
-            color: "var(--c-500)",
-            marginTop: 2,
-          }}
-        >
-          {caption}
-        </span>
-      </span>
-      <span
-        className="zw-switch"
-        data-on={on ? "1" : "0"}
-        aria-hidden="true"
-      />
-    </button>
-  );
-}
-
-// ─────────────────────────────────────────────
 // Inline-editable field row
 // ─────────────────────────────────────────────
 
@@ -963,6 +888,18 @@ const FLAT_KEY: Record<
   },
 };
 
+const NOTIF_CHANNELS: { id: NotifChannel; icon: "bell" | "phone" | "email" }[] =
+  [
+    { id: "push", icon: "bell" },
+    { id: "sms", icon: "phone" },
+    { id: "email", icon: "email" },
+  ];
+
+const NOTIF_GROUPS: NotifGroup[] = ["marketing", "reminders"];
+
+// One matrix card: group rows (title + caption) × channel columns (icon-headed
+// switches). Column headers hide ≤600px, where each switch becomes a labeled
+// tile — see .zw-notif-* in globals.css.
 function NotificationsSection({
   t,
   prefs,
@@ -1001,62 +938,49 @@ function NotificationsSection({
     }
   };
 
-  const group = (
-    g: NotifGroup,
-    title: string,
-    caption: string,
-    emailCaption: string,
-  ) => (
-    <div>
-      <SectionLabel sub={caption}>{title}</SectionLabel>
-      <Card>
-        <SwitchRow
-          label={t.notif.push}
-          caption={t.notif.pushCaption}
-          on={prefs[g].push}
-          busy={busyKey === `${g}.push`}
-          onToggle={() => toggle(g, "push")}
-        />
-        <SwitchRow
-          label={t.notif.sms}
-          caption={t.notif.smsCaption}
-          on={prefs[g].sms}
-          busy={busyKey === `${g}.sms`}
-          onToggle={() => toggle(g, "sms")}
-        />
-        <SwitchRow
-          label={t.notif.email}
-          caption={emailCaption}
-          on={prefs[g].email}
-          busy={busyKey === `${g}.email`}
-          onToggle={() => toggle(g, "email")}
-          last
-        />
-      </Card>
-    </div>
-  );
-
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-        gap: "clamp(20px, 3vw, 32px)",
-      }}
-    >
-      {group(
-        "marketing",
-        t.notif.marketing,
-        t.notif.marketingCaption,
-        t.notif.emailCaption,
-      )}
-      {group(
-        "reminders",
-        t.notif.reminders,
-        t.notif.remindersCaption,
-        t.notif.reminderEmailCaption,
-      )}
-    </div>
+    <Card>
+      <div className="zw-notif-grid zw-notif-head" aria-hidden="true">
+        <div />
+        {NOTIF_CHANNELS.map((c) => (
+          <div key={c.id} className="zw-notif-col">
+            <Icon name={c.icon} size={15} color="var(--c-600)" />
+            <span>{t.notif[c.id]}</span>
+          </div>
+        ))}
+      </div>
+      {NOTIF_GROUPS.map((g) => (
+        <div key={g} className="zw-notif-grid zw-notif-group">
+          <div className="zw-notif-desc">
+            <span className="zw-notif-title">{t.notif[g]}</span>
+            <span className="zw-notif-caption txt-pretty">
+              {g === "marketing"
+                ? t.notif.marketingCaption
+                : t.notif.remindersCaption}
+            </span>
+          </div>
+          {NOTIF_CHANNELS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              role="switch"
+              aria-checked={prefs[g][c.id]}
+              aria-label={`${t.notif[g]} — ${t.notif[c.id]}`}
+              disabled={busyKey === `${g}.${c.id}`}
+              onClick={() => toggle(g, c.id)}
+              className="zw-notif-cell tap"
+            >
+              <span className="zw-notif-cell-label">{t.notif[c.id]}</span>
+              <span
+                className="zw-switch"
+                data-on={prefs[g][c.id] ? "1" : "0"}
+                aria-hidden="true"
+              />
+            </button>
+          ))}
+        </div>
+      ))}
+    </Card>
   );
 }
 

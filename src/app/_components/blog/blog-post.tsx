@@ -11,6 +11,7 @@ import {
 } from "@/lib/blog";
 import { urlForImage } from "@/sanity/image";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { FaqList } from "@/components/ui/faq-list";
 import { Img } from "@/components/ui/image";
 import { CatChip } from "./cat-chip";
 import { BlogMeta } from "./blog-meta";
@@ -62,6 +63,30 @@ export function BlogPost({
     ? urlForImage(post.coverImage).width(1600).height(686).url()
     : undefined;
 
+  const faqItems = (post.faq ?? []).flatMap((item) => {
+    const q = item.question?.[locale];
+    const a = item.answer?.[locale];
+    return q && a ? [{ q, a }] : [];
+  });
+
+  const tocHeadings = [
+    ...headings.map((h) => ({ id: h.id, text: h.text })),
+    ...(faqItems.length > 0 ? [{ id: "faq", text: dict.blog.faqTitle }] : []),
+  ];
+
+  const faqJsonLd =
+    faqItems.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqItems.map((item) => ({
+            "@type": "Question",
+            name: item.q,
+            acceptedAnswer: { "@type": "Answer", text: item.a },
+          })),
+        }
+      : null;
+
   const breadcrumbItems = [
     { label: dict.breadcrumbHome, href: localeHref(locale) },
     { label: dict.blog.breadcrumbJournal, href: localeHref(locale, "blog") },
@@ -70,6 +95,12 @@ export function BlogPost({
 
   return (
     <div className="zw-post-shell">
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
       <ReadingChrome title={title} />
 
       <article>
@@ -169,6 +200,26 @@ export function BlogPost({
                 firstParagraphKey={firstKey}
               />
 
+              {/* FAQ */}
+              {faqItems.length > 0 && (
+                <section id="faq" style={{ scrollMarginTop: 90 }}>
+                  <h2
+                    className="txt-balance"
+                    style={{
+                      margin: "44px 0 14px",
+                      fontSize: "clamp(21px, 2vw, 26px)",
+                      fontWeight: 600,
+                      letterSpacing: "-0.026em",
+                      lineHeight: 1.2,
+                      color: "var(--c-900)",
+                    }}
+                  >
+                    {dict.blog.faqTitle}
+                  </h2>
+                  <FaqList items={faqItems} />
+                </section>
+              )}
+
               {/* Tags */}
               <div
                 style={{
@@ -260,10 +311,7 @@ export function BlogPost({
             </div>
 
             <aside className="zw-post-aside">
-              <Toc
-                headings={headings.map((h) => ({ id: h.id, text: h.text }))}
-                label={dict.blog.inThisArticle}
-              />
+              <Toc headings={tocHeadings} label={dict.blog.inThisArticle} />
             </aside>
           </div>
         </div>

@@ -130,6 +130,7 @@ export const en: {
     prev: string;
     next: string;
     inThisArticle: string;
+    faqTitle: string;
     keepReading: string;
     relatedStories: string;
     allStories: string;
@@ -391,12 +392,8 @@ export const en: {
       reminders: string;
       remindersCaption: string;
       push: string;
-      pushCaption: string;
       sms: string;
-      smsCaption: string;
       email: string;
-      emailCaption: string;
-      reminderEmailCaption: string;
     };
     password: {
       current: string;
@@ -580,19 +577,14 @@ export const en: {
     bookHeading: string;
     bookRailEmpty: string;
     totalLabel: string;
-    freeCancellation: string;
-    cancellationAnytime: string;
-    noFreeCancellation: string;
-    cancellationWindowDay: string;
-    cancellationWindowDays: string;
     loadMoreReviews: string;
     reviewsCount: string;
     reviewsCountOne: string;
     onlineBookingUnavailable: string;
-    noServices: string;
     closed: string;
     call: string;
     directions: string;
+    seeOnMap: string;
     share: string;
     shareCopied: string;
     close: string;
@@ -603,6 +595,29 @@ export const en: {
     notFoundBody: string;
     backToExplore: string;
     browseBusinesses: string;
+    memberStatYears: string;
+    memberStatYearsOne: string;
+    memberStatYearsLabel: string;
+    memberStatVisitsLabel: string;
+    memberStatSinceLabel: string;
+    memberSpeaks: string;
+    memberSpecialties: string;
+    memberPortfolio: string;
+    memberShowAllReviews: string;
+    memberSelectPrompt: string;
+    memberBookWith: string;
+    memberLoadError: string;
+    memberRetry: string;
+    memberPhotoAria: string;
+    memberClosePhotoAria: string;
+    memberChooseVenue: string;
+    memberNoBooking: string;
+    memberChecking: string;
+    reviewsEmptyTitle: string;
+    reviewsEmptyBody: string;
+    servicesEmptyTitle: string;
+    servicesEmptyBody: string;
+    aboutBrand: string;
   };
   brandPage: {
     locationsTitle: string;
@@ -645,24 +660,31 @@ export const en: {
     viewAppointment: string;
     done: string;
     close: string;
-    cancellationDeadline: string;
-    rescheduleDeadline: string;
-    cancellationRescheduleDeadline: string;
-    cancellationAnytime: string;
-    rescheduleAnytime: string;
-    cancellationRescheduleAnytime: string;
-    noFreeCancellationOrReschedule: string;
-    noFreeCancellation: string;
-    noFreeReschedule: string;
     payAtVenueTitle: string;
     payAtVenueNote: string;
-    freeCancellationTitle: string;
-    rescheduleTitle: string;
+    blockedScreen: {
+      businessTitle: string;
+      businessBody: string;
+      locationTitle: string;
+      locationBody: string;
+      serviceTitle: string;
+      serviceBody: string;
+      serviceBodyGeneric: string;
+      noStaffTitle: string;
+      noStaffBody: string;
+      staffPinTitle: string;
+      staffPinBody: string;
+      anyProfessional: string;
+      browseServices: string;
+    };
     back: string;
     retry: string;
     loading: string;
     loadError: string;
     rebookError: string;
+    rebookServiceGone: string;
+    rebookServicesGone: string;
+    rebookPartialGone: string;
     errors: {
       tooSoon: string;
       tooFar: string;
@@ -842,6 +864,7 @@ export const en: {
     journal: string;
     helpSupport: string;
     forBusiness: string;
+    webStudio: string;
     pricing: string;
     logout: string;
     loggedOut: string;
@@ -867,6 +890,123 @@ export const en: {
   };
   breadcrumbHome: string;
   localeNames: Record<Locale, string>;
+  tryStudio: {
+    pageTitle: string;
+    pageDescription: string;
+    mark: string;
+    demo: string;
+    looks: string;
+    hint: string;
+    shuffle: string;
+    cta: string;
+    locksLabel: string;
+    dimension: { layout: string; colour: string; type: string };
+    lock: { layout: string; colour: string; type: string };
+    locked: { layout: string; colour: string; type: string };
+  };
+  webStudio: {
+    pageTitle: string;
+    pageDescription: string;
+    cover: {
+      kicker: string;
+      titleA: string;
+      titleB: string;
+      titleC: string;
+      sub: string;
+      ctaPrimary: string;
+      ctaSecondary: string;
+      plateCaption: string;
+      liveBadge: string;
+      demoBadge: string;
+    };
+    spec: {
+      sections: string;
+      styles: string;
+      fonts: string;
+      accents: string;
+    };
+    wired: {
+      kicker: string;
+      title: string;
+      sub: string;
+      ledgerTitle: string;
+      rows: {
+        services: string;
+        hours: string;
+        team: string;
+        locations: string;
+        photos: string;
+        reviews: string;
+      };
+      perWeek: string;
+      note: string;
+      plateCaption: string;
+      frozenTitle: string;
+      frozenBody: string;
+      liveTitle: string;
+      liveBody: string;
+      oneTitle: string;
+      oneBody: string;
+    };
+    stage: {
+      kicker: string;
+      title: string;
+      sub: string;
+      indexLabel: string;
+      stylesLabel: string;
+      tryCta: string;
+      ofStyles: string;
+      demoNote: string;
+    };
+    type: {
+      kicker: string;
+      title: string;
+      sub: string;
+      fontsLabel: string;
+      accentsLabel: string;
+      inUse: string;
+      note: string;
+      hint: string;
+    };
+    ships: {
+      kicker: string;
+      title: string;
+      steps: { title: string; body: string }[];
+      gets: { title: string; body: string }[];
+    };
+    price: {
+      kicker: string;
+      title: string;
+      planLabel: string;
+      planName: string;
+      planBody: string;
+      placeholderLabel: string;
+      placeholderBody: string;
+      bullets: string[];
+      stylesLabel: string;
+      stylesTitle: string;
+      stylesBody: string;
+      rowIncluded: string;
+      rowIncludedV: string;
+      rowPremium: string;
+      rowPremiumV: string;
+      rowFonts: string;
+      rowAllIncluded: string;
+      rowAccents: string;
+      pricingLink: string;
+    };
+    faq: {
+      kicker: string;
+      title: string;
+      items: { q: string; a: string }[];
+    };
+    close: {
+      kicker: string;
+      title: string;
+      sub: string;
+      secondary: string;
+    };
+  };
   forBusiness: {
     pageTitle: string;
     pageDescription: string;
@@ -1165,7 +1305,6 @@ export const en: {
     cancelAppointment: string;
     youMissedAppointment: string;
     cancelledTitle: string;
-    freeCancellationUpTo: string;
     bookedOn: string;
     relative: {
       inProgress: string;
@@ -1262,6 +1401,7 @@ export const en: {
       confirm: string;
       successToast: string;
       error: string;
+      unsupported: string;
     };
     review: {
       titleNew: string;
@@ -1439,6 +1579,7 @@ export const en: {
     prev: "Prev",
     next: "Next",
     inThisArticle: "In this article",
+    faqTitle: "Frequently asked questions",
     keepReading: "Keep reading",
     relatedStories: "Related stories",
     allStories: "All stories",
@@ -1723,13 +1864,9 @@ export const en: {
         "Receive updates about promotions, offers, and new features.",
       reminders: "Reminders",
       remindersCaption: "Get reminded about your upcoming appointments.",
-      push: "Push notifications",
-      pushCaption: "Get notified on your device",
+      push: "Push",
       sms: "SMS",
-      smsCaption: "Receive text messages",
       email: "Email",
-      emailCaption: "Receive promotional emails",
-      reminderEmailCaption: "Receive email reminders",
     },
     password: {
       current: "Current password",
@@ -1919,19 +2056,14 @@ export const en: {
     bookRailEmpty:
       "Pick one or more services from the list — or jump straight in and choose during booking.",
     totalLabel: "total",
-    freeCancellation: "Free cancellation up to {window} before",
-    cancellationAnytime: "Free cancellation anytime",
-    noFreeCancellation: "Cancellation policy applies",
-    cancellationWindowDay: "{count} day",
-    cancellationWindowDays: "{count} days",
     loadMoreReviews: "Show more reviews",
     reviewsCount: "{count} reviews",
     reviewsCountOne: "{count} review",
     onlineBookingUnavailable: "Online booking unavailable",
-    noServices: "No services listed yet.",
     closed: "Closed",
     call: "Call",
     directions: "Directions",
+    seeOnMap: "See on map",
     share: "Share",
     shareCopied: "Link copied",
     close: "Close",
@@ -1943,6 +2075,30 @@ export const en: {
       "It may have closed or moved. Plenty of other trusted pros are a click away.",
     backToExplore: "Back to Explore",
     browseBusinesses: "Browse businesses",
+    memberStatYears: "{count} yrs",
+    memberStatYearsOne: "1 yr",
+    memberStatYearsLabel: "experience",
+    memberStatVisitsLabel: "visits",
+    memberStatSinceLabel: "on Zavoia",
+    memberSpeaks: "Languages",
+    memberSpecialties: "Specialties",
+    memberPortfolio: "Portfolio",
+    memberShowAllReviews: "Show all {count} reviews",
+    memberSelectPrompt: "Select a service to book",
+    memberBookWith: "Book with {name}",
+    memberLoadError: "Couldn't load the full profile.",
+    memberRetry: "Try again",
+    memberPhotoAria: "View photo",
+    memberClosePhotoAria: "Close photo",
+    memberChooseVenue: "Where to book",
+    memberNoBooking: "Online booking isn't available for this professional yet.",
+    memberChecking: "Checking availability…",
+    reviewsEmptyTitle: "No reviews yet",
+    reviewsEmptyBody: "Be the first to book and share your experience.",
+    servicesEmptyTitle: "No services yet",
+    servicesEmptyBody:
+      "This location hasn't published its menu. Try calling them directly.",
+    aboutBrand: "Brand",
   },
   brandPage: {
     locationsTitle: "Choose a location",
@@ -1985,24 +2141,40 @@ export const en: {
     viewAppointment: "View appointment",
     done: "Done",
     close: "Close",
-    cancellationDeadline: "Cancel for free until {date}.",
-    rescheduleDeadline: "Reschedule for free until {date}.",
-    cancellationRescheduleDeadline: "Cancel or reschedule for free until {date}.",
-    cancellationAnytime: "Cancel for free anytime.",
-    rescheduleAnytime: "Reschedule for free anytime.",
-    cancellationRescheduleAnytime: "Cancel or reschedule for free anytime.",
-    noFreeCancellationOrReschedule: "Cancellation and reschedule policy applies.",
-    noFreeCancellation: "Cancellation policy applies.",
-    noFreeReschedule: "Reschedule policy applies.",
-    freeCancellationTitle: "Free cancellation",
-    rescheduleTitle: "Free reschedule",
     payAtVenueTitle: "Pay at the venue",
     payAtVenueNote: "Nothing to pay now — settle directly with {business} after your visit.",
+    blockedScreen: {
+      businessTitle: "Online booking unavailable",
+      businessBody:
+        "This venue can no longer be booked online. Its listing may have changed since your last visit.",
+      locationTitle: "Location unavailable",
+      locationBody:
+        "This location can no longer be booked online. It may have been removed from the marketplace.",
+      serviceTitle: "Service no longer offered",
+      serviceBody:
+        "Looks like “{service}” isn't offered at this venue anymore. You can browse its current services instead.",
+      serviceBodyGeneric:
+        "One of the selected services isn't offered at this venue anymore. You can browse its current services instead.",
+      noStaffTitle: "No professionals available",
+      noStaffBody:
+        "No professional currently offers the selected services at this venue.",
+      staffPinTitle: "Professional unavailable",
+      staffPinBody:
+        "The professional you picked no longer offers this service at this venue.",
+      anyProfessional: "Book with any professional",
+      browseServices: "Browse services",
+    },
     back: "Back",
     retry: "Try again",
     loading: "Loading…",
     loadError: "We couldn't load availability. Please try again.",
     rebookError: "Some services may have changed — review the menu to book again.",
+    rebookServiceGone:
+      "“{service}” is no longer offered at this venue — here's the current menu.",
+    rebookServicesGone:
+      "The booked services are no longer offered at this venue — here's the current menu.",
+    rebookPartialGone:
+      "“{service}” is no longer offered at this venue and was left out.",
     errors: {
       tooSoon: "That time is too soon to book. Please pick a later date.",
       tooFar: "That date is too far ahead. Please pick an earlier date.",
@@ -2240,9 +2412,9 @@ export const en: {
     cookieSettings: "Cookies",
   },
   consent: {
-    title: "Cookies & analytics",
-    body: "We use Google Analytics to understand how Zavoia is used and make it better. Analytics runs only if you accept — essential cookies (like staying signed in) work either way.",
-    policyLink: "Cookie policy",
+    title: "Cookie consent",
+    body: "We use cookies to help us deliver and improve our services. By using this website, you agree to our",
+    policyLink: "cookie policy",
     accept: "Accept",
     reject: "Reject",
     close: "Close",
@@ -2276,6 +2448,7 @@ export const en: {
     journal: "The Journal",
     helpSupport: "Help & support",
     forBusiness: "For business",
+    webStudio: "Web Studio",
     pricing: "Pricing",
     logout: "Log out",
     loggedOut: "Signed out",
@@ -2301,6 +2474,195 @@ export const en: {
   },
   breadcrumbHome: "Home",
   localeNames: { ro: "Română", en: "English" },
+  tryStudio: {
+    pageTitle: "Try Web Studio — shuffle a real website",
+    pageDescription:
+      "Tap shuffle and watch a real Zavoia website change layout, colour and type in front of you. Lock what you like, re-roll the rest.",
+    mark: "Zavoia Web Studio",
+    demo: "Demo",
+    looks: "{n} looks",
+    hint: "A Zavoia website for a demo salon. Tap Shuffle to change it.",
+    shuffle: "Shuffle",
+    cta: "Free for {days} days",
+    locksLabel: "Tap to keep",
+    dimension: { layout: "Layout", colour: "Colour", type: "Type" },
+    lock: {
+      layout: "Keep this layout",
+      colour: "Keep this colour",
+      type: "Keep this face",
+    },
+    locked: {
+      layout: "Layout kept — tap to unlock",
+      colour: "Colour kept — tap to unlock",
+      type: "Face kept — tap to unlock",
+    },
+  },
+  webStudio: {
+    pageTitle: "Web Studio — the website your business already has the parts for",
+    pageDescription:
+      "Turn the prices, hours, team and photos you already keep in Zavoia into a real website. Twelve sections, forty-seven designed styles, published in an afternoon.",
+    cover: {
+      kicker: "Web Studio · Catalogue of parts",
+      titleA: "A website",
+      titleB: "that already knows",
+      titleC: "your prices.",
+      sub: "Your services, opening hours, team, photos and reviews are already in Zavoia. Web Studio turns them into a real site — you pick styles, not build pages.",
+      ctaPrimary: "Start your {days}-day free trial",
+      ctaSecondary: "Open the catalogue",
+      plateCaption: "Rendered live on this page",
+      liveBadge: "Live site",
+      demoBadge: "Demonstration",
+    },
+    spec: {
+      sections: "Sections",
+      styles: "Styles",
+      fonts: "Display fonts",
+      accents: "Brand accents",
+    },
+    wired: {
+      kicker: "The unfair part",
+      title: "Every other builder starts with an empty page. Yours starts with your business.",
+      sub: "You already keep your prices, hours, team and photos in Zavoia, because that is what takes your bookings. Web Studio reads them. Nothing to re-type, nothing to keep true in two places.",
+      ledgerTitle: "Already in your Zavoia",
+      rows: {
+        services: "Services & prices",
+        hours: "Opening hours",
+        team: "Team members",
+        locations: "Locations",
+        photos: "Portfolio photos",
+        reviews: "Customer reviews",
+      },
+      perWeek: "{n} days",
+      note: "All of it, on the site. Typed once.",
+      plateCaption: "The same services, rendered",
+      frozenTitle: "Your layout stays put",
+      frozenBody:
+        "Publishing freezes the design you approved. Nothing moves under your customers until you publish again.",
+      liveTitle: "Your prices stay live",
+      liveBody:
+        "Change a price or add a stylist in Zavoia and the published site shows it. No second edit, no menu that quietly goes stale.",
+      oneTitle: "One business, one truth",
+      oneBody:
+        "The website, your booking flow and your marketplace profile all read the same business. They cannot disagree with each other.",
+    },
+    stage: {
+      kicker: "The catalogue",
+      title: "Twelve sections. Forty-seven styles. Pick, don't build.",
+      sub: "Every plate below is the real renderer running on this page — not a screenshot. Change a style and you are looking at exactly what your customers would get.",
+      indexLabel: "Sections",
+      stylesLabel: "Styles for this section",
+      tryCta: "Shuffle a whole site",
+      ofStyles: "Style {n} of {total}",
+      demoNote: "Demonstration business",
+    },
+    type: {
+      kicker: "Type & colour",
+      title: "Two knobs. Nothing you can make ugly.",
+      sub: "Choose a display face and a brand accent. Spacing, contrast, and the way it folds onto a phone are already designed — and every specimen on this page re-renders as you pick.",
+      fontsLabel: "Display faces",
+      accentsLabel: "Brand accents",
+      inUse: "In use",
+      note: "All {total} accents and all 14 display faces come with every plan — none of them cost extra, ever.",
+      hint: "Pick a face and a colour, then scroll back up — the specimens above are already rendering in your choice.",
+    },
+    ships: {
+      kicker: "How it ships",
+      title: "Started this morning, live this afternoon.",
+      steps: [
+        {
+          title: "Turn sections on",
+          body: "You start from a complete page, not a blank canvas. Switch sections off, drag them into the order you want, and the page stays designed the whole time.",
+        },
+        {
+          title: "Choose the styles",
+          body: "Each section carries its own set of designs. Preview every one against your real services and your real photos — never a placeholder salon.",
+        },
+        {
+          title: "Publish",
+          body: "One button. Your site goes live at your own Zavoia address, and stays exactly as you approved it.",
+        },
+      ],
+      gets: [
+        {
+          title: "Right on a phone",
+          body: "Every style is designed for the screen most of your customers will actually open it on.",
+        },
+        {
+          title: "Fast by default",
+          body: "No page-builder bloat, no plugins to update, nothing to break at eleven at night.",
+        },
+        {
+          title: "Findable",
+          body: "Real page titles, descriptions and structure — the things search engines actually read.",
+        },
+        {
+          title: "Your own address",
+          body: "The published site lives on zavoia.com under your business's own name.",
+        },
+      ],
+    },
+    price: {
+      kicker: "What it costs",
+      title: "Build the whole thing free. Pay when you publish.",
+      planLabel: "Publishing plan",
+      planName: "Zavoia Business\u00A0· Plus",
+      planBody:
+        "Every Zavoia plan lets you build, preview and save your entire site. Putting it live on the web is the Plus step — so you see the finished thing before you decide.",
+      placeholderLabel: "Price to confirm",
+      placeholderBody:
+        "Plus pricing is not published yet. The standard Zavoia Business plan is {base} per bookable team member, per month.",
+      bullets: [
+        "Build, preview and save on any plan",
+        "Unlimited edits and re-publishes",
+        "Lapsed plans suspend your site — they never delete it",
+        "Restores instantly when the plan is active again",
+      ],
+      stylesLabel: "Premium styles",
+      stylesTitle: "From {min}, once. Yours for good.",
+      stylesBody:
+        "Every section already includes a designed style. Want the cinematic hero, the drifting review marquee or the folded footer? Unlock it once and it stays unlocked — no subscription stacked on a subscription.",
+      rowIncluded: "Included styles",
+      rowIncludedV: "{n} — one per section",
+      rowPremium: "Premium styles",
+      rowPremiumV: "{n} · {range} once",
+      rowFonts: "Display fonts",
+      rowAllIncluded: "All {n} included",
+      rowAccents: "Brand accents",
+      pricingLink: "See full Zavoia pricing",
+    },
+    faq: {
+      kicker: "Questions",
+      title: "What owners ask before they build",
+      items: [
+        {
+          q: "Do I need to know anything about websites?",
+          a: "No. There is no page to lay out, no theme to install and no code anywhere. You turn sections on, choose a style for each, and press publish.",
+        },
+        {
+          q: "What happens when I change a price?",
+          a: "The published site reads it live. Change the price in Zavoia and the site shows the new one — while the layout you approved stays exactly as it was.",
+        },
+        {
+          q: "Can I see it finished before I pay to publish?",
+          a: "Yes, and that is the point. Building, previewing and saving the whole site is included in every plan; publishing it to the web is the paid step.",
+        },
+        {
+          q: "I already have a website. Is this worth it?",
+          a: "Keep the one you have. Most owners use Web Studio as the page they actually send people to — the one that is always right about prices, hours and who is working.",
+        },
+        {
+          q: "What happens if I cancel?",
+          a: "Your site is suspended, not deleted. Everything you built stays exactly where it is and comes back the moment the plan is active again — no rebuilding, no re-publishing.",
+        },
+      ],
+    },
+    close: {
+      kicker: "Your turn",
+      title: "The website your business already has the parts for.",
+      sub: "Start the free trial, open Web Studio, and see your own prices sitting in a real page in ten minutes.",
+      secondary: "Back to the catalogue",
+    },
+  },
   forBusiness: {
     pageTitle: "Zavoia for business — your calendar, full",
     pageDescription:
@@ -2328,7 +2690,7 @@ export const en: {
       pickTime: "Choose a time · Tue 16 Dec",
       times: ["14:00", "14:30", "15:00", "15:30", "16:30"],
       confirm: "Confirm · Balayage + tone",
-      footnote: "Pay at the venue · free cancellation",
+      footnote: "Pay at the venue",
     },
     industries: {
       kicker: "For every local service",
@@ -2752,7 +3114,6 @@ export const en: {
     cancelAppointment: "Cancel appointment",
     youMissedAppointment: "You missed this appointment",
     cancelledTitle: "Cancelled",
-    freeCancellationUpTo: "Free cancellation up to {n}h before",
     bookedOn: "Booked {date}",
     relative: {
       inProgress: "In progress",
@@ -2879,9 +3240,9 @@ export const en: {
     goodToKnow: {
       title: "Good to know",
       items: [
-        { label: "Cancellation policy", href: ["legal", "cancellation"] },
+        { label: "Cancellation policy", href: ["terms", "booking-policy"] },
         { label: "List your business", href: ["for-business"] },
-        { label: "Privacy policy", href: ["legal", "privacy"] },
+        { label: "Privacy policy", href: ["terms", "privacy-policy"] },
       ],
     },
     report: {
@@ -2932,6 +3293,8 @@ export const en: {
       confirm: "Confirm new time",
       successToast: "Rescheduled to {when}",
       error: "We couldn't reschedule. Please try again.",
+      unsupported:
+        "This appointment can't be rescheduled online. Contact the venue to change the time.",
     },
     review: {
       titleNew: "How was it?",

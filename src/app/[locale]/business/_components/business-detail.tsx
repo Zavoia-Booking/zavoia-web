@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { localeHref } from "@/i18n/routes";
 import {
   Avatar,
   Button,
@@ -25,8 +27,10 @@ import type { BookingSelectionItem } from "@/lib/booking";
 import { pushRecentView } from "@/lib/recent-views";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { getListingReviews } from "@/lib/api/marketplace/public";
+import { SEARCH_RADIUS_KM } from "@/components/search/constants";
+import { TeamMemberProfileModal } from "./team-member-profile-modal";
+import { EmptyState } from "./empty-state";
 import type {
-  BookingPolicy,
   IndustryRef,
   ListingDetail,
   ListingTeamMember,
@@ -243,6 +247,13 @@ export function BusinessDetail({ listing, locale }: Props) {
   const phone = listing.location.phone;
   const directionsHref = buildDirectionsHref(listing);
 
+  // "See on map" → the search map anchored on this location, with its pin
+  // pre-selected (?focus=). Only offered when the location has coordinates.
+  const mapHref =
+    listing.location.latitude != null && listing.location.longitude != null
+      ? `${localeHref(locale, "search")}?lat=${listing.location.latitude}&lng=${listing.location.longitude}&radius=${SEARCH_RADIUS_KM}&focus=${locationId}`
+      : null;
+
   return (
     <main className="zw-container" style={{ paddingTop: 22, width: "100%" }}>
       {/* Back */}
@@ -345,6 +356,26 @@ export function BusinessDetail({ listing, locale }: Props) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              {mapHref && (
+                <Link
+                  href={mapHref}
+                  className="tap"
+                  aria-label={t.seeOnMap}
+                  title={t.seeOnMap}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    border: "1px solid rgba(28,28,26,0.12)",
+                    background: "#fff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Icon name="pin" size={16} color="var(--c-800)" />
+                </Link>
+              )}
               <button
                 type="button"
                 className="tap"
@@ -389,6 +420,8 @@ export function BusinessDetail({ listing, locale }: Props) {
             <TeamTab
               members={listing.teamMembers}
               initialMemberId={initialMemberId}
+              listing={listing}
+              locale={locale}
             />
           )}
           {tab === "reviews" && (
@@ -421,7 +454,6 @@ export function BusinessDetail({ listing, locale }: Props) {
             currency={currency}
             locale={locale}
             dict={t}
-            bookingPolicy={listing.bookingPolicy}
           />
         </div>
       </div>
@@ -751,9 +783,11 @@ function ServicesTab({
   if (listing.services.length === 0 && listing.bundles.length === 0) {
     return (
       <div className="zv-tab-in" style={{ paddingTop: 24 }}>
-        <p style={{ margin: 0, fontSize: 14, color: "var(--c-600)" }}>
-          {dict.noServices}
-        </p>
+        <EmptyState
+          icon="scissors"
+          title={dict.servicesEmptyTitle}
+          body={dict.servicesEmptyBody}
+        />
       </div>
     );
   }
@@ -987,8 +1021,8 @@ function ServicesTab({
                       <div
                         style={{
                           fontFamily: "var(--font-mono)",
-                          fontSize: 11.5,
-                          fontWeight: 600,
+                          fontSize: 12.5,
+                          fontWeight: 700,
                           color: "var(--c-500)",
                           marginTop: 4,
                         }}
@@ -1069,8 +1103,8 @@ function ServiceRow({
         <div
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: 11.5,
-            fontWeight: 600,
+            fontSize: 12.5,
+            fontWeight: 700,
             color: "var(--c-700)",
             marginTop: 6,
           }}
@@ -1128,9 +1162,13 @@ function ToggleAddButton({
 function TeamTab({
   members,
   initialMemberId,
+  listing,
+  locale,
 }: {
   members: ListingTeamMember[];
   initialMemberId?: number | null;
+  listing: ListingDetail;
+  locale: Locale;
 }) {
   // Deep-linked member (?member=<id>) starts with their profile modal open.
   const [open, setOpen] = useState<ListingTeamMember | null>(
@@ -1212,116 +1250,14 @@ function TeamTab({
           </div>
         );
       })}
-      {open && <TeamMemberModal member={open} onClose={() => setOpen(null)} />}
-    </div>
-  );
-}
-
-function TeamMemberModal({
-  member,
-  onClose,
-}: {
-  member: ListingTeamMember;
-  onClose: () => void;
-}) {
-  const { dict } = useTranslation();
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const displayName =
-    member.displayName ??
-    [member.firstName, member.lastName].filter(Boolean).join(" ").trim();
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={displayName}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 200,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-      }}
-    >
-      <div
-        onClick={onClose}
-        style={{ position: "absolute", inset: 0, background: "rgba(28,28,26,0.42)" }}
-      />
-      <div
-        style={{
-          position: "relative",
-          background: "var(--c-canvas)",
-          borderRadius: 22,
-          boxShadow: "var(--sh-lg)",
-          padding: "28px 26px",
-          width: "min(400px, 100%)",
-          textAlign: "center",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <button
-          type="button"
-          className="tap"
-          aria-label={dict.business.close}
-          onClick={onClose}
-          style={{
-            position: "absolute",
-            top: 14,
-            right: 14,
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            border: 0,
-            cursor: "pointer",
-            background: "var(--c-200)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon name="x" size={13} color="var(--c-700)" />
-        </button>
-        <Avatar
-          src={member.profileImage ?? undefined}
-          name={displayName}
-          size={88}
-          ring
+      {open && (
+        <TeamMemberProfileModal
+          member={open}
+          listing={listing}
+          locale={locale}
+          onClose={() => setOpen(null)}
         />
-        <div
-          style={{
-            fontSize: 19,
-            fontWeight: 600,
-            color: "var(--c-900)",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          {displayName}
-        </div>
-        {member.professionalTitle && (
-          <div style={{ fontSize: 13.5, color: "var(--c-600)" }}>
-            {member.professionalTitle}
-          </div>
-        )}
-        {member.averageRating != null && (
-          <Rating
-            rating={member.averageRating}
-            reviews={member.totalReviews}
-            size={13}
-          />
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -1371,7 +1307,17 @@ function ReviewsTab({
       .finally(() => setLoading(false));
   }, [listing.locationId, offset]);
 
-  if (stats.totalCount === 0 && reviews.length === 0) return null;
+  if (stats.totalCount === 0 && reviews.length === 0) {
+    return (
+      <div className="zv-tab-in" style={{ paddingTop: 24 }}>
+        <EmptyState
+          icon="starO"
+          title={dict.reviewsEmptyTitle}
+          body={dict.reviewsEmptyBody}
+        />
+      </div>
+    );
+  }
 
   const hasMore = offset < total;
 
@@ -1698,6 +1644,66 @@ function AboutTab({
           </div>
         </div>
       </div>
+
+      {/* Brand — who runs this location; links to the brand page. Older API
+          payloads may lack businessSlug — the brand route also resolves the
+          numeric business id. */}
+      <div>
+        <Kicker>{dict.aboutBrand}</Kicker>
+        <Link
+          href={localeHref(
+            locale,
+            "brand",
+            listing.businessSlug ?? String(listing.businessId),
+          )}
+          className="zw-hover-row"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            maxWidth: 420,
+            padding: 10,
+            margin: -10,
+            borderRadius: 14,
+            textDecoration: "none",
+          }}
+        >
+          <Avatar
+            src={listing.logo ?? undefined}
+            name={listing.name}
+            size={48}
+            ring
+          />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span
+              style={{
+                display: "block",
+                fontSize: 15,
+                fontWeight: 600,
+                color: "var(--c-900)",
+                letterSpacing: "-0.015em",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {listing.name}
+            </span>
+            {listing.industry && (
+              <span
+                style={{
+                  display: "block",
+                  fontSize: 12.5,
+                  color: "var(--c-600)",
+                  marginTop: 2,
+                }}
+              >
+                {taxonomyLabel(listing.industry, locale)}
+              </span>
+            )}
+          </span>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -1734,7 +1740,6 @@ function BookingRail({
   currency,
   locale,
   dict,
-  bookingPolicy,
 }: {
   selectedItems: BookingSelectionItem[];
   removePick: (serviceId: number) => void;
@@ -1746,7 +1751,6 @@ function BookingRail({
   currency: string;
   locale: Locale;
   dict: typeof import("@/i18n/dictionaries/en").en.business;
-  bookingPolicy: BookingPolicy | null;
 }) {
   return (
     <div
@@ -1809,7 +1813,8 @@ function BookingRail({
                 <div
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: 10.5,
+                    fontSize: 11.5,
+                    fontWeight: 700,
                     color: "var(--c-600)",
                     marginTop: 2,
                   }}
@@ -1895,21 +1900,7 @@ function BookingRail({
         {bookLabel(selectedItems.length, dict)}
       </Button>
 
-      {canBook ? (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            justifyContent: "center",
-            fontSize: 12,
-            color: "var(--c-500)",
-          }}
-        >
-          <Icon name="shield" size={13} color="var(--c-500)" />
-          {cancellationLine(bookingPolicy, dict)}
-        </div>
-      ) : (
+      {!canBook && (
         <div
           style={{
             textAlign: "center",
@@ -1932,44 +1923,6 @@ function bookLabel(
   dict: typeof import("@/i18n/dictionaries/en").en.business,
 ): string {
   return count > 0 ? format(dict.bookN, { count: String(count) }) : dict.bookNow;
-}
-
-/**
- * Render the cancellation line shown under the booking button.
- *
- * Reflects the business's real cancellation policy:
- * - null policy or `allowCustomerCancellation === false` → neutral
- *   "Cancellation policy applies" (never claims free cancellation).
- * - window of 0 minutes → "Free cancellation anytime".
- * - otherwise → "Free cancellation up to {window} before", where {window} is a
- *   human window: exact multiples of a day (≥ 1440) read as "N day(s)",
- *   anything else falls back to `formatDuration` (e.g. "24h", "1h 30m", "45m").
- */
-function cancellationLine(
-  policy: BookingPolicy | null,
-  dict: typeof import("@/i18n/dictionaries/en").en.business,
-): string {
-  if (!policy || !policy.allowCustomerCancellation) {
-    return dict.noFreeCancellation;
-  }
-  const minutes = policy.cancellationWindowMinutes;
-  if (minutes <= 0) {
-    return dict.cancellationAnytime;
-  }
-  return format(dict.freeCancellation, { window: cancellationWindowText(minutes, dict) });
-}
-
-/** Minutes → human window string. Exact day multiples read as "N day(s)". */
-function cancellationWindowText(
-  minutes: number,
-  dict: typeof import("@/i18n/dictionaries/en").en.business,
-): string {
-  if (minutes >= 1440 && minutes % 1440 === 0) {
-    const days = minutes / 1440;
-    const tmpl = days === 1 ? dict.cancellationWindowDay : dict.cancellationWindowDays;
-    return format(tmpl, { count: String(days) });
-  }
-  return formatDuration(minutes);
 }
 
 /**

@@ -73,6 +73,7 @@ export function CookieBanner({ locale }: { locale: Locale }) {
         >
           {t.policyLink}
         </Link>
+        .
       </p>
 
       <div style={{ display: "flex", gap: 10, marginTop: 14 }}>

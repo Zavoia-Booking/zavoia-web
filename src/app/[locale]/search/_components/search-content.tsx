@@ -157,7 +157,11 @@ export function SearchContent({
   const firstRun = useRef(true);
   const lastKey = useRef(requestKey);
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  // Seeded from the "See on map" deep link (?focus=<locationId>) so the
+  // focused location's pin arrives already selected (card + list highlight).
+  const [selectedId, setSelectedId] = useState<number | null>(
+    () => numParam(sp.get("focus")) ?? null,
+  );
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [mobileView, setMobileView] = useState<"map" | "list">("map");
   const [isMobile, setIsMobile] = useState(false);
@@ -365,6 +369,21 @@ export function SearchContent({
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const onPinSelect = useCallback((id: number) => setSelectedId(id), []);
+
+  // ── "See on map" deep link (?focus=<locationId>) ────────────────────────
+  // Selection is seeded in useState above; this flies the camera to the
+  // focused location once it is present in the result set. One-shot per mount
+  // so later searches and pin clicks are never overridden.
+  const focusedOnce = useRef(false);
+  useEffect(() => {
+    if (focusedOnce.current) return;
+    const focusId = numParam(sp.get("focus"));
+    if (focusId == null) return;
+    const loc = locations.find((l) => l.id === focusId);
+    if (!loc || loc.latitude == null || loc.longitude == null) return;
+    focusedOnce.current = true;
+    mapHandleRef.current?.flyTo({ lat: loc.latitude, lng: loc.longitude });
+  }, [sp, locations]);
 
   // "Search this area" — re-anchor on the new map center; radius stays fixed.
   // updateParams triggers the fetch via the requestKey effect, so no separate

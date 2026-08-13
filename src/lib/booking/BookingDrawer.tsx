@@ -22,11 +22,11 @@ import {
   getBookingSlots,
 } from "@/lib/api/marketplace/booking";
 import { bookAppointment } from "@/lib/api/marketplace/appointments";
+import { classifyBookingBlock, type BookingBlock } from "./errors";
 import type {
   BookingCalendar,
   BookingCalendarDay,
   BookingDaySlots,
-  BookingPolicy,
   BookingServiceItem,
   ServiceSelection,
   SlotItem,
@@ -63,6 +63,11 @@ function toServiceSelections(services: BookingSelectionItem[]): ServiceSelection
       : { serviceId: s.serviceId }),
     ...(s.teamMemberId != null ? { teamMemberId: s.teamMemberId } : {}),
   }));
+}
+
+/** Drop every pinned professional so availability is fetched unpinned. */
+function stripPins(services: BookingSelectionItem[]): BookingSelectionItem[] {
+  return services.map((s) => ({ ...s, teamMemberId: undefined }));
 }
 
 /** Format a YYYY-MM-DD into a localized "Mon, Jan 5"-style label. */
@@ -139,90 +144,6 @@ function mapErrorCode(
 }
 
 /**
- * Cancellation/reschedule trust-card copy, derived ONLY from the location's
- * real `BookingPolicy` (never `calendar.bookingSettings`, which carries no
- * allow-flags) — mirrors business-detail.tsx's `cancellationLine` correctness
- * logic (no policy / not allowed → neutral wording; window <= 0 → "anytime";
- * else → a concrete deadline date) but produces a concrete calendar deadline
- * (the drawer already knows the exact appointment instant) instead of a
- * relative "up to X before" sentence, and covers reschedule too.
- *
- * When both cancellation and reschedule are allowed with the same effective
- * window (both "anytime", or the same minute count), they're combined into
- * one line; otherwise each is reported individually.
- */
-function policyDeadlineLabel(
-  scheduledMs: number,
-  windowMinutes: number,
-  locale: string,
-  timeZone: string,
-): string {
-  return new Intl.DateTimeFormat(locale, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone,
-  }).format(new Date(scheduledMs - windowMinutes * 60_000));
-}
-
-function cancellationRescheduleLines(
-  policy: BookingPolicy | null,
-  scheduledMs: number,
-  locale: string,
-  timeZone: string,
-  t: BookingDict,
-): string[] {
-  const canCancel = !!policy?.allowCustomerCancellation;
-  const canReschedule = !!policy?.allowCustomerReschedule;
-
-  if (!canCancel && !canReschedule) {
-    return [t.noFreeCancellationOrReschedule];
-  }
-
-  if (canCancel && canReschedule) {
-    const cMin = policy!.cancellationWindowMinutes;
-    const rMin = policy!.rescheduleWindowMinutes;
-    const sameWindow =
-      (cMin <= 0 && rMin <= 0) || (cMin > 0 && rMin > 0 && cMin === rMin);
-    if (sameWindow) {
-      if (cMin <= 0) return [t.cancellationRescheduleAnytime];
-      return [
-        format(t.cancellationRescheduleDeadline, {
-          date: policyDeadlineLabel(scheduledMs, cMin, locale, timeZone),
-        }),
-      ];
-    }
-  }
-
-  const lines: string[] = [];
-  if (canCancel) {
-    const cMin = policy!.cancellationWindowMinutes;
-    lines.push(
-      cMin <= 0
-        ? t.cancellationAnytime
-        : format(t.cancellationDeadline, {
-            date: policyDeadlineLabel(scheduledMs, cMin, locale, timeZone),
-          }),
-    );
-  } else {
-    lines.push(t.noFreeCancellation);
-  }
-  if (canReschedule) {
-    const rMin = policy!.rescheduleWindowMinutes;
-    lines.push(
-      rMin <= 0
-        ? t.rescheduleAnytime
-        : format(t.rescheduleDeadline, {
-            date: policyDeadlineLabel(scheduledMs, rMin, locale, timeZone),
-          }),
-    );
-  } else {
-    lines.push(t.noFreeReschedule);
-  }
-  return lines;
-}
-
-/**
  * Real booking drawer: date → time + staff → review/confirm → success.
  * Wired to the live availability + book endpoints. The full `payload`
  * (listingId, locationId, businessId, timezone, currency, services) is provided
@@ -255,6 +176,13 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
 
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [staffPicks, setStaffPicks] = useState<StaffPicks>({});
+
+  // Permanent booking block (CUSTOMER_BOOKING.* — venue delisted, service
+  // removed at this location, no staff, pinned pro can't perform). Replaces
+  // the step UI with an honest message instead of a retry that can't succeed.
+  const [blocked, setBlocked] = useState<BookingBlock | null>(null);
+  // staff-pin recovery: strip every pinned professional and refetch unpinned.
+  const [ignorePins, setIgnorePins] = useState(false);
 
   // Step 1 (choose services) local picks — only relevant when `hasStep1`.
   // Keyed the same way business-detail.tsx keys its own selection.
@@ -320,27 +248,42 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     });
   }, [payload, picked]);
 
-  // ── Fetch calendar (called on entering the combined step + on retry). ──
-  const loadCalendar = useCallback(async () => {
-    if (!payload) return;
-    setCalLoading(true);
-    setCalError(false);
-    try {
-      const tz = payload.timezone || "UTC";
-      const res = await getBookingCalendar({
-        businessId: payload.businessId,
-        locationId: payload.locationId,
-        services: toServiceSelections(resolvedServices),
-        startDate: todayInTz(tz),
-        daysToCheck: CAL_DAYS_TO_CHECK,
-      });
-      setCalendar(res);
-    } catch {
-      setCalError(true);
-    } finally {
-      setCalLoading(false);
-    }
-  }, [payload, resolvedServices]);
+  // The services actually sent to the availability endpoints — identical to
+  // resolvedServices unless a staff-pin block was recovered via "book with any
+  // professional", which drops every pinned team member.
+  const effectiveServices: BookingSelectionItem[] = useMemo(
+    () => (ignorePins ? stripPins(resolvedServices) : resolvedServices),
+    [resolvedServices, ignorePins],
+  );
+
+  // ── Fetch calendar (called on entering the combined step + on retry).
+  //    `servicesOverride` lets the staff-pin recovery refetch unpinned in the
+  //    same tick it flips `ignorePins` (before the memo above recomputes). ──
+  const loadCalendar = useCallback(
+    async (servicesOverride?: BookingSelectionItem[]) => {
+      if (!payload) return;
+      setCalLoading(true);
+      setCalError(false);
+      try {
+        const tz = payload.timezone || "UTC";
+        const res = await getBookingCalendar({
+          businessId: payload.businessId,
+          locationId: payload.locationId,
+          services: toServiceSelections(servicesOverride ?? effectiveServices),
+          startDate: todayInTz(tz),
+          daysToCheck: CAL_DAYS_TO_CHECK,
+        });
+        setCalendar(res);
+      } catch (e) {
+        const block = classifyBookingBlock(e);
+        if (block) setBlocked(block);
+        else setCalError(true);
+      } finally {
+        setCalLoading(false);
+      }
+    },
+    [payload, effectiveServices],
+  );
 
   // Remembers the last `payload` object reference the reset effect below
   // actually processed, so a reopen with the SAME reference (e.g. after the
@@ -376,6 +319,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       setSlotsError(false);
       setSelectedSlot(null);
       setStaffPicks({});
+      setBlocked(null);
+      setIgnorePins(false);
       setSubmitting(false);
       setSubmitError(null);
       setSuccess(null);
@@ -390,7 +335,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
 
   // ── Fetch slots when a date is chosen. ──
   const loadSlots = useCallback(
-    async (date: string) => {
+    async (date: string, servicesOverride?: BookingSelectionItem[]) => {
       if (!payload) return;
       setSlotsLoading(true);
       setSlotsError(false);
@@ -400,17 +345,19 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         const res = await getBookingSlots({
           businessId: payload.businessId,
           locationId: payload.locationId,
-          services: toServiceSelections(resolvedServices),
+          services: toServiceSelections(servicesOverride ?? effectiveServices),
           date,
         });
         setDaySlots(res);
-      } catch {
-        setSlotsError(true);
+      } catch (e) {
+        const block = classifyBookingBlock(e);
+        if (block) setBlocked(block);
+        else setSlotsError(true);
       } finally {
         setSlotsLoading(false);
       }
     },
-    [payload, resolvedServices],
+    [payload, effectiveServices],
   );
 
   // ── Escape to close. ──
@@ -500,6 +447,13 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         appointmentUuid: first?.appointmentUuid,
       });
     } catch (e) {
+      // Permanent marketplace-state blocks (venue/service/staff gone) get the
+      // honest blocked screen — a retry or slot change can never fix them.
+      const block = classifyBookingBlock(e);
+      if (block) {
+        setBlocked(block);
+        return; // finally still clears `submitting`
+      }
       const code = e instanceof ApiError ? e.code : undefined;
       const { message, backTo } = mapErrorCode(code, t.errors);
       setSubmitError(message);
@@ -778,7 +732,6 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
             businessName={calendar?.businessName ?? tb.bookHeading}
             timeZone={timeZone}
             locale={locale}
-            bookingPolicy={payload.bookingPolicy}
             t={t}
             onViewAppointment={() => {
               const href = success.appointmentUuid
@@ -786,6 +739,30 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                 : localeHref(locale, "appointments");
               router.push(href);
               onClose();
+            }}
+            onClose={onClose}
+          />
+        ) : blocked ? (
+          <BlockedScreen
+            block={blocked}
+            services={resolvedServices}
+            t={t}
+            tb={tb}
+            onBrowseServices={() => {
+              router.push(
+                localeHref(locale, "business", String(payload.locationId)),
+              );
+              onClose();
+            }}
+            onAnyProfessional={() => {
+              // Refetch unpinned immediately with an explicit override — the
+              // `ignorePins` state lands on the next render. If nobody offers
+              // the service at all, the refetch cascades to a no-staff block.
+              const unpinned = stripPins(resolvedServices);
+              setBlocked(null);
+              setIgnorePins(true);
+              void loadCalendar(unpinned);
+              if (selectedDate) void loadSlots(selectedDate, unpinned);
             }}
             onClose={onClose}
           />
@@ -871,7 +848,6 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                     staffPicks={staffPicks}
                     daySlots={daySlots}
                     calendar={calendar}
-                    bookingPolicy={payload.bookingPolicy}
                     services={services}
                     currency={currency}
                     locale={locale}
@@ -1188,7 +1164,8 @@ function ServiceCheckRow({
           style={{
             display: "block",
             fontFamily: "var(--font-mono)",
-            fontSize: 10.5,
+            fontSize: 11.5,
+            fontWeight: 700,
             color: "var(--c-600)",
             marginTop: 3,
           }}
@@ -1675,7 +1652,6 @@ function ReviewStep({
   staffPicks,
   daySlots,
   calendar,
-  bookingPolicy,
   services,
   currency,
   locale,
@@ -1691,7 +1667,6 @@ function ReviewStep({
   staffPicks: StaffPicks;
   daySlots: BookingDaySlots | null;
   calendar: BookingCalendar | null;
-  bookingPolicy: BookingPolicy | null;
   services: OpenBookingPayload["services"];
   currency: string;
   locale: string;
@@ -1702,19 +1677,6 @@ function ReviewStep({
   t: BookingDict;
   tb: ReturnType<typeof useTranslation>["dict"]["business"];
 }) {
-  // Concrete free-cancellation/reschedule deadline(s) = scheduled instant
-  // minus the real policy window(s) — never a fabricated fallback window.
-  const scheduledMs = new Date(
-    zonedWallTimeToUtcISO(date, slot.startTime, timeZone),
-  ).getTime();
-  const policyLines = cancellationRescheduleLines(
-    bookingPolicy,
-    scheduledMs,
-    locale,
-    timeZone,
-    t,
-  );
-
   const staffNames = slot.items
     .map((item, idx) => {
       const sid = staffPicks[idx];
@@ -1769,7 +1731,8 @@ function ReviewStep({
                 <div
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: 10.5,
+                    fontSize: 11.5,
+                    fontWeight: 700,
                     color: "var(--c-600)",
                     marginTop: 2,
                   }}
@@ -1845,21 +1808,13 @@ function ReviewStep({
 
       {/* Trust card */}
       <div style={{ ...card, padding: "4px 18px" }}>
-        {policyLines.map((line, i) => (
-          <TrustRow
-            key={i}
-            icon="shield"
-            title={i === 0 ? t.freeCancellationTitle : t.rescheduleTitle}
-            sub={line}
-            first={i === 0}
-          />
-        ))}
         <TrustRow
           icon="wallet"
           title={t.payAtVenueTitle}
           sub={format(t.payAtVenueNote, {
             business: calendar?.businessName ?? tb.bookHeading,
           })}
+          first
         />
       </div>
 
@@ -1962,6 +1917,130 @@ function TrustRow({
 // ─────────────────────────────────────────────
 // Success screen
 // ─────────────────────────────────────────────
+/**
+ * Permanent-block screen — replaces the step UI when availability or booking
+ * fails with a CUSTOMER_BOOKING.* state error (venue delisted, service removed
+ * at this location, no capable staff, pinned professional can't perform).
+ * Retry is deliberately absent: these can never succeed. staff-pin offers a
+ * real recovery (drop the pin, refetch unpinned); everything else routes to
+ * the venue's live listing.
+ */
+function BlockedScreen({
+  block,
+  services,
+  t,
+  tb,
+  onBrowseServices,
+  onAnyProfessional,
+  onClose,
+}: {
+  block: BookingBlock;
+  services: BookingSelectionItem[];
+  t: BookingDict;
+  tb: ReturnType<typeof useTranslation>["dict"]["business"];
+  onBrowseServices: () => void;
+  onAnyProfessional: () => void;
+  onClose: () => void;
+}) {
+  const b = t.blockedScreen;
+  // Name the offending service when the backend identifies it (details.
+  // serviceId); a single-service booking is unambiguous even without details.
+  const serviceName =
+    (block.serviceId != null
+      ? services.find((s) => s.serviceId === block.serviceId)?.name
+      : services.length === 1
+        ? services[0].name
+        : null) ?? null;
+  const copy = {
+    business: { title: b.businessTitle, body: b.businessBody },
+    location: { title: b.locationTitle, body: b.locationBody },
+    service: {
+      title: b.serviceTitle,
+      body: serviceName
+        ? format(b.serviceBody, { service: serviceName })
+        : b.serviceBodyGeneric,
+    },
+    "no-staff": { title: b.noStaffTitle, body: b.noStaffBody },
+    "staff-pin": { title: b.staffPinTitle, body: b.staffPinBody },
+  }[block.kind];
+  const isPin = block.kind === "staff-pin";
+
+  return (
+    <div
+      className="zv-tab-in"
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "32px 28px",
+      }}
+    >
+      <div
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: "50%",
+          background: "var(--c-200)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon name="info" size={30} color="var(--c-700)" />
+      </div>
+      <div
+        className="txt-balance"
+        style={{
+          marginTop: 20,
+          fontSize: 21,
+          fontWeight: 700,
+          letterSpacing: "-0.025em",
+          color: "var(--c-900)",
+        }}
+      >
+        {copy.title}
+      </div>
+      <p
+        className="txt-pretty"
+        style={{
+          margin: "10px 0 0",
+          fontSize: 14.5,
+          lineHeight: 1.55,
+          color: "var(--c-600)",
+          maxWidth: 340,
+        }}
+      >
+        {copy.body}
+      </p>
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          marginTop: 26,
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
+        {isPin ? (
+          <Button kind="primary" onClick={onAnyProfessional}>
+            {b.anyProfessional}
+          </Button>
+        ) : (
+          <Button kind="primary" onClick={onBrowseServices}>
+            {b.browseServices}
+          </Button>
+        )}
+        <Button kind="secondary" onClick={onClose}>
+          {tb.close}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function SuccessScreen({
   pending,
   scheduledAt,
@@ -1969,7 +2048,6 @@ function SuccessScreen({
   businessName,
   timeZone,
   locale,
-  bookingPolicy,
   t,
   onViewAppointment,
   onClose,
@@ -1980,7 +2058,6 @@ function SuccessScreen({
   businessName: string;
   timeZone: string;
   locale: string;
-  bookingPolicy: BookingPolicy | null;
   t: BookingDict;
   onViewAppointment: () => void;
   onClose: () => void;
@@ -1993,16 +2070,6 @@ function SuccessScreen({
     minute: "2-digit",
     timeZone,
   }).format(new Date(scheduledAt));
-
-  // Concrete free-cancellation/reschedule deadline(s), derived only from the
-  // real BookingPolicy — never a fabricated fallback window.
-  const policyLines = cancellationRescheduleLines(
-    bookingPolicy,
-    new Date(scheduledAt).getTime(),
-    locale,
-    timeZone,
-    t,
-  );
 
   return (
     <div
@@ -2094,22 +2161,6 @@ function SuccessScreen({
           {when}
         </div>
       </div>
-      {policyLines.length > 0 && (
-        <div
-          style={{
-            marginTop: 14,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            fontSize: 12.5,
-            color: "var(--c-500)",
-            textAlign: "center",
-          }}
-        >
-          <Icon name="shield" size={13} color="var(--s-success-600)" />
-          {policyLines.join(" ")}
-        </div>
-      )}
       <div
         style={{
           display: "flex",

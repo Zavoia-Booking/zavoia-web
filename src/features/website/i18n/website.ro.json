@@ -1,0 +1,436 @@
+{
+  "businessPage": {
+    "builder": {
+      "preview": {
+        "allHidden": "Toate secțiunile sunt ascunse. Afișează cel puțin una pentru previzualizare.",
+        "book": "Programează acum",
+        "bookNow": "Programează acum",
+        "getStarted": "Programează acum",
+        "menu": "Meniu",
+        "closeMenu": "Închide meniul",
+        "aria": {
+          "announcement": "Anunț",
+          "dismissAnnouncement": "Închide anunțul",
+          "closeGallery": "Închide galeria",
+          "previousImage": "Imaginea anterioară",
+          "nextImage": "Imaginea următoare",
+          "openGalleryImage": "Deschide imaginea {{number}} din galerie",
+          "goToGalleryImage": "Mergi la imaginea {{number}} din galerie",
+          "focusGalleryImage": "Focalizează imaginea {{number}} din galerie",
+          "expandGalleryImage": "Mărește imaginea {{number}} din galerie",
+          "collapseGalleryImage": "Restrânge imaginea {{number}} din galerie",
+          "previousGalleryPage": "Pagina anterioară a galeriei",
+          "nextGalleryPage": "Pagina următoare a galeriei",
+          "previousServicesPage": "Pagina anterioară de servicii",
+          "nextServicesPage": "Pagina următoare de servicii",
+          "bookService": "Programează {{name}}",
+          "selectServicesLocation": "Alege locația pentru meniul de servicii",
+          "previousTeamMember": "Membrul anterior al echipei",
+          "nextTeamMember": "Membrul următor al echipei"
+        },
+        "businessNamePlaceholder": "Businessul tău",
+        "aboutTitle": "Despre noi",
+        "aboutGhostLede": "Ce facem și de ce contează.",
+        "aboutGhostBody": "Descoperă cum lucrăm, ce oferim și la ce te poți aștepta când ne alegi.",
+        "aboutStory": "Povestea noastră",
+        "aboutSince": "Povestea noastră — din {{year}}",
+        "aboutEstablished": "Povestea noastră — fondată în {{year}}",
+        "aboutEstablishedShort": "Fondată în {{year}}",
+        "aboutBookVisit": "Programează o vizită",
+        "servicesHeading": "Găsește serviciul potrivit.",
+        "servicesSubledeSingle": "Descoperă serviciile, compară prețurile și programează opțiunea potrivită pentru tine.",
+        "servicesSubledeMultiple": "Descoperă serviciile disponibile în fiecare locație, compară prețurile și programează opțiunea potrivită pentru tine.",
+        "servicesEmpty": "Serviciile vor apărea aici după ce sunt adăugate.",
+        "servicesPricesFrom": "prețuri de la",
+        "servicesFrom": "de la",
+        "servicesPrevious": "Înapoi",
+        "servicesNext": "Înainte",
+        "servicesPageOf": "pagina {{page}} din {{pages}}",
+        "servicesBook": "Programează",
+        "servicesIncludes": "Include",
+        "servicesPackages": "Pachete",
+        "servicesCategoryFallback": "Servicii",
+        "serviceFallback": "Serviciu",
+        "servicesCount_one": "{{count}} serviciu",
+        "servicesCount_few": "{{count}} servicii",
+        "servicesCount_other": "{{count}} de servicii",
+        "locationsTitle": "Locații",
+        "locationsEmpty": "Detaliile locațiilor vor apărea aici după ce sunt adăugate.",
+        "noAddress": "Adresa va fi disponibilă în curând",
+        "galleryTitle": "Galerie",
+        "galleryEmpty": "Fotografiile vor apărea aici după ce sunt adăugate.",
+        "teamTitle": "Echipa noastră",
+        "teamEmpty": "Membrii echipei vor apărea aici după ce sunt adăugați.",
+        "teamMember": "Membru echipă",
+        "teamRoleOwner": "Proprietar",
+        "teamFind": "Lucrează la {{location}}",
+        "teamSwitchLabel": "Locații",
+        "teamBookWith": "Programează cu {{name}}",
+        "testimonialsTitle": "Ce spun clienții",
+        "testimonialsEmpty": "Recenziile clienților vor apărea aici pe măsură ce sunt colectate.",
+        "reviewsCount_one": "{{count}} recenzie",
+        "reviewsCount_few": "{{count}} recenzii",
+        "reviewsCount_other": "{{count}} de recenzii",
+        "inTheTeam": "în echipă",
+        "bookAt": "Programează la {{name}}",
+        "callLabel": "Apelează {{name}}",
+        "emailLabel": "Trimite email către {{name}}",
+        "mapLabel": "Vezi {{name}} pe hartă",
+        "tagsShowAll": "Arată tot",
+        "tagsShowLess": "Arată mai puțin",
+        "faqTitle": "Întrebări frecvente",
+        "faqEmpty": "Întrebările tale vor apărea aici după ce sunt adăugate.",
+        "faqFrequentlyAsked": "Întrebări frecvente",
+        "faqInShort": "Pe scurt",
+        "faqBookVisit": "Programează o vizită",
+        "statLocations_one": "Locație",
+        "statLocations_few": "Locații",
+        "statLocations_other": "de locații",
+        "statTeam_one": "Membru al echipei",
+        "statTeam_few": "Membri ai echipei",
+        "statTeam_other": "de membri ai echipei",
+        "statRating": "Evaluare medie",
+        "statEstablished": "Anul înființării",
+        "contactTitle": "Contactează-ne",
+        "galleryHeading": "O privire mai atentă.",
+        "galleryViewFull": "Vezi complet",
+        "reviewsHeading": "În cuvintele lor.",
+        "reviewsVerifiedCount_one": "{{count}} recenzie verificată",
+        "reviewsVerifiedCount_few": "{{count}} recenzii verificate",
+        "reviewsVerifiedCount_other": "{{count}} de recenzii verificate",
+        "reviewsOutOf": "Evaluare medie din 5",
+        "reviewsVerified": "Verificată",
+        "reviewsPrev": "Recenzia anterioară",
+        "reviewsNext": "Următoarea recenzie",
+        "reviewsDeckHint": "Selectează un card pentru altă recenzie",
+        "reviewsVerifiedReviews": "recenzii verificate",
+        "reviewsFiveStarShare": "{{pct}}% cu cinci stele",
+        "reviewsAverageWord": "în medie",
+        "reviewsVoice": "Recenzia {{n}}",
+        "contactHeadingLoc": "Vizitează {{name}}.",
+        "contactReach": "Contact",
+        "footerComeFind": "Ne găsești aici.",
+        "footerWhere": "Locație",
+        "footerMore": "mai multe locații",
+        "footerReady": "Când ești gata",
+        "footerBookVisit": "Programează acum",
+        "footerBookAVisit": "Programează acum",
+        "footerWrite": "Scrie",
+        "footerWriteToUs": "Scrie-ne",
+        "footerCall": "Sună-ne",
+        "footerCallLoc": "Sună {{name}}",
+        "footerFollow": "Urmărește-ne",
+        "footerExplore": "Explorează",
+        "footerStayConnected": "Urmărește-ne",
+        "contactHours": "Program",
+        "contactClosed": "Închis",
+        "contactOpen247": "Non-stop",
+        "statusOpenUntil": "Deschis până la {{time}}",
+        "statusOpensAt": "Se deschide la {{time}}",
+        "statusOpenNowUntil": "Deschis acum · până la {{time}}",
+        "statusOpens": "Se deschide la {{time}}",
+        "statusClosedToday": "Închis astăzi",
+        "statusClosedNow": "Închis acum",
+        "locBook": "Programează acum",
+        "locBookHere": "Programează-te aici",
+        "locVisit": "Ne găsești la",
+        "locAmenities": "Facilități",
+        "locAmenitiesExpand": "Afișează toate facilitățile pentru {{name}}",
+        "locAmenitiesCollapse": "Restrânge facilitățile pentru {{name}}",
+        "locAmenitiesMore_one": "+ încă {{count}}",
+        "locAmenitiesMore_few": "+ încă {{count}}",
+        "locAmenitiesMore_other": "+ încă {{count}}",
+        "locAmenitiesMoreLabel_one": "încă {{count}} facilitate",
+        "locAmenitiesMoreLabel_few": "încă {{count}} facilități",
+        "locAmenitiesMoreLabel_other": "încă {{count}} de facilități",
+        "locGettingHere": "Cum ajungi",
+        "locMeetTeam": "Cunoaște echipa",
+        "locPrevious": "Înapoi",
+        "locPrev": "Înapoi",
+        "locNext": "Înainte",
+        "days": {
+          "monday": "Lun",
+          "tuesday": "Mar",
+          "wednesday": "Mie",
+          "thursday": "Joi",
+          "friday": "Vin",
+          "saturday": "Sâm",
+          "sunday": "Dum"
+        },
+        "daysFull": {
+          "monday": "Luni",
+          "tuesday": "Marți",
+          "wednesday": "Miercuri",
+          "thursday": "Joi",
+          "friday": "Vineri",
+          "saturday": "Sâmbătă",
+          "sunday": "Duminică"
+        },
+        "locationCount_one": "{{count}} locație",
+        "locationCount_few": "{{count}} locații",
+        "locationCount_other": "{{count}} de locații",
+        "footer": {
+          "poweredBy": "Creat cu Zavoia",
+          "rights": "© {{year}} {{name}}"
+        },
+        "hero": {
+          "locationsAcross": "{{num}} locații în {{place}}"
+        },
+        "subhead": {
+          "locations_one": "Ne găsești aici.",
+          "locations_few": "Ne găsești în {{count}} locații.",
+          "locations_other": "Ne găsești în {{count}} de locații.",
+          "team": "Cunoaște echipa.",
+          "faq": "Întrebări și răspunsuri."
+        },
+        "sublede": {
+          "locations_one": "Găsești mai jos adresa, programul și datele noastre de contact.",
+          "locations_few": "Alege o locație pentru a vedea adresa, programul și datele de contact.",
+          "locations_other": "Alege o locație pentru a vedea adresa, programul și datele de contact.",
+          "team": "Cunoaște oamenii din spatele businessului."
+        },
+        "kicker": {
+          "about": "Despre",
+          "services": "Servicii",
+          "locations": "Locații",
+          "gallery": "Galerie",
+          "team": "Echipă",
+          "reviews": "Recenzii",
+          "faq": "Întrebări"
+        }
+      },
+      "announcement": {
+        "messageLabel": "Mesaj scurt",
+        "messagePlaceholder": "ex. Program nou, o ofertă specială sau o noutate importantă",
+        "messageHint": "Păstrează bara concisă. Adaugă contextul mai amplu în Detalii.",
+        "messageRequiredHint": "Mesajul este obligatoriu cât timp anunțul este afișat; adaugă unul sau ascunde secțiunea.",
+        "detailsLabel": "Detalii",
+        "detailsPlaceholder": "Adaugă anunțul complet pentru vizitatorii care vor să afle mai multe.",
+        "detailsHint": "După ce adaugi detalii, vizitatorii pot deschide anunțul complet din bară.",
+        "optional": "Opțional",
+        "readMore": "Află mai multe",
+        "closeDetails": "Închide detaliile anunțului",
+        "sampleMessage": "O noutate importantă din partea echipei noastre",
+        "sampleCta": "Află mai multe",
+        "endsIn": "Se încheie în {{time}}",
+        "tone": {
+          "title": "Evidențiere",
+          "hint": "Alege cât de mult iese anunțul în evidență.",
+          "neutral": "Neutru",
+          "offer": "Ofertă",
+          "alert": "Important"
+        },
+        "cta": {
+          "title": "Buton",
+          "enableLabel": "Afișează un buton",
+          "enableHint": "Trimite către programare, o ofertă sau altă pagină.",
+          "labelLabel": "Textul butonului",
+          "labelPlaceholder": "ex. Află mai multe, Vezi oferta",
+          "labelHint": "Butonul apare după ce adaugi text.",
+          "labelRequiredHint": "Adaugă textul butonului sau dezactivează butonul înainte de publicare.",
+          "urlLabel": "Link",
+          "placementEyebrow": "Comportament la afișare",
+          "placementNote": "Deoarece există Detalii, bara afișează „Află mai multe”, iar acest buton apare în anunțul extins.",
+          "newTab": "Deschide într-o filă nouă",
+          "showArrow": "Afișează săgeata",
+          "urlRequiredHint": "Adaugă un link ca butonul să funcționeze pe pagină."
+        },
+        "schedule": {
+          "title": "Perioadă de afișare",
+          "enableLabel": "Setează perioada de afișare",
+          "hint": "Opțional. Când este activată, ambele date sunt obligatorii.",
+          "start": "Afișează de la",
+          "end": "Ascunde după",
+          "datePlaceholder": "Alege o dată",
+          "tz": "Datele folosesc fusul orar {{tz}}.",
+          "showCountdown": "Afișează cronometrul „Se încheie în”",
+          "showCountdownHint": "Afișează timpul rămas în detaliile anunțului.",
+          "requiredError": "Alege atât data de început, cât și data de sfârșit.",
+          "orderError": "Data de început nu poate fi după data de sfârșit.",
+          "invalidError": "Alege date calendaristice valide sau dezactivează perioada și seteaz-o din nou.",
+          "timezoneError": "Perioada folosește un fus orar invalid. Dezactiveaz-o și seteaz-o din nou."
+        }
+      }
+    },
+    "sections": {
+      "announcement": {
+        "label": "Anunț",
+        "description": "Evidențiază o ofertă sau o noutate în partea de sus a site-ului."
+      },
+      "nav": {
+        "label": "Navigație",
+        "description": "Ajută vizitatorii să exploreze site-ul și să facă o programare."
+      },
+      "hero": {
+        "label": "Hero",
+        "description": "Prezintă businessul prin imaginea de copertă, nume, subtitlu și butonul de programare."
+      },
+      "marquee": {
+        "label": "Bandă",
+        "description": "Prezintă serviciile într-o bandă în mișcare între secțiuni."
+      },
+      "about": {
+        "label": "Despre",
+        "description": "Spune ce face businessul tău o alegere potrivită."
+      },
+      "services": {
+        "label": "Servicii",
+        "description": "Prezintă serviciile fiecărei locații, cu prețuri, durate și opțiune directă de programare."
+      },
+      "locations": {
+        "label": "Locații",
+        "description": "Arată unde te găsesc vizitatorii, programul, datele de contact și opțiunea de programare."
+      },
+      "gallery": {
+        "label": "Galerie",
+        "description": "Prezintă fotografiile de portofoliu din locațiile tale."
+      },
+      "team": {
+        "label": "Echipă",
+        "description": "Prezintă echipa și locația în care lucrează fiecare."
+      },
+      "testimonials": {
+        "label": "Recenzii",
+        "description": "Câștigă încredere prin evaluare și recenzii verificate."
+      },
+      "faq": {
+        "label": "Întrebări frecvente",
+        "description": "Răspunde la întrebările frecvente înainte ca vizitatorii să se programeze."
+      },
+      "footer": {
+        "label": "Subsol",
+        "description": "Încheie cu locațiile, datele de contact și opțiunea de programare."
+      },
+      "variants": {
+        "default": "Implicit",
+        "scroll": "La derulare",
+        "loop": "Continuu",
+        "bar": "Bară sus",
+        "ribbon": "Bandă",
+        "ticker": "Ticker",
+        "pill": "Capsulă",
+        "inline": "În pagină",
+        "split": "Împărțit",
+        "simple": "Simplu",
+        "portrait": "Portret",
+        "switcher": "Comutator",
+        "showcase": "Vitrină",
+        "panorama": "Panoramă",
+        "feature": "Principal",
+        "cards": "Carduri",
+        "atlas": "Atlas",
+        "list": "Listă",
+        "grid": "Grilă",
+        "carousel": "Carusel",
+        "accordion": "Acordeon",
+        "quote": "Citat",
+        "portraits": "Portrete",
+        "roster": "Listă",
+        "columns": "Coloane",
+        "editorial": "Editorial",
+        "directory": "Director",
+        "signature": "Semnătură",
+        "masthead": "Masthead",
+        "marque": "Marcaj",
+        "capsule": "Capsulă",
+        "underlay": "Sub pagină",
+        "bento": "Bento",
+        "masonry": "Masonry",
+        "chips": "Etichete",
+        "index": "Index",
+        "mosaic": "Mozaic",
+        "fan": "Evantai",
+        "manifesto": "Manifest",
+        "sticky": "Poveste",
+        "ledger": "Registru",
+        "poster": "Afiș",
+        "minimal": "Minimal",
+        "hairline": "Linie fină",
+        "wall": "Perete",
+        "mega": "Mega",
+        "marquee": "Bandă",
+        "spotlight": "Reflector",
+        "deck": "Teanc",
+        "textPanel": "Panou text",
+        "cinematic": "Cinematic",
+        "portal": "Portal",
+        "drift": "Drift",
+        "tumble": "Tumble"
+      },
+      "variantDescriptions": {
+        "announcement": {
+          "bar": "O bandă subțire deasupra navigației.",
+          "split": "Mesajul alunecă repetat prin bandă.",
+          "hairline": "O capsulă plutitoare, nu o bară."
+        },
+        "nav": {
+          "default": "O bară editorială clasică, cu brandul, linkurile centrate și butonul de programare.",
+          "editorial": "O bară editorială clasică, cu brandul, linkurile centrate și butonul de programare.",
+          "capsule": "O navigare pe toată lățimea care se restrânge într-o capsulă din sticlă întunecată la derulare.",
+          "split": "Linkurile secțiunilor încadrează numele brandului, cu o compoziție divizată pe ecrane mici.",
+          "underlay": "O bară minimală care glisează pagina pentru a dezvălui meniul de dedesubt."
+        },
+        "hero": {
+          "default": "Câmp de accent fără copertă; un panou text peste coperta ta după ce o adaugi.",
+          "cinematic": "Fotografie de copertă pe tot ecranul, cu numele businessului jos-stânga.",
+          "poster": "Nume supradimensionat, stivuit, peste o cortină de lumină întunecată.",
+          "portal": "Un portret arcuit care se deschide pe tot ecranul la derulare.",
+          "drift": "O plasă auroră lentă în spatele unei declarații cu majuscule.",
+          "tumble": "Numele businessului cade ca niște litere de cerneală pe hârtie caldă."
+        },
+        "marquee": {
+          "scroll": "Serviciile se mișcă odată cu pagina când vizitatorii derulează.",
+          "loop": "Serviciile se mișcă încontinuu, într-un ritm calm și uniform."
+        },
+        "about": {
+          "manifesto": "Un mesaj centrat pe fundal întunecat, cu informații actualizate despre business.",
+          "editorial": "Un articol de revistă cu antet delimitat, letrină, fotografie din locație și informații actualizate despre business.",
+          "sticky": "Un titlu fixat lângă fragmente numerotate și o linie animată de progres al lecturii."
+        },
+        "services": {
+          "feature": "Un meniu bazat pe imagine, cu portretul locației fixat și categorii detaliate.",
+          "bento": "Un afiș întunecat pe toată înălțimea, cu prețuri și câte o categorie de servicii pe pagină.",
+          "grid": "Cardurile pe categorii grupează toate serviciile cu durate, prețuri și opțiune de programare."
+        },
+        "locations": {
+          "panorama": "O prezentare pe toată lățimea, cu câte o locație pe rând.",
+          "showcase": "O locație prezentată amplu, iar celelalte într-un index numerotat.",
+          "cards": "Câte o locație pe slide, într-un Bento editorial, cu navigare Înainte și Înapoi.",
+          "atlas": "File pentru locații deasupra unei fotografii ample și a unui panou cu detalii de vizitare."
+        },
+        "gallery": {
+          "bento": "Dale de dimensiuni mixte, aranjate compact.",
+          "carousel": "Un carusel orizontal lent.",
+          "masonry": "Coloane de fotografii dispuse la înălțimi diferite.",
+          "index": "Un perete foto fluid care mărește imaginea selectată pe loc.",
+          "fan": "Un perete curbat de fotografii pe care vizitatorii îl pot parcurge prin glisare."
+        },
+        "team": {
+          "portraits": "O grilă lookbook cu portrete mari ale echipei.",
+          "roster": "O listă editorială numerotată a echipei, cu evaluări.",
+          "columns": "Un rând de uși care se extind — echipa unei locații pe rând.",
+          "carousel": "Un carusel central pe care vizitatorii îl glisează."
+        },
+        "testimonials": {
+          "default": "O recenzie principală și un rezumat al evaluărilor.",
+          "wall": "Mai multe coloane cu recenzii ale clienților.",
+          "marquee": "Două rânduri de recenzii în mișcare.",
+          "spotlight": "Câte o recenzie pe rând, cu navigare simplă.",
+          "deck": "Un teanc de recenzii pe care vizitatorii îl pot parcurge."
+        },
+        "faq": {
+          "grid": "Toate răspunsurile rămân deschise într-o grilă de carduri cu două coloane.",
+          "accordion": "Un acordeon delimitat de linii fine, cu câte un singur răspuns deschis.",
+          "index": "Un index de întrebări cu un panou fix pentru răspuns, care devine acordeon pe ecrane mai mici."
+        },
+        "footer": {
+          "directory": "Coloane întunecate de sitemap, cu un indicator de stare live.",
+          "editorial": "Coloane deasupra unui nume de brand supradimensionat.",
+          "signature": "Un nume de brand uriaș deasupra unui newsletter și a coloanelor de linkuri.",
+          "masthead": "Coloane întunecate de sitemap sub un nume de brand colosal.",
+          "marque": "Liste-index monospace grej deasupra unui semn tipografic colosal."
+        }
+      }
+    }
+  }
+}

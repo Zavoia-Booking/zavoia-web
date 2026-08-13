@@ -57,6 +57,40 @@ export const post = defineType({
       type: "localeBlockContent",
     }),
     defineField({
+      name: "faq",
+      title: "FAQ",
+      type: "array",
+      description:
+        "Questions and answers related to this post. Shown at the end of the article and emitted as FAQPage structured data for SEO.",
+      of: [
+        {
+          type: "object",
+          name: "faqItem",
+          title: "FAQ item",
+          fields: [
+            defineField({
+              name: "question",
+              title: "Question",
+              type: "localeString",
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: "answer",
+              title: "Answer",
+              type: "localeText",
+              validation: (Rule) => Rule.required(),
+            }),
+          ],
+          preview: {
+            select: { questionEn: "question.en", questionRo: "question.ro" },
+            prepare({ questionEn, questionRo }) {
+              return { title: questionEn || questionRo || "Untitled question" };
+            },
+          },
+        },
+      ],
+    }),
+    defineField({
       name: "publishedAt",
       title: "Published at",
       type: "datetime",

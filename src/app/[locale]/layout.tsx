@@ -8,7 +8,7 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { ToastProvider, ToastHost } from "@/components/ui";
 import { SearchOverlayProvider } from "@/components/search/search-overlay-provider";
-import { SiteHeader } from "@/components/shell/site-header";
+import { ConditionalHeader } from "@/components/shell/conditional-header";
 import { ConditionalFooter } from "@/components/shell/conditional-footer";
 import { MobileTabs } from "@/components/shell/mobile-tabs";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
@@ -67,7 +67,7 @@ export default async function LocaleRootLayout({ children, params }: Props) {
                   toast) so the nav pill, home hero and search page can all open
                   it via useSearchOverlay(). It renders its own <SearchOverlay/>. */}
               <SearchOverlayProvider>
-                <SiteHeader locale={locale} />
+                <ConditionalHeader locale={locale} />
                 {/* Each Phase-1 page renders its own <main> landmark, so this
                     content region is a plain wrapper to avoid nesting two
                     <main> elements (invalid HTML / duplicate landmark). */}

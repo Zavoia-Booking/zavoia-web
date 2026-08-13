@@ -289,7 +289,7 @@ export function RegisterForm({
             >
               {dict.terms.agreementPrefix}{" "}
               <a
-                href={localeHref(locale, "legal", "terms")}
+                href={localeHref(locale, "terms", "customer-terms")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-primary underline-offset-4 hover:underline"
@@ -298,7 +298,7 @@ export function RegisterForm({
               </a>
               ,{" "}
               <a
-                href={localeHref(locale, "legal", "cookies")}
+                href={localeHref(locale, "terms", "cookie-policy")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-primary underline-offset-4 hover:underline"
@@ -307,7 +307,7 @@ export function RegisterForm({
               </a>{" "}
               {dict.terms.and}{" "}
               <a
-                href={localeHref(locale, "legal", "privacy")}
+                href={localeHref(locale, "terms", "privacy-policy")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-primary underline-offset-4 hover:underline"

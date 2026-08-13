@@ -88,10 +88,11 @@ function fmtIsoWhen(iso: string, locale: string, timeZone: string): string {
  * (web-appointment-actions.jsx:170-227) but driven by the LIVE booking calendar
  * + slots endpoints, replicating BookingDrawer's date-strip → grouped-slot UX.
  *
- * Service-selection derivation: the appointment exposes only `service.id`
- * (numeric) and `bundle.uuid` (NO numeric id). `ServiceSelection.bundleId` is
- * numeric, so a bundle (or otherwise non-service) appointment can NOT be
- * rescheduled from detail data alone — we render a graceful inline message
+ * Service-selection derivation: single-service appointments expose a numeric
+ * `service.id`; composite (merged same-staff run) appointments carry numeric
+ * per-item ids in `items` (built from `bookingItemsSnapshot`), so both drive
+ * the availability endpoints. Plain BUNDLE appointments expose only
+ * `bundle.uuid` (no numeric id) — those render a graceful inline message
  * instead of sending a malformed body.
  *
  * Reschedule window note: API window is in MINUTES → converted to hours.
@@ -112,25 +113,35 @@ export function RescheduleModal({
 
   const mini = apptMiniProps(appointment, dict.common.photo);
 
-  // Only a single-service appointment with a numeric serviceId + numeric ids is
-  // reschedulable from detail data. Bundles expose only a uuid → not supported.
   const serviceId = appointment.service?.id ?? null;
   const businessId = appointment.business?.id ?? null;
   const locationId = appointment.location?.id ?? null;
   const pinnedStaffId = primaryStaff(appointment)?.teamMemberId;
+  const items = appointment.items;
+
+  // Reschedulable when the availability request can be rebuilt: a numeric
+  // serviceId (single-service), or numeric ids on every breakdown item
+  // (composite run). Plain bundles only expose a uuid → null → unsupported.
+  const services: ServiceSelection[] | null = useMemo(() => {
+    const staff = pinnedStaffId != null ? { teamMemberId: pinnedStaffId } : {};
+    if (serviceId != null) return [{ serviceId, ...staff }];
+    if (!items?.length) return null;
+    const selections: ServiceSelection[] = [];
+    for (const item of items) {
+      if (item.type === "bundle") {
+        if (typeof item.bundleId !== "number") return null;
+        selections.push({ bundleId: item.bundleId, ...staff });
+      } else if (typeof item.serviceId === "number") {
+        selections.push({ serviceId: item.serviceId, ...staff });
+      } else {
+        return null;
+      }
+    }
+    return selections;
+  }, [serviceId, items, pinnedStaffId]);
 
   const supported =
-    serviceId != null && businessId != null && locationId != null;
-
-  const services: ServiceSelection[] | null = useMemo(() => {
-    if (!supported || serviceId == null) return null;
-    return [
-      {
-        serviceId,
-        ...(pinnedStaffId != null ? { teamMemberId: pinnedStaffId } : {}),
-      },
-    ];
-  }, [supported, serviceId, pinnedStaffId]);
+    services != null && businessId != null && locationId != null;
 
   // ── Flow state ──
   const [calendar, setCalendar] = useState<BookingCalendar | null>(null);
@@ -317,7 +328,8 @@ export function RescheduleModal({
       <ApptMini {...mini} />
 
       {!supported ? (
-        // Bundle / non-service appointment: no numeric serviceId derivable.
+        // Bundle appointment: no numeric id derivable. Retrying can't help, so
+        // say so honestly instead of a generic "something went wrong".
         <p
           className="txt-pretty"
           style={{
@@ -327,7 +339,7 @@ export function RescheduleModal({
             color: "var(--c-600)",
           }}
         >
-          {tb.errors.generic}
+          {t.unsupported}
         </p>
       ) : (
         <>

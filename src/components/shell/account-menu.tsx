@@ -68,6 +68,25 @@ export function AccountMenu({ locale, onClose }: Props) {
     </Link>
   );
 
+  // Web Studio is the one promoted row in the menu: it carries the brand accent
+  // (icon --p-600, label --p-700 per the terracotta-as-text rule) so it reads as
+  // an offer rather than another destination.
+  const accentRow = (
+    icon: IconName,
+    label: string,
+    ...segments: string[]
+  ) => (
+    <Link
+      href={localeHref(locale, ...segments)}
+      className="tap zw-hover-row"
+      onClick={onClose}
+      style={{ ...rowStyle, color: "var(--p-700)", fontWeight: 600 }}
+    >
+      <Icon name={icon} size={16} color="var(--p-600)" />
+      {label}
+    </Link>
+  );
+
   const onLogout = async () => {
     onClose();
     try {
@@ -187,7 +206,8 @@ export function AccountMenu({ locale, onClose }: Props) {
 
       <div className="zv-hair" style={{ height: 1 }} />
       <div style={{ padding: "8px 0" }}>
-        {linkRow("globe", t.forBusiness, "for-business")}
+        {linkRow("building", t.forBusiness, "for-business")}
+        {accentRow("globe", t.webStudio, "web-studio")}
         {linkRow("wallet", t.pricing, "pricing")}
       </div>
 

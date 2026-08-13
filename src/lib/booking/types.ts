@@ -44,11 +44,10 @@ export interface OpenBookingPayload {
   timezone: string;
   /** ISO 4217 currency code (businessCurrency). */
   currency: string;
-  /** The location's real cancellation/reschedule policy — the only authoritative
-   *  source for whether the drawer may claim "free cancellation"/"free
-   *  reschedule" and what the real window is. `null` when the location has no
-   *  policy configured; the drawer must never fabricate a fallback window in
-   *  that case. */
+  /** The location's real cancellation/reschedule policy. `null` when the
+   *  location has no policy configured. Not currently surfaced in the drawer
+   *  UI (cancellation-claim copy was removed); kept so policy-aware behavior
+   *  can be reintroduced without re-plumbing every call site. */
   bookingPolicy: BookingPolicy | null;
   /** Pre-selected items; MAY be empty — an empty list makes the drawer open on
    *  its own in-drawer "choose services" step (see `catalog`). */

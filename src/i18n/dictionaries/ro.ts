@@ -155,6 +155,7 @@ export const ro: Dictionary = {
     prev: "Anterior",
     next: "Următor",
     inThisArticle: "În acest articol",
+    faqTitle: "Întrebări frecvente",
     keepReading: "Continuă lectura",
     relatedStories: "Articole similare",
     allStories: "Toate articolele",
@@ -443,13 +444,9 @@ export const ro: Dictionary = {
       marketingCaption: "Primește noutăți despre promoții, oferte și funcții noi.",
       reminders: "Memento-uri",
       remindersCaption: "Primește memento-uri despre programările tale viitoare.",
-      push: "Notificări push",
-      pushCaption: "Primește notificări pe dispozitiv",
+      push: "Push",
       sms: "SMS",
-      smsCaption: "Primește mesaje text",
       email: "Email",
-      emailCaption: "Primește emailuri promoționale",
-      reminderEmailCaption: "Primește memento-uri pe email",
     },
     password: {
       current: "Parola actuală",
@@ -642,19 +639,14 @@ export const ro: Dictionary = {
     bookRailEmpty:
       "Alege unul sau mai multe servicii din listă — sau începe direct și alege în timpul rezervării.",
     totalLabel: "total",
-    freeCancellation: "Anulare gratuită cu până la {window} înainte",
-    cancellationAnytime: "Anulare gratuită oricând",
-    noFreeCancellation: "Se aplică politica de anulare",
-    cancellationWindowDay: "{count} zi",
-    cancellationWindowDays: "{count} zile",
     loadMoreReviews: "Vezi mai multe recenzii",
     reviewsCount: "{count} recenzii",
     reviewsCountOne: "{count} recenzie",
     onlineBookingUnavailable: "Rezervarea online nu este disponibilă",
-    noServices: "Niciun serviciu listat încă.",
     closed: "Închis",
     call: "Sună",
     directions: "Indicații",
+    seeOnMap: "Vezi pe hartă",
     share: "Distribuie",
     shareCopied: "Link copiat",
     close: "Închide",
@@ -666,6 +658,32 @@ export const ro: Dictionary = {
       "Este posibil să se fi închis sau să se fi mutat. Mulți alți profesioniști de încredere sunt la un click distanță.",
     backToExplore: "Înapoi la Explorare",
     browseBusinesses: "Răsfoiește businessuri",
+    memberStatYears: "{count} ani",
+    memberStatYearsOne: "1 an",
+    memberStatYearsLabel: "experiență",
+    memberStatVisitsLabel: "vizite",
+    memberStatSinceLabel: "pe Zavoia",
+    memberSpeaks: "Limbi vorbite",
+    memberSpecialties: "Specializări",
+    memberPortfolio: "Portofoliu",
+    memberShowAllReviews: "Arată toate cele {count} recenzii",
+    memberSelectPrompt: "Alege un serviciu pentru programare",
+    memberBookWith: "Programează-te la {name}",
+    memberLoadError: "Profilul complet nu a putut fi încărcat.",
+    memberRetry: "Încearcă din nou",
+    memberPhotoAria: "Vezi fotografia",
+    memberClosePhotoAria: "Închide fotografia",
+    memberChooseVenue: "Unde te programezi",
+    memberNoBooking:
+      "Programarea online nu este disponibilă încă pentru acest profesionist.",
+    memberChecking: "Verificăm disponibilitatea…",
+    reviewsEmptyTitle: "Încă fără recenzii",
+    reviewsEmptyBody:
+      "Fii primul care se programează și își împărtășește experiența.",
+    servicesEmptyTitle: "Încă fără servicii",
+    servicesEmptyBody:
+      "Această locație nu și-a publicat încă meniul. Încearcă să o contactezi telefonic.",
+    aboutBrand: "Brand",
   },
   brandPage: {
     locationsTitle: "Alege o locație",
@@ -708,24 +726,40 @@ export const ro: Dictionary = {
     viewAppointment: "Vezi programarea",
     done: "Gata",
     close: "Închide",
-    cancellationDeadline: "Anulare gratuită până pe {date}.",
-    rescheduleDeadline: "Reprogramare gratuită până pe {date}.",
-    cancellationRescheduleDeadline: "Anulează sau reprogramează gratuit până pe {date}.",
-    cancellationAnytime: "Anulare gratuită oricând.",
-    rescheduleAnytime: "Reprogramare gratuită oricând.",
-    cancellationRescheduleAnytime: "Anulează sau reprogramează gratuit oricând.",
-    noFreeCancellationOrReschedule: "Se aplică politica de anulare și reprogramare.",
-    noFreeCancellation: "Se aplică politica de anulare.",
-    noFreeReschedule: "Se aplică politica de reprogramare.",
-    freeCancellationTitle: "Anulare gratuită",
-    rescheduleTitle: "Reprogramare gratuită",
     payAtVenueTitle: "Plătești la fața locului",
     payAtVenueNote: "Nimic de plătit acum — achiți direct la {business} după vizită.",
+    blockedScreen: {
+      businessTitle: "Rezervarea online nu este disponibilă",
+      businessBody:
+        "Acest local nu mai poate fi rezervat online. Este posibil ca listarea lui să se fi schimbat de la ultima ta vizită.",
+      locationTitle: "Locație indisponibilă",
+      locationBody:
+        "Această locație nu mai poate fi rezervată online. Este posibil să fi fost retrasă de pe marketplace.",
+      serviceTitle: "Serviciul nu mai este oferit",
+      serviceBody:
+        "Se pare că „{service}” nu mai este oferit la acest local. Poți răsfoi serviciile actuale în schimb.",
+      serviceBodyGeneric:
+        "Unul dintre serviciile selectate nu mai este oferit la acest local. Poți răsfoi serviciile actuale în schimb.",
+      noStaffTitle: "Niciun profesionist disponibil",
+      noStaffBody:
+        "Momentan niciun profesionist nu oferă serviciile selectate la acest local.",
+      staffPinTitle: "Profesionist indisponibil",
+      staffPinBody:
+        "Profesionistul ales nu mai oferă acest serviciu la acest local.",
+      anyProfessional: "Rezervă cu orice profesionist",
+      browseServices: "Vezi serviciile",
+    },
     back: "Înapoi",
     retry: "Încearcă din nou",
     loading: "Se încarcă…",
     loadError: "Nu am putut încărca disponibilitatea. Te rugăm încearcă din nou.",
     rebookError: "Unele servicii s-ar putea să se fi schimbat — verifică meniul pentru a rezerva din nou.",
+    rebookServiceGone:
+      "„{service}” nu mai este oferit la acest local — iată meniul actual.",
+    rebookServicesGone:
+      "Serviciile rezervate nu mai sunt oferite la acest local — iată meniul actual.",
+    rebookPartialGone:
+      "„{service}” nu mai este oferit la acest local și a fost omis.",
     errors: {
       tooSoon: "Acea oră este prea curând. Te rugăm alege o dată mai târzie.",
       tooFar: "Acea dată este prea îndepărtată. Te rugăm alege o dată mai apropiată.",
@@ -963,9 +997,9 @@ export const ro: Dictionary = {
     cookieSettings: "Cookie-uri",
   },
   consent: {
-    title: "Cookie-uri și analiză",
-    body: "Folosim Google Analytics ca să înțelegem cum este folosit Zavoia și să-l îmbunătățim. Analiza rulează doar dacă accepți — cookie-urile esențiale (precum autentificarea) funcționează oricum.",
-    policyLink: "Politica de cookie-uri",
+    title: "Consimțământ cookie-uri",
+    body: "Folosim cookie-uri pentru a ne ajuta să livrăm și să îmbunătățim serviciile. Folosind acest site, ești de acord cu",
+    policyLink: "politica noastră de cookie-uri",
     accept: "Accept",
     reject: "Refuz",
     close: "Închide",
@@ -999,6 +1033,7 @@ export const ro: Dictionary = {
     journal: "Jurnalul",
     helpSupport: "Ajutor și asistență",
     forBusiness: "Pentru business",
+    webStudio: "Web Studio",
     pricing: "Prețuri",
     logout: "Deconectare",
     loggedOut: "Te-ai deconectat",
@@ -1024,6 +1059,195 @@ export const ro: Dictionary = {
   },
   breadcrumbHome: "Acasă",
   localeNames: { ro: "Română", en: "English" },
+  tryStudio: {
+    pageTitle: "Încearcă Web Studio — amestecă un site adevărat",
+    pageDescription:
+      "Apasă amestecă și vezi cum un site Zavoia adevărat își schimbă aranjarea, culoarea și litera în fața ta. Blochează ce îți place, re-amestecă restul.",
+    mark: "Zavoia Web Studio",
+    demo: "Demo",
+    looks: "{n} variante",
+    hint: "Un site Zavoia pentru un salon demo. Apasă Amestecă.",
+    shuffle: "Amestecă",
+    cta: "{days} zile gratis",
+    locksLabel: "Apasă pentru a păstra",
+    dimension: { layout: "Aranjare", colour: "Culoare", type: "Font" },
+    lock: {
+      layout: "Păstrează aranjarea",
+      colour: "Păstrează culoarea",
+      type: "Păstrează fontul",
+    },
+    locked: {
+      layout: "Aranjare păstrată — apasă pentru deblocare",
+      colour: "Culoare păstrată — apasă pentru deblocare",
+      type: "Font păstrat — apasă pentru deblocare",
+    },
+  },
+  webStudio: {
+    pageTitle: "Web Studio — site-ul pentru care afacerea ta are deja toate piesele",
+    pageDescription:
+      "Transformă prețurile, programul, echipa și fotografiile pe care le ții deja în Zavoia într-un site adevărat. Douăsprezece secțiuni, patruzeci și șapte de stiluri, publicat într-o după-amiază.",
+    cover: {
+      kicker: "Web Studio · Catalog de piese",
+      titleA: "Un site",
+      titleB: "care îți știe",
+      titleC: "deja prețurile.",
+      sub: "Serviciile, programul, echipa, fotografiile și recenziile tale sunt deja în Zavoia. Web Studio le transformă într-un site adevărat — alegi stiluri, nu construiești pagini.",
+      ctaPrimary: "Începe perioada de probă de {days} zile",
+      ctaSecondary: "Deschide catalogul",
+      plateCaption: "Randat live în această pagină",
+      liveBadge: "Site live",
+      demoBadge: "Demonstrație",
+    },
+    spec: {
+      sections: "Secțiuni",
+      styles: "Stiluri",
+      fonts: "Fonturi de titlu",
+      accents: "Culori de brand",
+    },
+    wired: {
+      kicker: "Partea incorectă față de ceilalți",
+      title: "Orice alt constructor pornește de la o pagină goală. Al tău pornește de la afacerea ta.",
+      sub: "Ții deja prețurile, programul, echipa și fotografiile în Zavoia, pentru că de acolo îți vin programările. Web Studio le citește. Nimic de rescris, nimic de ținut adevărat în două locuri.",
+      ledgerTitle: "Deja în Zavoia ta",
+      rows: {
+        services: "Servicii și prețuri",
+        hours: "Program de lucru",
+        team: "Membri ai echipei",
+        locations: "Locații",
+        photos: "Fotografii din portofoliu",
+        reviews: "Recenzii de la clienți",
+      },
+      perWeek: "{n} zile",
+      note: "Tot, pe site. Scris o singură dată.",
+      plateCaption: "Aceleași servicii, randate",
+      frozenTitle: "Aranjarea rămâne pe loc",
+      frozenBody:
+        "Publicarea îngheață designul pe care l-ai aprobat. Nimic nu se mișcă sub clienții tăi până nu publici din nou.",
+      liveTitle: "Prețurile rămân la zi",
+      liveBody:
+        "Schimbi un preț sau adaugi un coleg în Zavoia și site-ul publicat le arată. Fără a doua editare, fără un meniu care se învechește pe tăcute.",
+      oneTitle: "O afacere, un singur adevăr",
+      oneBody:
+        "Site-ul, fluxul de programări și profilul din marketplace citesc aceeași afacere. Nu au cum să se contrazică.",
+    },
+    stage: {
+      kicker: "Catalogul",
+      title: "Douăsprezece secțiuni. Patruzeci și șapte de stiluri. Alegi, nu construiești.",
+      sub: "Fiecare planșă de mai jos este chiar motorul de randare care rulează în această pagină — nu o captură de ecran. Schimbă stilul și vezi exact ce ar primi clienții tăi.",
+      indexLabel: "Secțiuni",
+      stylesLabel: "Stiluri pentru această secțiune",
+      tryCta: "Amestecă un site întreg",
+      ofStyles: "Stilul {n} din {total}",
+      demoNote: "Afacere demonstrativă",
+    },
+    type: {
+      kicker: "Literă și culoare",
+      title: "Două butoane. Nimic ce poți strica.",
+      sub: "Alegi un font de titlu și o culoare de brand. Spațierea, contrastul și felul în care se pliază pe telefon sunt deja proiectate — iar fiecare specimen din pagină se re-randează pe măsură ce alegi.",
+      fontsLabel: "Fonturi de titlu",
+      accentsLabel: "Culori de brand",
+      inUse: "În uz",
+      note: "Toate cele {total} culori și toate cele 14 fonturi vin cu orice abonament — niciunul nu costă extra.",
+      hint: "Alege un font și o culoare, apoi urcă înapoi — specimenele de mai sus se randează deja în alegerea ta.",
+    },
+    ships: {
+      kicker: "Cum ajunge live",
+      title: "Început dimineața, live după-amiaza.",
+      steps: [
+        {
+          title: "Pornești secțiunile",
+          body: "Începi de la o pagină completă, nu de la o pânză goală. Închizi secțiuni, le tragi în ordinea dorită, iar pagina rămâne proiectată tot timpul.",
+        },
+        {
+          title: "Alegi stilurile",
+          body: "Fiecare secțiune are propriul set de design-uri. Le vezi pe toate cu serviciile și fotografiile tale reale — niciodată cu un salon de umplutură.",
+        },
+        {
+          title: "Publici",
+          body: "Un singur buton. Site-ul urcă live la adresa ta Zavoia și rămâne exact așa cum l-ai aprobat.",
+        },
+      ],
+      gets: [
+        {
+          title: "Corect pe telefon",
+          body: "Fiecare stil este proiectat pentru ecranul pe care majoritatea clienților îl vor deschide de fapt.",
+        },
+        {
+          title: "Rapid din start",
+          body: "Fără balast de page builder, fără pluginuri de actualizat, fără nimic de reparat la unsprezece noaptea.",
+        },
+        {
+          title: "Ușor de găsit",
+          body: "Titluri, descrieri și structură reale — exact lucrurile pe care motoarele de căutare chiar le citesc.",
+        },
+        {
+          title: "Adresa ta",
+          body: "Site-ul publicat stă pe zavoia.com, sub numele afacerii tale.",
+        },
+      ],
+    },
+    price: {
+      kicker: "Cât costă",
+      title: "Construiești tot gratuit. Plătești când publici.",
+      planLabel: "Abonament pentru publicare",
+      planName: "Zavoia Business\u00A0· Plus",
+      planBody:
+        "Orice abonament Zavoia îți permite să construiești, să previzualizezi și să salvezi tot site-ul. Punerea lui live este pasul Plus — așa vezi produsul finit înainte să decizi.",
+      placeholderLabel: "Preț de confirmat",
+      placeholderBody:
+        "Prețul pentru Plus nu este încă publicat. Abonamentul standard Zavoia Business este {base} per membru al echipei care poate fi programat, pe lună.",
+      bullets: [
+        "Construiești, previzualizezi și salvezi cu orice abonament",
+        "Editări și republicări nelimitate",
+        "Un abonament expirat suspendă site-ul — nu îl șterge niciodată",
+        "Revine instant când abonamentul e din nou activ",
+      ],
+      stylesLabel: "Stiluri premium",
+      stylesTitle: "De la {min}, o singură dată. Ale tale definitiv.",
+      stylesBody:
+        "Fiecare secțiune include deja un stil proiectat. Vrei hero-ul cinematic, banda de recenzii în mișcare sau footer-ul editorial? Îl deblochezi o dată și rămâne deblocat — fără abonament peste abonament.",
+      rowIncluded: "Stiluri incluse",
+      rowIncludedV: "{n} — unul per secțiune",
+      rowPremium: "Stiluri premium",
+      rowPremiumV: "{n} · {range} o dată",
+      rowFonts: "Fonturi de titlu",
+      rowAllIncluded: "Toate cele {n} incluse",
+      rowAccents: "Culori de brand",
+      pricingLink: "Vezi toate prețurile Zavoia",
+    },
+    faq: {
+      kicker: "Întrebări",
+      title: "Ce întreabă proprietarii înainte să construiască",
+      items: [
+        {
+          q: "Trebuie să mă pricep la site-uri?",
+          a: "Nu. Nu ai nicio pagină de aranjat, nicio temă de instalat și niciun cod nicăieri. Pornești secțiuni, alegi un stil pentru fiecare și apeși publică.",
+        },
+        {
+          q: "Ce se întâmplă când schimb un preț?",
+          a: "Site-ul publicat îl citește live. Schimbi prețul în Zavoia și site-ul îl arată pe cel nou — iar aranjarea aprobată de tine rămâne exact aceeași.",
+        },
+        {
+          q: "Pot să-l văd terminat înainte să plătesc publicarea?",
+          a: "Da, exact asta e ideea. Construirea, previzualizarea și salvarea întregului site sunt incluse în orice abonament; publicarea lui pe web este pasul cu plată.",
+        },
+        {
+          q: "Am deja un site. Merită?",
+          a: "Păstrează-l pe cel actual. Majoritatea proprietarilor folosesc Web Studio ca pagina spre care trimit efectiv oamenii — cea care are mereu dreptate despre prețuri, program și cine lucrează.",
+        },
+        {
+          q: "Ce se întâmplă dacă renunț?",
+          a: "Site-ul este suspendat, nu șters. Tot ce ai construit rămâne pe loc și revine în momentul în care abonamentul e din nou activ — fără reconstruit, fără republicat.",
+        },
+      ],
+    },
+    close: {
+      kicker: "E rândul tău",
+      title: "Site-ul pentru care afacerea ta are deja toate piesele.",
+      sub: "Începe perioada de probă, deschide Web Studio și vezi-ți propriile prețuri într-o pagină adevărată în zece minute.",
+      secondary: "Înapoi la catalog",
+    },
+  },
   forBusiness: {
     pageTitle: "Zavoia pentru business — agenda ta, plină",
     pageDescription:
@@ -1051,7 +1275,7 @@ export const ro: Dictionary = {
       pickTime: "Alege o oră · Mar 16 Dec",
       times: ["14:00", "14:30", "15:00", "15:30", "16:30"],
       confirm: "Confirmă · Balayage + tonifiere",
-      footnote: "Plătești la salon · anulare gratuită",
+      footnote: "Plătești la salon",
     },
     industries: {
       kicker: "Pentru orice serviciu local",
@@ -1477,7 +1701,6 @@ export const ro: Dictionary = {
     cancelAppointment: "Anulează programarea",
     youMissedAppointment: "Ai ratat această programare",
     cancelledTitle: "Anulată",
-    freeCancellationUpTo: "Anulare gratuită cu până la {n}h înainte",
     bookedOn: "Rezervată pe {date}",
     relative: {
       inProgress: "În curs",
@@ -1605,9 +1828,9 @@ export const ro: Dictionary = {
     goodToKnow: {
       title: "Bine de știut",
       items: [
-        { label: "Politica de anulare", href: ["legal", "cancellation"] },
+        { label: "Politica de anulare", href: ["terms", "booking-policy"] },
         { label: "Listează-ți businessul", href: ["for-business"] },
-        { label: "Politica de confidențialitate", href: ["legal", "privacy"] },
+        { label: "Politica de confidențialitate", href: ["terms", "privacy-policy"] },
       ],
     },
     report: {
@@ -1659,6 +1882,8 @@ export const ro: Dictionary = {
       confirm: "Confirmă noua oră",
       successToast: "Reprogramat la {when}",
       error: "Nu am putut reprograma. Te rugăm să încerci din nou.",
+      unsupported:
+        "Această programare nu poate fi reprogramată online. Contactează locația pentru a schimba ora.",
     },
     review: {
       titleNew: "Cum a fost?",

@@ -21,6 +21,7 @@ const POST_DETAIL_FIELDS = `
   excerpt,
   body,
   coverImage,
+  faq,
   publishedAt,
   seo
 `;
