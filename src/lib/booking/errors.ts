@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/api/http";
  */
 export type BookingBlockKind =
   | "business"
+  | "booking-off"
   | "location"
   | "service"
   | "no-staff"
@@ -24,7 +25,10 @@ export interface BookingBlock {
 const CODE_TO_KIND: Record<string, BookingBlockKind> = {
   "CUSTOMER_BOOKING.E01": "business", // business not found
   "CUSTOMER_BOOKING.E02": "business", // business off marketplace
-  "CUSTOMER_BOOKING.E14": "business", // online booking disabled
+  // Kept separate from E01/E02: the venue is perfectly present on the
+  // marketplace and simply doesn't take online bookings, so it must NOT read
+  // like a delisted listing (or like our platform is broken).
+  "CUSTOMER_BOOKING.E14": "booking-off", // online booking disabled by the business
   "CUSTOMER_BOOKING.E03": "location", // location not found
   "CUSTOMER_BOOKING.E04": "location", // location off marketplace
   "CUSTOMER_BOOKING.E05": "service", // service not found

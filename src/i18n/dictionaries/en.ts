@@ -646,6 +646,7 @@ export const en: {
     fullyBookedDay: string;
     chooseTime: string;
     anyAvailable: string;
+    staffChoiceRequired: string;
     staffLabel: string;
     serviceCount: string;
     dateLabel: string;
@@ -665,6 +666,8 @@ export const en: {
     blockedScreen: {
       businessTitle: string;
       businessBody: string;
+      bookingOffTitle: string;
+      bookingOffBody: string;
       locationTitle: string;
       locationBody: string;
       serviceTitle: string;
@@ -1302,7 +1305,11 @@ export const en: {
     directions: string;
     reschedule: string;
     rescheduleUnavailable: string;
+    rescheduleWindowPassed: string;
+    contactBusinessDirectly: string;
     cancelAppointment: string;
+    cancelUnavailable: string;
+    cancelWindowPassed: string;
     youMissedAppointment: string;
     cancelledTitle: string;
     bookedOn: string;
@@ -1387,9 +1394,12 @@ export const en: {
       title: string;
       keep: string;
       confirm: string;
-      windowNote: string;
       successToast: string;
       error: string;
+      windowPassed: string;
+      notAllowed: string;
+      alreadyCancelled: string;
+      noLongerCancellable: string;
     };
     reschedule: {
       title: string;
@@ -1401,6 +1411,10 @@ export const en: {
       confirm: string;
       successToast: string;
       error: string;
+      windowPassed: string;
+      notAllowed: string;
+      alreadyStarted: string;
+      noLongerReschedulable: string;
       unsupported: string;
     };
     review: {
@@ -2059,7 +2073,8 @@ export const en: {
     loadMoreReviews: "Show more reviews",
     reviewsCount: "{count} reviews",
     reviewsCountOne: "{count} review",
-    onlineBookingUnavailable: "Online booking unavailable",
+    onlineBookingUnavailable:
+      "This business doesn’t take online bookings — call them to book or ask about availability",
     closed: "Closed",
     call: "Call",
     directions: "Directions",
@@ -2127,6 +2142,8 @@ export const en: {
     fullyBookedDay: "Fully booked this day — try another date.",
     chooseTime: "Choose a time to continue.",
     anyAvailable: "Any available",
+    staffChoiceRequired:
+      "Price and time differ by professional — choose who you’d like.",
     staffLabel: "Professional",
     serviceCount: "{count} services · {duration}",
     dateLabel: "Date",
@@ -2147,6 +2164,9 @@ export const en: {
       businessTitle: "Online booking unavailable",
       businessBody:
         "This venue can no longer be booked online. Its listing may have changed since your last visit.",
+      bookingOffTitle: "This business books by phone",
+      bookingOffBody:
+        "They’ve turned off online booking for now — everything else here is up to date. Call the venue to book or ask about availability.",
       locationTitle: "Location unavailable",
       locationBody:
         "This location can no longer be booked online. It may have been removed from the marketplace.",
@@ -3111,7 +3131,11 @@ export const en: {
     directions: "Directions",
     reschedule: "Reschedule",
     rescheduleUnavailable: "Reschedule unavailable",
+    rescheduleWindowPassed: "Online rescheduling window is closed by the business",
+    contactBusinessDirectly: "For urgent matters contact the business directly",
     cancelAppointment: "Cancel appointment",
+    cancelUnavailable: "Cancellation unavailable",
+    cancelWindowPassed: "Online cancellation window is closed by the business",
     youMissedAppointment: "You missed this appointment",
     cancelledTitle: "Cancelled",
     bookedOn: "Booked {date}",
@@ -3278,10 +3302,15 @@ export const en: {
       title: "Cancel this appointment?",
       keep: "Keep it",
       confirm: "Cancel booking",
-      windowNote:
-        "You're within the free window — cancelling now costs nothing. After {hours}h before your slot, the venue's cancellation fee may apply.",
       successToast: "Appointment cancelled",
       error: "We couldn't cancel your appointment. Please try again.",
+      windowPassed:
+        "Online cancellation window is closed by the business. For urgent matters contact the business directly.",
+      notAllowed:
+        "This venue doesn't allow cancelling online. Contact them to cancel.",
+      alreadyCancelled: "This appointment is already cancelled.",
+      noLongerCancellable:
+        "This appointment can no longer be cancelled. Refresh to see its current status.",
     },
     reschedule: {
       title: "Reschedule",
@@ -3293,6 +3322,14 @@ export const en: {
       confirm: "Confirm new time",
       successToast: "Rescheduled to {when}",
       error: "We couldn't reschedule. Please try again.",
+      windowPassed:
+        "Online rescheduling window is closed by the business. For urgent matters contact the business directly.",
+      notAllowed:
+        "This venue doesn't allow rescheduling online. Contact them to change the time.",
+      alreadyStarted:
+        "This appointment has already started, so it can no longer be moved.",
+      noLongerReschedulable:
+        "This appointment can no longer be rescheduled. Refresh to see its current status.",
       unsupported:
         "This appointment can't be rescheduled online. Contact the venue to change the time.",
     },

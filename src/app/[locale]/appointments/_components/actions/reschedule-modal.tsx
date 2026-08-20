@@ -9,7 +9,8 @@ import {
 } from "react";
 import { Button, Icon, Spinner, useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { dictionaries, format } from "@/i18n/dictionaries";
+import type { Locale } from "@/i18n/locales";
 import { ApiError } from "@/lib/api/http";
 import {
   getBookingCalendar,
@@ -81,6 +82,37 @@ function fmtIsoWhen(iso: string, locale: string, timeZone: string): string {
     minute: "2-digit",
     timeZone,
   }).format(new Date(iso));
+}
+
+/**
+ * Turn a namespaced backend error code into copy the customer can act on.
+ * Anything unrecognised falls back to the generic retry line — a wrong specific
+ * message is worse than an honest vague one.
+ */
+function rescheduleErrorMessage(
+  code: string | undefined,
+  t: (typeof dictionaries)[Locale]["appointmentActions"]["reschedule"],
+  bookingErrors: (typeof dictionaries)[Locale]["booking"]["errors"],
+): string {
+  switch (code) {
+    // The notice window lapsed — most likely while this modal sat open.
+    case "APPOINTMENTS.E12":
+      return t.windowPassed;
+    case "APPOINTMENTS.E08":
+      return t.notAllowed;
+    case "APPOINTMENTS.E09":
+      return t.alreadyStarted;
+    case "APPOINTMENTS.E10":
+      return t.noLongerReschedulable;
+    case "MARKETPLACE_BOOKING.E08":
+      return bookingErrors.tooSoon;
+    case "MARKETPLACE_BOOKING.E09":
+      return bookingErrors.tooFar;
+    case "MARKETPLACE_BOOKING.E11":
+      return bookingErrors.outsideHours;
+    default:
+      return t.error;
+  }
 }
 
 /**
@@ -267,14 +299,20 @@ export function RescheduleModal({
       await onChanged?.();
       onClose();
     } catch (e) {
+      // Codes arrive NAMESPACED ("APPOINTMENTS.E12"), and the two namespaces
+      // collide on bare suffixes — APPOINTMENTS.E08 is "reschedule disabled"
+      // while MARKETPLACE_BOOKING.E08 is "too soon". Always match in full.
       const code = e instanceof ApiError ? e.code : undefined;
-      // Slot just taken / no longer available → refetch the day's slots.
-      if ((code === "E10" || code === "E14") && selectedDate) {
+      // Slot just taken / blocked out → refetch the day's slots so the grid is honest.
+      if (
+        (code === "MARKETPLACE_BOOKING.E10" || code === "MARKETPLACE_BOOKING.E14") &&
+        selectedDate
+      ) {
         setSubmitError(tb.errors.slotConflict);
         setSelectedSlot(null);
         void loadSlots(selectedDate);
       } else {
-        setSubmitError(t.error);
+        setSubmitError(rescheduleErrorMessage(code, t, tb.errors));
       }
       setSubmitting(false);
     }

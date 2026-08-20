@@ -642,7 +642,8 @@ export const ro: Dictionary = {
     loadMoreReviews: "Vezi mai multe recenzii",
     reviewsCount: "{count} recenzii",
     reviewsCountOne: "{count} recenzie",
-    onlineBookingUnavailable: "Rezervarea online nu este disponibilă",
+    onlineBookingUnavailable:
+      "Acest business nu acceptă rezervări online — sună-i pentru a rezerva sau pentru disponibilitate",
     closed: "Închis",
     call: "Sună",
     directions: "Indicații",
@@ -712,6 +713,8 @@ export const ro: Dictionary = {
     fullyBookedDay: "Complet rezervat în această zi — încearcă altă dată.",
     chooseTime: "Alege o oră pentru a continua.",
     anyAvailable: "Oricare disponibil",
+    staffChoiceRequired:
+      "Prețul și durata diferă în funcție de profesionist — alege cine îți face serviciul.",
     staffLabel: "Profesionist",
     serviceCount: "{count} servicii · {duration}",
     dateLabel: "Data",
@@ -732,6 +735,9 @@ export const ro: Dictionary = {
       businessTitle: "Rezervarea online nu este disponibilă",
       businessBody:
         "Acest local nu mai poate fi rezervat online. Este posibil ca listarea lui să se fi schimbat de la ultima ta vizită.",
+      bookingOffTitle: "Acest business rezervă prin telefon",
+      bookingOffBody:
+        "A dezactivat momentan rezervarea online — restul informațiilor de aici sunt la zi. Sună locația pentru a rezerva sau pentru disponibilitate.",
       locationTitle: "Locație indisponibilă",
       locationBody:
         "Această locație nu mai poate fi rezervată online. Este posibil să fi fost retrasă de pe marketplace.",
@@ -1698,7 +1704,11 @@ export const ro: Dictionary = {
     directions: "Indicații",
     reschedule: "Reprogramează",
     rescheduleUnavailable: "Reprogramare indisponibilă",
+    rescheduleWindowPassed: "Fereastra de reprogramare online a fost închisă de business",
+    contactBusinessDirectly: "Pentru situații urgente, contactează direct businessul",
     cancelAppointment: "Anulează programarea",
+    cancelUnavailable: "Anulare indisponibilă",
+    cancelWindowPassed: "Fereastra de anulare online a fost închisă de business",
     youMissedAppointment: "Ai ratat această programare",
     cancelledTitle: "Anulată",
     bookedOn: "Rezervată pe {date}",
@@ -1866,10 +1876,15 @@ export const ro: Dictionary = {
       title: "Anulezi această programare?",
       keep: "Păstreaz-o",
       confirm: "Anulează rezervarea",
-      windowNote:
-        "Ești în intervalul gratuit — anularea acum nu costă nimic. După {hours}h înainte de interval, se poate aplica taxa de anulare a locației.",
       successToast: "Programare anulată",
       error: "Nu am putut anula programarea. Te rugăm să încerci din nou.",
+      windowPassed:
+        "Fereastra de anulare online a fost închisă de business. Pentru situații urgente, contactează direct businessul.",
+      notAllowed:
+        "Această locație nu permite anularea online. Contacteaz-o pentru a anula.",
+      alreadyCancelled: "Această programare este deja anulată.",
+      noLongerCancellable:
+        "Această programare nu mai poate fi anulată. Reîmprospătează pentru a vedea starea actuală.",
     },
     reschedule: {
       title: "Reprogramează",
@@ -1882,6 +1897,14 @@ export const ro: Dictionary = {
       confirm: "Confirmă noua oră",
       successToast: "Reprogramat la {when}",
       error: "Nu am putut reprograma. Te rugăm să încerci din nou.",
+      windowPassed:
+        "Fereastra de reprogramare online a fost închisă de business. Pentru situații urgente, contactează direct businessul.",
+      notAllowed:
+        "Această locație nu permite reprogramarea online. Contacteaz-o pentru a schimba ora.",
+      alreadyStarted:
+        "Această programare a început deja, așa că nu mai poate fi mutată.",
+      noLongerReschedulable:
+        "Această programare nu mai poate fi reprogramată. Reîmprospătează pentru a vedea starea actuală.",
       unsupported:
         "Această programare nu poate fi reprogramată online. Contactează locația pentru a schimba ora.",
     },

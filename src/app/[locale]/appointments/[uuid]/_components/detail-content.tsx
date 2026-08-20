@@ -25,6 +25,7 @@ import {
   AppointmentActionsProvider,
   useAppointmentActions,
 } from "../../_components/actions/actions-provider";
+import { canCancel, canReschedule } from "../../_components/actions/shared";
 import {
   AboutCard,
   CloserBand,
@@ -236,12 +237,15 @@ function RailButton({
 function ManageRow({
   icon,
   label,
+  hint,
   danger,
   disabled,
   onClick,
 }: {
   icon: Parameters<typeof Icon>[0]["name"];
   label: string;
+  /** Secondary line under the label — used to point elsewhere when blocked. */
+  hint?: string;
   danger?: boolean;
   disabled?: boolean;
   onClick?: () => void;
@@ -254,7 +258,7 @@ function ManageRow({
       disabled={disabled}
       style={{
         display: "flex",
-        alignItems: "center",
+        alignItems: hint ? "flex-start" : "center",
         gap: 12,
         width: "100%",
         background: "transparent",
@@ -270,8 +274,28 @@ function ManageRow({
         fontFamily: "inherit",
       }}
     >
-      <Icon name={icon} size={16} color={danger ? "var(--s-warning-600)" : "var(--c-600)"} />
-      {label}
+      <Icon
+        name={icon}
+        size={16}
+        color={danger ? "var(--s-warning-600)" : "var(--c-600)"}
+        style={{ flexShrink: 0, marginTop: hint ? 2 : 0 }}
+      />
+      <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+        <span>{label}</span>
+        {hint && (
+          <span
+            className="txt-pretty"
+            style={{
+              fontSize: 12.5,
+              fontWeight: 400,
+              lineHeight: 1.45,
+              color: "var(--c-600)",
+            }}
+          >
+            {hint}
+          </span>
+        )}
+      </span>
     </button>
   );
 }
@@ -319,6 +343,11 @@ function ActionRail({
     appt.reviews.professionals.some((p) => p.canLeaveReview);
 
   const showManage = upcomingOrLive && !cancelled;
+  // Mirror the server-side notice windows so we don't offer an action that the
+  // API will only reject (APPOINTMENTS.E12 / E07). Advisory only — the server
+  // re-checks, and the modals surface it if the window lapses while one is open.
+  const rescheduleAllowed = canReschedule(appt);
+  const cancelAllowed = canCancel(appt);
 
   return (
     <div
@@ -419,15 +448,29 @@ function ActionRail({
           <div style={{ padding: 6 }}>
             <ManageRow
               icon="clock"
-              label={loc?.allowCustomerReschedule ? t.reschedule : t.rescheduleUnavailable}
-              disabled={!loc?.allowCustomerReschedule}
+              label={
+                !loc?.allowCustomerReschedule
+                  ? t.rescheduleUnavailable
+                  : rescheduleAllowed
+                    ? t.reschedule
+                    : t.rescheduleWindowPassed
+              }
+              hint={rescheduleAllowed ? undefined : t.contactBusinessDirectly}
+              disabled={!rescheduleAllowed}
               onClick={() => openReschedule(appt)}
             />
             <ManageRow
               icon="x"
-              label={t.cancelAppointment}
+              label={
+                !loc?.allowCustomerCancellation
+                  ? t.cancelUnavailable
+                  : cancelAllowed
+                    ? t.cancelAppointment
+                    : t.cancelWindowPassed
+              }
+              hint={cancelAllowed ? undefined : t.contactBusinessDirectly}
               danger
-              disabled={!loc?.allowCustomerCancellation}
+              disabled={!cancelAllowed}
               onClick={() => openCancel(appt)}
             />
           </div>

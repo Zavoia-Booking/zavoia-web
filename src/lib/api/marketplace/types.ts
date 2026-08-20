@@ -424,7 +424,12 @@ export interface ServiceCategoryRef {
   color: string;
 }
 
-export interface ServiceSummary {
+/**
+ * A service with exact figures and no staff spread — what endpoints that are
+ * already scoped to one professional (team-member profile) or that price as a
+ * package (bundle line-items) return. Never rendered with a "from" prefix.
+ */
+export interface ServiceBase {
   id: number;
   uuid: string;
   name: string;
@@ -433,6 +438,25 @@ export interface ServiceSummary {
   duration: number;
   categoryId: number | null;
   category: ServiceCategoryRef | null;
+}
+
+/**
+ * A service on a location's menu. `priceAmountMinor`/`duration` are the
+ * location-resolved base (location override → service default); the `*From*`
+ * / `*Varies*` / min–max fields describe the spread across the professionals
+ * who can perform it AT THAT LOCATION, so a list row can say "from €10.00" /
+ * "30m–1h" without holding the whole staff-pricing matrix. Exact per-staffer
+ * figures arrive with the slots response once a professional is picked.
+ */
+export interface ServiceSummary extends ServiceBase {
+  priceFromMinor: number;
+  priceToMinor: number;
+  priceVariesByStaff: boolean;
+  durationMinMinutes: number;
+  durationMaxMinutes: number;
+  durationVariesByStaff: boolean;
+  /** How many active professionals can perform this service at the location. */
+  bookableStaffCount: number;
   locationIds: number[];
 }
 
@@ -445,7 +469,8 @@ export interface BundleSummary {
   priceAmountMinor: number;
   duration: number;
   locationIds: number[];
-  services: Array<Omit<ServiceSummary, "locationIds">>;
+  /** Line-items of the package — priced by the bundle, so no staff spread. */
+  services: ServiceBase[];
 }
 
 export interface ListingTeamMember {
@@ -596,8 +621,9 @@ export interface TeamMemberProfile {
   visitsCompleted: number;
   memberSince: string;
   about: TeamMemberAbout | null;
-  /** Services the member can perform; empty when fetched without a listing context. */
-  services: Array<Omit<ServiceSummary, "locationIds">>;
+  /** Services the member can perform; empty when fetched without a listing context.
+   *  The professional is fixed here, so these are exact figures — never "from". */
+  services: ServiceBase[];
   /** Portfolio images — object rows ({ url, key, … }) from the admin uploader,
    *  but legacy/seed rows may be bare URL strings; consumers must accept both. */
   portfolio: Array<ListingPortfolioImage | string>;

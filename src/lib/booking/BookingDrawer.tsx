@@ -13,7 +13,19 @@ import { Avatar, Button, Icon, Spinner } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
-import { formatDuration, formatMoney } from "@/lib/format/money-time";
+import {
+  formatDuration,
+  formatMoney,
+  formatServiceSpread,
+  type ServiceSpread,
+} from "@/lib/format/money-time";
+import {
+  itemVariesByStaff,
+  needsStaffChoice,
+  resolveSlotItems,
+  staffFiguresForItem,
+  type ResolvedSlotItem,
+} from "@/lib/booking/staff-resolution";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
 import { ApiError } from "@/lib/api/http";
@@ -380,19 +392,33 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     };
   }, [open]);
 
+  // ── The chosen slot re-resolved against the picked professionals. The slots
+  //    response is computed staff-agnostic (longest duration, lowest price), so
+  //    every figure downstream — totals, the footer pill, the review card —
+  //    reads from HERE, not from the raw slot. ──
+  const resolvedItems = useMemo(
+    () =>
+      selectedSlot
+        ? resolveSlotItems(selectedSlot, staffPicks, daySlots?.staffPricing ?? {})
+        : [],
+    [selectedSlot, staffPicks, daySlots],
+  );
+
   // ── Derived: totals from the chosen slot (falls back to the resolved
   //    services list, so the step 1 running total also reads from here). ──
   const totalMinor = useMemo(() => {
-    if (selectedSlot) return selectedSlot.totalPriceAmountMinor;
+    if (selectedSlot) {
+      return resolvedItems.reduce((a, i) => a + i.priceAmountMinor, 0);
+    }
     return resolvedServices.reduce((a, s) => a + s.priceAmountMinor, 0);
-  }, [selectedSlot, resolvedServices]);
+  }, [selectedSlot, resolvedItems, resolvedServices]);
 
   const totalDuration = useMemo(() => {
     if (selectedSlot) {
-      return selectedSlot.items.reduce((a, i) => a + i.durationMinutes, 0);
+      return resolvedItems.reduce((a, i) => a + i.durationMinutes, 0);
     }
     return resolvedServices.reduce((a, s) => a + s.duration, 0);
-  }, [selectedSlot, resolvedServices]);
+  }, [selectedSlot, resolvedItems, resolvedServices]);
 
   // Resolve the staffId for a given slot item index.
   const resolveStaffId = useCallback(
@@ -560,7 +586,14 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     else if (step === 2 && hasStep1) setStep(1);
   };
 
-  const canContinueFromSlot = !!selectedSlot;
+  // A slot alone isn't enough when the available professionals charge different
+  // prices or take different times — the customer must say who.
+  const awaitingStaffChoice = needsStaffChoice(
+    selectedSlot,
+    staffPicks,
+    daySlots?.staffPricing ?? {},
+  );
+  const canContinueFromSlot = !!selectedSlot && !awaitingStaffChoice;
   const canContinueFromServices = picked.length > 0;
 
   // ── Styles shared across steps ──
@@ -827,6 +860,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         selectedSlot={selectedSlot}
                         staffPicks={staffPicks}
                         locale={locale}
+                        currency={currency}
                         timeZone={timeZone}
                         sectionLabel={sectionLabel}
                         t={t}
@@ -846,6 +880,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                     slot={selectedSlot}
                     date={selectedDate}
                     staffPicks={staffPicks}
+                    resolvedItems={resolvedItems}
                     daySlots={daySlots}
                     calendar={calendar}
                     services={services}
@@ -1038,12 +1073,12 @@ function ServicesStep({
               <ServiceCheckRow
                 key={it.id}
                 name={it.name}
-                duration={it.duration}
-                priceAmountMinor={it.priceAmountMinor}
+                service={it}
                 on={isPicked("service", it.id)}
                 onToggle={() => onToggle("service", it.id)}
                 currency={currency}
                 locale={locale}
+                fromLabel={tb.priceFrom}
               />
             ))}
           </div>
@@ -1073,12 +1108,12 @@ function ServicesStep({
               <ServiceCheckRow
                 key={b.id}
                 name={b.name}
-                duration={b.duration}
-                priceAmountMinor={b.priceAmountMinor}
+                service={b}
                 on={isPicked("bundle", b.id)}
                 onToggle={() => onToggle("bundle", b.id)}
                 currency={currency}
                 locale={locale}
+                fromLabel={tb.priceFrom}
               />
             ))}
           </div>
@@ -1097,21 +1132,23 @@ function ServicesStep({
  */
 function ServiceCheckRow({
   name,
-  duration,
-  priceAmountMinor,
+  service,
   on,
   onToggle,
   currency,
   locale,
+  fromLabel,
 }: {
   name: string;
-  duration: number;
-  priceAmountMinor: number;
+  /** Services carry a staff spread; bundles don't, and degrade to exact figures. */
+  service: ServiceSpread;
   on: boolean;
   onToggle: () => void;
   currency: string;
   locale: string;
+  fromLabel: string;
 }) {
+  const meta = formatServiceSpread(service, currency, locale);
   return (
     <button
       type="button"
@@ -1170,8 +1207,11 @@ function ServiceCheckRow({
             marginTop: 3,
           }}
         >
-          {formatDuration(duration)} ·{" "}
-          {formatMoney(priceAmountMinor, currency, locale)}
+          {meta.duration} ·{" "}
+          {meta.priceVaries && (
+            <span style={{ fontWeight: 500 }}>{fromLabel} </span>
+          )}
+          {meta.price}
         </span>
       </span>
     </button>
@@ -1378,6 +1418,7 @@ function SlotStep({
   selectedSlot,
   staffPicks,
   locale,
+  currency,
   timeZone,
   sectionLabel,
   t,
@@ -1392,6 +1433,7 @@ function SlotStep({
   selectedSlot: TimeSlot | null;
   staffPicks: StaffPicks;
   locale: string;
+  currency: string;
   timeZone: string;
   sectionLabel: CSSProperties;
   t: BookingDict;
@@ -1504,6 +1546,10 @@ function SlotStep({
               picked={staffPicks[idx]}
               directory={daySlots.staffDirectory}
               showItemLabel={selectedSlot.items.length > 1}
+              varies={itemVariesByStaff(item, daySlots.staffPricing ?? {})}
+              staffPricing={daySlots.staffPricing ?? {}}
+              currency={currency}
+              locale={locale}
               t={t}
               onPick={onPickStaff}
             />
@@ -1520,6 +1566,10 @@ function StaffPicker({
   picked,
   directory,
   showItemLabel,
+  varies,
+  staffPricing,
+  currency,
+  locale,
   t,
   onPick,
 }: {
@@ -1528,6 +1578,11 @@ function StaffPicker({
   picked: number | undefined;
   directory: BookingDaySlots["staffDirectory"];
   showItemLabel: boolean;
+  /** Professionals differ in price and/or duration for this item. */
+  varies: boolean;
+  staffPricing: BookingDaySlots["staffPricing"];
+  currency: string;
+  locale: string;
   t: BookingDict;
   onPick: (idx: number, staffId: number | null) => void;
 }) {
@@ -1541,41 +1596,58 @@ function StaffPicker({
           fontSize: 13.5,
           fontWeight: 600,
           color: "var(--c-800)",
-          marginBottom: 10,
+          marginBottom: varies ? 4 : 10,
         }}
       >
         {showItemLabel && itemName ? `${t.staffLabel} · ${itemName}` : t.staffLabel}
       </div>
-      <div className="zw-scroll-x" style={{ gap: 10, paddingBottom: 4 }}>
-        {/* Any available */}
-        <button
-          type="button"
-          className="tap"
-          onClick={() => onPick(idx, null)}
-          aria-pressed={isAny}
+      {/* When they differ we can't pick for the customer — say why, so the
+          missing "any available" reads as deliberate rather than broken. */}
+      {varies && (
+        <div
           style={{
-            ...staffChip(isAny),
+            fontSize: 12.5,
+            lineHeight: 1.45,
+            color: "var(--c-600)",
+            marginBottom: 10,
           }}
         >
-          <span
+          {t.staffChoiceRequired}
+        </div>
+      )}
+      <div className="zw-scroll-x" style={{ gap: 10, paddingBottom: 4 }}>
+        {/* Any available — offered only when every professional charges the
+            same and takes the same time, so assigning one is a free choice. */}
+        {!varies && (
+          <button
+            type="button"
+            className="tap"
+            onClick={() => onPick(idx, null)}
+            aria-pressed={isAny}
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              background: isAny ? "rgba(255,255,255,0.16)" : "var(--c-200)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
+              ...staffChip(isAny),
             }}
           >
-            <Icon
-              name="sparkle"
-              size={17}
-              color={isAny ? "#fff" : "var(--c-700)"}
-            />
-          </span>
-          <span style={staffChipLabel(isAny)}>{t.anyAvailable}</span>
-        </button>
+            <span
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: isAny ? "rgba(255,255,255,0.16)" : "var(--c-200)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon
+                name="sparkle"
+                size={17}
+                color={isAny ? "#fff" : "var(--c-700)"}
+              />
+            </span>
+            <span style={staffChipLabel(isAny)}>{t.anyAvailable}</span>
+          </button>
+        )}
 
         {item.availableStaffIds.map((sid) => {
           const entry = directory[sid];
@@ -1606,6 +1678,28 @@ function StaffPicker({
                 <Avatar name={name} size={40} />
               )}
               <span style={staffChipLabel(on)}>{name.split(" ")[0]}</span>
+              {/* Only when they differ — otherwise it's noise repeated on
+                  every chip. This is what makes the forced choice informed. */}
+              {varies &&
+                (() => {
+                  const f = staffFiguresForItem(item, sid, staffPricing);
+                  return (
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        lineHeight: 1.3,
+                        textAlign: "center",
+                        color: on ? "rgba(255,255,255,0.82)" : "var(--c-600)",
+                      }}
+                    >
+                      {formatDuration(f.durationMinutes)}
+                      <br />
+                      {formatMoney(f.priceAmountMinor, currency, locale)}
+                    </span>
+                  );
+                })()}
             </button>
           );
         })}
@@ -1650,6 +1744,7 @@ function ReviewStep({
   slot,
   date,
   staffPicks,
+  resolvedItems,
   daySlots,
   calendar,
   services,
@@ -1665,6 +1760,8 @@ function ReviewStep({
   slot: TimeSlot;
   date: string;
   staffPicks: StaffPicks;
+  /** Slot items re-resolved against the chosen professionals. */
+  resolvedItems: ResolvedSlotItem[];
   daySlots: BookingDaySlots | null;
   calendar: BookingCalendar | null;
   services: OpenBookingPayload["services"];
@@ -1737,7 +1834,9 @@ function ReviewStep({
                     marginTop: 2,
                   }}
                 >
-                  {formatDuration(item.durationMinutes)}
+                  {formatDuration(
+                    resolvedItems[idx]?.durationMinutes ?? item.durationMinutes,
+                  )}
                 </div>
               </div>
               <span
@@ -1748,7 +1847,11 @@ function ReviewStep({
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                {formatMoney(item.priceAmountMinor, currency, locale)}
+                {formatMoney(
+                  resolvedItems[idx]?.priceAmountMinor ?? item.priceAmountMinor,
+                  currency,
+                  locale,
+                )}
               </span>
             </div>
           );
@@ -1795,6 +1898,17 @@ function ReviewStep({
           <span style={{ fontWeight: 700 }}>
             {fmtDateLabel(date, locale, timeZone)} ·{" "}
             {fmtTimeLabel(date, slot.startTime, locale, timeZone)}
+            {" – "}
+            {/* End of the LAST resolved item, not the slot's own end: picking a
+                faster professional shortens the visit and this must follow. */}
+            {fmtTimeLabel(
+              date,
+              resolvedItems[resolvedItems.length - 1]?.endTime ?? slot.endTime,
+              locale,
+              timeZone,
+            )}
+            {" · "}
+            {formatDuration(totalDuration)}
           </span>
         </Row>
         <Row icon="user">
@@ -1953,6 +2067,7 @@ function BlockedScreen({
         : null) ?? null;
   const copy = {
     business: { title: b.businessTitle, body: b.businessBody },
+    "booking-off": { title: b.bookingOffTitle, body: b.bookingOffBody },
     location: { title: b.locationTitle, body: b.locationBody },
     service: {
       title: b.serviceTitle,

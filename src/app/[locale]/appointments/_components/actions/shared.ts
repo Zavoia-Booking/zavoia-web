@@ -12,6 +12,35 @@ import type {
   AppointmentDetailStaffMember,
 } from "@/lib/api/marketplace/types";
 
+/**
+ * Whether the customer may still reschedule / cancel, mirroring the backend
+ * gates in `AppointmentsService.rescheduleAppointment` (APPOINTMENTS.E08/E12)
+ * and `cancelAppointment` (APPOINTMENTS.E06/E07): the business must allow the
+ * action AND the appointment must still be further away than the notice window.
+ *
+ * The API sends the windows in MINUTES; 0 means "no advance notice required".
+ * These are advisory — the server re-checks on submit and stays authoritative,
+ * not least because the clock keeps moving while a modal is open.
+ */
+function minutesUntil(scheduledAt: string | null | undefined): number {
+  if (!scheduledAt) return Number.POSITIVE_INFINITY;
+  const at = new Date(scheduledAt).getTime();
+  if (Number.isNaN(at)) return Number.POSITIVE_INFINITY;
+  return (at - Date.now()) / 60_000;
+}
+
+export function canReschedule(appt: AppointmentDetail): boolean {
+  const loc = appt.location;
+  if (!loc?.allowCustomerReschedule) return false;
+  return minutesUntil(appt.scheduled_at) >= (loc.rescheduleWindowMinutes ?? 0);
+}
+
+export function canCancel(appt: AppointmentDetail): boolean {
+  const loc = appt.location;
+  if (!loc?.allowCustomerCancellation) return false;
+  return minutesUntil(appt.scheduled_at) >= (loc.cancellationWindowMinutes ?? 0);
+}
+
 /** Human display name for a staff member, falling back across the API fields. */
 export function staffDisplayName(
   staff: AppointmentDetailStaffMember | null | undefined,

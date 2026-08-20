@@ -21,7 +21,12 @@ import { openStatus } from "@/lib/marketplace/working-hours";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
-import { formatDuration, formatMoney } from "@/lib/format/money-time";
+import {
+  formatDuration,
+  formatMoney,
+  formatServiceSpread,
+  type ServiceSpread,
+} from "@/lib/format/money-time";
 import { useBooking } from "@/lib/booking";
 import type { BookingSelectionItem } from "@/lib/booking";
 import { pushRecentView } from "@/lib/recent-views";
@@ -491,9 +496,11 @@ export function BusinessDetail({ listing, locale }: Props) {
           </div>
           {!canBook && (
             <div
+              className="txt-pretty"
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: 10.5,
+                lineHeight: 1.45,
                 color: "var(--c-600)",
                 marginTop: 2,
               }}
@@ -837,8 +844,7 @@ function ServicesTab({
                 id={it.id}
                 name={it.name}
                 description={it.description}
-                duration={it.duration}
-                priceAmountMinor={it.priceAmountMinor}
+                service={it}
                 on={picked.has(it.id)}
                 onToggle={() => togglePick(it.id)}
                 currency={currency}
@@ -1050,8 +1056,7 @@ function ServicesTab({
 function ServiceRow({
   name,
   description,
-  duration,
-  priceAmountMinor,
+  service,
   on,
   onToggle,
   currency,
@@ -1061,14 +1066,15 @@ function ServiceRow({
   id: number;
   name: string;
   description: string | null;
-  duration: number;
-  priceAmountMinor: number;
+  /** Carries the staff spread, so the row can say "from …" when price varies. */
+  service: ServiceSpread;
   on: boolean;
   onToggle: () => void;
   currency: string;
   locale: Locale;
   dict: typeof import("@/i18n/dictionaries/en").en.business;
 }) {
+  const meta = formatServiceSpread(service, currency, locale);
   return (
     <div
       className="zw-hover-row"
@@ -1109,8 +1115,13 @@ function ServiceRow({
             marginTop: 6,
           }}
         >
-          {formatDuration(duration)} ·{" "}
-          {formatMoney(priceAmountMinor, currency, locale)}
+          {meta.duration} ·{" "}
+          {meta.priceVaries && (
+            <span style={{ fontWeight: 500, color: "var(--c-600)" }}>
+              {dict.priceFrom}{" "}
+            </span>
+          )}
+          {meta.price}
         </div>
       </div>
       <ToggleAddButton on={on} onToggle={onToggle} label={name} dict={dict} />
@@ -1902,9 +1913,11 @@ function BookingRail({
 
       {!canBook && (
         <div
+          className="txt-pretty"
           style={{
             textAlign: "center",
             fontSize: 12,
+            lineHeight: 1.45,
             color: "var(--c-500)",
           }}
         >

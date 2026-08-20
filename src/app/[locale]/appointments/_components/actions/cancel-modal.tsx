@@ -1,20 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Icon, Spinner, useToast } from "@/components/ui";
+import { Button, Spinner, useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { dictionaries } from "@/i18n/dictionaries";
+import type { Locale } from "@/i18n/locales";
+import { ApiError } from "@/lib/api/http";
 import { cancelAppointment } from "@/lib/api/marketplace/appointments";
 import type { AppointmentDetail } from "@/lib/api/marketplace/types";
 import { ActionModal, ApptMini } from "./action-modal";
 import { apptMiniProps } from "./shared";
 
 /**
+ * Turn a namespaced backend error code into copy the customer can act on.
+ * Codes arrive as "APPOINTMENTS.E07" — matched in full, since bare suffixes
+ * collide across namespaces. Unrecognised codes keep the generic retry line.
+ */
+function cancelErrorMessage(
+  code: string | undefined,
+  t: (typeof dictionaries)[Locale]["appointmentActions"]["cancel"],
+): string {
+  switch (code) {
+    // The notice window lapsed — most likely while this modal sat open.
+    case "APPOINTMENTS.E07":
+      return t.windowPassed;
+    case "APPOINTMENTS.E06":
+      return t.notAllowed;
+    case "APPOINTMENTS.E03":
+      return t.alreadyCancelled;
+    case "APPOINTMENTS.E04":
+    case "APPOINTMENTS.E05":
+      return t.noLongerCancellable;
+    default:
+      return t.error;
+  }
+}
+
+/**
  * Cancel-appointment modal. Ports `ZwCancelModal`
  * (web-appointment-actions.jsx:233-256) onto the live cancel endpoint.
- *
- * Window note: the API exposes `cancellationWindowMinutes` in MINUTES; the copy
- * wants hours, so we round minutes → hours.
  */
 export function CancelModal({
   appointment,
@@ -30,24 +54,22 @@ export function CancelModal({
   const toast = useToast();
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const mini = apptMiniProps(appointment, dict.common.photo);
-  const windowHours = Math.round(
-    (appointment.location?.cancellationWindowMinutes ?? 1440) / 60,
-  );
 
   const confirm = async () => {
     if (submitting) return;
     setSubmitting(true);
-    setError(false);
+    setError(null);
     try {
       await cancelAppointment({ uuid: appointment.uuid });
       toast(t.successToast, "check");
       await onChanged?.();
       onClose();
-    } catch {
-      setError(true);
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : undefined;
+      setError(cancelErrorMessage(code, t));
       setSubmitting(false);
     }
   };
@@ -83,27 +105,6 @@ export function CancelModal({
     >
       <ApptMini {...mini} />
 
-      <div
-        className="txt-pretty"
-        style={{
-          marginTop: 18,
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 12,
-          fontSize: 14,
-          lineHeight: 1.55,
-          color: "var(--c-700)",
-        }}
-      >
-        <Icon
-          name="shield"
-          size={18}
-          color="var(--s-success-600)"
-          style={{ flexShrink: 0, marginTop: 1 }}
-        />
-        <span>{format(t.windowNote, { hours: String(windowHours) })}</span>
-      </div>
-
       {error && (
         <p
           role="alert"
@@ -114,7 +115,7 @@ export function CancelModal({
             color: "var(--s-error-600)",
           }}
         >
-          {t.error}
+          {error}
         </p>
       )}
     </ActionModal>
