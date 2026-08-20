@@ -299,6 +299,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const showPill = !onHome || pastHero;
   const exploreActive = EXPLORE_KEYS.includes(key);
   const forBusinessActive = key === "for-business" || key === "pricing";
+  const webStudioActive = key === "web-studio";
 
   // On the search route, best-effort prefill the overlay from the current URL
   // params so editing preserves the active query; elsewhere open empty. Params
@@ -443,6 +444,20 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             flexShrink: 0,
           }}
         >
+          {/* Web Studio sits beside For business — both are the business-facing
+              side of the site, grouped the same way the account menu groups
+              them. Desktop only; mobile reaches it through the account menu. */}
+          <Link
+            href={localeHref(locale, "web-studio")}
+            className={
+              "zw-only-desktop zw-navlink" +
+              (webStudioActive ? " zw-navlink--on" : "")
+            }
+            style={{ marginRight: 20 }}
+          >
+            {dict.nav.webStudio}
+          </Link>
+
           <Link
             href={localeHref(locale, "for-business")}
             className={

@@ -14,6 +14,7 @@ import { dictionaries, format } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
 import { authErrorMessage } from "@/lib/api/auth-error-messages";
+import { ApiError } from "@/lib/api/http";
 import { GOOGLE_CLIENT_ID } from "@/lib/env";
 import { GoogleSignInButton } from "@/app/[locale]/auth/_components/google-signin-button";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
@@ -610,48 +611,6 @@ function AddressRow({
             </button>
           </span>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Read-only row (email)
-// ─────────────────────────────────────────────
-
-function ReadOnlyRow({
-  label,
-  value,
-  note,
-  last,
-}: {
-  label: string;
-  value: string;
-  note: string;
-  last?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        padding: "16px 0",
-        borderBottom: last ? 0 : "1px solid rgba(28,28,26,0.06)",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 14.5,
-          fontWeight: 600,
-          letterSpacing: "-0.01em",
-          color: "var(--c-900)",
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ fontSize: 14, color: "var(--c-600)", marginTop: 4 }}>
-        {value}
-      </div>
-      <div style={{ fontSize: 12.5, color: "var(--c-400)", marginTop: 6 }}>
-        {note}
       </div>
     </div>
   );
@@ -1319,60 +1278,118 @@ function GoogleConnectionRow({
 }
 
 // ─────────────────────────────────────────────
-// Change email form — current email is read-only; user enters a new email
-// (validated with the shared EMAIL_RE). Success surfaces the new email + an
-// "other devices signed out" note when revokedSessionCount > 0.
+// Change email row — lives in Personal info and mirrors the admin-dashboard
+// flow: the user retypes the CURRENT address alongside the new one, both
+// validated with the shared EMAIL_RE before anything leaves the browser.
+// The backend (POST /marketplace/auth/change-email) swaps the address
+// instantly, mails BOTH the old and the new address, and revokes every OTHER
+// session — this one survives. Backend codes land on the field they belong to:
+// CURRENT_EMAIL_MISMATCH → current, EMAIL_TAKEN / SAME_EMAIL → new.
 // ─────────────────────────────────────────────
 
-function ChangeEmailForm({
+function ChangeEmailRow({
   t,
   authErrors,
+  currentEmail,
+  onChanged,
   last,
 }: {
   t: AcctDict;
   authErrors: AuthErrorsDict;
+  currentEmail: string;
+  onChanged: (email: string) => void;
   last?: boolean;
 }) {
   const toast = useToast();
-  const { user, changeEmail } = useAuth();
+  const { changeEmail } = useAuth();
   const c = t.changeEmail;
 
   const [open, setOpen] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [currentInput, setCurrentInput] = useState("");
+  const [newInput, setNewInput] = useState("");
+  const [errors, setErrors] = useState<{ current?: string; next?: string }>({});
   const [saving, setSaving] = useState(false);
 
-  const currentEmail = user?.email ?? "";
+  const reset = () => {
+    setCurrentInput("");
+    setNewInput("");
+    setErrors({});
+  };
+
+  const close = () => {
+    setOpen(false);
+    reset();
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    const trimmed = newEmail.trim();
-    if (!EMAIL_RE.test(trimmed)) {
-      setError(c.invalidEmail);
+    const current = currentInput.trim();
+    const next = newInput.trim();
+
+    // Validate both fields in one pass so the user sees every problem at once
+    // instead of one server round-trip at a time.
+    const local: { current?: string; next?: string } = {};
+    if (!EMAIL_RE.test(current)) local.current = c.invalidEmail;
+    if (!EMAIL_RE.test(next)) {
+      local.next = c.invalidEmail;
+    } else if (!local.current && next.toLowerCase() === current.toLowerCase()) {
+      local.next = authErrors.sameEmail;
+    }
+    if (local.current || local.next) {
+      setErrors(local);
       return;
     }
+
+    setErrors({});
     setSaving(true);
     try {
-      const res = await changeEmail(currentEmail, trimmed);
-      setOpen(false);
-      setNewEmail("");
+      const res = await changeEmail(current, next);
+      close();
+      onChanged(res.email);
+      // The response also carries revokedSessionCount; deliberately not
+      // surfaced — the confirmation is the only thing the user needs here.
       toast(c.changedToast, "check");
-      if (res.revokedSessionCount > 0) {
-        toast(
-          res.revokedSessionCount === 1
-            ? c.otherSessionsRevokedOne
-            : format(c.otherSessionsRevoked, {
-                count: String(res.revokedSessionCount),
-              }),
-          "shield",
-        );
-      }
     } catch (err) {
-      setError(authErrorMessage(err, authErrors));
+      const code =
+        err instanceof ApiError && err.code ? err.code.toUpperCase() : null;
+      const message = authErrorMessage(err, authErrors);
+      // CURRENT_EMAIL_MISMATCH is the only code about the first field;
+      // EMAIL_TAKEN / SAME_EMAIL and anything unmapped belong to the new one.
+      if (code === "CURRENT_EMAIL_MISMATCH") setErrors({ current: message });
+      else setErrors({ next: message });
     } finally {
       setSaving(false);
     }
+  };
+
+  // Label + input styling is lifted verbatim from EditableRow (First name /
+  // Last name) so the expanded form reads as one more row in the list.
+  const inputStyle: CSSProperties = {
+    marginTop: 8,
+    width: "100%",
+    maxWidth: 340,
+    boxSizing: "border-box",
+    padding: "9px 12px",
+    borderRadius: 10,
+    border: "1px solid rgba(28,28,26,0.18)",
+    fontSize: 14,
+    color: "var(--c-900)",
+    background: "#fff",
+    outline: "none",
+    fontFamily: "inherit",
+  };
+  const subLabelStyle: CSSProperties = {
+    display: "block",
+    fontSize: 14.5,
+    fontWeight: 600,
+    letterSpacing: "-0.01em",
+    color: "var(--c-900)",
+  };
+  const errorStyle: CSSProperties = {
+    fontSize: 12.5,
+    color: "var(--s-error-600)",
+    marginTop: 5,
+    maxWidth: 340,
   };
 
   return (
@@ -1399,34 +1416,47 @@ function ChangeEmailForm({
               color: "var(--c-900)",
             }}
           >
-            {c.title}
+            {t.fields.email}
           </div>
-          <div style={{ fontSize: 14, color: "var(--c-600)", marginTop: 4 }}>
+          <div
+            style={{
+              fontSize: 14,
+              color: "var(--c-600)",
+              marginTop: 4,
+              overflowWrap: "anywhere",
+            }}
+          >
+            <span style={{ color: "var(--c-400)" }}>{c.currentValueLabel}:</span>{" "}
             {currentEmail}
           </div>
-          <div style={{ fontSize: 12.5, color: "var(--c-500)", marginTop: 6 }}>
+          <div
+            className="txt-pretty"
+            style={{ fontSize: 12.5, color: "var(--c-400)", marginTop: 6 }}
+          >
             {c.caption}
           </div>
         </div>
-        <button
-          type="button"
-          className="tap"
-          onClick={() => setOpen((o) => !o)}
-          style={{
-            flexShrink: 0,
-            background: "transparent",
-            border: 0,
-            cursor: "pointer",
-            fontSize: 13.5,
-            fontWeight: 600,
-            color: "var(--c-900)",
-            textDecoration: "underline",
-            padding: "2px 0",
-            fontFamily: "inherit",
-          }}
-        >
-          {t.buttons.edit}
-        </button>
+        {!open && (
+          <button
+            type="button"
+            className="tap"
+            onClick={() => setOpen(true)}
+            style={{
+              flexShrink: 0,
+              background: "transparent",
+              border: 0,
+              cursor: "pointer",
+              fontSize: 13.5,
+              fontWeight: 600,
+              color: "var(--c-900)",
+              textDecoration: "underline",
+              padding: "2px 0",
+              fontFamily: "inherit",
+            }}
+          >
+            {t.buttons.edit}
+          </button>
+        )}
       </div>
 
       {open && (
@@ -1437,53 +1467,59 @@ function ChangeEmailForm({
             display: "flex",
             flexDirection: "column",
             gap: 12,
-            maxWidth: 360,
+            maxWidth: 420,
           }}
         >
           <label style={{ display: "block" }}>
-            <span
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--c-700)",
-                marginBottom: 6,
-              }}
-            >
-              {c.newLabel}
-            </span>
+            <span style={subLabelStyle}>{c.currentLabel}</span>
             <input
               type="email"
-              value={newEmail}
+              value={currentInput}
               autoComplete="email"
               disabled={saving}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder={c.newPlaceholder}
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                padding: "10px 12px",
-                borderRadius: 10,
-                border: "1px solid rgba(28,28,26,0.18)",
-                fontSize: 14,
-                color: "var(--c-900)",
-                background: "#fff",
-                outline: "none",
-                fontFamily: "inherit",
+              placeholder={c.currentPlaceholder}
+              aria-invalid={!!errors.current}
+              onChange={(e) => {
+                setCurrentInput(e.target.value);
+                if (errors.current)
+                  setErrors((prev) => ({ ...prev, current: undefined }));
               }}
+              style={
+                errors.current
+                  ? { ...inputStyle, border: "1px solid var(--s-error-600)" }
+                  : inputStyle
+              }
             />
+            {errors.current && <div style={errorStyle}>{errors.current}</div>}
           </label>
-          {error && (
-            <div style={{ fontSize: 13, color: "var(--s-error-600)" }}>
-              {error}
-            </div>
-          )}
+          <label style={{ display: "block" }}>
+            <span style={subLabelStyle}>{c.newLabel}</span>
+            <input
+              type="email"
+              value={newInput}
+              autoComplete="email"
+              disabled={saving}
+              placeholder={c.newPlaceholder}
+              aria-invalid={!!errors.next}
+              onChange={(e) => {
+                setNewInput(e.target.value);
+                if (errors.next)
+                  setErrors((prev) => ({ ...prev, next: undefined }));
+              }}
+              style={
+                errors.next
+                  ? { ...inputStyle, border: "1px solid var(--s-error-600)" }
+                  : inputStyle
+              }
+            />
+            {errors.next && <div style={errorStyle}>{errors.next}</div>}
+          </label>
           <div style={{ display: "flex", gap: 8 }}>
             <Button
               kind="primary"
               size="md"
               type="submit"
-              disabled={saving || !newEmail.trim()}
+              disabled={saving || !currentInput.trim() || !newInput.trim()}
             >
               {saving ? <Spinner size={16} color="#fff" /> : c.submit}
             </Button>
@@ -1492,11 +1528,7 @@ function ChangeEmailForm({
               size="md"
               type="button"
               disabled={saving}
-              onClick={() => {
-                setOpen(false);
-                setNewEmail("");
-                setError(null);
-              }}
+              onClick={close}
             >
               {c.cancel}
             </Button>
@@ -1678,6 +1710,7 @@ function SectionBody({
   savingField,
   saveField,
   saveAddress,
+  onEmailChanged,
   onDeleted,
 }: {
   id: SectionId;
@@ -1690,6 +1723,7 @@ function SectionBody({
   savingField: string | null;
   saveField: (field: keyof UpdateProfileBody, value: string) => void;
   saveAddress: (patch: Partial<UpdateProfileBody>) => void;
+  onEmailChanged: (email: string) => void;
   onDeleted: () => Promise<void>;
 }) {
   const [pwOpen, setPwOpen] = useState(false);
@@ -1739,10 +1773,11 @@ function SectionBody({
           buttons={t.buttons}
           onSave={(v) => saveField("dateOfBirth", v)}
         />
-        <ReadOnlyRow
-          label={t.fields.email}
-          value={profile.email}
-          note={t.emailReadOnlyNote}
+        <ChangeEmailRow
+          t={t}
+          authErrors={dictionaries[locale].auth.errors}
+          currentEmail={profile.email}
+          onChanged={onEmailChanged}
         />
         <AddressRow
           fields={t.fields}
@@ -1899,8 +1934,7 @@ function SecuritySection({
         <SectionLabel>{t.sections.security}</SectionLabel>
         <Card>
           <div style={{ padding: "2px 18px" }}>
-            <GoogleConnectionRow t={t} authErrors={authErrors} locale={locale} />
-            <ChangeEmailForm t={t} authErrors={authErrors} last />
+            <GoogleConnectionRow t={t} authErrors={authErrors} locale={locale} last />
           </div>
         </Card>
       </div>
@@ -2574,6 +2608,13 @@ export function AccountContent({ locale }: { locale: Locale }) {
     [profile, t, toast],
   );
 
+  // The change-email request returns only the new address, so reconcile it into
+  // the locally-held profile rather than re-fetching. AuthProvider already
+  // mirrors it into `user` (header/avatar), so no refreshUser() is needed.
+  const handleEmailChanged = useCallback((email: string) => {
+    setProfile((prev) => (prev ? { ...prev, email } : prev));
+  }, []);
+
   const handlePhoto = useCallback(
     async (file: File) => {
       setUploadingPhoto(true);
@@ -2677,6 +2718,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
                 savingField={savingField}
                 saveField={saveField}
                 saveAddress={saveAddress}
+                onEmailChanged={handleEmailChanged}
                 onDeleted={goHome}
               />
             </div>
@@ -2741,6 +2783,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
             savingField={savingField}
             saveField={saveField}
             saveAddress={saveAddress}
+            onEmailChanged={handleEmailChanged}
             onDeleted={goHome}
           />
         </div>

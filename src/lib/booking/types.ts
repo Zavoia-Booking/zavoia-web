@@ -32,6 +32,18 @@ export interface BookingSelectionItem {
   duration: number;
   /** Optional pre-selected staff member. */
   teamMemberId?: number;
+
+  // ── Staff spread (services only; see ServiceSpread) ──
+  // Carried through from the location menu so the drawer's running total can
+  // say "from …" exactly where the service row it came from does. A bundle
+  // (package-priced) and a staff-pinned service leave these undefined, which
+  // degrades to the exact figures rather than a bogus range.
+  /** Lowest price any professional here charges for it. */
+  priceFromMinor?: number;
+  priceVariesByStaff?: boolean;
+  durationMinMinutes?: number;
+  durationMaxMinutes?: number;
+  durationVariesByStaff?: boolean;
 }
 
 /** Everything the booking flow needs to start, handed over by the detail page. */

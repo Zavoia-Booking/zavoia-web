@@ -192,13 +192,22 @@ export function getTeamMember(
   );
 }
 
-/** GET /marketplace/public/listing/:listingId/team-member/:id — RAW TeamMemberProfile. */
+/**
+ * GET /marketplace/public/listing/:listingId/team-member/:id — RAW TeamMemberProfile.
+ *
+ * `locationId` scopes the returned service menu to one venue. Always pass it
+ * from a location page: prices and durations are per-location, and the booking
+ * flow the profile hands off to is location-scoped too — without it a
+ * multi-location business quotes whichever venue happened to sort first.
+ */
 export function getTeamMemberInListing(
   listingId: number,
   teamMemberId: number,
+  locationId?: number,
 ): Promise<TeamMemberProfile> {
+  const query = locationId != null ? `?locationId=${locationId}` : "";
   return apiFetch<TeamMemberProfile>(
-    `/marketplace/public/listing/${listingId}/team-member/${teamMemberId}`,
+    `/marketplace/public/listing/${listingId}/team-member/${teamMemberId}${query}`,
     { method: "GET" },
   );
 }

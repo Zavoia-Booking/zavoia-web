@@ -16,13 +16,16 @@ import { localeHref } from "@/i18n/routes";
 import {
   formatDuration,
   formatMoney,
+  formatSelectionSpread,
   formatServiceSpread,
+  sumServiceSpreads,
   type ServiceSpread,
 } from "@/lib/format/money-time";
 import {
   itemVariesByStaff,
   needsStaffChoice,
   resolveSlotItems,
+  slotSpread,
   staffFiguresForItem,
   type ResolvedSlotItem,
 } from "@/lib/booking/staff-resolution";
@@ -208,7 +211,6 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     pending: boolean;
     scheduledAt: string;
     serviceNames: string[];
-    appointmentUuid?: string;
   } | null>(null);
 
   // Idempotency key: one per distinct booking attempt; re-minted when the
@@ -242,6 +244,13 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                 name: s.name,
                 priceAmountMinor: s.priceAmountMinor,
                 duration: s.duration,
+                // Same spread the step-1 row rendered — kept so the footer
+                // total agrees with the rows the customer just ticked.
+                priceFromMinor: s.priceFromMinor,
+                priceVariesByStaff: s.priceVariesByStaff,
+                durationMinMinutes: s.durationMinMinutes,
+                durationMaxMinutes: s.durationMaxMinutes,
+                durationVariesByStaff: s.durationVariesByStaff,
               },
             ]
           : [];
@@ -254,6 +263,10 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
               name: b.name,
               priceAmountMinor: b.priceAmountMinor,
               duration: b.duration,
+              // Package-priced, so only the duration can spread.
+              durationMinMinutes: b.durationMinMinutes,
+              durationMaxMinutes: b.durationMaxMinutes,
+              durationVariesByStaff: b.durationVariesByStaff,
             },
           ]
         : [];
@@ -392,6 +405,45 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     };
   }, [open]);
 
+  // ── The professional pinned to each selection item (rebook / team-member
+  //    flow), keyed the way slot items identify themselves. Empty once a
+  //    staff-pin block is recovered via "book with any professional", since
+  //    `effectiveServices` has the pins stripped by then. ──
+  const pinnedStaffByKey = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const svc of effectiveServices) {
+      if (svc.teamMemberId == null) continue;
+      const key =
+        svc.bundleId != null ? `b${svc.bundleId}` : `s${svc.serviceId}`;
+      map.set(key, svc.teamMemberId);
+    }
+    return map;
+  }, [effectiveServices]);
+
+  /**
+   * Opening picks for a freshly chosen slot. A pinned professional is
+   * PRE-SELECTED rather than left on "any available": the availability was
+   * computed for them specifically, so showing "any" would misrepresent both
+   * who is booked and — when they charge their own rate — what it costs.
+   */
+  const seedStaffPicks = useCallback(
+    (slot: TimeSlot): StaffPicks => {
+      const picks: StaffPicks = {};
+      slot.items.forEach((item, idx) => {
+        const key =
+          item.type === "bundle" ? `b${item.bundleId}` : `s${item.serviceId}`;
+        const pinned = pinnedStaffByKey.get(key);
+        // Guard on availability: a stale pin must never select someone the
+        // slot cannot actually be booked with.
+        if (pinned != null && item.availableStaffIds.includes(pinned)) {
+          picks[idx] = pinned;
+        }
+      });
+      return picks;
+    },
+    [pinnedStaffByKey],
+  );
+
   // ── The chosen slot re-resolved against the picked professionals. The slots
   //    response is computed staff-agnostic (longest duration, lowest price), so
   //    every figure downstream — totals, the footer pill, the review card —
@@ -419,6 +471,37 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     }
     return resolvedServices.reduce((a, s) => a + s.duration, 0);
   }, [selectedSlot, resolvedItems, resolvedServices]);
+
+  // ── The figures the footer shows, WITH their honesty flags.
+  //    Before a slot: the menu spread of what's selected. After a slot but
+  //    before every professional is chosen: the slot's own bounds, which are a
+  //    floor price and a duration range — never an exact quote. Once all picks
+  //    are in, the bounds collapse and it renders like a plain total. ──
+  const footerSpread = useMemo(() => {
+    if (selectedSlot) {
+      const sp = slotSpread(
+        selectedSlot,
+        staffPicks,
+        daySlots?.staffPricing ?? {},
+      );
+      return formatSelectionSpread(
+        {
+          priceMinor: sp.priceMinor,
+          priceVaries: sp.priceVaries,
+          durationMinMinutes: sp.durationMinMinutes,
+          durationMaxMinutes: sp.durationMaxMinutes,
+          durationVaries: sp.durationVaries,
+        },
+        currency,
+        locale,
+      );
+    }
+    return formatSelectionSpread(
+      sumServiceSpreads(resolvedServices),
+      currency,
+      locale,
+    );
+  }, [selectedSlot, staffPicks, daySlots, resolvedServices, currency, locale]);
 
   // Resolve the staffId for a given slot item index.
   const resolveStaffId = useCallback(
@@ -470,7 +553,6 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
           appts.length > 0
             ? appts.map((a) => a.serviceName)
             : resolvedServices.map((s) => s.name),
-        appointmentUuid: first?.appointmentUuid,
       });
     } catch (e) {
       // Permanent marketplace-state blocks (venue/service/staff gone) get the
@@ -524,7 +606,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
 
   const onPickSlot = (slot: TimeSlot) => {
     setSelectedSlot(slot);
-    setStaffPicks({});
+    setStaffPicks(seedStaffPicks(slot));
     idempotencyKeyRef.current = "";
   };
 
@@ -767,10 +849,10 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
             locale={locale}
             t={t}
             onViewAppointment={() => {
-              const href = success.appointmentUuid
-                ? localeHref(locale, "appointments", success.appointmentUuid)
-                : localeHref(locale, "appointments");
-              router.push(href);
+              // The list, not the single appointment: a booking can produce
+              // several (one per item), and landing on the full list also shows
+              // the customer everything else they have coming up.
+              router.push(localeHref(locale, "appointments"));
               onClose();
             }}
             onClose={onClose}
@@ -867,6 +949,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         onRetry={() => {
                           if (selectedDate) void loadSlots(selectedDate);
                         }}
+                        pinnedStaffByKey={pinnedStaffByKey}
                         onPickSlot={onPickSlot}
                         onPickStaff={onPickStaff}
                       />
@@ -924,7 +1007,18 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >
-                      {formatMoney(totalMinor, currency, locale)}
+                      {footerSpread.priceVaries && (
+                        <span
+                          style={{
+                            fontWeight: 500,
+                            fontSize: 12.5,
+                            color: "var(--c-600)",
+                          }}
+                        >
+                          {tb.priceFrom}{" "}
+                        </span>
+                      )}
+                      {footerSpread.price}
                     </div>
                     <div
                       style={{
@@ -934,10 +1028,15 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         marginTop: 1,
                       }}
                     >
-                      {format(t.serviceCount, {
-                        count: String(services.length),
-                        duration: formatDuration(totalDuration),
-                      })}
+                      {format(
+                        services.length === 1
+                          ? t.serviceCountOne
+                          : t.serviceCount,
+                        {
+                          count: String(services.length),
+                          duration: footerSpread.duration,
+                        },
+                      )}
                     </div>
                   </>
                 )}
@@ -1422,6 +1521,7 @@ function SlotStep({
   timeZone,
   sectionLabel,
   t,
+  pinnedStaffByKey,
   onRetry,
   onPickSlot,
   onPickStaff,
@@ -1437,6 +1537,8 @@ function SlotStep({
   timeZone: string;
   sectionLabel: CSSProperties;
   t: BookingDict;
+  /** Selection-item key → pinned professional (rebook / team-member flow). */
+  pinnedStaffByKey: Map<string, number>;
   onRetry: () => void;
   onPickSlot: (slot: TimeSlot) => void;
   onPickStaff: (idx: number, staffId: number | null) => void;
@@ -1547,6 +1649,9 @@ function SlotStep({
               directory={daySlots.staffDirectory}
               showItemLabel={selectedSlot.items.length > 1}
               varies={itemVariesByStaff(item, daySlots.staffPricing ?? {})}
+              pinned={pinnedStaffByKey.get(
+                item.type === "bundle" ? `b${item.bundleId}` : `s${item.serviceId}`,
+              )}
               staffPricing={daySlots.staffPricing ?? {}}
               currency={currency}
               locale={locale}
@@ -1567,6 +1672,7 @@ function StaffPicker({
   directory,
   showItemLabel,
   varies,
+  pinned,
   staffPricing,
   currency,
   locale,
@@ -1580,6 +1686,8 @@ function StaffPicker({
   showItemLabel: boolean;
   /** Professionals differ in price and/or duration for this item. */
   varies: boolean;
+  /** The professional this item was booked with, when rebooking with them. */
+  pinned: number | undefined;
   staffPricing: BookingDaySlots["staffPricing"];
   currency: string;
   locale: string;
@@ -1617,8 +1725,11 @@ function StaffPicker({
       )}
       <div className="zw-scroll-x" style={{ gap: 10, paddingBottom: 4 }}>
         {/* Any available — offered only when every professional charges the
-            same and takes the same time, so assigning one is a free choice. */}
-        {!varies && (
+            same and takes the same time, so assigning one is a free choice.
+            Never when a professional is pinned: this day's availability was
+            computed for THEM alone, so "any" would name a freedom the slots
+            behind it don't actually have. */}
+        {!varies && pinned == null && (
           <button
             type="button"
             className="tap"

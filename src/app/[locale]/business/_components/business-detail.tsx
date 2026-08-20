@@ -22,9 +22,10 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
 import {
-  formatDuration,
   formatMoney,
+  formatSelectionSpread,
   formatServiceSpread,
+  sumServiceSpreads,
   type ServiceSpread,
 } from "@/lib/format/money-time";
 import { useBooking } from "@/lib/booking";
@@ -185,6 +186,13 @@ export function BusinessDetail({ listing, locale }: Props) {
                   name: s.name,
                   priceAmountMinor: s.priceAmountMinor,
                   duration: s.duration,
+                  // Carry the staff spread so the rail row and the running
+                  // total say "from …" wherever the menu row above them does.
+                  priceFromMinor: s.priceFromMinor,
+                  priceVariesByStaff: s.priceVariesByStaff,
+                  durationMinMinutes: s.durationMinMinutes,
+                  durationMaxMinutes: s.durationMaxMinutes,
+                  durationVariesByStaff: s.durationVariesByStaff,
                 },
               ]
             : [];
@@ -197,6 +205,10 @@ export function BusinessDetail({ listing, locale }: Props) {
                 name: b.name,
                 priceAmountMinor: b.priceAmountMinor,
                 duration: b.duration,
+                // Package-priced, so only the duration can spread.
+                durationMinMinutes: b.durationMinMinutes,
+                durationMaxMinutes: b.durationMaxMinutes,
+                durationVariesByStaff: b.durationVariesByStaff,
               },
             ]
           : [];
@@ -204,8 +216,14 @@ export function BusinessDetail({ listing, locale }: Props) {
     [selection, servicesById, bundlesById],
   );
 
-  const totalMinor = selectedItems.reduce((a, s) => a + s.priceAmountMinor, 0);
-  const totalDur = selectedItems.reduce((a, s) => a + s.duration, 0);
+  // Totals fold the per-item spreads, so a selection containing even one
+  // service whose professionals charge differently reads as a floor ("from
+  // €85") rather than a promise the booking flow would then break.
+  const totals = useMemo(
+    () => sumServiceSpreads(selectedItems),
+    [selectedItems],
+  );
+  const totalsFmt = formatSelectionSpread(totals, currency, locale);
 
   const onBook = useCallback(() => {
     if (!canBook) return;
@@ -454,8 +472,7 @@ export function BusinessDetail({ listing, locale }: Props) {
             removeBundle={removeBundle}
             onBook={onBook}
             canBook={canBook}
-            totalMinor={totalMinor}
-            totalDur={totalDur}
+            totals={totalsFmt}
             currency={currency}
             locale={locale}
             dict={t}
@@ -491,7 +508,9 @@ export function BusinessDetail({ listing, locale }: Props) {
             }}
           >
             {selectedItems.length > 0
-              ? `${selectedItems.length} · ${formatMoney(totalMinor, currency, locale)}`
+              ? `${selectedItems.length} · ${
+                  totalsFmt.priceVaries ? `${t.priceFrom} ` : ""
+                }${totalsFmt.price}`
               : displayName}
           </div>
           {!canBook && (
@@ -1033,7 +1052,7 @@ function ServicesTab({
                           marginTop: 4,
                         }}
                       >
-                        {formatDuration(b.duration)}
+                        {formatServiceSpread(b, currency, locale).duration}
                       </div>
                     </div>
                     <ToggleAddButton
@@ -1746,8 +1765,7 @@ function BookingRail({
   removeBundle,
   onBook,
   canBook,
-  totalMinor,
-  totalDur,
+  totals,
   currency,
   locale,
   dict,
@@ -1757,8 +1775,8 @@ function BookingRail({
   removeBundle: (bundleId: number) => void;
   onBook: () => void;
   canBook: boolean;
-  totalMinor: number;
-  totalDur: number;
+  /** Pre-formatted selection spread — see formatSelectionSpread. */
+  totals: ReturnType<typeof formatSelectionSpread>;
   currency: string;
   locale: Locale;
   dict: typeof import("@/i18n/dictionaries/en").en.business;
@@ -1799,7 +1817,9 @@ function BookingRail({
             padding: "6px 4px",
           }}
         >
-          {selectedItems.map((it) => (
+          {selectedItems.map((it) => {
+            const itemMeta = formatServiceSpread(it, currency, locale);
+            return (
             <div
               key={
                 it.serviceId != null ? `s${it.serviceId}` : `b${it.bundleId}`
@@ -1830,8 +1850,11 @@ function BookingRail({
                     marginTop: 2,
                   }}
                 >
-                  {formatDuration(it.duration)} ·{" "}
-                  {formatMoney(it.priceAmountMinor, currency, locale)}
+                  {itemMeta.duration} ·{" "}
+                  {itemMeta.priceVaries && (
+                    <span style={{ fontWeight: 500 }}>{dict.priceFrom} </span>
+                  )}
+                  {itemMeta.price}
                 </div>
               </div>
               <button
@@ -1858,7 +1881,8 @@ function BookingRail({
                 <Icon name="x" size={12} color="var(--c-700)" />
               </button>
             </div>
-          ))}
+            );
+          })}
           <div
             style={{
               display: "flex",
@@ -1871,7 +1895,7 @@ function BookingRail({
             <span
               style={{ fontSize: 13, fontWeight: 600, color: "var(--c-700)" }}
             >
-              {formatDuration(totalDur)} {dict.totalLabel}
+              {totals.duration} {dict.totalLabel}
             </span>
             <span
               style={{
@@ -1881,7 +1905,12 @@ function BookingRail({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {formatMoney(totalMinor, currency, locale)}
+              {totals.priceVaries && (
+                <span style={{ fontWeight: 500, fontSize: 12.5 }}>
+                  {dict.priceFrom}{" "}
+                </span>
+              )}
+              {totals.price}
             </span>
           </div>
         </div>
@@ -1935,7 +1964,10 @@ function bookLabel(
   count: number,
   dict: typeof import("@/i18n/dictionaries/en").en.business,
 ): string {
-  return count > 0 ? format(dict.bookN, { count: String(count) }) : dict.bookNow;
+  if (count === 0) return dict.bookNow;
+  return format(count === 1 ? dict.bookNOne : dict.bookN, {
+    count: String(count),
+  });
 }
 
 /**

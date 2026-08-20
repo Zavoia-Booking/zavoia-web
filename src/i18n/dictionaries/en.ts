@@ -385,7 +385,6 @@ export const en: {
     };
     verifiedPill: string;
     unverifiedPill: string;
-    emailReadOnlyNote: string;
     notif: {
       marketing: string;
       marketingCaption: string;
@@ -423,7 +422,9 @@ export const en: {
     changeEmail: {
       title: string;
       caption: string;
+      currentValueLabel: string;
       currentLabel: string;
+      currentPlaceholder: string;
       newLabel: string;
       newPlaceholder: string;
       submit: string;
@@ -432,8 +433,6 @@ export const en: {
       manageHint: string;
       invalidEmail: string;
       changedToast: string;
-      otherSessionsRevoked: string;
-      otherSessionsRevokedOne: string;
     };
     danger: {
       caption: string;
@@ -574,6 +573,7 @@ export const en: {
     book: string;
     bookNow: string;
     bookN: string;
+    bookNOne: string;
     bookHeading: string;
     bookRailEmpty: string;
     totalLabel: string;
@@ -612,6 +612,7 @@ export const en: {
     memberClosePhotoAria: string;
     memberChooseVenue: string;
     memberNoBooking: string;
+    memberNoServicesHere: string;
     memberChecking: string;
     reviewsEmptyTitle: string;
     reviewsEmptyBody: string;
@@ -649,6 +650,7 @@ export const en: {
     staffChoiceRequired: string;
     staffLabel: string;
     serviceCount: string;
+    serviceCountOne: string;
     dateLabel: string;
     todayLabel: string;
     confirmBooking: string;
@@ -709,6 +711,7 @@ export const en: {
   };
   nav: {
     explore: string;
+    webStudio: string;
     forBusiness: string;
     signIn: string;
     search: string;
@@ -1871,7 +1874,6 @@ export const en: {
     },
     verifiedPill: "Email verified",
     unverifiedPill: "Email not verified",
-    emailReadOnlyNote: "Contact support to change your email address.",
     notif: {
       marketing: "Marketing",
       marketingCaption:
@@ -1909,18 +1911,19 @@ export const en: {
     },
     changeEmail: {
       title: "Email address",
-      caption: "Change the email you use to sign in.",
+      caption:
+        "Update the email you use to sign in. We'll notify both your old and new address when you confirm the change.",
+      currentValueLabel: "Current",
       currentLabel: "Current email",
+      currentPlaceholder: "Enter your current email",
       newLabel: "New email",
-      newPlaceholder: "you@example.com",
+      newPlaceholder: "Enter your new email",
       submit: "Update email",
       submitting: "Updating…",
       cancel: "Cancel",
       manageHint: "Click here to change your email",
       invalidEmail: "Enter a valid email address.",
       changedToast: "Email updated",
-      otherSessionsRevoked: "You were signed out on {count} other devices.",
-      otherSessionsRevokedOne: "You were signed out on 1 other device.",
     },
     danger: {
       caption: "Permanently delete your account and all of its data.",
@@ -2066,6 +2069,7 @@ export const en: {
     book: "Book",
     bookNow: "Book now",
     bookN: "Book {count} services",
+    bookNOne: "Book {count} service",
     bookHeading: "Book an appointment",
     bookRailEmpty:
       "Pick one or more services from the list — or jump straight in and choose during booking.",
@@ -2107,6 +2111,8 @@ export const en: {
     memberClosePhotoAria: "Close photo",
     memberChooseVenue: "Where to book",
     memberNoBooking: "Online booking isn't available for this professional yet.",
+    memberNoServicesHere:
+      "{name} doesn’t offer any bookable services at this location yet.",
     memberChecking: "Checking availability…",
     reviewsEmptyTitle: "No reviews yet",
     reviewsEmptyBody: "Be the first to book and share your experience.",
@@ -2146,6 +2152,7 @@ export const en: {
       "Price and time differ by professional — choose who you’d like.",
     staffLabel: "Professional",
     serviceCount: "{count} services · {duration}",
+    serviceCountOne: "{count} service · {duration}",
     dateLabel: "Date",
     todayLabel: "Today",
     confirmBooking: "Confirm booking",
@@ -2216,6 +2223,7 @@ export const en: {
   },
   nav: {
     explore: "Explore",
+    webStudio: "Web Studio",
     forBusiness: "For business",
     signIn: "Sign in",
     search: "Search",

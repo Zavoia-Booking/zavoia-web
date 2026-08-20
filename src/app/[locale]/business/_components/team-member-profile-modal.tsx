@@ -151,7 +151,9 @@ export function TeamMemberProfileModal({
   useEffect(() => {
     let alive = true;
     const req = listing
-      ? getTeamMemberInListing(listing.listingId, member.id)
+      ? // Scoped to THIS location: the menu, prices and durations must match
+        // the venue whose page opened the modal — and the booking it hands off.
+        getTeamMemberInListing(listing.listingId, member.id, listing.locationId)
       : getTeamMember(member.id);
     req
       .then((p) => {
@@ -351,10 +353,6 @@ export function TeamMemberProfileModal({
   );
   // The context still loading in the favorites flow ≠ "no services".
   const servicesPending = !listing && !context && !contextFailed;
-  const showPrices = listing
-    ? true
-    : selectedVenue?.location.showPricing !== false;
-
   // Services grouped by category — same grammar as the Services tab.
   const serviceGroups = useMemo(() => {
     const by = new Map<
@@ -862,6 +860,20 @@ export function TeamMemberProfileModal({
                   </p>
                 )}
 
+                {/* The menu is scoped to the venue whose page opened this, so a
+                    professional assigned here without any service enabled here
+                    has an empty one. Say so — an unexplained missing services
+                    section reads as a loading failure. */}
+                {!servicesPending &&
+                  activeServices.length === 0 &&
+                  (listing || venues.length > 0) && (
+                    <p
+                      style={{ margin: 0, fontSize: 13.5, color: "var(--c-600)" }}
+                    >
+                      {format(t.memberNoServicesHere, { name: firstName })}
+                    </p>
+                  )}
+
                 {activeServices.length > 0 && (
                   <section>
                     <SectionKicker>{t.tabServices}</SectionKicker>
@@ -929,9 +941,8 @@ export function TeamMemberProfileModal({
                                       fontVariantNumeric: "tabular-nums",
                                     }}
                                   >
-                                    {formatDuration(s.duration)}
-                                    {showPrices &&
-                                      ` · ${formatMoney(s.priceAmountMinor, currency, locale)}`}
+                                    {formatDuration(s.duration)} ·{" "}
+                                    {formatMoney(s.priceAmountMinor, currency, locale)}
                                   </div>
                                 </div>
                                 {canBook && (
@@ -1138,8 +1149,8 @@ export function TeamMemberProfileModal({
                   whiteSpace: "nowrap",
                 }}
               >
-                {pickedServices.length} · {formatDuration(totalDur)}
-                {showPrices && ` · ${formatMoney(totalMinor, currency, locale)}`}
+                {pickedServices.length} · {formatDuration(totalDur)} ·{" "}
+                {formatMoney(totalMinor, currency, locale)}
               </span>
             ) : (
               <span style={{ fontSize: 13, color: "var(--c-600)" }}>

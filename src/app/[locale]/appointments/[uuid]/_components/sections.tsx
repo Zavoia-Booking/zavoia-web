@@ -37,6 +37,21 @@ const ZW_CARD_R = 18;
 type ApptDict = Dictionary["appointmentDetail"];
 
 /** Coerce a runtime number-or-numeric-string into a real number (or null). */
+/**
+ * The /business route target for this appointment's location: the slug when the
+ * row has one, else the numeric id (which getListing still resolves for
+ * back-compat). Undefined when there is no location at all, so callers can drop
+ * the link rather than point at /business/undefined.
+ */
+function locationHref(
+  locale: Locale,
+  loc: AppointmentDetail["location"],
+): string | undefined {
+  if (!loc) return undefined;
+  const target = loc.slug ?? (loc.id != null ? String(loc.id) : null);
+  return target ? localeHref(locale, "business", target) : undefined;
+}
+
 function num(v: number | string | null | undefined): number | null {
   if (v == null) return null;
   const n = Number(v);
@@ -196,11 +211,7 @@ export function WhereCard({
   if (!loc) return null;
   const photo = loc.profileImage ?? biz?.logo ?? undefined;
   const rating = num(loc.averageRating);
-  // /business/[slug] resolves a LOCATION slug-or-numeric-id via getListing; a
-  // business UUID resolves to neither (and location has no slug). Use the
-  // location's numeric id, stringified — mirrors saved-content.tsx.
-  const bizHref =
-    loc.id != null ? localeHref(locale, "business", String(loc.id)) : undefined;
+  const bizHref = locationHref(locale, loc);
   return (
     <a
       href={bizHref}
@@ -658,7 +669,18 @@ export function NotesCard({ notes }: { notes: string }) {
 
 // ── WITH — provider card (years + specialties OMITTED: no fields) ──────────
 
-export function WithCard({ staff }: { staff: AppointmentDetail["staff_users"] }) {
+export function WithCard({
+  t,
+  staff,
+  location,
+  locale,
+}: {
+  t: ApptDict;
+  staff: AppointmentDetail["staff_users"];
+  /** The venue this appointment is at — the professional is linked WITHIN it. */
+  location: AppointmentDetail["location"];
+  locale: Locale;
+}) {
   const member = staff?.[0];
   if (!member) return null;
   const name =
@@ -666,20 +688,16 @@ export function WithCard({ staff }: { staff: AppointmentDetail["staff_users"] })
     [member.firstName, member.lastName].filter(Boolean).join(" ") ||
     "";
   const rating = num(member.averageRating);
-  return (
-    <div
-      className="zw-hover-lift"
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 15,
-        background: "#fff",
-        border: ZW_CARD,
-        borderRadius: ZW_CARD_R,
-        boxShadow: "var(--sh-sm)",
-        padding: "18px 20px",
-      }}
-    >
+  // The professional's profile is a modal on the location page, deep-linked by
+  // ?tab=team&member= — and it must be THIS location's page, since the menu,
+  // prices and durations it shows are per-location.
+  const base = locationHref(locale, location);
+  const href = base
+    ? `${base}?tab=team&member=${member.teamMemberId}`
+    : undefined;
+
+  const inner = (
+    <>
       <Avatar src={member.profileImage ?? undefined} name={name} size={54} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
@@ -702,8 +720,54 @@ export function WithCard({ staff }: { staff: AppointmentDetail["staff_users"] })
             {member.professionalTitle}
           </div>
         )}
+        {href && (
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--p-700)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
+              marginTop: 6,
+            }}
+          >
+            {t.viewProfile}
+            <Icon name="chevR" size={12} color="var(--p-700)" />
+          </span>
+        )}
       </div>
-    </div>
+    </>
+  );
+
+  const card: CSSProperties = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 15,
+    background: "#fff",
+    border: ZW_CARD,
+    borderRadius: ZW_CARD_R,
+    boxShadow: "var(--sh-sm)",
+    padding: "18px 20px",
+  };
+
+  // No resolvable location (deleted venue) → the card still renders, just inert,
+  // rather than linking somewhere that 404s.
+  if (!href) {
+    return (
+      <div className="zw-hover-lift" style={card}>
+        {inner}
+      </div>
+    );
+  }
+  return (
+    <a
+      href={href}
+      className="zw-hover-lift"
+      style={{ ...card, cursor: "pointer", textDecoration: "none" }}
+    >
+      {inner}
+    </a>
   );
 }
 
@@ -805,10 +869,13 @@ export function AboutCard({
   const biz = appt.business;
   const loc = appt.location;
   const photo = biz?.logo ?? loc?.profileImage ?? undefined;
-  // Resolve via the location's numeric id (see WhereCard note). Omit the card
-  // when there is no resolvable location id rather than link to /business/undefined.
-  if (!biz || !photo || !biz.description || loc?.id == null) return null;
-  const href = localeHref(locale, "business", String(loc.id));
+  if (!biz || !photo || !biz.description) return null;
+  // This card is about the BUSINESS, so it goes to the brand page — the venue
+  // itself is already one tap away on the "Where" card above. Prefer the vanity
+  // slug; /brand resolves the numeric businessId too.
+  const brandTarget = biz.businessSlug ?? (biz.id != null ? String(biz.id) : null);
+  if (!brandTarget) return null;
+  const href = localeHref(locale, "brand", brandTarget);
   return (
     <a
       href={href}
@@ -1223,6 +1290,8 @@ export function MobileBar({
   tone,
   t,
   directionsHref,
+  onBookAgain,
+  bookingAgain,
 }: {
   appt: AppointmentDetail;
   locale: Locale;
@@ -1230,15 +1299,17 @@ export function MobileBar({
   tone: StatusTone;
   t: ApptDict;
   directionsHref: string | null;
+  /** Opens the booking drawer pre-filled from this appointment (useRebook). */
+  onBookAgain: () => void;
+  bookingAgain: boolean;
 }) {
   const cancelled = tone === "warning" || tone === "error";
-  const bookAgain = tense === "past" || cancelled;
+  // Mirrors ActionRail's rule exactly: a completed appointment is settled even
+  // if its slot has not elapsed yet, so it offers "book again" like any past one.
+  const bookAgain =
+    tense === "past" || appt.status === "completed" || cancelled;
   const bizName = appt.business?.name ?? "";
-  // Resolve via the location's numeric id (see WhereCard note); null when absent.
-  const bizHref =
-    appt.location?.id != null
-      ? localeHref(locale, "business", String(appt.location.id))
-      : null;
+  const canBookAgain = appt.location?.id != null;
   const time = apptTime(appt.scheduled_at, locale);
   const dateLabel = new Intl.DateTimeFormat(locale, {
     weekday: "short",
@@ -1278,9 +1349,13 @@ export function MobileBar({
         </div>
       </div>
       {bookAgain ? (
-        bizHref ? (
-          <a
-            href={bizHref}
+        canBookAgain ? (
+          // Same action as the desktop rail — open the booking drawer pre-filled
+          // from this appointment, NOT a bare link to the venue's menu.
+          <button
+            type="button"
+            onClick={onBookAgain}
+            disabled={bookingAgain}
             className="tap zw-btn"
             style={{
               background: "var(--p-500)",
@@ -1290,12 +1365,13 @@ export function MobileBar({
               fontSize: 14.5,
               fontWeight: 600,
               borderRadius: "var(--r-full)",
-              textDecoration: "none",
               whiteSpace: "nowrap",
+              cursor: "pointer",
+              opacity: bookingAgain ? 0.6 : 1,
             }}
           >
             {t.bookAgain}
-          </a>
+          </button>
         ) : null
       ) : (
         <a

@@ -181,3 +181,75 @@ export function needsStaffChoice(
     (item, idx) => staffPicks[idx] == null && itemVariesByStaff(item, staffPricing),
   );
 }
+
+/**
+ * The spread of a chosen slot given the picks made so far.
+ *
+ * A slot's own figures are staff-agnostic: the LOWEST price any capable
+ * professional charges and the LONGEST time any of them needs. So until every
+ * varying item has a professional, the total is a floor with a duration range,
+ * not an exact figure — and the footer must say so. Once all picks are in, the
+ * bounds collapse and it renders exactly like a resolved price.
+ */
+export function slotSpread(
+  slot: TimeSlot,
+  staffPicks: StaffPicks,
+  staffPricing: StaffPricing,
+): {
+  priceMinor: number;
+  priceVaries: boolean;
+  durationMinMinutes: number;
+  durationMaxMinutes: number;
+  durationVaries: boolean;
+} {
+  let priceMinor = 0;
+  let priceVaries = false;
+  let durationMinMinutes = 0;
+  let durationMaxMinutes = 0;
+  let durationVaries = false;
+
+  slot.items.forEach((item, idx) => {
+    const staffId = staffPicks[idx] ?? null;
+    if (staffId != null) {
+      const f = staffFiguresForItem(item, staffId, staffPricing);
+      priceMinor += f.priceAmountMinor;
+      durationMinMinutes += f.durationMinutes;
+      durationMaxMinutes += f.durationMinutes;
+      return;
+    }
+
+    // Nobody picked yet: fold in every candidate's figures to get the real
+    // bounds. Falls back to the slot's own (already conservative) numbers when
+    // staffPricing has nothing for this item.
+    const figures = item.availableStaffIds.map((sid) =>
+      staffFiguresForItem(item, sid, staffPricing),
+    );
+    if (figures.length === 0) {
+      priceMinor += item.priceAmountMinor;
+      durationMinMinutes += item.durationMinutes;
+      durationMaxMinutes += item.durationMinutes;
+      return;
+    }
+
+    const prices = figures.map((f) => f.priceAmountMinor);
+    const durations = figures.map((f) => f.durationMinutes);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const minDuration = Math.min(...durations);
+    const maxDuration = Math.max(...durations);
+
+    priceMinor += minPrice;
+    priceVaries ||= minPrice !== maxPrice;
+    durationMinMinutes += minDuration;
+    durationMaxMinutes += maxDuration;
+    durationVaries ||= minDuration !== maxDuration;
+  });
+
+  return {
+    priceMinor,
+    priceVaries,
+    durationMinMinutes,
+    durationMaxMinutes,
+    durationVaries,
+  };
+}

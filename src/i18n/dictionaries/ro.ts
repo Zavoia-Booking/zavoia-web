@@ -437,8 +437,6 @@ export const ro: Dictionary = {
     },
     verifiedPill: "Email verificat",
     unverifiedPill: "Email neverificat",
-    emailReadOnlyNote:
-      "Contactează asistența pentru a-ți schimba adresa de email.",
     notif: {
       marketing: "Marketing",
       marketingCaption: "Primește noutăți despre promoții, oferte și funcții noi.",
@@ -476,19 +474,19 @@ export const ro: Dictionary = {
     },
     changeEmail: {
       title: "Adresă de email",
-      caption: "Schimbă emailul cu care te autentifici.",
-      currentLabel: "Email actual",
+      caption:
+        "Actualizează adresa de email folosită pentru autentificare. Vom trimite notificări atât la adresa veche, cât și la cea nouă atunci când confirmi schimbarea.",
+      currentValueLabel: "Curent",
+      currentLabel: "Email curent",
+      currentPlaceholder: "Introdu adresa curentă",
       newLabel: "Email nou",
-      newPlaceholder: "tu@exemplu.com",
+      newPlaceholder: "Introdu noua adresă",
       submit: "Actualizează emailul",
       submitting: "Se actualizează…",
       cancel: "Anulează",
       manageHint: "Apasă aici pentru a-ți schimba emailul",
       invalidEmail: "Introdu o adresă de email validă.",
       changedToast: "Email actualizat",
-      otherSessionsRevoked:
-        "Ai fost deconectat de pe alte {count} dispozitive.",
-      otherSessionsRevokedOne: "Ai fost deconectat de pe 1 alt dispozitiv.",
     },
     danger: {
       caption: "Șterge definitiv contul și toate datele asociate.",
@@ -635,6 +633,7 @@ export const ro: Dictionary = {
     book: "Rezervă",
     bookNow: "Rezervă acum",
     bookN: "Rezervă {count} servicii",
+    bookNOne: "Rezervă {count} serviciu",
     bookHeading: "Rezervă o programare",
     bookRailEmpty:
       "Alege unul sau mai multe servicii din listă — sau începe direct și alege în timpul rezervării.",
@@ -677,6 +676,8 @@ export const ro: Dictionary = {
     memberChooseVenue: "Unde te programezi",
     memberNoBooking:
       "Programarea online nu este disponibilă încă pentru acest profesionist.",
+    memberNoServicesHere:
+      "{name} nu are încă servicii disponibile pentru rezervare la această locație.",
     memberChecking: "Verificăm disponibilitatea…",
     reviewsEmptyTitle: "Încă fără recenzii",
     reviewsEmptyBody:
@@ -717,6 +718,7 @@ export const ro: Dictionary = {
       "Prețul și durata diferă în funcție de profesionist — alege cine îți face serviciul.",
     staffLabel: "Profesionist",
     serviceCount: "{count} servicii · {duration}",
+    serviceCountOne: "{count} serviciu · {duration}",
     dateLabel: "Data",
     todayLabel: "Azi",
     confirmBooking: "Confirmă rezervarea",
@@ -787,6 +789,7 @@ export const ro: Dictionary = {
   },
   nav: {
     explore: "Explorează",
+    webStudio: "Web Studio",
     forBusiness: "Pentru business",
     signIn: "Autentificare",
     search: "Caută",

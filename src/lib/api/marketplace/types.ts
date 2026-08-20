@@ -466,8 +466,23 @@ export interface BundleSummary {
   name: string;
   description: string | null;
   priceType: string;
-  priceAmountMinor: number;
+  /** Longest a professional here needs — the location/staff-aware worst case. */
   duration: number;
+  priceAmountMinor: number;
+  /**
+   * A package is priced as a package, so `priceVariesByStaff` is always false
+   * and the price fields collapse to `priceAmountMinor`. Only the DURATION can
+   * vary, when the professionals who can perform the whole package work at
+   * different speeds.
+   */
+  priceFromMinor: number;
+  priceToMinor: number;
+  priceVariesByStaff: boolean;
+  durationMinMinutes: number;
+  durationMaxMinutes: number;
+  durationVariesByStaff: boolean;
+  /** Professionals who can perform EVERY service in the package here. */
+  bookableStaffCount: number;
   locationIds: number[];
   /** Line-items of the package — priced by the bundle, so no staff spread. */
   services: ServiceBase[];
@@ -660,7 +675,6 @@ export interface TeamMemberBookingLocation {
   featuredImage: string | null;
   averageRating: number | null;
   totalReviews: number;
-  showPricing: boolean;
   allowOnlineBooking: boolean;
   services: TeamMemberBookingContextService[];
 }
@@ -1007,6 +1021,9 @@ export interface AppointmentReviewSummary {
 export interface AppointmentDetailBusiness {
   id: number;
   uuid: string;
+  /** Brand-page route target; null when the business has no vanity URL
+   *  (the /brand route also resolves the numeric businessId). */
+  businessSlug: string | null;
   name: string;
   logo: string | null;
   description: string | null;
@@ -1020,6 +1037,9 @@ export interface AppointmentDetailBusiness {
 export interface AppointmentDetailLocation {
   id: number;
   uuid: string;
+  /** Non-enumerable location slug — the canonical /business route target;
+   *  null for legacy rows, where the numeric id still resolves. */
+  slug: string | null;
   name: string;
   address: string | null;
   phone: string | null;

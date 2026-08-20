@@ -306,15 +306,19 @@ function ActionRail({
   locale,
   tense,
   tone,
+  onBookAgain,
+  bookingAgain,
 }: {
   t: ApptDict;
   appt: AppointmentDetail;
   locale: Locale;
   tense: Tense;
   tone: StatusTone;
+  /** Opens the booking drawer pre-filled from this appointment (useRebook). */
+  onBookAgain: () => void;
+  bookingAgain: boolean;
 }) {
   const { openReview, openReschedule, openCancel } = useAppointmentActions();
-  const { rebook, pending: rebooking } = useRebook();
   const loc = appt.location;
   const biz = appt.business;
   // A completed appointment is settled regardless of its slot time — the backend
@@ -421,8 +425,8 @@ function ActionRail({
                 <RailButton
                   kind={canReview ? "secondary" : "accent"}
                   icon="rebook"
-                  onClick={() => void rebook(appt)}
-                  disabled={rebooking}
+                  onClick={onBookAgain}
+                  disabled={bookingAgain}
                 >
                   {t.bookAgain}
                 </RailButton>
@@ -433,8 +437,8 @@ function ActionRail({
             <RailButton
               kind="accent"
               icon="rebook"
-              onClick={() => void rebook(appt)}
-              disabled={rebooking}
+              onClick={onBookAgain}
+              disabled={bookingAgain}
             >
               {t.bookAgain}
             </RailButton>
@@ -493,6 +497,9 @@ function DetailBody({
 }) {
   const router = useRouter();
   const { openReview } = useAppointmentActions();
+  // Owned here, not in ActionRail, so the desktop rail and the mobile sticky
+  // bar drive the SAME rebook call and share one pending state.
+  const { rebook, pending: rebooking } = useRebook();
 
   const tense = deriveTense(appt.scheduled_at, appt.ends_at, appt.status);
   const tone = apptStatusTone(appt.status, tense);
@@ -697,7 +704,12 @@ function DetailBody({
 
           {appt.staff_users?.[0] && (
             <Section label={t.sections.with}>
-              <WithCard staff={appt.staff_users} />
+              <WithCard
+                t={t}
+                staff={appt.staff_users}
+                location={appt.location}
+                locale={locale}
+              />
             </Section>
           )}
 
@@ -735,7 +747,15 @@ function DetailBody({
 
         {/* Right rail — desktop sticky */}
         <div className="zw-only-desktop" style={{ position: "sticky", top: "calc(var(--nav-h) + 18px)" }}>
-          <ActionRail t={t} appt={appt} locale={locale} tense={tense} tone={tone} />
+          <ActionRail
+            t={t}
+            appt={appt}
+            locale={locale}
+            tense={tense}
+            tone={tone}
+            onBookAgain={() => void rebook(appt)}
+            bookingAgain={rebooking}
+          />
         </div>
       </div>
 
@@ -747,6 +767,8 @@ function DetailBody({
         tense={tense}
         tone={tone}
         directionsHref={directionsHref}
+        onBookAgain={() => void rebook(appt)}
+        bookingAgain={rebooking}
       />
       <div className="zw-only-mobile" style={{ height: 64 }} />
     </div>

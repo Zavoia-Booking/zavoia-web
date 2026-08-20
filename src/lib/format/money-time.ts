@@ -98,3 +98,72 @@ export function formatServiceSpread(
     priceVaries,
   };
 }
+
+/**
+ * The aggregate spread of a whole selection (several services / bundles).
+ *
+ * `priceMinor` is the LOWEST the visit can cost — the sum of each item's own
+ * "from" figure — so it must always be rendered behind a "from" prefix when
+ * `priceVaries`. Duration keeps both bounds because a range reads naturally
+ * where a price range reads cluttered (same asymmetry as a single row).
+ */
+export interface SelectionSpread {
+  priceMinor: number;
+  priceVaries: boolean;
+  durationMinMinutes: number;
+  durationMaxMinutes: number;
+  durationVaries: boolean;
+}
+
+/**
+ * Fold a selection into one spread. An item with no spread fields (a bundle, a
+ * staff-pinned service from the team-member flow) contributes its exact figures
+ * and never turns the total into a "from" — only a genuinely varying item does.
+ */
+export function sumServiceSpreads(items: ServiceSpread[]): SelectionSpread {
+  let priceMinor = 0;
+  let priceVaries = false;
+  let durationMinMinutes = 0;
+  let durationMaxMinutes = 0;
+  let durationVaries = false;
+
+  for (const it of items) {
+    const varies = it.priceVariesByStaff === true;
+    priceMinor += varies
+      ? (it.priceFromMinor ?? it.priceAmountMinor)
+      : it.priceAmountMinor;
+    priceVaries ||= varies;
+
+    const dv = it.durationVariesByStaff === true;
+    durationMinMinutes += dv ? (it.durationMinMinutes ?? it.duration) : it.duration;
+    durationMaxMinutes += dv ? (it.durationMaxMinutes ?? it.duration) : it.duration;
+    durationVaries ||= dv;
+  }
+
+  return {
+    priceMinor,
+    priceVaries,
+    durationMinMinutes,
+    durationMaxMinutes,
+    durationVaries,
+  };
+}
+
+/**
+ * Render a `SelectionSpread` the same way a single service row renders — so a
+ * running total and the rows it sums up never disagree about whether the
+ * figures are exact or a floor.
+ */
+export function formatSelectionSpread(
+  spread: SelectionSpread,
+  currency: string,
+  locale: string,
+): { duration: string; price: string; priceVaries: boolean } {
+  return {
+    duration: spread.durationVaries
+      ? formatDurationRange(spread.durationMinMinutes, spread.durationMaxMinutes)
+      : formatDuration(spread.durationMinMinutes),
+    price: formatMoney(spread.priceMinor, currency, locale),
+    priceVaries: spread.priceVaries,
+  };
+}
