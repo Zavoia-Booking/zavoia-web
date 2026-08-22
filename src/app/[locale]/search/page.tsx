@@ -78,14 +78,6 @@ export default async function SearchPage({ params, searchParams }: Props) {
 
   const sp = await searchParams;
 
-  // Filter taxonomy for the chip row.
-  let industries: Industry[] = [];
-  try {
-    industries = await getIndustries();
-  } catch {
-    industries = [];
-  }
-
   // Initial results from the URL params (build-safe; empty on failure).
   const initialParams: SearchListingsParams = {
     search: one(sp.search),
@@ -100,12 +92,14 @@ export default async function SearchPage({ params, searchParams }: Props) {
     offset: num(sp.offset) ?? 0,
   };
 
-  let initialResult: SearchListingsResult = EMPTY_RESULT;
-  try {
-    initialResult = await searchListings(initialParams);
-  } catch {
-    initialResult = EMPTY_RESULT;
-  }
+  // The filter taxonomy and the result set are independent, so both requests
+  // go out together rather than one after the other.
+  const [industries, initialResult] = await Promise.all([
+    getIndustries().catch((): Industry[] => []),
+    searchListings(initialParams).catch(
+      (): SearchListingsResult => EMPTY_RESULT,
+    ),
+  ]);
 
   return (
     <SearchContent

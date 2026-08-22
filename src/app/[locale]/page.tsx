@@ -64,31 +64,20 @@ export default async function Home({ params }: Props) {
   const { locale: localeParam } = await params;
   if (!isLocale(localeParam)) notFound();
 
-  // Build-safety: every data-layer call is wrapped so a failed/absent backend
-  // never crashes the render. The page falls back to empty data + editorial
-  // sections.
-  let industries: Industry[] = [];
-  try {
-    industries = await getIndustries();
-  } catch {
-    industries = [];
-  }
-
-  let latest: LocationCard[] = [];
-  try {
-    const res = await getLatestListings({ limit: 10 });
-    latest = res.data;
-  } catch {
-    latest = [];
-  }
-
-  let brands: BrandCard[] = [];
-  try {
-    const res = await getBrands({ limit: 10 });
-    brands = res.data;
-  } catch {
-    brands = [];
-  }
+  // The three feeds fire in parallel and are handed to HomeContent UNAWAITED:
+  // each one streams into its own <Suspense> boundary, so the hero and the
+  // editorial bands reach the browser without waiting on admin-api at all.
+  //
+  // Build-safety: the .catch() at creation doubles as the empty-data fallback
+  // (a failed/absent backend never crashes the render) and ensures the promise
+  // is already handled before its consumer awaits it.
+  const industries = getIndustries().catch((): Industry[] => []);
+  const latest = getLatestListings({ limit: 10 })
+    .then((res) => res.data)
+    .catch((): LocationCard[] => []);
+  const brands = getBrands({ limit: 10 })
+    .then((res) => res.data)
+    .catch((): BrandCard[] => []);
 
   return (
     <HomeContent

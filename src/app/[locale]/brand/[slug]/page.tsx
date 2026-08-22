@@ -1,32 +1,41 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { LOCALES, isLocale } from "@/i18n/locales";
+import { isLocale } from "@/i18n/locales";
 import { getBrand } from "@/lib/api/marketplace/public";
+import { BRAND_TAG, brandTag } from "@/lib/cache/tags";
 import type { BrandDetail as BrandDetailData } from "@/lib/api/marketplace/types";
 import { BrandDetail } from "../_components/brand-detail";
 import { BusinessNotFound } from "../../business/_components/business-not-found";
 
-// Live marketplace data: never statically prerender (the backend may be down
-// during `next build`). The route param is a businessSlug (vanity URL); the
-// backend also resolves a numeric business id.
-export const dynamic = "force-dynamic";
+// ISR, same shape as the business detail route. The param is a businessSlug
+// (vanity URL) or a numeric business id — non-enumerable, so nothing is
+// prerendered at build time and the backend is never called during
+// `next build`. Must be a literal to be statically analysable.
+export const revalidate = 300;
 
-export const dynamicParams = true;
-
+// Required for ISR even though it enumerates nothing: without a
+// `generateStaticParams`, Next treats the route as purely on-demand and never
+// gives it a `dynamicRoutes` cache entry. Returning [] means "prerender no
+// paths, but cache each one after its first request".
 export async function generateStaticParams() {
-  return LOCALES.map((locale) => ({ locale }));
+  return [];
 }
 
 type Props = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
+const BRAND_CACHE = (slug: string) => ({
+  revalidate: 300,
+  tags: [BRAND_TAG, brandTag(slug)],
+});
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const { locale, slug } = await params;
     if (!isLocale(locale)) return {};
     if (!slug) return {};
-    const brand = await getBrand(slug);
+    const brand = await getBrand(slug, BRAND_CACHE(slug));
     return {
       title: brand.name,
       description: brand.tagline ?? brand.description ?? undefined,
@@ -46,7 +55,7 @@ export default async function BrandPage({ params }: Props) {
   // than crashing the route.
   let brand: BrandDetailData | null = null;
   try {
-    brand = await getBrand(slug);
+    brand = await getBrand(slug, BRAND_CACHE(slug));
   } catch {
     brand = null;
   }

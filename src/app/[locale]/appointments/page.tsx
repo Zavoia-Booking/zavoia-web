@@ -10,10 +10,11 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { AppointmentsContent } from "./_components/appointments-content";
 
-// Live customer data is fetched client-side; never statically prerender (the
-// backend may be down during `next build`). Mirrors the account page.
-export const dynamic = "force-dynamic";
-
+// The server renders only the empty shell: every piece of customer data is fetched
+// client-side after hydration, so this HTML is byte-identical for every
+// visitor and depends on nothing but the locale. Nothing in the tree reads a
+// request-time API (no `next/headers` anywhere in src/), so it prerenders and
+// is served from the CDN instead of costing a function invocation per request.
 export const dynamicParams = false;
 
 export async function generateStaticParams() {

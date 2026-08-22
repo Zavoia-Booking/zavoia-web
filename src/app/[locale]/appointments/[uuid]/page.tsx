@@ -4,11 +4,10 @@ import { LOCALES, isLocale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { DetailContent } from "./_components/detail-content";
 
-// Live, auth-gated personal data: never statically prerender (the backend may
-// be down at build time and the appointment is fetched client-side from the
-// authenticated session). The `uuid` param is not enumerable.
-export const dynamic = "force-dynamic";
-
+// Auth-gated personal data, fetched client-side from the authenticated
+// session — the server contributes only the shell and never calls the backend.
+// The `uuid` isn't enumerable, so no concrete path is prerendered, but the
+// shell no longer needs to be re-rendered per request either.
 // uuids aren't known at build time — accept any value and render dynamically.
 export const dynamicParams = true;
 

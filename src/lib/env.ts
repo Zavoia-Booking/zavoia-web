@@ -10,10 +10,16 @@ export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
 // empty, no Google UI is rendered and nothing else breaks. The configured
 // client ID must list this deploy's origin under "Authorized JavaScript
 // origins" in Google Cloud Console for GIS to issue ID tokens.
-export const GOOGLE_CLIENT_ID =
-  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 // Zavoia Business dashboard (admin-dashboard app). Overridable so staging
 // deploys can point at staging-app.zavoia.com.
 export const BUSINESS_APP_URL =
   process.env.NEXT_PUBLIC_BUSINESS_APP_URL ?? "https://app.zavoia.com";
+
+// Shared secret for POST /api/revalidate/business, the endpoint admin-api
+// calls when a business publishes or changes. Server-only (no NEXT_PUBLIC_
+// prefix) so it never reaches the browser bundle. Unset = the endpoint refuses
+// every request, which is the safe default: pages still self-heal on their
+// revalidate window.
+export const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET ?? "";

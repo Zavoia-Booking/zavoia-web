@@ -1,33 +1,51 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { LOCALES, isLocale } from "@/i18n/locales";
+import { isLocale } from "@/i18n/locales";
 import { getListing } from "@/lib/api/marketplace/public";
+import { BUSINESS_TAG, businessTag } from "@/lib/cache/tags";
 import type { ListingDetail } from "@/lib/api/marketplace/types";
 import { BusinessDetail } from "../_components/business-detail";
 import { BusinessNotFound } from "../_components/business-not-found";
 
-// Live marketplace data: never statically prerender (the backend may be down
-// during `next build`). The route param is a LOCATION slug (non-enumerable);
-// the backend resolves it (it also accepts a numeric id) to a listing.
-export const dynamic = "force-dynamic";
+// ISR. The route param is a LOCATION slug (non-enumerable — the backend
+// resolves it, or a numeric id, to a listing), so nothing is prerendered at
+// build time: the first request for a slug renders it, and the result is
+// cached and served from the CDN for everyone after that. No backend call is
+// needed during `next build`.
+//
+// 300s is the FLOOR, not the freshness plan — see `LISTING_REVALIDATE_SECONDS`
+// in @/lib/cache/tags. Publishing a business calls the revalidate webhook,
+// which invalidates this page's tag immediately; the window only covers
+// edits that never fire a webhook. Must be a literal to be statically
+// analysable.
+export const revalidate = 300;
 
-// Slugs aren't known at build time — accept any slug and render it dynamically.
-export const dynamicParams = true;
-
+// Required for ISR even though it enumerates nothing: without a
+// `generateStaticParams`, Next treats the route as purely on-demand and never
+// gives it a `dynamicRoutes` cache entry. Returning [] means "prerender no
+// paths, but cache each one after its first request".
 export async function generateStaticParams() {
-  return LOCALES.map((locale) => ({ locale }));
+  return [];
 }
 
 type Props = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
+// Both the metadata and the page body fetch the same listing; identical GETs
+// are memoized within one render pass, so this is a single request. Two tags:
+// the specific page, and the coarse `business` tag for a bulk flush.
+const LISTING_CACHE = (slug: string) => ({
+  revalidate: 300,
+  tags: [BUSINESS_TAG, businessTag(slug)],
+});
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const { locale, slug } = await params;
     if (!isLocale(locale)) return {};
     if (!slug) return {};
-    const listing = await getListing(slug);
+    const listing = await getListing(slug, LISTING_CACHE(slug));
     return {
       // Location page → the location's own name titles the tab (business-level
       // listing name only as fallback).
@@ -52,7 +70,7 @@ export default async function BusinessDetailPage({ params }: Props) {
   // (the backend resolves slug-or-id).
   let listing: ListingDetail | null = null;
   try {
-    listing = await getListing(slug);
+    listing = await getListing(slug, LISTING_CACHE(slug));
   } catch {
     listing = null;
   }

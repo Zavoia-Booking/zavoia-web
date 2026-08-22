@@ -37,6 +37,19 @@ import type {
   TeamMemberProfile,
 } from "./types";
 
+/**
+ * Server-side cache hints for the public detail endpoints. Ignored in the
+ * browser (the fetch cache is a server concern) and dropped entirely by
+ * `apiFetch` if an access token is attached, so a per-user response can never
+ * land in the shared cache.
+ */
+export type CacheOptions = { revalidate?: number; tags?: string[] };
+
+function cacheInit(opts?: CacheOptions): RequestInit {
+  if (!opts) return {};
+  return { next: { revalidate: opts.revalidate, tags: opts.tags } };
+}
+
 /** GET /marketplace/public/industries — RAW Industry[]. */
 export function getIndustries(): Promise<Industry[]> {
   return apiFetch<Industry[]>("/marketplace/public/industries", {
@@ -139,10 +152,13 @@ export async function getListingsBulk(
  * slug or a numeric id, so a string param is correct. Optional-auth: the token
  * is attached automatically when present, populating `isFavorited`.
  */
-export function getListing(slug: string): Promise<ListingDetail> {
+export function getListing(
+  slug: string,
+  opts?: CacheOptions,
+): Promise<ListingDetail> {
   return apiFetch<ListingDetail>(
     `/marketplace/public/listing/${encodeURIComponent(slug)}`,
-    { method: "GET" },
+    { method: "GET", ...cacheInit(opts) },
   );
 }
 
@@ -163,10 +179,13 @@ export function getListingReviews(
  * `slug` is a businessSlug (vanity URL); the backend also resolves a numeric
  * business id, so a string param is correct.
  */
-export function getBrand(slug: string): Promise<BrandDetail> {
+export function getBrand(
+  slug: string,
+  opts?: CacheOptions,
+): Promise<BrandDetail> {
   return apiFetch<BrandDetail>(
     `/marketplace/public/brand/${encodeURIComponent(slug)}`,
-    { method: "GET" },
+    { method: "GET", ...cacheInit(opts) },
   );
 }
 

@@ -229,6 +229,22 @@ async function ensureFreshToken(path: string): Promise<void> {
   }
 }
 
+/**
+ * A tagged / revalidated response is stored in a cache SHARED by every visitor.
+ * Some public endpoints are optional-auth — `getListing` populates
+ * `isFavorited` when a token is present — so caching a token-bearing response
+ * would serve one user's state to everyone. Server-side there is no token
+ * store, which is what makes the listing pages cacheable at all; this strips
+ * the cache hints if that ever stops being true.
+ */
+function stripCacheHints(init: RequestInit): RequestInit {
+  if (!("next" in init) && !("cache" in init)) return init;
+  const rest: Record<string, unknown> = { ...init };
+  delete rest.next;
+  delete rest.cache;
+  return rest as RequestInit;
+}
+
 export async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
@@ -237,9 +253,10 @@ export async function apiFetch<T>(
 
   const accessToken = tokenStore?.get() ?? null;
   const headers = buildHeaders(path, init, accessToken);
+  const safeInit = accessToken ? stripCacheHints(init) : init;
 
   const response = await fetch(`${API_URL}${path}`, {
-    ...init,
+    ...safeInit,
     headers,
     credentials: "include",
   });
@@ -276,7 +293,8 @@ export async function apiFetch<T>(
       }
       retryHeaders.set("Authorization", `Bearer ${newToken}`);
       const retryResponse = await fetch(`${API_URL}${path}`, {
-        ...init,
+        // Reached only with a token in hand — never cache this response.
+        ...stripCacheHints(init),
         headers: retryHeaders,
         credentials: "include",
       });
