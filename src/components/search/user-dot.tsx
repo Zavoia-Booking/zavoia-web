@@ -1,9 +1,5 @@
 // Pulsing user-location dot. Ported from ZvUserDot (docs/map-surface.jsx).
 
-export interface UserDotProps {
-  x: number;
-  y: number;
-}
 
 // Inner pulsing dot — the shared visual, with NO outer positioning. Reused by
 // both the absolutely-positioned <UserDot> and the react-map-gl user Marker
@@ -41,19 +37,3 @@ export function UserDotGlyph() {
   );
 }
 
-// Positioned by normalised x/y ∈ [0..1]; non-interactive.
-export function UserDot({ x, y }: UserDotProps) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: `${x * 100}%`,
-        top: `${y * 100}%`,
-        transform: "translate(-50%, -50%)",
-        pointerEvents: "none",
-      }}
-    >
-      <UserDotGlyph />
-    </div>
-  );
-}

@@ -31,7 +31,7 @@ import {
 } from "@/lib/booking/staff-resolution";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
-import { ApiError } from "@/lib/api/http";
+import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
 import {
   getBookingCalendar,
   getBookingSlots,
@@ -123,40 +123,24 @@ function groupForTime(start: string): SlotGroup {
 }
 
 /**
- * Map an ApiError.code to {message, backTo} (which step to send the user to).
- * Step 1 (choose services) no longer exists as an error-recovery target — date
- * lives on the combined step 2 now, so every recoverable error sends the user
- * back to step 2 (refreshing calendar/slots as appropriate).
+ * Submit-time booking failures, keyed on the FULL namespaced backend code —
+ * `ApiError.code` is always namespaced ("MARKETPLACE_BOOKING.E08"), and a bare
+ * suffix collides across namespaces (`CUSTOMER_BOOKING.E14` — booking disabled
+ * for the venue, a permanent block handled separately by classifyBookingBlock
+ * — is a completely different failure from `MARKETPLACE_BOOKING.E14` below).
+ * See reschedule-modal.tsx, which solves the identical problem the same way.
+ * Every mapped code sends the user back to step 2 — date/time/staff all live
+ * there now, so step 1 is never a valid error-recovery target.
  */
-function mapErrorCode(
-  code: string | undefined,
-  errors: {
-    tooSoon: string;
-    tooFar: string;
-    slotConflict: string;
-    outsideHours: string;
-    calendarBlock: string;
-    staffUnavailable: string;
-    generic: string;
-  },
-): { message: string; backTo: Step | null } {
-  switch (code) {
-    case "E08":
-      return { message: errors.tooSoon, backTo: 2 };
-    case "E09":
-      return { message: errors.tooFar, backTo: 2 };
-    case "E10":
-      return { message: errors.slotConflict, backTo: 2 };
-    case "E11":
-      return { message: errors.outsideHours, backTo: 2 };
-    case "E14":
-      return { message: errors.calendarBlock, backTo: 2 };
-    case "E15":
-      return { message: errors.staffUnavailable, backTo: 2 };
-    default:
-      return { message: errors.generic, backTo: null };
-  }
-}
+const BOOKING_SUBMIT_ERROR_KEYS: Record<string, keyof BookingDict["errors"]> =
+  {
+    "MARKETPLACE_BOOKING.E08": "tooSoon",
+    "MARKETPLACE_BOOKING.E09": "tooFar",
+    "MARKETPLACE_BOOKING.E10": "slotConflict",
+    "MARKETPLACE_BOOKING.E11": "outsideHours",
+    "MARKETPLACE_BOOKING.E14": "calendarBlock",
+    "MARKETPLACE_BOOKING.E15": "staffUnavailable",
+  };
 
 /**
  * Real booking drawer: date → time + staff → review/confirm → success.
@@ -182,12 +166,14 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const [step, setStep] = useState<Step>(1);
   const [calendar, setCalendar] = useState<BookingCalendar | null>(null);
   const [calLoading, setCalLoading] = useState(false);
-  const [calError, setCalError] = useState(false);
+  // Resolved message (transport-aware — see loadCalendar), not a bare flag, so
+  // "you're offline" can win over the generic "couldn't load availability".
+  const [calError, setCalError] = useState<string | null>(null);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [daySlots, setDaySlots] = useState<BookingDaySlots | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const [slotsError, setSlotsError] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
 
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [staffPicks, setStaffPicks] = useState<StaffPicks>({});
@@ -281,14 +267,30 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     [resolvedServices, ignorePins],
   );
 
+  // Monotonic per-load-kind request ids — the "latest wins" guard also used by
+  // useSearchPreview. A response only commits if it's still the most recent
+  // request of its kind: bumped on every loadCalendar/loadSlots call (so a
+  // slower response for a date the user has since moved on from can never
+  // overwrite what's on screen for the CURRENT date), and again whenever the
+  // drawer closes (so nothing from a session the user just walked away from —
+  // including one about to be replaced by a new booking, see the reset effect
+  // below — can land after the fact). True cancellation (AbortController) isn't
+  // wired here because getBookingCalendar/getBookingSlots don't take a signal,
+  // and adding one lives in src/lib/api/marketplace/booking.ts, outside this
+  // slice — see BookingProvider for the complementary unmount-on-close, which
+  // discards this component instance (and these refs) entirely on a real close.
+  const calRequestIdRef = useRef(0);
+  const slotsRequestIdRef = useRef(0);
+
   // ── Fetch calendar (called on entering the combined step + on retry).
   //    `servicesOverride` lets the staff-pin recovery refetch unpinned in the
   //    same tick it flips `ignorePins` (before the memo above recomputes). ──
   const loadCalendar = useCallback(
     async (servicesOverride?: BookingSelectionItem[]) => {
       if (!payload) return;
+      const requestId = (calRequestIdRef.current += 1);
       setCalLoading(true);
-      setCalError(false);
+      setCalError(null);
       try {
         const tz = payload.timezone || "UTC";
         const res = await getBookingCalendar({
@@ -298,16 +300,18 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
           startDate: todayInTz(tz),
           daysToCheck: CAL_DAYS_TO_CHECK,
         });
+        if (requestId !== calRequestIdRef.current) return; // superseded
         setCalendar(res);
       } catch (e) {
+        if (requestId !== calRequestIdRef.current) return; // superseded
         const block = classifyBookingBlock(e);
         if (block) setBlocked(block);
-        else setCalError(true);
+        else setCalError(errorMessage(e, dict.errors, t.loadError));
       } finally {
-        setCalLoading(false);
+        if (requestId === calRequestIdRef.current) setCalLoading(false);
       }
     },
-    [payload, effectiveServices],
+    [payload, effectiveServices, dict.errors, t.loadError],
   );
 
   // Remembers the last `payload` object reference the reset effect below
@@ -338,10 +342,10 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       setStep(startsOnStep1 ? 1 : 2);
       setPicked([]);
       setCalendar(null);
-      setCalError(false);
+      setCalError(null);
       setSelectedDate(null);
       setDaySlots(null);
-      setSlotsError(false);
+      setSlotsError(null);
       setSelectedSlot(null);
       setStaffPicks({});
       setBlocked(null);
@@ -350,6 +354,11 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       setSubmitError(null);
       setSuccess(null);
       idempotencyKeyRef.current = "";
+      // Invalidate any load still in flight from whatever this instance was
+      // showing before (a prior business's session, most commonly) so its
+      // response can never commit into the state we just reset.
+      calRequestIdRef.current += 1;
+      slotsRequestIdRef.current += 1;
       if (!startsOnStep1) void loadCalendar();
     });
     return () => {
@@ -362,8 +371,9 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const loadSlots = useCallback(
     async (date: string, servicesOverride?: BookingSelectionItem[]) => {
       if (!payload) return;
+      const requestId = (slotsRequestIdRef.current += 1);
       setSlotsLoading(true);
-      setSlotsError(false);
+      setSlotsError(null);
       setSelectedSlot(null);
       setStaffPicks({});
       try {
@@ -373,17 +383,32 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
           services: toServiceSelections(servicesOverride ?? effectiveServices),
           date,
         });
+        if (requestId !== slotsRequestIdRef.current) return; // superseded
         setDaySlots(res);
       } catch (e) {
+        if (requestId !== slotsRequestIdRef.current) return; // superseded
         const block = classifyBookingBlock(e);
         if (block) setBlocked(block);
-        else setSlotsError(true);
+        else setSlotsError(errorMessage(e, dict.errors, t.loadError));
       } finally {
-        setSlotsLoading(false);
+        if (requestId === slotsRequestIdRef.current) setSlotsLoading(false);
       }
     },
-    [payload, effectiveServices],
+    [payload, effectiveServices, dict.errors, t.loadError],
   );
+
+  // ── Discard in-flight calendar/slots work the moment the drawer closes —
+  //    covers the sign-in detour (BookingProvider keeps this instance mounted
+  //    across it), where a real close would otherwise handle this by unmounting.
+  //    A genuine close ALSO unmounts (see BookingProvider), which drops this
+  //    whole instance; this effect is what protects the "closed but still
+  //    mounted" window in between. ──
+  useEffect(() => {
+    if (!open) {
+      calRequestIdRef.current += 1;
+      slotsRequestIdRef.current += 1;
+    }
+  }, [open]);
 
   // ── Escape to close. ──
   useEffect(() => {
@@ -562,18 +587,26 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         setBlocked(block);
         return; // finally still clears `submitting`
       }
-      const code = e instanceof ApiError ? e.code : undefined;
-      const { message, backTo } = mapErrorCode(code, t.errors);
-      setSubmitError(message);
-      if (backTo === 2) {
+      const errorKey = mapBackendCode(e, BOOKING_SUBMIT_ERROR_KEYS);
+      const specific = errorKey ? t.errors[errorKey] : null;
+      // Transport failures (offline / timeout / rate-limited / our fault) win
+      // over a domain message: a request that never reached the server cannot
+      // have been rejected for being "too soon".
+      setSubmitError(errorMessage(e, dict.errors, specific));
+      if (errorKey) {
         setStep(2);
-        // Conflicts / staff / date issues: refetch slots so the grid is
-        // fresh (calendar-level errors also land here — the combined step
-        // renders both the date grid and the slot grid).
         idempotencyKeyRef.current = "";
-        setSelectedSlot(null);
-        if (selectedDate) void loadSlots(selectedDate);
-        else void loadCalendar();
+        // Only a slot conflict or a fresh calendar block actually invalidate
+        // what's on screen — the grid the user is looking at is now a lie, so
+        // drop the pick and refetch it. The other recoverable codes (too
+        // soon/far, outside opening hours, staff unavailable) don't invalidate
+        // the grid itself; the user just needs to choose differently within
+        // it, same as reschedule-modal.tsx's identical distinction.
+        if (errorKey === "slotConflict" || errorKey === "calendarBlock") {
+          setSelectedSlot(null);
+          if (selectedDate) void loadSlots(selectedDate);
+          else void loadCalendar();
+        }
       }
     } finally {
       setSubmitting(false);
@@ -586,6 +619,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     resolveStaffId,
     resolvedServices,
     t.errors,
+    dict.errors,
     loadCalendar,
     loadSlots,
   ]);
@@ -600,6 +634,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   // on the same combined step 2 screen; only the slots refetch + reset.
   const onPickDate = (date: string) => {
     setSelectedDate(date);
+    setSubmitError(null);
     idempotencyKeyRef.current = "";
     void loadSlots(date);
   };
@@ -607,6 +642,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const onPickSlot = (slot: TimeSlot) => {
     setSelectedSlot(slot);
     setStaffPicks(seedStaffPicks(slot));
+    setSubmitError(null);
     idempotencyKeyRef.current = "";
   };
 
@@ -640,10 +676,10 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const onContinueFromServices = () => {
     setStep(2);
     setCalendar(null);
-    setCalError(false);
+    setCalError(null);
     setSelectedDate(null);
     setDaySlots(null);
-    setSlotsError(false);
+    setSlotsError(null);
     setSelectedSlot(null);
     setStaffPicks({});
     idempotencyKeyRef.current = "";
@@ -921,6 +957,23 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                   <div
                     style={{ display: "flex", flexDirection: "column", gap: 22 }}
                   >
+                    {/* Surfaces a submit-time failure (from step 3) that sent
+                        the user back here — otherwise it would be set but
+                        never shown, since step 3's own error banner is gone
+                        the moment we navigate away from it. */}
+                    {submitError && (
+                      <p
+                        role="alert"
+                        style={{
+                          margin: 0,
+                          fontSize: 13,
+                          lineHeight: 1.4,
+                          color: "var(--s-error-600)",
+                        }}
+                      >
+                        {submitError}
+                      </p>
+                    )}
                     <DateStep
                       calendar={calendar}
                       loading={calLoading}
@@ -1335,7 +1388,8 @@ function DateStep({
 }: {
   calendar: BookingCalendar | null;
   loading: boolean;
-  error: boolean;
+  /** Resolved message (transport-aware — see loadCalendar), null when clean. */
+  error: string | null;
   locale: string;
   timeZone: string;
   sectionLabel: CSSProperties;
@@ -1346,7 +1400,7 @@ function DateStep({
 }) {
   if (loading && !calendar) return <LoadingBlock label={t.loading} />;
   if (error && !calendar)
-    return <ErrorBlock label={t.loadError} retry={t.retry} onRetry={onRetry} />;
+    return <ErrorBlock label={error} retry={t.retry} onRetry={onRetry} />;
   if (!calendar) return null;
 
   const days = calendar.calendar;
@@ -1528,7 +1582,8 @@ function SlotStep({
 }: {
   daySlots: BookingDaySlots | null;
   loading: boolean;
-  error: boolean;
+  /** Resolved message (transport-aware — see loadSlots), null when clean. */
+  error: string | null;
   selectedDate: string | null;
   selectedSlot: TimeSlot | null;
   staffPicks: StaffPicks;
@@ -1545,7 +1600,7 @@ function SlotStep({
 }) {
   if (loading && !daySlots) return <LoadingBlock label={t.loading} />;
   if (error && !daySlots)
-    return <ErrorBlock label={t.loadError} retry={t.retry} onRetry={onRetry} />;
+    return <ErrorBlock label={error} retry={t.retry} onRetry={onRetry} />;
   if (!daySlots || !selectedDate) return null;
 
   const slots = daySlots.slots ?? [];

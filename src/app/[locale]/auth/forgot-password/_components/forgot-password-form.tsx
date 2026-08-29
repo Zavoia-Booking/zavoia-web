@@ -6,6 +6,7 @@ import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { forgotPassword } from "@/lib/api/customer-auth";
+import { errorMessage } from "@/lib/api/error-messages";
 import { AuthCard } from "../../_components/auth-card";
 import { AuthField } from "../../_components/auth-field";
 
@@ -17,11 +18,14 @@ const outlineButtonClass =
 export function ForgotPasswordForm({ locale }: { locale: Locale }) {
   const dict = dictionaries[locale].auth;
   const t = dict.forgotPassword;
+  const shared = dictionaries[locale].errors;
 
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  // Set only on a genuine transport/server failure — see handleSubmit.
+  const [failure, setFailure] = useState<string | null>(null);
 
   const authHref = localeHref(locale, "auth");
   const loginHref = `${authHref}?mode=login`;
@@ -42,15 +46,19 @@ export function ForgotPasswordForm({ locale }: { locale: Locale }) {
     if (Object.keys(validation).length > 0) return;
 
     setSubmitting(true);
+    setFailure(null);
     try {
       await forgotPassword(email.trim(), locale);
-    } catch {
-      // Intentionally swallow: never reveal whether the account exists. The UI
-      // always shows the same neutral confirmation regardless of the outcome.
+      // The backend already returns this SAME success response for a
+      // non-existent email — anti-enumeration happens server-side (see
+      // CustomerAuthService.forgotPassword), so every rejection that reaches
+      // this catch is a genuine transport/server failure, never "no such
+      // account". Only a real failure may skip the neutral confirmation.
+      setSent(true);
+    } catch (err) {
+      setFailure(errorMessage(err, shared));
     } finally {
       setSubmitting(false);
-      // Always show the neutral success state — no account enumeration.
-      setSent(true);
     }
   }
 
@@ -92,6 +100,15 @@ export function ForgotPasswordForm({ locale }: { locale: Locale }) {
                   error={errors.email}
                   autoComplete="email"
                 />
+
+                {failure && (
+                  <p
+                    role="alert"
+                    className="rounded-[10px] border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
+                  >
+                    {failure}
+                  </p>
+                )}
 
                 <button
                   type="submit"

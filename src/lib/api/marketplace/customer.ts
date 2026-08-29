@@ -12,6 +12,7 @@
  */
 
 import { apiFetch } from "@/lib/api/http";
+import { buildQuery } from "./query";
 import type {
   AllFavorites,
   ChangePasswordBody,
@@ -21,8 +22,14 @@ import type {
   FavoriteLocation,
   FavoriteMutationResult,
   FavoriteProfessional,
+  CustomerNotification,
+  Envelope,
+  MarkAllReadResult,
   MessageResult,
   NotificationPreferences,
+  NotificationsInbox,
+  NotificationsInboxParams,
+  UnreadCountResult,
   SubmitReviewBody,
   SubmitReviewResult,
   UpdateNotificationPreferencesBody,
@@ -119,6 +126,61 @@ export function updateNotificationPreferences(
     },
   );
 }
+
+// --- Notification inbox ---
+//
+// Distinct from the `notifications` preference endpoints above: those are the
+// per-channel opt-ins, these are the delivered messages. All four are WRAPPED
+// `{ message, data }` (see admin-api CustomerController) and unwrapped here.
+
+/**
+ * GET /marketplace/customer/notifications/inbox — one cursor page, newest first.
+ *
+ * The cursor is the last-seen notification id; `hasMore` + `nextCursor` drive
+ * "load more". `unreadCount` comes back on every page (it is a fresh COUNT, not
+ * a per-page figure), so the badge can be refreshed by reading page one.
+ */
+export async function getNotificationsInbox(
+  params: NotificationsInboxParams = {},
+): Promise<NotificationsInbox> {
+  const query = buildQuery({ cursor: params.cursor, limit: params.limit });
+  const res = await apiFetch<Envelope<NotificationsInbox>>(
+    `/marketplace/customer/notifications/inbox${query}`,
+    { method: "GET" },
+  );
+  return res.data;
+}
+
+/** GET /marketplace/customer/notifications/unread-count — WRAPPED; returns `{ count }`. */
+export async function getUnreadNotificationCount(): Promise<number> {
+  const res = await apiFetch<Envelope<UnreadCountResult>>(
+    "/marketplace/customer/notifications/unread-count",
+    { method: "GET" },
+  );
+  return res.data.count;
+}
+
+/** POST /marketplace/customer/notifications/:id/read — WRAPPED; idempotent. */
+export async function markNotificationRead(
+  notificationId: number,
+): Promise<void> {
+  await apiFetch<Envelope<{ ok: boolean }>>(
+    `/marketplace/customer/notifications/${notificationId}/read`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}
+
+/** POST /marketplace/customer/notifications/read-all — WRAPPED; returns how many changed. */
+export async function markAllNotificationsRead(): Promise<number> {
+  const res = await apiFetch<Envelope<MarkAllReadResult>>(
+    "/marketplace/customer/notifications/read-all",
+    { method: "POST", body: JSON.stringify({}) },
+  );
+  return res.data.updatedCount;
+}
+
+/** Re-exported so consumers can type a row without reaching into ./types. */
+export type { CustomerNotification };
 
 // --- Reviews ---
 

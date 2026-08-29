@@ -13,7 +13,11 @@ import { BlogList } from "@/app/_components/blog/blog-list";
 import { toBlogCardVM } from "@/app/_components/blog/vm";
 import type { BlogCardVM } from "@/app/_components/blog/types";
 
-export const revalidate = 0;
+// Cached with a one-hour floor. The Sanity queries carry the `post` tag and
+// /api/revalidate flushes it on publish, so an edit is live within seconds —
+// `revalidate = 0` used to opt this route out of caching entirely, which left
+// that webhook with nothing to invalidate.
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));

@@ -88,7 +88,9 @@ export function GoogleLinkPanel({
       // Map known backend codes to friendly text; for anything else keep the
       // panel-specific fallback (a linking failure is usually a wrong password).
       const message =
-        e instanceof ApiError ? authErrorMessage(e, dict.errors) : t.error;
+        e instanceof ApiError
+          ? authErrorMessage(e, dict.errors, dictionaries[locale].errors)
+          : t.error;
       setError(message);
       setSubmitting(false);
     }
@@ -123,7 +125,7 @@ export function GoogleLinkPanel({
         {error && (
           <p
             role="alert"
-            className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            className="rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
           >
             {error}
           </p>

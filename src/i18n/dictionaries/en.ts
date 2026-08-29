@@ -26,10 +26,12 @@ export const en: {
       kicker: string;
       title: string;
     };
-    available: {
+    inCity: {
       kicker: string;
       title: string;
       action: string;
+      showMore: string;
+      locating: string;
       empty: string;
     };
     brands: {
@@ -102,6 +104,7 @@ export const en: {
     body3: string;
     listHeading: string;
     comingSoon: string;
+    seeAll: string;
     otherCitiesHeading: string;
     otherIndustriesHeading: string;
   };
@@ -206,6 +209,9 @@ export const en: {
       sameEmail: string;
       resetLinkInvalid: string;
       resetLinkExpired: string;
+      userNotFound: string;
+      linkCheckFailedHeading: string;
+      linkCheckFailedBody: string;
     };
     passwordStrength: {
       label: string;
@@ -292,6 +298,14 @@ export const en: {
       errorBody: string;
       backToLogin: string;
     };
+    resendVerification: {
+      action: string;
+      sent: string;
+      failed: string;
+      retryIn: string;
+      unverifiedTitle: string;
+      unverifiedBody: string;
+    };
     forgotPassword: {
       pageTitle: string;
       pageDescription: string;
@@ -342,6 +356,11 @@ export const en: {
       addressMentions: string;
       addressMentionsPlaceholder: string;
       addressEmpty: string;
+    };
+    // Client-side validation copy for the personal-info / address forms —
+    // separate from `fields` because these are messages, not labels.
+    errors: {
+      addressTooLong: string;
     };
     logout: string;
     loggingOut: string;
@@ -400,6 +419,7 @@ export const en: {
       confirm: string;
       rules: string;
       tooShort: string;
+      weak: string;
       mismatch: string;
       manageHint: string;
     };
@@ -432,6 +452,7 @@ export const en: {
       cancel: string;
       manageHint: string;
       invalidEmail: string;
+      verifiedLabel: string;
       changedToast: string;
     };
     danger: {
@@ -518,6 +539,7 @@ export const en: {
         replySent: string;
         closed: string;
         error: string;
+        ticketClosed: string;
       };
     };
   };
@@ -578,6 +600,7 @@ export const en: {
     bookRailEmpty: string;
     totalLabel: string;
     loadMoreReviews: string;
+    loadMoreReviewsError: string;
     reviewsCount: string;
     reviewsCountOne: string;
     onlineBookingUnavailable: string;
@@ -709,6 +732,37 @@ export const en: {
     closesAt: string;
     photo: string;
   };
+  errors: {
+    generic: string;
+    offline: string;
+    offlineShort: string;
+    timeout: string;
+    server: string;
+    rateLimit: string;
+    rateLimitNoTime: string;
+    sessionExpired: string;
+    retry: string;
+    signIn: string;
+    pageKicker: string;
+    pageTitle: string;
+    pageBody: string;
+    backHome: string;
+    sectionFailed: string;
+    reload: string;
+    dismiss: string;
+    customer: {
+      accountMissing: string;
+      incorrectPassword: string;
+      passwordGoogleLinked: string;
+      imageTooLarge: string;
+      imageType: string;
+      favoriteGone: string;
+      reviewNotCompleted: string;
+      reviewAlreadyExists: string;
+      reviewNoRating: string;
+      reviewProfessional: string;
+    };
+  };
   nav: {
     explore: string;
     webStudio: string;
@@ -802,12 +856,49 @@ export const en: {
     locationDenied: string;
     centeredOnLocation: string;
     closePinCard: string;
+    mapUnavailable: string;
+    filters: {
+      title: string;
+      activeLabel: string;
+      close: string;
+      sortBy: string;
+      minRating: string;
+      any: string;
+      distance: string;
+      availability: string;
+      openNow: string;
+      open247: string;
+      open247Help: string;
+      features: string;
+      showAllFeatures: string;
+      showLess: string;
+      reset: string;
+      noMatchesCta: string;
+      showPlaces: string;
+      showPlacesOne: string;
+      sections: {
+        amenities: string;
+        payment: string;
+        languages: string;
+      };
+      sort: {
+        closest: string;
+        topRated: string;
+        newest: string;
+      };
+    };
     editSearch: string;
   };
   // Industry / industry-tag display names, keyed by the stable API slug.
   // Backend `industry.name` / `industry_tag.name` are English; consumers look
   // up `dict.industries[slug] ?? industry.name` so an unmapped slug still
   // renders (the backend name) instead of breaking.
+  /** Venue-tag display names, keyed by the stable API slug (see `venue-tags`). */
+  venueTags: {
+    amenities: Record<string, string>;
+    paymentMethods: Record<string, string>;
+    languages: Record<string, string>;
+  };
   industries: Record<string, string>;
   industryTags: Record<string, string>;
   footer: {
@@ -880,6 +971,12 @@ export const en: {
   };
   notifications: {
     title: string;
+    markAllRead: string;
+    loadMore: string;
+    unreadLabel: string;
+    unreadAria: string;
+    errorTitle: string;
+    errorBody: string;
     emptyTitle: string;
     emptyBody: string;
   };
@@ -1251,6 +1348,7 @@ export const en: {
     };
     free: string;
     loadMore: string;
+    loadMoreError: string;
     loading: string;
     errorLoading: string;
     retry: string;
@@ -1443,6 +1541,24 @@ export const en: {
       error: string;
     };
   };
+  notFound: {
+    generic: {
+      kicker: string;
+      title: string;
+      body: string;
+      home: string;
+      explore: string;
+    };
+    claim: {
+      kicker: string;
+      title: string;
+      body: string;
+      bullets: string[];
+      primary: string;
+      secondary: string;
+      explore: string;
+    };
+  };
 } = {
   preposition: "in",
   home: {
@@ -1474,10 +1590,12 @@ export const en: {
       kicker: "Browse",
       title: "What are you looking for?",
     },
-    available: {
-      kicker: "Just joined",
-      title: "Fresh on Zavoia",
+    inCity: {
+      kicker: "Around town",
+      title: "Places in your city",
       action: "See all",
+      showMore: "Show more places",
+      locating: "Finding your city…",
       empty: "New places are joining all the time — check back soon.",
     },
     brands: {
@@ -1565,6 +1683,7 @@ export const en: {
     listHeading: "{industry} in {city}",
     comingSoon:
       "Businesses coming soon — Zavoia is onboarding {industryLower} in {city} now.",
+    seeAll: "See all on the map",
     otherCitiesHeading: "{industry} in other cities",
     otherIndustriesHeading: "Other services in {city}",
   },
@@ -1664,7 +1783,7 @@ export const en: {
       firstNameRequired: "First name is required.",
       lastNameRequired: "Last name is required.",
       nameTooShort: "Must be at least 2 characters.",
-      nameTooLong: "Must be fewer than 50 characters.",
+      nameTooLong: "Must be 32 characters or fewer.",
       phoneInvalid: "Phone number is not valid.",
       emailAlreadyRegistered: "Email already in use.",
       googleEmailMismatch:
@@ -1678,6 +1797,10 @@ export const en: {
       sameEmail: "New email must be different from your current one.",
       resetLinkInvalid: "This link is invalid or has already been used.",
       resetLinkExpired: "This link has expired.",
+      userNotFound: "We couldn't find this account.",
+      linkCheckFailedHeading: "We couldn't check this link",
+      linkCheckFailedBody:
+        "That's a problem on our side, not with your link — it may still be perfectly good. Please try again.",
     },
     passwordStrength: {
       label: "Password strength",
@@ -1777,6 +1900,15 @@ export const en: {
         "The link is invalid or has expired. Please request a new one from the sign-in page.",
       backToLogin: "Back to sign in",
     },
+    resendVerification: {
+      action: "Send a new link",
+      sent: "If that account exists and isn't verified yet, a new verification link is on its way.",
+      failed: "Couldn't send the link. Please try again.",
+      retryIn: "Try again in {seconds}s",
+      unverifiedTitle: "Verify your email",
+      unverifiedBody:
+        "We sent a link to your inbox. Verifying keeps your bookings and reminders reaching you.",
+    },
     forgotPassword: {
       pageTitle: "Reset your password — Zavoia",
       pageDescription: "Request a link to reset your Zavoia account password.",
@@ -1831,6 +1963,9 @@ export const en: {
       addressMentions: "Mentions",
       addressMentionsPlaceholder: "Building, floor, apartment…",
       addressEmpty: "Not provided",
+    },
+    errors: {
+      addressTooLong: "Must be fewer than {max} characters.",
     },
     logout: "Log out",
     loggingOut: "Logging out...",
@@ -1888,8 +2023,11 @@ export const en: {
       current: "Current password",
       new: "New password",
       confirm: "Confirm new password",
-      rules: "Use at least 8 characters.",
+      rules:
+        "At least 8 characters, with a lowercase and an uppercase letter, a number and a special character.",
       tooShort: "Password must be at least 8 characters.",
+      weak:
+        "Password must include lowercase, uppercase, digit and a special character.",
       mismatch: "Passwords do not match.",
       manageHint: "Click here to manage your password",
     },
@@ -1923,6 +2061,7 @@ export const en: {
       cancel: "Cancel",
       manageHint: "Click here to change your email",
       invalidEmail: "Enter a valid email address.",
+      verifiedLabel: "Verified",
       changedToast: "Email updated",
     },
     danger: {
@@ -2014,6 +2153,8 @@ export const en: {
         replySent: "Reply sent",
         closed: "Ticket closed",
         error: "Something went wrong. Please try again.",
+        ticketClosed:
+          "This ticket is closed. Open a new one to continue.",
       },
     },
   },
@@ -2075,6 +2216,7 @@ export const en: {
       "Pick one or more services from the list — or jump straight in and choose during booking.",
     totalLabel: "total",
     loadMoreReviews: "Show more reviews",
+    loadMoreReviewsError: "We couldn't load more reviews.",
     reviewsCount: "{count} reviews",
     reviewsCountOne: "{count} review",
     onlineBookingUnavailable:
@@ -2221,6 +2363,41 @@ export const en: {
     closesAt: "Closes {time}",
     photo: "photo",
   },
+  errors: {
+    generic: "Something went wrong. Please try again.",
+    offline: "You're offline. We'll keep retrying.",
+    offlineShort: "No connection.",
+    timeout:
+      "This is taking unusually long. Check your connection and try again.",
+    server: "Something's wrong on our side. Please try again in a moment.",
+    rateLimit: "Too many attempts. Try again in {seconds}s.",
+    rateLimitNoTime: "Too many attempts. Please wait a moment and try again.",
+    sessionExpired: "Your session expired.",
+    retry: "Try again",
+    signIn: "Sign in",
+    pageKicker: "Something broke",
+    pageTitle: "We couldn't load this page",
+    pageBody:
+      "It's a problem on our side, not something you did. Try again — it usually clears right up.",
+    backHome: "Back home",
+    sectionFailed: "This section didn't load.",
+    reload: "Reload",
+    dismiss: "Dismiss",
+    customer: {
+      accountMissing: "We couldn't find this account. Try signing in again.",
+      incorrectPassword: "That current password isn't right.",
+      passwordGoogleLinked:
+        "This account signs in with Google, so it has no password to change.",
+      imageTooLarge: "That image is too large. Pick one under 5 MB.",
+      imageType: "That file type isn't supported. Use a JPG, PNG or WebP.",
+      favoriteGone: "This place is no longer available.",
+      reviewNotCompleted: "You can review an appointment once it's completed.",
+      reviewAlreadyExists: "You've already reviewed this appointment.",
+      reviewNoRating: "Add at least one rating before sending.",
+      reviewProfessional:
+        "That professional wasn't part of this appointment.",
+    },
+  },
   nav: {
     explore: "Explore",
     webStudio: "Web Studio",
@@ -2315,7 +2492,93 @@ export const en: {
     locationDenied: "Location access denied. Showing your current search.",
     centeredOnLocation: "Centred on your location",
     closePinCard: "Close",
+    mapUnavailable: "Map unavailable",
+    filters: {
+      title: "Filters",
+      activeLabel: "Filters, {count} active",
+      close: "Close",
+      sortBy: "Sort by",
+      minRating: "Min rating",
+      any: "Any",
+      distance: "Distance",
+      availability: "Availability",
+      openNow: "Open now",
+      open247: "Open 24/7",
+      open247Help: "Always-open services, like locksmiths and emergency vets.",
+      features: "Features",
+      showAllFeatures: "Show all features",
+      showLess: "Show less",
+      reset: "Reset",
+      noMatchesCta: "No places match",
+      showPlaces: "Show {count} places",
+      showPlacesOne: "Show {count} place",
+      sections: {
+        amenities: "Amenities",
+        payment: "Payment",
+        languages: "Languages",
+      },
+      sort: {
+        closest: "Closest",
+        topRated: "Top rated",
+        newest: "Newest",
+      },
+    },
     editSearch: "Edit search",
+  },
+  // Venue-tag display names, keyed by the stable API slug. `venue-tags` returns
+  // canonical English names, so an unmapped slug still renders via the
+  // fallback `dict.venueTags[group][slug] ?? tag.name`.
+  venueTags: {
+    amenities: {
+      wifi: "Free Wi-Fi",
+      "parking-onsite": "On-site parking",
+      "parking-street": "Street parking nearby",
+      "air-conditioning": "Air conditioning",
+      "pet-friendly": "Pets allowed",
+      "kid-friendly": "Kids welcome",
+      "bike-parking": "Bike parking",
+      "outdoor-seating": "Outdoor seating",
+      "private-treatment-room": "Private treatment room",
+      showers: "Showers",
+      lockers: "Lockers",
+    },
+    paymentMethods: {
+      cash: "Cash",
+      card: "Cards accepted",
+      "apple-pay": "Apple Pay",
+      "google-pay": "Google Pay",
+      "bank-transfer": "Bank transfer",
+      "corporate-invoice": "Corporate invoice",
+    },
+    languages: {
+      en: "English",
+      ro: "Romanian",
+      de: "German",
+      fr: "French",
+      it: "Italian",
+      es: "Spanish",
+      pt: "Portuguese",
+      nl: "Dutch",
+      sv: "Swedish",
+      da: "Danish",
+      no: "Norwegian",
+      fi: "Finnish",
+      pl: "Polish",
+      hu: "Hungarian",
+      cs: "Czech",
+      sk: "Slovak",
+      el: "Greek",
+      bg: "Bulgarian",
+      hr: "Croatian",
+      sl: "Slovenian",
+      sr: "Serbian",
+      et: "Estonian",
+      lv: "Latvian",
+      lt: "Lithuanian",
+      tr: "Turkish",
+      ru: "Russian",
+      uk: "Ukrainian",
+    },
   },
   industries: {
     beauty: "Beauty",
@@ -2486,6 +2749,12 @@ export const en: {
   },
   notifications: {
     title: "Notifications",
+    markAllRead: "Mark all read",
+    loadMore: "Load more",
+    unreadLabel: "Unread",
+    unreadAria: "Notifications, {count} unread",
+    errorTitle: "Couldn't load notifications",
+    errorBody: "Check your connection and try again.",
     emptyTitle: "You're all caught up",
     emptyBody: "New bookings, reminders and updates will show up here.",
   },
@@ -3080,6 +3349,7 @@ export const en: {
     },
     free: "Free",
     loadMore: "Load more",
+    loadMoreError: "We couldn't load the rest of your appointments.",
     loading: "Loading your appointments…",
     errorLoading: "We couldn't load your appointments. Please try again.",
     retry: "Try again",
@@ -3362,6 +3632,27 @@ export const en: {
       professionalLabel: "Rate {name}",
       starsAria: "{n} stars",
       error: "We couldn't submit your review. Please try again.",
+    },
+  },
+  notFound: {
+    generic: {
+      kicker: "404",
+      title: "This page doesn't exist.",
+      body: "The link may be broken, or the page may have moved.",
+      home: "Back to home",
+      explore: "Explore places",
+    },
+    claim: {
+      kicker: "Address available",
+      title: "This page could be yours.",
+      body: "Nothing lives at zavoia.com/{slug} yet. Claim it for your business and get a bookable website on this exact address — your services, your team, your hours.",
+      bullets: [
+        "A website that takes bookings, live in minutes",
+        "Your own zavoia.com address",
+      ],
+      primary: "Start free trial",
+      secondary: "See how it works",
+      explore: "Or explore places on Zavoia",
     },
   },
 };

@@ -27,6 +27,7 @@ import {
   toCat,
 } from "@/lib/marketplace/card-mappers";
 import { searchListings } from "@/lib/api/marketplace/public";
+import { errorMessage } from "@/lib/api/error-messages";
 import type {
   Industry,
   LocationCard,
@@ -40,30 +41,52 @@ import {
   type GeoPoint,
   type MapboxSurfaceHandle,
 } from "@/components/search/mapbox-surface";
-import { isOpenNow } from "@/components/search/open-now";
 import {
   DEFAULT_ANCHOR,
   SEARCH_LIMIT,
   SEARCH_RADIUS_KM,
 } from "@/components/search/constants";
+import {
+  applyMapFilters,
+  countActiveFilters,
+  EMPTY_FILTERS,
+  filtersToParams,
+  parseFilters,
+  type MapFilters,
+} from "@/lib/search/filters";
+import { useVenueTags } from "@/lib/search/use-venue-tags";
+import { FiltersPanel } from "./filters-panel";
 import { LocationPermissionModal } from "@/components/search/location-permission-modal";
 import { MapFloatingCard } from "@/components/search/map-floating-card";
 import { ipLocate } from "@/lib/geocoding";
+import { getRecentViews } from "@/lib/recent-views";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
-import { SortMenu, type SortId } from "./sort-menu";
+import { SortMenu } from "./sort-menu";
 import { FilterRow } from "./filter-row";
 
 const MOBILE_MQ = "(max-width: 920px)";
+
+// Desktop results panel geometry. Kept next to each other because three things
+// depend on it staying in sync: the panel's own style, the map's camera-fit
+// inset, and the floating card's left inset.
+const PANEL_MAX_PX = 424;
+const PANEL_VW = 0.36;
+/** Gap between the viewport edge and the panel. */
+const PANEL_EDGE_PX = 16;
 
 // localStorage flag remembering a previous "Not now" so the priming modal
 // doesn't reappear on later visits.
 const LOC_SKIP_KEY = "zv-loc-skip";
 
-// The shape of the search request derived from URL params (sort is client-side
-// only, so it lives outside SearchListingsParams).
-interface DerivedParams extends SearchListingsParams {
-  sort: SortId;
-}
+/**
+ * The shape of the search request derived from URL params.
+ *
+ * Refinement (sort, rating, distance cap, open-now, venue tags) is deliberately
+ * NOT here: it never becomes a request param. It lives in `MapFilters` and is
+ * applied client-side to whatever the search returned — the same split the
+ * mobile app makes between `SearchQuery` and its filters store.
+ */
+type DerivedParams = SearchListingsParams;
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -88,12 +111,17 @@ export interface SearchContentProps {
   locale: Locale;
   industries: Industry[];
   initialResult: SearchListingsResult;
+  // True when the SERVER-side initial fetch failed (page.tsx swallowed the
+  // error into EMPTY_RESULT so the page itself stays render-safe). Lets the
+  // empty state below tell "the backend is down" apart from "no places match".
+  initialResultFailed: boolean;
 }
 
 export function SearchContent({
   locale,
   industries,
   initialResult,
+  initialResultFailed,
 }: SearchContentProps) {
   const { dict } = useTranslation();
   const t = dict.search;
@@ -107,11 +135,12 @@ export function SearchContent({
   const bizFav = useFavoriteToggle("business");
 
   // ── Derive the request from URL params ──────────────────────────────────
-  const derived: DerivedParams = useMemo(() => {
-    const sortRaw = sp.get("sort");
-    const sort: SortId =
-      sortRaw === "rating" || sortRaw === "near" ? sortRaw : "rec";
-    return {
+  // `radius` is NOT read from the URL: like the mobile app, every point-anchored
+  // query uses one fixed radius, and "show me somewhere smaller" is the
+  // client-side `maxDistanceKm` filter instead. Reading it here while sending a
+  // fixed radius is how a shared ?radius=5 link used to return 20km of results.
+  const derived: DerivedParams = useMemo(
+    () => ({
       search: sp.get("search") ?? undefined,
       industrySlug: sp.get("industry") ?? undefined,
       tagIds: csvNums(sp.get("tagIds")),
@@ -119,17 +148,25 @@ export function SearchContent({
       date: sp.get("date") ?? undefined,
       lat: numParam(sp.get("lat")),
       lng: numParam(sp.get("lng")),
-      radius: numParam(sp.get("radius")),
       offset: 0,
       limit: SEARCH_LIMIT,
-      sort,
-    };
-  }, [sp]);
+    }),
+    [sp],
+  );
+
+  // Client-side refinement of whatever the search returned. Persisted in the
+  // URL (the web's equivalent of the mobile filters store) so a filtered search
+  // stays shareable and survives a reload.
+  const filters: MapFilters = useMemo(
+    () => parseFilters(new URLSearchParams(sp.toString())),
+    [sp],
+  );
+  const activeFilterCount = countActiveFilters(filters);
 
   const hasGeo = derived.lat != null && derived.lng != null;
 
-  // A stable key for the current request (excludes client-only sort), used to
-  // trigger a fresh single fetch when any geo/filter param changes.
+  // A stable key for the current request (excludes the client-only filters),
+  // used to trigger a fresh single fetch when any query/geo param changes.
   const requestKey = useMemo(
     () =>
       [
@@ -140,7 +177,6 @@ export function SearchContent({
         derived.date ?? "",
         derived.lat ?? "",
         derived.lng ?? "",
-        derived.radius ?? "",
       ].join("|"),
     [derived],
   );
@@ -151,6 +187,19 @@ export function SearchContent({
   );
   const [businesses, setBusinesses] = useState(initialResult.businesses);
   const [loading, setLoading] = useState(false);
+
+  // "No data" vs. "the request failed" — resultsFailed drives which empty
+  // state renders; lastError is the underlying error (null for the SSR
+  // failure, which page.tsx already reduced to a boolean) fed through
+  // errorMessage() so offline/timeout/5xx text wins over the generic copy.
+  const [resultsFailed, setResultsFailed] = useState(initialResultFailed);
+  const [lastError, setLastError] = useState<unknown>(null);
+  // Whether the currently-displayed set has any rows — read (not written) by
+  // the catch branch below to decide whether a refetch failure should flip
+  // the panel to the failure state or just toast (prior rows stay visible).
+  const hasDataRef = useRef(
+    initialResult.locations.length > 0 || initialResult.businesses.length > 0,
+  );
 
   // Skip the very first fetch when the server already provided a matching
   // result for the initial request key.
@@ -165,6 +214,11 @@ export function SearchContent({
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [mobileView, setMobileView] = useState<"map" | "list">("map");
   const [isMobile, setIsMobile] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // The venue-tag vocabulary behind the panel's FEATURES sections. Fetched once
+  // per page load and shared; an empty result just renders no tag sections.
+  const { dictionaries: venueTagDictionaries } = useVenueTags();
 
   // The resolved device/IP position — drives the pulsing user DOT only. Stays
   // null for the Bucharest fallback and for shared-link place searches (no dot).
@@ -192,32 +246,84 @@ export function SearchContent({
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  // The desktop panel's rendered width, in px. The stylesheet expresses it as
+  // `min(424px, 36vw)`; the camera fit needs the resolved number, so resolve
+  // the same expression here rather than guessing a constant.
+  const [panelWidthPx, setPanelWidthPx] = useState(PANEL_MAX_PX);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const apply = () =>
+      setPanelWidthPx(Math.min(PANEL_MAX_PX, window.innerWidth * PANEL_VW));
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, []);
+
+  // Places the visitor has already opened, dimmed on the map so a repeated
+  // search reads as "these are the ones you've seen". Read once on mount:
+  // localStorage is not reactive and the rail on the home page uses the same
+  // snapshot semantics.
+  const [viewedIds, setViewedIds] = useState<Set<number>>(() => new Set());
+  useEffect(() => {
+    // Deferred a microtask past the effect body: localStorage is only readable
+    // on the client, so this cannot be a useState initializer without risking a
+    // hydration mismatch, and a synchronous setState here would cascade. Same
+    // idiom as NearYouSection's loading flag.
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      setViewedIds(new Set(getRecentViews()));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // ── Fetch on param change ───────────────────────────────────────────────
   // Single fixed-radius call (limit 300, offset 0) that REPLACES results — no
   // pagination. Held in a ref so the retry-toast callback can re-invoke the
   // latest fetch without referencing `runFetch` before its own declaration.
   const runFetchRef = useRef<() => Promise<void>>(async () => {});
 
+  // Latest-issued request id (mirrors useSearchPreview's guard) — searchListings
+  // takes no AbortSignal, so a monotonically-increasing id is what lets a
+  // superseded response ("Search this area" fired twice, filters flipped
+  // quickly) lose against whichever request is actually the latest.
+  const requestIdRef = useRef(0);
+
   const runFetch = useCallback(async () => {
+    const id = (requestIdRef.current += 1);
+    // Two mutually exclusive scopes, matching the mobile app: whole-city (from a
+    // home rail's "see all" — city NAME only, so the query can't inherit the
+    // rail's radius), or point + fixed radius.
+    const cityScoped =
+      derived.city != null && derived.lat == null && derived.lng == null;
     const params: SearchListingsParams = {
       search: derived.search,
       industrySlug: derived.industrySlug,
       tagIds: derived.tagIds,
       city: derived.city,
       date: derived.date,
-      lat: derived.lat,
-      lng: derived.lng,
-      // Fixed 20km radius whenever we have an anchor; omit otherwise.
-      radius:
-        derived.lat != null && derived.lng != null
-          ? SEARCH_RADIUS_KM
-          : undefined,
+      lat: cityScoped ? undefined : derived.lat,
+      lng: cityScoped ? undefined : derived.lng,
+      // Fixed radius whenever we have an anchor; omitted in city scope.
+      radius: cityScoped || !hasGeo ? undefined : SEARCH_RADIUS_KM,
+      // ALWAYS strict — the same contract the mobile app holds. Without it the
+      // server climbs its relaxation ladder on an empty result (dropping the
+      // date, the tags, then widening the radius to 50km and dropping the
+      // industry) and returns places from far outside what the map is showing,
+      // flagged only by a `fallback` field. An area with nothing in it must
+      // read as empty, and a filter the user set must not be silently discarded.
+      strict: true,
       limit: SEARCH_LIMIT,
       offset: 0,
     };
     setLoading(true);
     try {
       const res = await searchListings(params);
+      // Stale-response guard: a slower response for an earlier query must
+      // never overwrite a newer one's results.
+      if (id !== requestIdRef.current) return;
       // keepPreviousData: only swap in the new set on success, so previous rows
       // + pins stay visible while refetching.
       // TODO(i18n slice): if res.total > res.locations.length, show a
@@ -225,16 +331,24 @@ export function SearchContent({
       setLocations(res.locations);
       setBusinesses(res.businesses);
       setSelectedId(null);
-    } catch {
-      // Keep prior results visible on failure; just offer a retry.
-      toast(t.retryError, "warn", {
+      setResultsFailed(false);
+      setLastError(null);
+      hasDataRef.current = res.locations.length > 0 || res.businesses.length > 0;
+    } catch (err) {
+      if (id !== requestIdRef.current) return;
+      // Keep prior results visible on failure; just offer a retry — unless
+      // there was nothing to keep, in which case the empty state below must
+      // say "the request failed", not "no places match".
+      setResultsFailed(!hasDataRef.current);
+      setLastError(err);
+      toast(errorMessage(err, dict.errors, t.retryError), "warn", {
         label: t.retry,
         onClick: () => void runFetchRef.current(),
-      });
+      }, "error");
     } finally {
-      setLoading(false);
+      if (id === requestIdRef.current) setLoading(false);
     }
-  }, [derived, t.retry, t.retryError, toast]);
+  }, [derived, hasGeo, dict.errors, t.retry, t.retryError, toast]);
 
   // Keep the ref pointing at the latest fetch for retry callbacks.
   useEffect(() => {
@@ -270,32 +384,22 @@ export function SearchContent({
     [sp, router, locale],
   );
 
-  // ── Client-side sort ─────────────────────────────────────────────────────
-  const sortLocations = useCallback(
-    (list: LocationCard[]): LocationCard[] => {
-      const out = list.slice();
-      if (derived.sort === "rating") {
-        out.sort((a, b) => (b.averageRating ?? 0) - (a.averageRating ?? 0));
-      } else if (derived.sort === "near" && hasGeo) {
-        out.sort(
-          (a, b) =>
-            (a.distanceKm ?? Number.POSITIVE_INFINITY) -
-            (b.distanceKm ?? Number.POSITIVE_INFINITY),
-        );
-      }
-      return out;
-    },
-    [derived.sort, hasGeo],
+  // ── Per-result distance (sorting + the distance cap) ────────────────────
+  // Prefer the server's `distanceKm`; without an anchor there is none, and the
+  // distance-based sort/filter simply have nothing to work with.
+  const distanceFor = useCallback(
+    (l: LocationCard): number | undefined => l.distanceKm ?? undefined,
+    [],
   );
 
-  // ── Open-now is a purely client-side refinement (best-effort) ───────────
-  const openNow = sp.get("openNow") === "1";
-
-  const visibleLocations = useMemo(() => {
-    let list = locations;
-    if (openNow) list = list.filter((l) => isOpenNow(l));
-    return sortLocations(list);
-  }, [locations, openNow, sortLocations]);
+  // ── The single refinement stage ─────────────────────────────────────────
+  // Both the result list and the map pins read this, so a filtered-out place
+  // can never linger as a pin (filtering only one of them is how a map ends up
+  // showing markers the list excluded).
+  const visibleLocations = useMemo(
+    () => applyMapFilters(locations, filters, distanceFor),
+    [locations, filters, distanceFor],
+  );
 
   // ── Geographic pins (over the FULL accumulated visible set) ─────────────
   // Locations without coordinates are skipped (no marker) but still list-rendered.
@@ -516,12 +620,19 @@ export function SearchContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Applying a filter set writes every key it owns (nulls included), so a reset
+  // can't leave a stale param behind. See `filtersToParams`.
+  const applyFilters = useCallback(
+    (next: MapFilters) => updateParams(filtersToParams(next)),
+    [updateParams],
+  );
+
   const clearFilters = useCallback(() => {
     updateParams({
       industry: null,
       tagIds: null,
-      openNow: null,
       date: null,
+      ...filtersToParams(EMPTY_FILTERS),
     });
   }, [updateParams]);
 
@@ -573,8 +684,15 @@ export function SearchContent({
     });
   }, [openSearch, derived]);
 
+  // Transport failures (offline/timeout/rate-limited/5xx) win over the plain
+  // "couldn't load results" copy; falls back to it when there's no error to
+  // read (the SSR-side failure only carried a boolean, not the ApiError).
+  const failureMessage = errorMessage(lastError, dict.errors, t.retryError);
+
   const queryLabel = derived.search || t.allServices;
-  const wave = `${requestKey}|${derived.sort}|${openNow ? 1 : 0}|${locations.length}`;
+  // Changing any refinement re-keys the markers so they re-drop with the new set.
+  const filterKey = JSON.stringify(filters);
+  const wave = `${requestKey}|${filterKey}|${locations.length}`;
 
   // ── Header ──────────────────────────────────────────────────────────────
   const panelHeader = (
@@ -634,18 +752,18 @@ export function SearchContent({
           </button>
         </div>
         <SortMenu
-          sort={derived.sort}
-          setSort={(s) => updateParams({ sort: s === "rec" ? null : s })}
-          allowNearest={hasGeo}
+          sort={filters.sort}
+          setSort={(sort) => applyFilters({ ...filters, sort })}
+          allowClosest={hasGeo}
         />
       </div>
       <FilterRow
         industries={industries}
         activeSlug={derived.industrySlug ?? null}
         onSelectIndustry={(slug) => updateParams({ industry: slug })}
-        openNow={openNow}
+        openNow={filters.openNow}
         onToggleOpenNow={() =>
-          updateParams({ openNow: openNow ? null : "1" })
+          applyFilters({ ...filters, openNow: !filters.openNow })
         }
         availableToday={derived.date === todayIso()}
         onToggleAvailableToday={() =>
@@ -653,6 +771,8 @@ export function SearchContent({
             date: derived.date === todayIso() ? null : todayIso(),
           })
         }
+        activeFilterCount={activeFilterCount}
+        onOpenFilters={() => setFiltersOpen(true)}
       />
     </div>
   );
@@ -677,23 +797,31 @@ export function SearchContent({
               fontSize: 16,
               fontWeight: 600,
               color: "var(--c-800)",
-              marginBottom: 6,
+              marginBottom: resultsFailed ? 18 : 6,
             }}
           >
-            {t.emptyTitle}
+            {resultsFailed ? failureMessage : t.emptyTitle}
           </div>
-          <div
-            style={{
-              fontSize: 13.5,
-              color: "var(--c-600)",
-              marginBottom: 18,
-            }}
-          >
-            {t.emptyBody}
-          </div>
-          <Button kind="secondary" size="sm" onClick={clearFilters}>
-            {t.clearFilters}
-          </Button>
+          {!resultsFailed && (
+            <div
+              style={{
+                fontSize: 13.5,
+                color: "var(--c-600)",
+                marginBottom: 18,
+              }}
+            >
+              {t.emptyBody}
+            </div>
+          )}
+          {resultsFailed ? (
+            <Button kind="secondary" size="sm" onClick={() => void runFetch()}>
+              {t.retry}
+            </Button>
+          ) : (
+            <Button kind="secondary" size="sm" onClick={clearFilters}>
+              {t.clearFilters}
+            </Button>
+          )}
         </div>
       ) : (
         <>
@@ -724,6 +852,11 @@ export function SearchContent({
   );
 
   // ── Map ──────────────────────────────────────────────────────────────────
+  // The desktop results panel floats OVER the map's left edge, so the camera
+  // fit has to know about it or every result set puts pins underneath it. The
+  // number mirrors the panel's own geometry below: 16px inset + its width.
+  const panelInsetPx = isMobile ? 0 : PANEL_EDGE_PX + panelWidthPx;
+
   const mapSurface = (
     <MapboxSurface
       ref={mapHandleRef}
@@ -738,6 +871,9 @@ export function SearchContent({
       anchor={searchAnchor}
       onSearchArea={onSearchArea}
       searchAreaLabel={t.searchThisArea}
+      unavailableLabel={t.mapUnavailable}
+      fitInset={{ left: panelInsetPx }}
+      viewedIds={viewedIds}
     >
       <LocationPermissionModal
         open={locationModalOpen}
@@ -748,6 +884,15 @@ export function SearchContent({
         body={t.locationModalBody}
         allowLabel={t.locationModalAllow}
         skipLabel={t.locationModalSkip}
+      />
+      <FiltersPanel
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        filters={filters}
+        onApply={applyFilters}
+        listings={locations}
+        distanceFor={distanceFor}
+        dictionaries={venueTagDictionaries}
       />
       {selectedCardData ? (
         <MapFloatingCard

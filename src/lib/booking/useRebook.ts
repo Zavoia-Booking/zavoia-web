@@ -50,7 +50,7 @@ export function useRebook(): {
       const locationId = appt.location?.id;
       // No resolvable location → cannot fetch the listing nor navigate sensibly.
       if (locationId == null) {
-        toast(dict.booking.rebookError, "warn");
+        toast(dict.booking.rebookError, "warn", undefined, "error");
         return;
       }
       const businessHref = localeHref(locale, "business", String(locationId));
@@ -179,7 +179,7 @@ export function useRebook(): {
               : missingNames.length > 1
                 ? dict.booking.rebookServicesGone
                 : dict.booking.rebookError;
-          toast(message, "warn");
+          toast(message, "warn", undefined, "error");
           router.push(businessHref);
           return;
         }
@@ -205,7 +205,7 @@ export function useRebook(): {
           services: mapped,
         });
       } catch {
-        toast(dict.booking.rebookError, "warn");
+        toast(dict.booking.rebookError, "warn", undefined, "error");
         router.push(businessHref);
       } finally {
         setPending(false);

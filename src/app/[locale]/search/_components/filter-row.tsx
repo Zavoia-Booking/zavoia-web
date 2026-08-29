@@ -4,6 +4,7 @@ import { Chip } from "@/components/ui/chip";
 import { CatDot } from "@/components/ui/cat-dot";
 import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { useTranslation } from "@/i18n/useTranslation";
+import { format } from "@/i18n/dictionaries";
 import type { Industry } from "@/lib/api/marketplace/types";
 
 export interface FilterRowProps {
@@ -15,10 +16,15 @@ export interface FilterRowProps {
   onToggleOpenNow: () => void;
   availableToday: boolean;
   onToggleAvailableToday: () => void;
+  /** Applied refinement count — shown as a badge on the Filters button. */
+  activeFilterCount: number;
+  onOpenFilters: () => void;
 }
 
-// Filter chip row — "All" + the first industries from the taxonomy, plus
-// Open-now / Available-today toggles. Ported from ZwFilterRow.
+// Filter chip row — "All" + the first industries from the taxonomy, the two
+// quick toggles, and the button opening the full filters panel. Open-now is a
+// shortcut into the same MapFilters set the panel edits, so the chip and the
+// panel's switch always agree.
 export function FilterRow({
   industries,
   activeSlug,
@@ -27,6 +33,8 @@ export function FilterRow({
   onToggleOpenNow,
   availableToday,
   onToggleAvailableToday,
+  activeFilterCount,
+  onOpenFilters,
 }: FilterRowProps) {
   const { dict, locale } = useTranslation();
   const t = dict.search;
@@ -63,6 +71,38 @@ export function FilterRow({
       </Chip>
       <Chip active={availableToday} onClick={onToggleAvailableToday}>
         {t.filterAvailableToday}
+      </Chip>
+      <Chip
+        active={activeFilterCount > 0}
+        onClick={onOpenFilters}
+        icon="sliders"
+        ariaLabel={
+          activeFilterCount > 0
+            ? format(t.filters.activeLabel, { count: String(activeFilterCount) })
+            : t.filters.title
+        }
+      >
+        {t.filters.title}
+        {activeFilterCount > 0 && (
+          <span
+            aria-hidden="true"
+            style={{
+              minWidth: 17,
+              height: 17,
+              padding: "0 4px",
+              borderRadius: 999,
+              background: "#fff",
+              color: "var(--c-ink)",
+              fontSize: 11,
+              fontWeight: 700,
+              lineHeight: "17px",
+              textAlign: "center",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {activeFilterCount}
+          </span>
+        )}
       </Chip>
     </div>
   );

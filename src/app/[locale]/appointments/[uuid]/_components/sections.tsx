@@ -773,17 +773,17 @@ export function WithCard({
 
 // ── YOUR REVIEW — business + per-professional review cards ─────────────────
 
+// A posted review is final: `POST /marketplace/customer/reviews` is create-only
+// (it throws CUSTOMER_REVIEW.E05 for any second submission on the same
+// appointment) and there is no update route, so this card deliberately offers
+// no edit affordance. Reinstate one only alongside a backend update path.
 export function ReviewCard({
-  t,
   rating,
   comment,
-  onEdit,
   label,
 }: {
-  t: ApptDict;
   rating: number;
   comment: string | null;
-  onEdit: () => void;
   label?: string;
 }) {
   return (
@@ -812,32 +812,7 @@ export function ReviewCard({
           {label}
         </div>
       )}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <Stars value={rating} size={17} />
-        <button
-          type="button"
-          className="tap"
-          onClick={onEdit}
-          style={{
-            background: "transparent",
-            border: 0,
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--p-700)",
-            fontFamily: "inherit",
-          }}
-        >
-          {t.edit}
-        </button>
-      </div>
+      <Stars value={rating} size={17} />
       {comment && (
         <p
           className="txt-pretty"

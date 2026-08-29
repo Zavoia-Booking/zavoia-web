@@ -16,10 +16,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { isValidSignature, body } = await parseBody<WebhookPayload>(
-    req,
-    revalidateSecret,
-  );
+  // `parseBody`'s internal `JSON.parse` is unguarded (see
+  // next-sanity/dist/webhook), so a malformed payload — signed or not —
+  // throws rather than returning a result. The sibling
+  // /api/revalidate/business route guards its own `req.json()` the same way:
+  // a bad body from a webhook is an expected 400, never an unhandled 500.
+  let isValidSignature: boolean | null;
+  let body: WebhookPayload | null;
+  try {
+    ({ isValidSignature, body } = await parseBody<WebhookPayload>(
+      req,
+      revalidateSecret,
+    ));
+  } catch {
+    return new NextResponse("Invalid JSON body", { status: 400 });
+  }
 
   if (!isValidSignature) {
     return new NextResponse("Invalid signature", { status: 401 });

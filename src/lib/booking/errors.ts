@@ -1,4 +1,4 @@
-import { ApiError } from "@/lib/api/http";
+import { mapBackendCode } from "@/lib/api/error-messages";
 
 /**
  * Permanent booking blocks — the CUSTOMER_BOOKING.* error family thrown by the
@@ -33,6 +33,10 @@ const CODE_TO_KIND: Record<string, BookingBlockKind> = {
   "CUSTOMER_BOOKING.E04": "location", // location off marketplace
   "CUSTOMER_BOOKING.E05": "service", // service not found
   "CUSTOMER_BOOKING.E06": "service", // service not offered at this location
+  // E12: the bundle itself is gone (deleted while the user was browsing).
+  // Rendered with the generic "one of the selected services" copy, since a
+  // bundle is a set of services and we can't name which part disappeared.
+  "CUSTOMER_BOOKING.E12": "service", // bundle not found
   "CUSTOMER_BOOKING.E07": "no-staff", // nobody performs the service here
   "CUSTOMER_BOOKING.E13": "no-staff", // nobody can perform all bundle services
   "CUSTOMER_BOOKING.E08": "staff-pin", // pinned professional can't perform it
@@ -44,11 +48,10 @@ const CODE_TO_KIND: Record<string, BookingBlockKind> = {
  * retry UI remains the right answer.
  */
 export function classifyBookingBlock(e: unknown): BookingBlock | null {
-  if (!(e instanceof ApiError) || !e.code) return null;
-  const kind = CODE_TO_KIND[e.code];
+  const kind = mapBackendCode(e, CODE_TO_KIND);
   if (!kind) return null;
-  const details = (e.data as { details?: { serviceId?: unknown } } | null)
-    ?.details;
+  const details = (e as { data?: { details?: { serviceId?: unknown } } | null })
+    .data?.details;
   const serviceId =
     typeof details?.serviceId === "number" ? details.serviceId : null;
   return { kind, serviceId };

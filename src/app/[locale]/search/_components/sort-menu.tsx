@@ -3,30 +3,31 @@
 import { useState, type CSSProperties } from "react";
 import { Icon } from "@/components/ui/icon";
 import { useTranslation } from "@/i18n/useTranslation";
-
-export type SortId = "rec" | "rating" | "near";
+import { EMPTY_FILTERS, SORT_KEYS, type SortKey } from "@/lib/search/filters";
 
 export interface SortMenuProps {
-  sort: SortId;
-  setSort: (s: SortId) => void;
-  /** Hides "Nearest" when there's no lat/lng to sort by. */
-  allowNearest: boolean;
+  sort: SortKey;
+  setSort: (s: SortKey) => void;
+  /** Hides "Closest" when there's no anchor to measure distance from. */
+  allowClosest: boolean;
 }
 
-// Sort dropdown — ported from ZwSortMenu (docs/web-search.jsx). Labels i18n'd.
-// "rec" is the unlabelled default (server relevance order): the trigger shows
-// the generic "Sort" label and re-clicking the active option clears back to it.
-export function SortMenu({ sort, setSort, allowNearest }: SortMenuProps) {
+// Sort dropdown — the quick-access twin of the filters panel's SORT BY section.
+// Both write the same `MapFilters.sort`, so the two controls can never disagree.
+// Keys match the mobile app's (closest · top rated · newest).
+export function SortMenu({ sort, setSort, allowClosest }: SortMenuProps) {
   const { dict } = useTranslation();
   const t = dict.search;
   const [open, setOpen] = useState(false);
 
-  const opts: { id: SortId; label: string }[] = [
-    { id: "rating", label: t.sortTopRated },
-    ...(allowNearest
-      ? [{ id: "near" as SortId, label: t.sortNearest }]
-      : []),
-  ];
+  const label: Record<SortKey, string> = {
+    closest: t.filters.sort.closest,
+    rating: t.filters.sort.topRated,
+    newest: t.filters.sort.newest,
+  };
+  const opts = SORT_KEYS.filter(
+    (id) => id !== "closest" || allowClosest,
+  ).map((id) => ({ id, label: label[id] }));
   const current = opts.find((o) => o.id === sort);
 
   return (
@@ -90,7 +91,7 @@ export function SortMenu({ sort, setSort, allowNearest }: SortMenuProps) {
                 key={o.id}
                 className="tap zw-hover-row"
                 onClick={() => {
-                  setSort(o.id === sort ? "rec" : o.id);
+                  setSort(o.id === sort ? EMPTY_FILTERS.sort : o.id);
                   setOpen(false);
                 }}
                 style={rowStyle}

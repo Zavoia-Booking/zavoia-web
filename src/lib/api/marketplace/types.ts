@@ -41,7 +41,7 @@ export interface Envelope<T> {
   data: T;
 }
 
-/** List wrapper used by brands / latest-listings / nearby-locations. */
+/** List wrapper used by brands / nearby-locations. */
 export interface OffsetPage<T> {
   data: T[];
   total: number;
@@ -318,6 +318,34 @@ export interface LocationCard {
   nextAvailableDate?: string | null;
   /** Earliest free start instant (ISO datetime) on nextAvailableDate. */
   nextAvailableAt?: string | null;
+  /** Location creation instant — backs the "Newest" sort. */
+  createdAt?: string | null;
+  // ── Venue tag groups ──
+  // Attached to search/nearby cards by the backend's `attachVenueTags`, so the
+  // client can refine on amenities / payment methods / languages without a
+  // second request. Absent on endpoints that don't hydrate them — read as [].
+  amenityTagIds?: number[];
+  paymentMethodTagIds?: number[];
+  languageTagIds?: number[];
+}
+
+// ============================================================================
+// Venue tags (amenities · payment methods · languages)
+// ============================================================================
+
+/** One entry of a venue-tag dictionary. `name` is canonical English; the RO
+ *  label comes from `dict.venueTags[group][slug]`. */
+export interface VenueTag {
+  id: number;
+  slug: string;
+  name: string;
+}
+
+/** GET /marketplace/public/venue-tags — the vocabulary behind the filter panel. */
+export interface VenueTagDictionaries {
+  amenities: VenueTag[];
+  paymentMethods: VenueTag[];
+  languages: VenueTag[];
 }
 
 // ============================================================================
@@ -714,16 +742,12 @@ export interface GetBrandsParams {
   offset?: number;
 }
 
-export interface LatestListingsBody {
-  industryId?: number;
-  limit?: number;
-  offset?: number;
-}
-
 export interface NearbyLocationsBody {
   lat: number;
   lng: number;
   radius?: number;
+  /** See `SearchListingsParams.strict` — the nearby endpoint forwards it to the same search path. */
+  strict?: boolean;
   industryId?: number;
   tagIds?: number[];
   limit?: number;
@@ -732,6 +756,16 @@ export interface NearbyLocationsBody {
 
 export interface SearchListingsParams {
   search?: string;
+  /**
+   * Stable shuffle key. Randomises the result order (ignored when `search` is set) while
+   * keeping it consistent across offset pages, so a paged feed never repeats or skips a card.
+   */
+  seed?: string;
+  /**
+   * Suppress the server's relaxation ladder: an empty result stays empty instead of coming
+   * back widened past the requested radius. Required for any feed that advertises a scope.
+   */
+  strict?: boolean;
   lat?: number;
   lng?: number;
   radius?: number;
@@ -1261,6 +1295,72 @@ export interface NotificationChannelPrefs {
   email: boolean;
 }
 
+// ============================================================================
+// Notification inbox
+// ============================================================================
+
+export type NotificationType =
+  | "appointment_reminder"
+  | "appointment_confirmed"
+  | "appointment_cancelled"
+  | "appointment_rescheduled"
+  | "new_message"
+  | "promotion"
+  | "review_request"
+  | "account_update"
+  | "general";
+
+/**
+ * Deep-link payload the backend attaches to a notification. Mirrors admin-api's
+ * `NotificationData`. Written for the mobile app's route names, so the web maps
+ * what it can (`appointmentUuid`, `ticketId`) and ignores `screen`/`params`.
+ */
+export interface NotificationData {
+  screen?: string;
+  params?: Record<string, string | number>;
+  /** Appointment UUID — what /appointments/<uuid> resolves by. */
+  appointmentUuid?: string;
+  /** Legacy numeric id on older rows; NOT resolvable by the detail route. */
+  appointmentId?: number;
+  businessId?: number;
+  professionalId?: number;
+  notificationId?: string;
+  ticketId?: number;
+  type?: NotificationType;
+}
+
+export interface CustomerNotification {
+  id: number;
+  title: string;
+  body: string;
+  data: NotificationData | null;
+  read: boolean;
+  createdAt: string;
+}
+
+/** Payload of GET /marketplace/customer/notifications/inbox (cursor-paginated). */
+export interface NotificationsInbox {
+  notifications: CustomerNotification[];
+  unreadCount: number;
+  hasMore: boolean;
+  nextCursor?: string;
+}
+
+export interface NotificationsInboxParams {
+  cursor?: string;
+  /** Backend caps this at 50. */
+  limit?: number;
+}
+
+export interface UnreadCountResult {
+  count: number;
+}
+
+export interface MarkAllReadResult {
+  ok: boolean;
+  updatedCount: number;
+}
+
 export interface NotificationPreferences {
   marketing: NotificationChannelPrefs;
   reminders: NotificationChannelPrefs;
@@ -1460,4 +1560,22 @@ export interface CreateGuestTicketBody {
 export interface GuestTicketReceipt {
   uuid: string;
   createdAt: string;
+}
+
+/** One crawlable URL: the slug that addresses it, and when it last changed. */
+export interface SitemapEntry {
+  /** Location slug (or numeric id as a string) for listings; businessSlug otherwise. */
+  slug: string;
+  updatedAt: string;
+}
+
+/**
+ * GET /marketplace/public/sitemap — the three public URL families, each already
+ * filtered to what actually renders: `locations` → /business/<slug>,
+ * `brands` → /brand/<slug>, `websites` → /<businessSlug>.
+ */
+export interface MarketplaceSitemap {
+  locations: SitemapEntry[];
+  brands: SitemapEntry[];
+  websites: SitemapEntry[];
 }

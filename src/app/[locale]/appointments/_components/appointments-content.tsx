@@ -1063,6 +1063,7 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [errored, setErrored] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreErrored, setLoadMoreErrored] = useState(false);
 
   const authed = status === "authenticated";
 
@@ -1125,6 +1126,7 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
       if (next === filter) return;
       setLoading(true);
       setErrored(false);
+      setLoadMoreErrored(false);
       setFilter(next);
     },
     [filter],
@@ -1139,6 +1141,7 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
   const onLoadMore = useCallback(async () => {
     if (!past || !past.hasMore || loadingMore) return;
     setLoadingMore(true);
+    setLoadMoreErrored(false);
     try {
       const params: ListAppointmentsParams = {
         status: filter === "all" ? "past" : (filter as ListAppointmentsParams["status"]),
@@ -1158,7 +1161,9 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
         );
       }
     } catch {
-      // Soft failure — leave the existing list; user can retry the button.
+      // Leave the existing list intact — surface an inline retry instead of
+      // failing silently.
+      setLoadMoreErrored(true);
     } finally {
       setLoadingMore(false);
     }
@@ -1359,6 +1364,19 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
                         >
                           {loadingMore ? <Spinner size={15} /> : t.loadMore}
                         </button>
+                        {loadMoreErrored && (
+                          <p
+                            className="txt-pretty"
+                            style={{
+                              margin: "10px 0 0",
+                              fontSize: 13,
+                              lineHeight: 1.5,
+                              color: "var(--s-error-600)",
+                            }}
+                          >
+                            {t.loadMoreError}
+                          </p>
+                        )}
                       </div>
                     )}
                   </>

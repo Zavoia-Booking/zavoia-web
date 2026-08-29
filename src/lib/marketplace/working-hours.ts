@@ -49,6 +49,10 @@ export function openStatus(
   const close = toMinutes(today.close);
   if (open == null || close == null) return { status: "closed" };
   const cur = now.getHours() * 60 + now.getMinutes();
-  if (cur >= open && cur < close) return { status: "open", closesAt: today.close };
-  return { status: "closed" };
+  // A day whose close is at or before its open runs past midnight (e.g. a bar
+  // at 20:00–02:00). Treat it as two ranges rather than an empty one, which is
+  // what a plain `cur >= open && cur < close` reduces it to.
+  const isOpen =
+    close > open ? cur >= open && cur < close : cur >= open || cur < close;
+  return isOpen ? { status: "open", closesAt: today.close } : { status: "closed" };
 }

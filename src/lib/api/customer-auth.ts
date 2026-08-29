@@ -11,6 +11,7 @@ import type {
   LoginDTO,
   RegisterDTO,
   ReauthForGoogleLinkResponse,
+  ResendVerificationResponse,
   ResetPasswordResponse,
   SendAccountLinkResponse,
   VerifyEmailResponse,
@@ -121,6 +122,27 @@ export async function verifyEmail(
   return apiFetch<VerifyEmailResponse>(
     `/marketplace/auth/verify-email?token=${encodeURIComponent(token)}`,
     { method: "GET" },
+  );
+}
+
+/**
+ * Requests a fresh account-verification email. Like forgot-password, the
+ * backend always answers with the SAME neutral message — unknown address,
+ * already verified, or actually re-sent — to avoid account enumeration, so
+ * callers must surface that one message rather than branching on it.
+ *
+ * Rate-limited server-side (5 per 15 min per IP); a 429 arrives as an ApiError
+ * carrying `retryAfterSeconds`.
+ */
+export async function resendVerificationEmail(
+  email: string,
+): Promise<ResendVerificationResponse> {
+  return apiFetch<ResendVerificationResponse>(
+    "/marketplace/auth/resend-verification",
+    {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    },
   );
 }
 

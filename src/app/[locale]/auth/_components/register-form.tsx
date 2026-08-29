@@ -16,6 +16,14 @@ import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 import { Icon } from "@/components/ui/icon";
 import { AuthField } from "./auth-field";
 import { PasswordStrength } from "./password-strength";
+import {
+  NAME_MAX_LENGTH,
+  NAME_MIN_LENGTH,
+  PASSWORD_REGEX,
+  isValidPhone,
+  normalizePhone,
+  sanitizeName,
+} from "@/lib/validation";
 
 const FIELD_KEYS = [
   "email",
@@ -27,16 +35,6 @@ const FIELD_KEYS = [
 type FieldKey = (typeof FIELD_KEYS)[number];
 type Errors = Partial<Record<FieldKey | "form", string>>;
 
-// Mirrors admin-api's PASSWORD_REGEX: any non-alphanumeric counts as the
-// special character (so # or - work, not just @$!%*?&).
-const PASSWORD_REGEX =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-const PHONE_REGEX = /^\+?[0-9\s\-()]{6,}$/;
-
-// Same as admin-dashboard's sanitizeName: names accept letters (incl.
-// diacritics), apostrophes, hyphens and spaces; anything else is stripped
-// as the user types.
-const sanitizeName = (value: string) => value.replace(/[^A-Za-zÀ-ÿ'\-\s]/g, "");
 
 export function RegisterForm({
   locale,
@@ -106,16 +104,16 @@ export function RegisterForm({
           return undefined;
         case "firstName":
           if (!value) return dict.errors.firstNameRequired;
-          if (value.length < 2) return dict.errors.nameTooShort;
-          if (value.length > 50) return dict.errors.nameTooLong;
+          if (value.length < NAME_MIN_LENGTH) return dict.errors.nameTooShort;
+          if (value.length > NAME_MAX_LENGTH) return dict.errors.nameTooLong;
           return undefined;
         case "lastName":
           if (!value) return dict.errors.lastNameRequired;
-          if (value.length < 2) return dict.errors.nameTooShort;
-          if (value.length > 50) return dict.errors.nameTooLong;
+          if (value.length < NAME_MIN_LENGTH) return dict.errors.nameTooShort;
+          if (value.length > NAME_MAX_LENGTH) return dict.errors.nameTooLong;
           return undefined;
         case "phone":
-          return value && !PHONE_REGEX.test(value)
+          return value && !isValidPhone(value)
             ? dict.errors.phoneInvalid
             : undefined;
       }
@@ -161,7 +159,7 @@ export function RegisterForm({
         password: values.password,
         firstName: values.firstName.trim(),
         lastName: values.lastName.trim(),
-        phone: values.phone.trim() || undefined,
+        phone: normalizePhone(values.phone).trim() || undefined,
         locale,
       });
       // Success: stay locked. The authenticated effect is about to
@@ -175,7 +173,9 @@ export function RegisterForm({
         onAccountLinkNeeded(linkDetails);
         return;
       }
-      setErrors({ form: authErrorMessage(e, dict.errors) });
+      setErrors({
+        form: authErrorMessage(e, dict.errors, dictionaries[locale].errors),
+      });
     }
   }
 

@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Avatar, Icon } from "@/components/ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
+import { format } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import type { Locale } from "@/i18n/locales";
 import {
@@ -22,6 +23,7 @@ import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { routeKey } from "./active-route";
 import { AccountMenu } from "./account-menu";
 import { NotifPanel } from "./notif-panel";
+import { useUnreadBadge } from "@/lib/notifications/use-notifications";
 
 // Port of ZwTopNav + ZwNavSearchPill (docs/web-shell.jsx) on Next routing.
 // Each pill segment opens the command-search overlay at the matching step.
@@ -273,6 +275,11 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   // initials so a refresh doesn't flash the logged-out icon for ~1s; with no
   // hint yet (pre-hydration frame) a neutral circle is shown instead.
   const showAuthedCorner = isAuthed || (initializing && optimisticUser !== null);
+  // Unread inbox count for the bell's badge. Keyed on the CONFIRMED session, not
+  // `showAuthedCorner`: the optimistic corner is a cached hint, and fetching the
+  // inbox on it would fire an authenticated request before the session is known
+  // to be valid.
+  const unreadCount = useUnreadBadge(isAuthed);
   const showNeutralCorner = !showAuthedCorner && initializing;
 
   const [notifOpen, setNotifOpen] = useState(false);
@@ -484,7 +491,13 @@ export function SiteHeader({ locale }: { locale: Locale }) {
               <button
                 type="button"
                 className="tap zw-hover-row zw-only-desktop"
-                aria-label={dict.nav.notifications}
+                aria-label={
+                  unreadCount > 0
+                    ? format(dict.notifications.unreadAria, {
+                        count: String(unreadCount),
+                      })
+                    : dict.nav.notifications
+                }
                 onClick={() => {
                   setAcctOpen(false);
                   setNotifOpen((o) => !o);
@@ -496,6 +509,30 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                 }}
               >
                 <Icon name="bell" size={18} color="var(--c-700)" />
+                {unreadCount > 0 && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      minWidth: 15,
+                      height: 15,
+                      padding: "0 4px",
+                      borderRadius: 999,
+                      background: "var(--p-600)",
+                      color: "#fff",
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      lineHeight: "15px",
+                      textAlign: "center",
+                      fontVariantNumeric: "tabular-nums",
+                      boxShadow: "0 0 0 2px var(--c-canvas)",
+                    }}
+                  >
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </button>
               <button
                 type="button"

@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   changeEmail as changeEmailApi,
   completeAccountLink as completeAccountLinkApi,
@@ -35,6 +36,10 @@ import {
 } from "@/lib/auth/cookies";
 import { googleOAuthRedirectUri } from "@/lib/auth/google-oauth";
 import { getJwtExpiryMs } from "@/lib/auth/jwt";
+import type { Locale } from "@/i18n/locales";
+import { dictionaries } from "@/i18n/dictionaries";
+import { localeHref } from "@/i18n/routes";
+import { useToast } from "@/components/ui";
 import type {
   AuthContextValue,
   AuthResponse,
@@ -47,6 +52,61 @@ import type {
 } from "@/lib/auth/types";
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
+
+// ─────────────────────────────────────────────
+// Involuntary-session-expiry notice.
+//
+// AuthProvider is mounted ABOVE <ToastProvider> in the root layout (it wraps
+// everything, including ToastProvider), so it is not a descendant of
+// ToastContext and can never call useToast() itself. This tiny module-scope
+// pub/sub is the bridge: AuthProvider publishes when a session ends WITHOUT
+// the user asking for it, and <SessionExpiredToast/> (rendered once, lower in
+// the tree, inside ToastProvider — see LocaleRootLayout) subscribes and shows
+// the toast. Same pattern as setTokenStore/setOnLogout in http.ts, which
+// bridges the other direction (non-React module → this provider).
+//
+// Deliberately NOT published by logout() or by the cross-tab BroadcastChannel
+// echo of another tab's logout — those are user-initiated, and both existing
+// call sites (account-menu.tsx, account-content.tsx) already show their own
+// "signed out" toast right after calling logout(). Publishing here too would
+// double up and, worse, mislabel a deliberate action as a session "expiring".
+// ─────────────────────────────────────────────
+type SessionExpiredListener = () => void;
+const sessionExpiredListeners = new Set<SessionExpiredListener>();
+
+function publishSessionExpired(): void {
+  sessionExpiredListeners.forEach((listener) => listener());
+}
+
+function subscribeSessionExpired(listener: SessionExpiredListener): () => void {
+  sessionExpiredListeners.add(listener);
+  return () => {
+    sessionExpiredListeners.delete(listener);
+  };
+}
+
+/**
+ * Mount once, low in the tree, inside <ToastProvider> (see
+ * LocaleRootLayout). Shows a toast with a "sign in" action whenever a session
+ * ends involuntarily — a failed proactive token refresh, a dead refresh
+ * token discovered at initial load, or a failed manual refresh() call.
+ */
+export function SessionExpiredToast({ locale }: { locale: Locale }) {
+  const toast = useToast();
+  const router = useRouter();
+
+  useEffect(() => {
+    return subscribeSessionExpired(() => {
+      const dict = dictionaries[locale].errors;
+      toast(dict.sessionExpired, "lock", {
+        label: dict.signIn,
+        onClick: () => router.push(`${localeHref(locale, "auth")}?mode=login`),
+      }, "error");
+    });
+  }, [locale, toast, router]);
+
+  return null;
+}
 
 const PROACTIVE_REFRESH_LEAD_MS = 60_000;
 
@@ -117,7 +177,9 @@ export function AuthProvider({ children }: Props) {
   const proactiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
   const scheduleRef = useRef<(token: string) => void>(() => {});
-  const handleUnauthenticatedRef = useRef<() => void>(() => {});
+  const handleUnauthenticatedRef = useRef<(involuntary?: boolean) => void>(
+    () => {},
+  );
 
   const clearProactiveTimer = useCallback(() => {
     if (proactiveTimerRef.current) {
@@ -126,14 +188,38 @@ export function AuthProvider({ children }: Props) {
     }
   }, []);
 
-  const handleUnauthenticated = useCallback(() => {
-    accessTokenRef.current = null;
-    setUser(null);
-    setStatus("unauthenticated");
-    clearProactiveTimer();
-    clearCookie(CSRF_COOKIE_NAME);
-    clearCachedDisplayName();
-  }, [clearProactiveTimer]);
+  // `involuntary` distinguishes an unexpected session death (proactive
+  // refresh failed, a dead refresh token found at hydration, a failed manual
+  // refresh()) from a deliberate one (logout(), or the cross-tab
+  // BroadcastChannel echo of another tab's logout) — only the former
+  // publishes the session-expired toast notice. Both call logout()'s own
+  // UI (account-menu.tsx / account-content.tsx) already shows its own
+  // "signed out" toast right after calling logout(), so leaving those two
+  // callers on the `false` default here is intentional, not an oversight.
+  // One expiry can arrive twice: http.ts's refresh queue calls onLogout for
+  // every failed refresh, AND the caller that awaited that same refresh
+  // catches the rejection itself. Each is right on its own — but announcing
+  // twice is not, and now that the toast host queues instead of overwriting,
+  // the user would watch the same message animate through two times in a row.
+  // Only the transition OUT of a live session announces itself; the flag is
+  // cleared whenever a session is established again.
+  const expiryAnnouncedRef = useRef(false);
+
+  const handleUnauthenticated = useCallback(
+    (involuntary = false) => {
+      accessTokenRef.current = null;
+      setUser(null);
+      setStatus("unauthenticated");
+      clearProactiveTimer();
+      clearCookie(CSRF_COOKIE_NAME);
+      clearCachedDisplayName();
+      if (involuntary && !expiryAnnouncedRef.current) {
+        expiryAnnouncedRef.current = true;
+        publishSessionExpired();
+      }
+    },
+    [clearProactiveTimer],
+  );
 
   const scheduleProactiveRefresh = useCallback(
     (token: string) => {
@@ -145,7 +231,7 @@ export function AuthProvider({ children }: Props) {
       proactiveTimerRef.current = setTimeout(() => {
         refreshSession()
           .then((newToken) => scheduleRef.current(newToken))
-          .catch(() => handleUnauthenticatedRef.current());
+          .catch(() => handleUnauthenticatedRef.current(true));
       }, delay);
     },
     [clearProactiveTimer],
@@ -175,8 +261,13 @@ export function AuthProvider({ children }: Props) {
       set: (token) => setAccessToken(token),
       clear: () => setAccessToken(null),
     });
+    // Fired by http.ts when a 401-triggered refresh-and-retry fails mid-request.
+    // This is the commonest way a session actually dies in the wild — the user
+    // is mid-action — so it is involuntary and must say so. The cross-tab
+    // "logout" echo just below is the opposite case: another tab signed out on
+    // purpose, and that tab already showed its own confirmation.
     setOnLogout(() => {
-      handleUnauthenticated();
+      handleUnauthenticated(true);
     });
     if (typeof BroadcastChannel !== "undefined") {
       broadcastChannelRef.current = new BroadcastChannel("auth");
@@ -219,11 +310,15 @@ export function AuthProvider({ children }: Props) {
         const me = await getCurrentUser();
         if (cancelled) return;
         setUser(me);
+        expiryAnnouncedRef.current = false;
         setStatus("authenticated");
         setError(null);
       } catch {
         if (cancelled) return;
-        handleUnauthenticated();
+        // A session hint was present but /refresh + /me failed: the refresh
+        // token is dead (expired/revoked elsewhere), not a choice the user
+        // made just now.
+        handleUnauthenticated(true);
       } finally {
         if (!cancelled) setOptimisticUser(null);
       }
@@ -251,6 +346,7 @@ export function AuthProvider({ children }: Props) {
       setAccessToken(response.accessToken);
       const me = await getCurrentUser().catch(() => response.user);
       setUser(me);
+      expiryAnnouncedRef.current = false;
       setStatus("authenticated");
       broadcastChannelRef.current?.postMessage({ type: "login" });
     },
@@ -473,9 +569,12 @@ export function AuthProvider({ children }: Props) {
       await refreshSession();
       const me = await getCurrentUser();
       setUser(me);
+      expiryAnnouncedRef.current = false;
       setStatus("authenticated");
     } catch {
-      handleUnauthenticated();
+      // The caller asked to refresh the session, not to end it — a failure
+      // here means the refresh token itself is dead, an involuntary expiry.
+      handleUnauthenticated(true);
     }
   }, [handleUnauthenticated]);
 

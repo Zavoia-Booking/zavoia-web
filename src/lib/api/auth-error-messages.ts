@@ -1,11 +1,11 @@
 import type { Dictionary } from "@/i18n/dictionaries";
-import { ApiError } from "@/lib/api/http";
+import { backendCode, transportErrorMessage } from "@/lib/api/error-messages";
 
 type AuthErrorsDict = Dictionary["auth"]["errors"];
+type ErrorsDict = Dictionary["errors"];
 
 /**
- * Maps a backend auth message code (as carried on ApiError.code / .message) to
- * a friendly, localized string using the provided `auth.errors` dictionary.
+ * Maps a backend auth message code to a friendly, localized string.
  *
  * The backend returns generic auth failures as message codes like
  * "CUSTOMER_AUTH.E38" (see parseError in http.ts, which normalizes the array
@@ -13,6 +13,8 @@ type AuthErrorsDict = Dictionary["auth"]["errors"];
  * only codes whose meaning is confidently known; anything unknown falls back to
  * the dictionary's `generic` message so a raw "SOMETHING.E##" code never reaches
  * the UI.
+ *
+ * Keys are always the FULL namespaced code — see `backendCode`.
  */
 const CODE_TO_KEY: Record<string, keyof AuthErrorsDict> = {
   // Returned for BOTH a wrong password AND a Google-only account with no
@@ -50,40 +52,31 @@ const CODE_TO_KEY: Record<string, keyof AuthErrorsDict> = {
   EMAIL_TAKEN: "emailTaken",
   CURRENT_EMAIL_MISMATCH: "currentEmailMismatch",
   SAME_EMAIL: "sameEmail",
+  // 404 from email-change.service.ts — the account behind this session no
+  // longer exists, so re-entering the password can never help.
+  USER_NOT_FOUND: "userNotFound",
 };
 
+/**
+ * The message to show for a failed auth action.
+ *
+ * `shared` is required rather than optional on purpose: a transport failure
+ * ("you're offline") must win over any domain message, and making the caller
+ * pass it means no auth call site can quietly skip that check. Order is
+ * transport → known code → generic.
+ */
 export function authErrorMessage(
   error: unknown,
   dict: AuthErrorsDict,
+  shared: ErrorsDict,
 ): string {
-  const code = extractCode(error);
+  const transport = transportErrorMessage(error, shared);
+  if (transport) return transport;
+
+  const code = backendCode(error);
   if (code) {
-    const key = CODE_TO_KEY[code.toUpperCase()];
+    const key = CODE_TO_KEY[code];
     if (key) return dict[key];
   }
   return dict.generic;
 }
-
-/**
- * Pulls the backend code from an ApiError. Prefers `.code` (populated by
- * parseError), falling back to `.message` when it itself looks like a raw code.
- * Two code shapes are recognized: the dotted CUSTOMER_AUTH.E## form and the
- * plain UPPER_SNAKE form (e.g. change-email's EMAIL_TAKEN / SAME_EMAIL).
- */
-function extractCode(error: unknown): string | null {
-  if (!(error instanceof ApiError)) return null;
-  if (error.code && isCodeShaped(error.code)) return error.code;
-  if (typeof error.message === "string" && isCodeShaped(error.message))
-    return error.message;
-  return null;
-}
-
-function isCodeShaped(value: string): boolean {
-  return BACKEND_CODE_RE.test(value) || PLAIN_CODE_RE.test(value);
-}
-
-const BACKEND_CODE_RE = /^[A-Z_]+\.[A-Z0-9]+$/i;
-// Plain snake-case codes with no dot: change-email's UPPER_SNAKE codes and
-// 409 conflicts' lowercase codes (e.g. `email_already_registered`). Requires
-// an underscore so ordinary words/messages don't get misread as codes.
-const PLAIN_CODE_RE = /^[A-Z]+(_[A-Z]+)+$/i;

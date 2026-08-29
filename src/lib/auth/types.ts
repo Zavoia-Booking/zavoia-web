@@ -21,6 +21,13 @@ export type AuthUser = {
    * guarantees this field; `undefined` means "unknown yet".
    */
   hasPassword?: boolean;
+  /**
+   * Whether the email address has been confirmed. Only GET
+   * /marketplace/auth/me guarantees this field; `undefined` means "unknown
+   * yet", which must NOT be rendered as unverified — an optimistic or
+   * login-response user simply hasn't been told.
+   */
+  emailVerified?: boolean;
 };
 
 /**
@@ -160,6 +167,15 @@ export type VerifyEmailResponse = {
  * avoid account enumeration.
  */
 export type ForgotPasswordResponse = {
+  message: string;
+};
+
+/**
+ * Response of POST /marketplace/auth/resend-verification. Neutral by design:
+ * the same message comes back whether the address is unknown, already
+ * verified, or genuinely re-sent, so it cannot be used to enumerate accounts.
+ */
+export type ResendVerificationResponse = {
   message: string;
 };
 

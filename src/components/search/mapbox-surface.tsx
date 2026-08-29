@@ -23,7 +23,11 @@ import { MAPBOX_TOKEN } from "@/lib/env";
 import { PinGlyph, type PinState } from "./pin";
 import { UserDotGlyph } from "./user-dot";
 import { MapControls } from "./map-controls";
-import { SEARCH_AREA_THRESHOLD_KM } from "./constants";
+import {
+  RE_ANCHOR_VIEWPORT_FRACTION,
+  SEARCH_AREA_THRESHOLD_KM,
+  SEARCH_RADIUS_KM,
+} from "./constants";
 
 // Default view when there are no pins to fit — central Bucharest.
 export const DEFAULT_CENTER_LNG = 26.1025;
@@ -89,9 +93,21 @@ export interface MapboxSurfaceProps {
   recenterAria: string;
   /** Current search anchor (URL lat/lng) — pan distance is measured from here. */
   anchor?: GeoPoint | null;
-  /** Re-run the search anchored on the new map center (radius is fixed elsewhere). */
+  /**
+   * Re-run the search anchored on the new map center (radius is fixed
+   * elsewhere). `visibleWidthKm` is the map's current viewport width, used by
+   * the caller for nothing — the zoom-aware threshold is applied here.
+   */
   onSearchArea?: (area: { lat: number; lng: number }) => void;
   searchAreaLabel: string;
+  /**
+   * Pixels along each edge that a floating overlay covers. The desktop results
+   * panel sits ON TOP of the map's left edge, so fitting the camera to the pin
+   * bounds with uniform padding parks part of every result set underneath it.
+   */
+  fitInset?: { left?: number; right?: number; top?: number; bottom?: number };
+  /** Shown in place of the map when no Mapbox token is configured. */
+  unavailableLabel: string;
   children?: ReactNode;
   ref?: Ref<MapboxSurfaceHandle>;
 }
@@ -113,6 +129,8 @@ export function MapboxSurface({
   anchor,
   onSearchArea,
   searchAreaLabel,
+  fitInset,
+  unavailableLabel,
   children,
   ref,
 }: MapboxSurfaceProps) {
@@ -152,6 +170,12 @@ export function MapboxSurface({
   }
 
   // Fit the viewport to the current pins on mount and whenever they change.
+  // Padding is per-side so pins never land under a floating overlay (the
+  // desktop results panel); each side is at least FIT_PADDING.
+  const insetLeft = fitInset?.left ?? 0;
+  const insetRight = fitInset?.right ?? 0;
+  const insetTop = fitInset?.top ?? 0;
+  const insetBottom = fitInset?.bottom ?? 0;
   useEffect(() => {
     const map = mapRef.current;
     if (!map || pins.length === 0) return;
@@ -159,27 +183,58 @@ export function MapboxSurface({
     const bounds = new LngLatBounds(first, first);
     for (const p of pins) bounds.extend([p.lng, p.lat]);
     map.fitBounds(bounds, {
-      padding: FIT_PADDING,
+      padding: {
+        left: FIT_PADDING + insetLeft,
+        right: FIT_PADDING + insetRight,
+        top: FIT_PADDING + insetTop,
+        bottom: FIT_PADDING + insetBottom,
+      },
       maxZoom: FIT_MAX_ZOOM,
       duration: 600,
     });
     // fitKey captures the coordinate set; pins ref identity is incidental.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitKey]);
+  }, [fitKey, insetLeft, insetRight, insetTop, insetBottom]);
+
+  /** Width of the currently visible map, in km — the zoom half of the threshold. */
+  function visibleWidthKm(): number | undefined {
+    const map = mapRef.current?.getMap();
+    if (!map) return undefined;
+    const b = map.getBounds();
+    if (!b) return undefined;
+    const west = b.getWest();
+    const east = b.getEast();
+    const lat = b.getCenter().lat;
+    return haversineKm(lat, west, lat, east);
+  }
 
   // User-driven moves carry `originalEvent` (mouse/touch/wheel); programmatic
   // camera moves (our fitBounds) leave it undefined — so this only fires for
   // real gestures. `originalEvent` lives on every member of the moveend event
   // shape but TS can't surface it across the union, so read it via a narrow cast.
-  // Only offer "Search this area" once the user has panned ≥ threshold km from
-  // the current anchor; with no anchor, show on any user move (prior behaviour).
+  //
+  // The offer is zoom-aware, matching the mobile app: the pan must move the
+  // centre by most of a screen width at the CURRENT zoom, clamped between a
+  // floor (a sub-2km wiggle is never a new area, however far in you are) and
+  // the searched radius (zoomed right out a small drag sweeps huge distances,
+  // and past the radius the offer is always warranted). A fixed 2km threshold
+  // offered "search this area" on a nudge at street zoom and demanded a
+  // continent-sized pan at country zoom.
   const handleMoveEnd = (e: ViewStateChangeEvent) => {
     const original = (e as { originalEvent?: unknown }).originalEvent;
     if (!original) return;
     const center = mapRef.current?.getMap().getCenter();
     if (anchor && center) {
+      const width = visibleWidthKm();
+      const threshold = Math.min(
+        SEARCH_RADIUS_KM,
+        Math.max(
+          SEARCH_AREA_THRESHOLD_KM,
+          (width ?? Number.POSITIVE_INFINITY) * RE_ANCHOR_VIEWPORT_FRACTION,
+        ),
+      );
       const dist = haversineKm(center.lat, center.lng, anchor.lat, anchor.lng);
-      setShowSearchHere(dist >= SEARCH_AREA_THRESHOLD_KM);
+      setShowSearchHere(dist >= threshold);
     } else {
       setShowSearchHere(true);
     }
@@ -237,7 +292,7 @@ export function MapboxSurface({
             color: "var(--c-500)",
           }}
         >
-          Map unavailable
+          {unavailableLabel}
         </div>
         {overlay}
       </div>
@@ -264,7 +319,8 @@ export function MapboxSurface({
           latitude: pins[0]?.lat ?? DEFAULT_CENTER_LAT,
           zoom: pins.length ? FIT_MAX_ZOOM : DEFAULT_ZOOM,
         }}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        // mapStyle="mapbox://styles/mapbox/streets-v12"
+        mapStyle="mapbox://styles/zavoia/cmphvlj8p002c01sgdl3q3kpb"
         style={{ width: "100%", height: "100%" }}
         onMoveEnd={handleMoveEnd}
       >
@@ -287,13 +343,25 @@ export function MapboxSurface({
                 onSelect?.(p.id);
               }}
             >
-              <span
+              {/* A real button, so the map's results are reachable by keyboard
+                  and announced as actionable — a <span aria-label> is neither.
+                  Marker's own onClick handles pointer input; Enter/Space fire
+                  this element's click, which Marker does not intercept. */}
+              <button
+                type="button"
                 aria-label={p.name}
+                aria-pressed={isSelected}
+                onClick={() => onSelect?.(p.id)}
+                onFocus={onHover ? () => onHover(p.id) : undefined}
+                onBlur={onHover ? () => onHover(null) : undefined}
                 onMouseEnter={onHover ? () => onHover(p.id) : undefined}
                 onMouseLeave={onHover ? () => onHover(null) : undefined}
                 style={{
                   display: "inline-flex",
                   cursor: "pointer",
+                  border: 0,
+                  padding: 0,
+                  background: "transparent",
                   transform: `scale(${isSelected ? 1.45 : 1})`,
                   transition: "transform .35s var(--ease-spring)",
                   opacity: isViewed ? 0.55 : 1,
@@ -301,7 +369,7 @@ export function MapboxSurface({
                 }}
               >
                 <PinGlyph cat={p.cat} state={state} dropIndex={wave ? i : null} />
-              </span>
+              </button>
             </Marker>
           );
         })}

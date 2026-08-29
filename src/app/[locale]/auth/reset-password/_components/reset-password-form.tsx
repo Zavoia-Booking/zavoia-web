@@ -10,12 +10,9 @@ import { authErrorMessage } from "@/lib/api/auth-error-messages";
 import { resetPassword } from "@/lib/api/customer-auth";
 import { ApiError } from "@/lib/api/http";
 import { AuthField } from "../../_components/auth-field";
+import { PASSWORD_REGEX } from "@/lib/validation";
 
 // Same strong-password rule used in register-form.tsx — keep these in sync.
-// Mirrors admin-api's PASSWORD_REGEX: any non-alphanumeric counts as the
-// special character (so # or - work, not just @$!%*?&).
-const PASSWORD_REGEX =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 type Errors = Partial<Record<"password" | "confirm" | "form", string>>;
 
@@ -79,7 +76,9 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
     } catch (e) {
       submitLockRef.current = false;
       setSubmitting(false);
-      setErrors({ form: authErrorMessage(e, dict.errors) });
+      setErrors({
+        form: authErrorMessage(e, dict.errors, dictionaries[locale].errors),
+      });
       setTokenDead(isDeadTokenError(e));
     }
   }
@@ -147,7 +146,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
         {errors.form && (
           <p
             role="alert"
-            className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            className="rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
           >
             {errors.form}
           </p>

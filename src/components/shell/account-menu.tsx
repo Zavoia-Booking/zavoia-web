@@ -34,6 +34,16 @@ const rowStyle = {
   textDecoration: "none",
 };
 
+// The identity block at the top of the menu is itself a link: to the profile
+// when signed in, to the auth screen when not.
+const identityStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 13,
+  padding: "16px 18px 14px",
+  textDecoration: "none",
+};
+
 export function AccountMenu({ locale, onClose }: Props) {
   const { status, user, logout } = useAuth();
   const { dict } = useTranslation();
@@ -99,13 +109,11 @@ export function AccountMenu({ locale, onClose }: Props) {
   return (
     <Popover onClose={onClose} label={dict.nav.account} width={300}>
       {isAuthed ? (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 13,
-            padding: "16px 18px 14px",
-          }}
+        <Link
+          href={localeHref(locale, "account")}
+          className="tap zw-hover-row"
+          onClick={onClose}
+          style={{ ...identityStyle, color: "inherit" }}
         >
           <Avatar
             name={fullName}
@@ -136,15 +144,13 @@ export function AccountMenu({ locale, onClose }: Props) {
               {user?.email}
             </div>
           </div>
-        </div>
+        </Link>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 13,
-            padding: "16px 18px 14px",
-          }}
+        <Link
+          href={loginHref}
+          className="tap zw-hover-row"
+          onClick={onClose}
+          style={{ ...identityStyle, color: "inherit" }}
         >
           <div
             style={{
@@ -184,7 +190,7 @@ export function AccountMenu({ locale, onClose }: Props) {
               {t.loginOrSignUp}
             </div>
           </div>
-        </div>
+        </Link>
       )}
 
       {isAuthed && (

@@ -14,6 +14,8 @@ export class ApiError extends Error {
   status: number;
   code?: string;
   data?: unknown;
+  /** Seconds to wait before retrying, from a 429's `Retry-After` header. */
+  retryAfterSeconds?: number;
   constructor(message: string, status: number, code?: string, data?: unknown) {
     super(message);
     this.name = "ApiError";
@@ -21,6 +23,105 @@ export class ApiError extends Error {
     this.code = code;
     this.data = data;
   }
+}
+
+/**
+ * Transport-level failure codes. They live in the same `.code` slot as the
+ * backend's message codes but can never collide with one: backend codes are
+ * either dotted (`CUSTOMER_AUTH.E38`) or contain an underscore
+ * (`EMAIL_TAKEN`), and these are single bare words.
+ *
+ * A transport failure carries `status: 0` — no response ever arrived, so
+ * there is no status line, no body, and nothing to map to a domain message.
+ */
+export const NETWORK_ERROR_CODE = "NETWORK";
+export const TIMEOUT_ERROR_CODE = "TIMEOUT";
+
+/**
+ * How long a BROWSER request may hang before we give up on it.
+ *
+ * Server-side fetches are deliberately left without a timeout or a signal:
+ * they run inside Next's own request lifecycle and carry `next: { tags }`
+ * cache hints, so attaching an AbortSignal there would change caching and ISR
+ * behaviour to fix a problem that only exists in a browser — nobody is
+ * staring at a stuck button during a prerender.
+ */
+const DEFAULT_TIMEOUT_MS = 15_000;
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof DOMException && e.name === "AbortError";
+}
+
+/**
+ * `fetch`, with the two failures it can produce that never reach `parseError`
+ * turned into ApiErrors: a dead network (fetch rejects with a TypeError, no
+ * response at all) and our own timeout.
+ *
+ * A caller's own abort passes through untouched, so `AbortController`-based
+ * stale-response guards keep working and are never reported as a timeout.
+ */
+async function guardedFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  const callerSignal = init.signal ?? null;
+
+  if (typeof window === "undefined") {
+    try {
+      return await fetch(url, init);
+    } catch (e) {
+      if (isAbortError(e)) throw e;
+      throw new ApiError("Network request failed", 0, NETWORK_ERROR_CODE);
+    }
+  }
+
+  // `abort` fires once, at the moment of aborting: a listener attached after
+  // that never runs. A caller aborted during the `await ensureFreshToken`
+  // that precedes this would otherwise be ignored and the request would run
+  // to completion or to the timeout.
+  if (callerSignal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  const forwardAbort = () => controller.abort();
+  callerSignal?.addEventListener("abort", forwardAbort);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (e) {
+    if (isAbortError(e)) {
+      if (timedOut) {
+        throw new ApiError("Request timed out", 0, TIMEOUT_ERROR_CODE);
+      }
+      throw e; // the caller cancelled on purpose
+    }
+    throw new ApiError("Network request failed", 0, NETWORK_ERROR_CODE);
+  } finally {
+    clearTimeout(timer);
+    callerSignal?.removeEventListener("abort", forwardAbort);
+  }
+}
+
+/**
+ * `Retry-After` is either a delay in seconds or an HTTP date; both forms are
+ * legal and the backend's rate limiter sends the first. The parsed value is
+ * what lets the UI count down instead of saying a bare "try again later".
+ */
+function parseRetryAfter(response: Response): number | undefined {
+  const raw = response.headers.get("retry-after");
+  if (!raw) return undefined;
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds);
+  const when = Date.parse(raw);
+  if (Number.isNaN(when)) return undefined;
+  return Math.max(0, Math.ceil((when - Date.now()) / 1000));
 }
 
 const REFRESH_PATH = "/marketplace/auth/refresh";
@@ -106,7 +207,11 @@ async function parseError(response: Response): Promise<ApiError> {
     (typeof firstMessage === "string" && BACKEND_CODE_RE.test(firstMessage)
       ? firstMessage
       : undefined);
-  return new ApiError(message, response.status, code, data);
+  const error = new ApiError(message, response.status, code, data);
+  if (response.status === 429) {
+    error.retryAfterSeconds = parseRetryAfter(response);
+  }
+  return error;
 }
 
 function isExpiredTokenError(error: ApiError, response: Response): boolean {
@@ -197,7 +302,7 @@ async function performRefresh(): Promise<string> {
   });
   if (csrf) headers.set("x-csrf-token", csrf);
 
-  const response = await fetch(`${API_URL}${REFRESH_PATH}`, {
+  const response = await guardedFetch(`${API_URL}${REFRESH_PATH}`, {
     method: "POST",
     credentials: "include",
     headers,
@@ -255,7 +360,7 @@ export async function apiFetch<T>(
   const headers = buildHeaders(path, init, accessToken);
   const safeInit = accessToken ? stripCacheHints(init) : init;
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await guardedFetch(`${API_URL}${path}`, {
     ...safeInit,
     headers,
     credentials: "include",
@@ -292,7 +397,7 @@ export async function apiFetch<T>(
         if (locale) retryHeaders.set(LOCALE_HEADER, locale);
       }
       retryHeaders.set("Authorization", `Bearer ${newToken}`);
-      const retryResponse = await fetch(`${API_URL}${path}`, {
+      const retryResponse = await guardedFetch(`${API_URL}${path}`, {
         // Reached only with a token in hand — never cache this response.
         ...stripCacheHints(init),
         headers: retryHeaders,

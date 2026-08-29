@@ -8,17 +8,23 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
-import { HomeContent } from "@/app/_components/home-content";
+import { HomeContent, type FeedResult } from "@/app/_components/home-content";
 import {
   getBrands,
   getIndustries,
-  getLatestListings,
+  searchListings,
 } from "@/lib/api/marketplace/public";
-import type {
-  BrandCard,
-  Industry,
-  LocationCard,
-} from "@/lib/api/marketplace/types";
+
+// Reduces a feed promise to a FeedResult instead of collapsing success and
+// failure into the same `[]` — see FeedResult's doc comment in home-content.
+// Attached at promise creation (like the old bare `.catch()`), so this is
+// still handled before HomeContent's Suspense boundaries ever await it.
+function settle<T>(promise: Promise<T>): Promise<FeedResult<T>> {
+  return promise.then(
+    (data): FeedResult<T> => ({ ok: true, data }),
+    (): FeedResult<T> => ({ ok: false }),
+  );
+}
 
 // The home fetches live marketplace data, so it must NOT be statically
 // prerendered at build time (the backend may be down during `next build`).
@@ -68,22 +74,26 @@ export default async function Home({ params }: Props) {
   // each one streams into its own <Suspense> boundary, so the hero and the
   // editorial bands reach the browser without waiting on admin-api at all.
   //
-  // Build-safety: the .catch() at creation doubles as the empty-data fallback
-  // (a failed/absent backend never crashes the render) and ensures the promise
-  // is already handled before its consumer awaits it.
-  const industries = getIndustries().catch((): Industry[] => []);
-  const latest = getLatestListings({ limit: 10 })
-    .then((res) => res.data)
-    .catch((): LocationCard[] => []);
-  const brands = getBrands({ limit: 10 })
-    .then((res) => res.data)
-    .catch((): BrandCard[] => []);
+  // Build-safety: `settle()` at creation doubles as the failure fallback (a
+  // failed/absent backend never crashes the render — it resolves to
+  // `{ ok: false }` instead of rejecting) and ensures the promise is already
+  // handled before its consumer awaits it. Unlike the old bare `.catch(() =>
+  // [])`, failure and a genuine empty result no longer collapse into the same
+  // value — see FeedResult.
+  const industries = settle(getIndustries());
+  // Editor's pick is the one home feed that is NOT location-scoped: it renders
+  // on the server, before any coordinates exist. No geo params → the search
+  // path's default order (top-rated, then newest).
+  const editorsPick = settle(
+    searchListings({ limit: 10 }).then((res) => res.locations),
+  );
+  const brands = settle(getBrands({ limit: 10 }).then((res) => res.data));
 
   return (
     <HomeContent
       locale={localeParam}
       industries={industries}
-      latest={latest}
+      editorsPick={editorsPick}
       brands={brands}
     />
   );

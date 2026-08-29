@@ -1,9 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
+import {
+  customerErrorMessage,
+  isBenignCustomerError,
+} from "@/lib/api/customer-error-messages";
 import {
   addFavoriteBusiness,
   addFavoriteLocation,
@@ -111,6 +115,12 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
     [favorited],
   );
 
+  // Ids with an add/remove mutation in flight — guards against a rapid
+  // double-click firing two mutations against the same entity. The
+  // optimistic update + rollback below is unchanged; this only gates
+  // re-entrancy.
+  const inFlightRef = useRef<Set<number>>(new Set());
+
   const toggle = useCallback(
     (rawId: string | number) => {
       const id = typeof rawId === "number" ? rawId : Number(rawId);
@@ -120,6 +130,9 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
         toast(dict.homeSections.favorites.savePrompt, "heart");
         return;
       }
+
+      if (inFlightRef.current.has(id)) return;
+      inFlightRef.current.add(id);
 
       const wasFavorited = favorited.has(id);
       // Optimistic update.
@@ -141,7 +154,11 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
             "heart",
           );
         })
-        .catch(() => {
+        .catch((e) => {
+          // "Already a favorite" / "favorite not found" mean the optimistic
+          // update already left the set in the state the user wanted — stay
+          // quiet rather than roll back a change that was actually correct.
+          if (isBenignCustomerError(e)) return;
           // Revert on failure.
           setFavorited((prev) => {
             const next = new Set(prev);
@@ -149,7 +166,10 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
             else next.delete(id);
             return next;
           });
-          toast(dict.auth.errors.generic, "warn");
+          toast(customerErrorMessage(e, dict.errors), "warn", undefined, "error");
+        })
+        .finally(() => {
+          inFlightRef.current.delete(id);
         });
     },
     [status, favorited, kind, toast, dict],

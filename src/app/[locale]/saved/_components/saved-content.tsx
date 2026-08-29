@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
@@ -14,6 +15,10 @@ import { localeHref } from "@/i18n/routes";
 import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
+import {
+  customerErrorMessage,
+  isBenignCustomerError,
+} from "@/lib/api/customer-error-messages";
 import {
   Avatar,
   Button,
@@ -559,6 +564,7 @@ function Row({
 
 export function SavedContent({ locale }: { locale: Locale }) {
   const t = dictionaries[locale].saved;
+  const errorsDict = dictionaries[locale].errors;
   const router = useRouter();
   const toast = useToast();
   const { status } = useAuth();
@@ -658,23 +664,41 @@ export function SavedContent({ locale }: { locale: Locale }) {
     return addFavoriteProfessional(row.entityId);
   }, []);
 
+  // Rows with a remove/undo mutation in flight, keyed by `row.key` — guards
+  // against a rapid double-click (or a remove/undo race) firing two
+  // mutations against the same entity. Optimistic update + rollback below is
+  // unchanged; this only gates re-entrancy.
+  const inFlightRef = useRef<Set<string>>(new Set());
+
   const handleRemove = useCallback(
     (row: SavedRow) => {
+      if (inFlightRef.current.has(row.key)) return;
+      inFlightRef.current.add(row.key);
+
       // Remember the row's position so Undo restores original ordering.
       const index = rows.findIndex((r) => r.key === row.key);
 
       const undo = () => {
+        if (inFlightRef.current.has(row.key)) return;
+        inFlightRef.current.add(row.key);
         setRows((prev) => {
           if (prev.some((r) => r.key === row.key)) return prev;
           const next = [...prev];
           next.splice(Math.min(index, next.length), 0, row);
           return next;
         });
-        addApi(row).catch(() => {
-          // Re-add failed → revert the optimistic restore.
-          setRows((prev) => prev.filter((r) => r.key !== row.key));
-          toast(t.removeError, "heartO");
-        });
+        addApi(row)
+          .catch((e) => {
+            // "Already a favorite" means the restore already landed — the
+            // row being back in the list is exactly what Undo wanted.
+            if (isBenignCustomerError(e)) return;
+            // Re-add failed → revert the optimistic restore.
+            setRows((prev) => prev.filter((r) => r.key !== row.key));
+            toast(customerErrorMessage(e, errorsDict, t.removeError), "heartO");
+          })
+          .finally(() => {
+            inFlightRef.current.delete(row.key);
+          });
       };
 
       // Optimistic remove.
@@ -687,7 +711,10 @@ export function SavedContent({ locale }: { locale: Locale }) {
             onClick: undo,
           });
         })
-        .catch(() => {
+        .catch((e) => {
+          // "Favorite not found" means it's already gone — the optimistic
+          // removal already shows what the user wanted, so leave it be.
+          if (isBenignCustomerError(e)) return;
           // Revert the optimistic remove.
           setRows((prev) => {
             if (prev.some((r) => r.key === row.key)) return prev;
@@ -695,10 +722,13 @@ export function SavedContent({ locale }: { locale: Locale }) {
             next.splice(Math.min(index, next.length), 0, row);
             return next;
           });
-          toast(t.removeError, "heartO");
+          toast(customerErrorMessage(e, errorsDict, t.removeError), "heartO");
+        })
+        .finally(() => {
+          inFlightRef.current.delete(row.key);
         });
     },
-    [rows, removeApi, addApi, toast, t],
+    [rows, removeApi, addApi, toast, t, errorsDict],
   );
 
   // ── Auth gating ──

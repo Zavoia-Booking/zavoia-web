@@ -14,6 +14,7 @@ import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { EmptyState } from "./empty-state";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/dictionaries";
+import { mapBackendCode } from "@/lib/api/error-messages";
 import type { Locale } from "@/i18n/locales";
 import { formatDuration, formatMoney } from "@/lib/format/money-time";
 import { useBooking } from "@/lib/booking";
@@ -90,6 +91,13 @@ interface Venue {
   location: ContextLocation;
 }
 
+// CUSTOMER_BOOKING.E16 = team member not found; E17 = no active business
+// assignments. Both are permanent: a retry can never turn them around.
+const MEMBER_GONE_CODES = {
+  "CUSTOMER_BOOKING.E16": true,
+  "CUSTOMER_BOOKING.E17": true,
+} as const;
+
 export function TeamMemberProfileModal({
   member,
   listing,
@@ -126,7 +134,14 @@ export function TeamMemberProfileModal({
   const [attempt, setAttempt] = useState(0);
   // Favorites flow only: where the member can be booked (null while loading).
   const [context, setContext] = useState<TeamMemberBookingContext | null>(null);
-  const [contextFailed, setContextFailed] = useState(false);
+  // A failed booking-context load means two very different things. Permanent
+  // (CUSTOMER_BOOKING.E16/E17 — the team member is gone, or has no active
+  // assignment anywhere) is honestly "can't be booked". Transient (offline,
+  // timeout, 5xx) is "we couldn't find out", and saying "no booking here"
+  // there tells the user something we don't actually know.
+  const [contextFailure, setContextFailure] = useState<
+    "permanent" | "transient" | null
+  >(null);
   const [venueKey, setVenueKey] = useState<string | null>(null);
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -175,8 +190,11 @@ export function TeamMemberProfileModal({
       .then((ctx) => {
         if (alive) setContext(ctx);
       })
-      .catch(() => {
-        if (alive) setContextFailed(true);
+      .catch((e) => {
+        if (!alive) return;
+        setContextFailure(
+          mapBackendCode(e, MEMBER_GONE_CODES) ? "permanent" : "transient",
+        );
       });
     return () => {
       alive = false;
@@ -352,7 +370,7 @@ export function TeamMemberProfileModal({
     [listing, profile, selectedVenue],
   );
   // The context still loading in the favorites flow ≠ "no services".
-  const servicesPending = !listing && !context && !contextFailed;
+  const servicesPending = !listing && !context && !contextFailure;
   // Services grouped by category — same grammar as the Services tab.
   const serviceGroups = useMemo(() => {
     const by = new Map<
@@ -855,9 +873,33 @@ export function TeamMemberProfileModal({
                 {/* Favorites flow — no bookable venue (or the context call
                     failed): the profile stays useful, booking is just absent. */}
                 {!listing && !servicesPending && venues.length === 0 && (
-                  <p style={{ margin: 0, fontSize: 13.5, color: "var(--c-600)" }}>
-                    {t.memberNoBooking}
-                  </p>
+                  <div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 13.5,
+                        color: "var(--c-600)",
+                      }}
+                    >
+                      {contextFailure === "transient"
+                        ? t.memberLoadError
+                        : t.memberNoBooking}
+                    </p>
+                    {contextFailure === "transient" && (
+                      <div style={{ marginTop: 10 }}>
+                        <Button
+                          kind="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setContextFailure(null);
+                            setAttempt((a) => a + 1);
+                          }}
+                        >
+                          {t.memberRetry}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* The menu is scoped to the venue whose page opened this, so a

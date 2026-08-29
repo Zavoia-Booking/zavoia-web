@@ -10,13 +10,28 @@ export interface ChipProps {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
+  /** Accessible name, when the visible label alone doesn't carry the state. */
+  ariaLabel?: string;
+  /** Set when the chip toggles something, so its state is announced. */
+  ariaPressed?: boolean;
 }
 
-export function Chip({ active = false, onClick, icon, children, className, style }: ChipProps) {
+export function Chip({
+  active = false,
+  onClick,
+  icon,
+  children,
+  className,
+  style,
+  ariaLabel,
+  ariaPressed,
+}: ChipProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-label={ariaLabel}
+      aria-pressed={ariaPressed}
       className={["tap", className].filter(Boolean).join(" ")}
       style={{
         display: "inline-flex",

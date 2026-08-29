@@ -19,7 +19,7 @@ import {
 import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { openStatus } from "@/lib/marketplace/working-hours";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { dictionaries, format } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
 import {
   formatMoney,
@@ -33,6 +33,7 @@ import type { BookingSelectionItem } from "@/lib/booking";
 import { pushRecentView } from "@/lib/recent-views";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { getListingReviews } from "@/lib/api/marketplace/public";
+import { errorMessage } from "@/lib/api/error-messages";
 import { SEARCH_RADIUS_KM } from "@/components/search/constants";
 import { TeamMemberProfileModal } from "./team-member-profile-modal";
 import { EmptyState } from "./empty-state";
@@ -1308,6 +1309,7 @@ function ReviewsTab({
   const [offset, setOffset] = useState(listing.reviews.length);
   const [total, setTotal] = useState(listing.reviewStats.totalCount);
   const [loading, setLoading] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
 
   const dateFmt = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }),
@@ -1326,6 +1328,7 @@ function ReviewsTab({
 
   const loadMore = useCallback(() => {
     setLoading(true);
+    setLoadMoreError(null);
     const limit = 10;
     getListingReviews(listing.locationId, { offset, limit })
       .then((res) => {
@@ -1333,9 +1336,16 @@ function ReviewsTab({
         setOffset(res.pagination.offset + res.data.length);
         setTotal(res.pagination.total);
       })
-      .catch(() => {})
+      // Failing silently here made the button look broken rather than the
+      // request look failed. Already-loaded reviews stay on screen and the
+      // same button doubles as the retry.
+      .catch((e) => {
+        setLoadMoreError(
+          errorMessage(e, dictionaries[locale].errors, dict.loadMoreReviewsError),
+        );
+      })
       .finally(() => setLoading(false));
-  }, [listing.locationId, offset]);
+  }, [listing.locationId, offset, locale, dict.loadMoreReviewsError]);
 
   if (stats.totalCount === 0 && reviews.length === 0) {
     return (
@@ -1523,6 +1533,17 @@ function ReviewsTab({
           >
             {dict.loadMoreReviews}
           </Button>
+          {loadMoreError && (
+            <p
+              style={{
+                margin: "10px 0 0",
+                fontSize: 14,
+                color: "var(--s-error-600)",
+              }}
+            >
+              {loadMoreError}
+            </p>
+          )}
         </div>
       )}
     </div>

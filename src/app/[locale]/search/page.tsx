@@ -78,7 +78,9 @@ export default async function SearchPage({ params, searchParams }: Props) {
 
   const sp = await searchParams;
 
-  // Initial results from the URL params (build-safe; empty on failure).
+  // Initial results from the URL params (build-safe: never throws; a failed
+  // fetch resolves to EMPTY_RESULT below, with `initialResultFailed` telling
+  // SearchContent it was a failure, not a genuine zero-result search).
   const initialParams: SearchListingsParams = {
     search: one(sp.search),
     industrySlug: one(sp.industry),
@@ -93,19 +95,24 @@ export default async function SearchPage({ params, searchParams }: Props) {
   };
 
   // The filter taxonomy and the result set are independent, so both requests
-  // go out together rather than one after the other.
-  const [industries, initialResult] = await Promise.all([
-    getIndustries().catch((): Industry[] => []),
-    searchListings(initialParams).catch(
-      (): SearchListingsResult => EMPTY_RESULT,
-    ),
-  ]);
+  // go out together rather than one after the other. The result set also
+  // tracks whether the fetch itself failed (vs. genuinely returned zero
+  // rows) — SearchContent needs that distinction to avoid rendering a
+  // backend outage as "no places match your search".
+  const initialSearch = searchListings(initialParams).then(
+    (result) => ({ result, failed: false as const }),
+    () => ({ result: EMPTY_RESULT, failed: true as const }),
+  );
+
+  const [industries, { result: initialResult, failed: initialResultFailed }] =
+    await Promise.all([getIndustries().catch((): Industry[] => []), initialSearch]);
 
   return (
     <SearchContent
       locale={locale}
       industries={industries}
       initialResult={initialResult}
+      initialResultFailed={initialResultFailed}
     />
   );
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { dictionaries, format, type Dictionary } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
@@ -98,10 +98,12 @@ function LoadingState({ loadingLabel }: { loadingLabel: string }) {
 
 function ErrorState({
   t,
+  errorsT,
   onRetry,
   retrying,
 }: {
   t: ApptDict;
+  errorsT: Dictionary["errors"];
   onRetry: () => void;
   retrying: boolean;
 }) {
@@ -136,7 +138,7 @@ function ErrorState({
         {t.errorLoading}
       </p>
       <Button kind="primary" size="lg" onClick={onRetry} disabled={retrying}>
-        {retrying ? <Spinner size={16} color="#fff" /> : t.back}
+        {retrying ? <Spinner size={16} color="#fff" /> : errorsT.retry}
       </Button>
     </div>
   );
@@ -496,7 +498,6 @@ function DetailBody({
   locale: Locale;
 }) {
   const router = useRouter();
-  const { openReview } = useAppointmentActions();
   // Owned here, not in ActionRail, so the desktop rail and the mobile sticky
   // bar drive the SAME rebook call and share one pending state.
   const { rebook, pending: rebooking } = useRebook();
@@ -717,19 +718,15 @@ function DetailBody({
             <Section label={t.sections.yourReview}>
               {bizReview && (
                 <ReviewCard
-                  t={t}
                   rating={Number(bizReview.rating)}
                   comment={bizReview.comment}
-                  onEdit={() => openReview(appt)}
                 />
               )}
               {proReviews.map((p) => (
                 <ReviewCard
                   key={p.staffId}
-                  t={t}
                   rating={Number(p.review!.rating)}
                   comment={p.review!.comment}
-                  onEdit={() => openReview(appt)}
                 />
               ))}
             </Section>
@@ -787,6 +784,9 @@ export function DetailContent({ locale, uuid }: { locale: Locale; uuid: string }
 
   const [appt, setAppt] = useState<AppointmentDetail | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
+  // In-flight guard for the error state's retry button — set right before
+  // `load()` fires, cleared once the fetch resolves (success or failure).
+  const [retrying, setRetrying] = useState(false);
 
   const authed = status === "authenticated";
   const aliveRef = useRef(true);
@@ -802,6 +802,7 @@ export function DetailContent({ locale, uuid }: { locale: Locale; uuid: string }
   // promise callbacks below (never synchronously in an effect body).
   const applyResult = useCallback((data: AppointmentDetail | null) => {
     if (!aliveRef.current) return;
+    setRetrying(false);
     if (!data) {
       setPhase("notFound");
       return;
@@ -812,6 +813,7 @@ export function DetailContent({ locale, uuid }: { locale: Locale; uuid: string }
 
   const applyError = useCallback((e: unknown) => {
     if (!aliveRef.current) return;
+    setRetrying(false);
     // A clearly-absent appointment (404) → the not-found block; anything else
     // (network, 5xx, auth) → the retryable error state.
     if (e instanceof ApiError && e.status === 404) {
@@ -823,6 +825,7 @@ export function DetailContent({ locale, uuid }: { locale: Locale; uuid: string }
 
   // `load` is used by the retry handler (an event handler — allowed to setState).
   const load = useCallback(() => {
+    setRetrying(true);
     getAppointment(uuid).then(applyResult, applyError);
   }, [uuid, applyResult, applyError]);
 
@@ -879,11 +882,9 @@ export function DetailContent({ locale, uuid }: { locale: Locale; uuid: string }
     return (
       <ErrorState
         t={t}
-        onRetry={() => {
-          setPhase("loading");
-          load();
-        }}
-        retrying={false}
+        errorsT={dictionaries[locale].errors}
+        onRetry={load}
+        retrying={retrying}
       />
     );
   }

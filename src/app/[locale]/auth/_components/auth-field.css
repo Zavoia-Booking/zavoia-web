@@ -1,0 +1,12 @@
+/* Auth text fields opt out of the global :focus-visible terracotta outline
+ * (globals.css). That rule is unlayered, so it wins over the input's own
+ * `outline-none` utility, and since the field transitions every property the
+ * ring animated outward while the corner radius morphed 10px → 6px — reading
+ * as a strange growing border on click. The focus affordance here is the
+ * border colour change (`focus:border-primary` / the error variant), which is
+ * clearly visible on the white field. */
+.zv-auth-input:focus,
+.zv-auth-input:focus-visible {
+  outline: none;
+  border-radius: 10px;
+}

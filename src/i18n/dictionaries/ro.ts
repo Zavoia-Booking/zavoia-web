@@ -33,10 +33,12 @@ export const ro: Dictionary = {
       kicker: "Explorează",
       title: "Ce cauți?",
     },
-    available: {
-      kicker: "Tocmai adăugate",
-      title: "Noutăți pe Zavoia",
+    inCity: {
+      kicker: "Prin oraș",
+      title: "Locuri în orașul tău",
       action: "Vezi toate",
+      showMore: "Arată mai multe locuri",
+      locating: "Îți căutăm orașul…",
       empty: "Mereu se alătură locuri noi — revino în curând.",
     },
     brands: {
@@ -124,6 +126,7 @@ export const ro: Dictionary = {
     listHeading: "{industry} în {city}",
     comingSoon:
       "În curând — Zavoia înregistrează acum {industryLower} din {city}.",
+    seeAll: "Vezi toate pe hartă",
     otherCitiesHeading: "{industry} în alte orașe",
     otherIndustriesHeading: "Alte servicii în {city}",
   },
@@ -223,7 +226,7 @@ export const ro: Dictionary = {
       firstNameRequired: "Prenumele este obligatoriu.",
       lastNameRequired: "Numele este obligatoriu.",
       nameTooShort: "Trebuie să aibă cel puțin 2 caractere.",
-      nameTooLong: "Trebuie să aibă mai puțin de 50 de caractere.",
+      nameTooLong: "Poate avea cel mult 32 de caractere.",
       phoneInvalid: "Numărul de telefon nu este valid.",
       emailAlreadyRegistered: "Emailul este deja folosit.",
       googleEmailMismatch:
@@ -237,6 +240,10 @@ export const ro: Dictionary = {
       sameEmail: "Emailul nou trebuie să fie diferit de cel actual.",
       resetLinkInvalid: "Acest link este invalid sau a fost deja folosit.",
       resetLinkExpired: "Acest link a expirat.",
+      userNotFound: "Nu am găsit acest cont.",
+      linkCheckFailedHeading: "Nu am putut verifica linkul",
+      linkCheckFailedBody:
+        "E o problemă de partea noastră, nu cu linkul tău — s-ar putea să fie perfect valabil. Te rugăm să încerci din nou.",
     },
     passwordStrength: {
       label: "Puterea parolei",
@@ -339,6 +346,15 @@ export const ro: Dictionary = {
         "Linkul este invalid sau a expirat. Te rugăm să soliciți unul nou din pagina de autentificare.",
       backToLogin: "Înapoi la autentificare",
     },
+    resendVerification: {
+      action: "Trimite un link nou",
+      sent: "Dacă acel cont există și nu este încă verificat, un nou link de verificare este pe drum.",
+      failed: "Nu am putut trimite linkul. Încearcă din nou.",
+      retryIn: "Reîncearcă în {seconds}s",
+      unverifiedTitle: "Verifică-ți emailul",
+      unverifiedBody:
+        "Ți-am trimis un link. Verificarea ne asigură că rezervările și mementourile ajung la tine.",
+    },
     forgotPassword: {
       pageTitle: "Resetează-ți parola — Zavoia",
       pageDescription:
@@ -395,6 +411,9 @@ export const ro: Dictionary = {
       addressMentionsPlaceholder: "Bloc, etaj, apartament…",
       addressEmpty: "Necompletat",
     },
+    errors: {
+      addressTooLong: "Poate avea cel mult {max} de caractere.",
+    },
     logout: "Deconectare",
     loggingOut: "Se deconectează...",
     sections: {
@@ -450,8 +469,11 @@ export const ro: Dictionary = {
       current: "Parola actuală",
       new: "Parola nouă",
       confirm: "Confirmă parola nouă",
-      rules: "Folosește cel puțin 8 caractere.",
+      rules:
+        "Cel puțin 8 caractere, cu o literă mică și una mare, o cifră și un caracter special.",
       tooShort: "Parola trebuie să aibă cel puțin 8 caractere.",
+      weak:
+        "Parola trebuie să conțină literă mică, mare, cifră și un caracter special.",
       mismatch: "Parolele nu coincid.",
       manageHint: "Apasă aici pentru a-ți gestiona parola",
     },
@@ -486,6 +508,7 @@ export const ro: Dictionary = {
       cancel: "Anulează",
       manageHint: "Apasă aici pentru a-ți schimba emailul",
       invalidEmail: "Introdu o adresă de email validă.",
+      verifiedLabel: "Verificat",
       changedToast: "Email actualizat",
     },
     danger: {
@@ -578,6 +601,8 @@ export const ro: Dictionary = {
         replySent: "Răspuns trimis",
         closed: "Tichet închis",
         error: "A apărut o eroare. Încearcă din nou.",
+        ticketClosed:
+          "Tichetul este închis. Deschide unul nou ca să continui.",
       },
     },
   },
@@ -639,6 +664,7 @@ export const ro: Dictionary = {
       "Alege unul sau mai multe servicii din listă — sau începe direct și alege în timpul rezervării.",
     totalLabel: "total",
     loadMoreReviews: "Vezi mai multe recenzii",
+    loadMoreReviewsError: "Nu am putut încărca mai multe recenzii.",
     reviewsCount: "{count} recenzii",
     reviewsCountOne: "{count} recenzie",
     onlineBookingUnavailable:
@@ -787,6 +813,43 @@ export const ro: Dictionary = {
     closesAt: "Se închide la {time}",
     photo: "poză",
   },
+  errors: {
+    generic: "Ceva nu a mers. Încearcă din nou.",
+    offline: "Nu ai conexiune. Reîncercăm automat.",
+    offlineShort: "Fără conexiune.",
+    timeout:
+      "Durează neobișnuit de mult. Verifică-ți conexiunea și încearcă din nou.",
+    server: "E o problemă de partea noastră. Încearcă din nou în câteva momente.",
+    rateLimit: "Prea multe încercări. Mai încearcă în {seconds} s.",
+    rateLimitNoTime: "Prea multe încercări. Așteaptă puțin și încearcă din nou.",
+    sessionExpired: "Sesiunea ta a expirat.",
+    retry: "Încearcă din nou",
+    signIn: "Autentifică-te",
+    pageKicker: "Ceva a cedat",
+    pageTitle: "Nu am putut încărca pagina",
+    pageBody:
+      "E o problemă de partea noastră, nu ceva ce ai greșit tu. Încearcă din nou — de obicei se rezolvă imediat.",
+    backHome: "Înapoi acasă",
+    sectionFailed: "Secțiunea aceasta nu s-a încărcat.",
+    reload: "Reîncarcă",
+    dismiss: "Închide",
+    customer: {
+      accountMissing:
+        "Nu am găsit acest cont. Încearcă să te autentifici din nou.",
+      incorrectPassword: "Parola actuală nu este corectă.",
+      passwordGoogleLinked:
+        "Acest cont se autentifică cu Google, deci nu are o parolă de schimbat.",
+      imageTooLarge: "Imaginea este prea mare. Alege una sub 5 MB.",
+      imageType: "Acest tip de fișier nu este acceptat. Folosește JPG, PNG sau WebP.",
+      favoriteGone: "Acest loc nu mai este disponibil.",
+      reviewNotCompleted:
+        "Poți lăsa o recenzie după ce programarea este finalizată.",
+      reviewAlreadyExists: "Ai lăsat deja o recenzie pentru această programare.",
+      reviewNoRating: "Adaugă cel puțin o notă înainte de trimitere.",
+      reviewProfessional:
+        "Acel profesionist nu a făcut parte din această programare.",
+    },
+  },
   nav: {
     explore: "Explorează",
     webStudio: "Web Studio",
@@ -881,7 +944,91 @@ export const ro: Dictionary = {
     locationDenied: "Accesul la locație a fost refuzat. Afișăm căutarea curentă.",
     centeredOnLocation: "Centrat pe locația ta",
     closePinCard: "Închide",
+    mapUnavailable: "Harta este indisponibilă",
+    filters: {
+      title: "Filtre",
+      activeLabel: "Filtre, {count} active",
+      close: "Închide",
+      sortBy: "Sortează după",
+      minRating: "Rating minim",
+      any: "Oricare",
+      distance: "Distanță",
+      availability: "Disponibilitate",
+      openNow: "Deschis acum",
+      open247: "Deschis non-stop",
+      open247Help:
+        "Servicii mereu deschise, precum lăcătuși sau clinici veterinare de urgență.",
+      features: "Facilități",
+      showAllFeatures: "Arată toate facilitățile",
+      showLess: "Arată mai puțin",
+      reset: "Resetează",
+      noMatchesCta: "Nicio potrivire",
+      showPlaces: "Arată {count} locații",
+      showPlacesOne: "Arată {count} locație",
+      sections: {
+        amenities: "Dotări",
+        payment: "Plată",
+        languages: "Limbi",
+      },
+      sort: {
+        closest: "Cele mai apropiate",
+        topRated: "Cele mai apreciate",
+        newest: "Cele mai noi",
+      },
+    },
     editSearch: "Editează căutarea",
+  },
+  venueTags: {
+    amenities: {
+      wifi: "Wi-Fi gratuit",
+      "parking-onsite": "Parcare la fața locului",
+      "parking-street": "Parcare pe stradă în apropiere",
+      "air-conditioning": "Aer condiționat",
+      "pet-friendly": "Acceptă animale de companie",
+      "kid-friendly": "Copii bineveniți",
+      "bike-parking": "Parcare biciclete",
+      "outdoor-seating": "Locuri în aer liber",
+      "private-treatment-room": "Cabină privată",
+      showers: "Dușuri",
+      lockers: "Vestiare",
+    },
+    paymentMethods: {
+      cash: "Numerar",
+      card: "Plată cu cardul",
+      "apple-pay": "Apple Pay",
+      "google-pay": "Google Pay",
+      "bank-transfer": "Transfer bancar (IBAN)",
+      "corporate-invoice": "Facturare pe firmă",
+    },
+    languages: {
+      en: "Engleză",
+      ro: "Română",
+      de: "Germană",
+      fr: "Franceză",
+      it: "Italiană",
+      es: "Spaniolă",
+      pt: "Portugheză",
+      nl: "Olandeză",
+      sv: "Suedeză",
+      da: "Daneză",
+      no: "Norvegiană",
+      fi: "Finlandeză",
+      pl: "Poloneză",
+      hu: "Maghiară",
+      cs: "Cehă",
+      sk: "Slovacă",
+      el: "Greacă",
+      bg: "Bulgară",
+      hr: "Croată",
+      sl: "Slovenă",
+      sr: "Sârbă",
+      et: "Estonă",
+      lv: "Letonă",
+      lt: "Lituaniană",
+      tr: "Turcă",
+      ru: "Rusă",
+      uk: "Ucraineană",
+    },
   },
   industries: {
     beauty: "Beauty & înfrumusețare",
@@ -1052,6 +1199,12 @@ export const ro: Dictionary = {
   },
   notifications: {
     title: "Notificări",
+    markAllRead: "Marchează toate ca citite",
+    loadMore: "Încarcă mai multe",
+    unreadLabel: "Necitit",
+    unreadAria: "Notificări, {count} necitite",
+    errorTitle: "Nu am putut încărca notificările",
+    errorBody: "Verifică conexiunea și încearcă din nou.",
     emptyTitle: "Ești la zi",
     emptyBody: "Rezervările, mementourile și noutățile vor apărea aici.",
   },
@@ -1646,6 +1799,8 @@ export const ro: Dictionary = {
     },
     free: "Gratuit",
     loadMore: "Încarcă mai multe",
+    loadMoreError:
+      "Nu am putut încărca restul programărilor.",
     loading: "Se încarcă programările tale…",
     errorLoading:
       "Nu am putut încărca programările tale. Te rugăm să încerci din nou.",
@@ -1932,6 +2087,27 @@ export const ro: Dictionary = {
       professionalLabel: "Evaluează {name}",
       starsAria: "{n} stele",
       error: "Nu am putut trimite recenzia. Te rugăm să încerci din nou.",
+    },
+  },
+  notFound: {
+    generic: {
+      kicker: "404",
+      title: "Această pagină nu există.",
+      body: "Linkul poate fi greșit sau pagina a fost mutată.",
+      home: "Înapoi la pagina principală",
+      explore: "Explorează locații",
+    },
+    claim: {
+      kicker: "Adresă disponibilă",
+      title: "Această pagină ar putea fi a ta.",
+      body: "La zavoia.com/{slug} nu există încă nimic. Revendic-o pentru business-ul tău și primești, chiar pe această adresă, un website cu rezervări — serviciile, echipa și programul tău.",
+      bullets: [
+        "Un website care primește rezervări, gata în câteva minute",
+        "Propria ta adresă zavoia.com",
+      ],
+      primary: "Începe perioada gratuită",
+      secondary: "Vezi cum funcționează",
+      explore: "Sau explorează locații pe Zavoia",
     },
   },
 };

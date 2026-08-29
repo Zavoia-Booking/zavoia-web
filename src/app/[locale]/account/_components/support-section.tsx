@@ -21,6 +21,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries, format } from "@/i18n/dictionaries";
+import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
+import { useTranslation } from "@/i18n/useTranslation";
 import { Button, Icon, Skeleton, Spinner, useToast } from "@/components/ui";
 import {
   addTicketMessage,
@@ -305,7 +307,7 @@ function NewTicketForm({
       toast(t.toasts.created, "check");
       onCreated(created);
     } catch {
-      toast(t.toasts.error, "warn");
+      toast(t.toasts.error, "warn", undefined, "error");
     } finally {
       setSubmitting(false);
     }
@@ -447,6 +449,7 @@ function TicketDetailView({
   onUpdated: (ticket: Ticket) => void;
 }) {
   const toast = useToast();
+  const { dict } = useTranslation();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -455,6 +458,12 @@ function TicketDetailView({
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [closing, setClosing] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  // Closing a ticket is irreversible from here (it drops out of the active
+  // list and stops accepting replies) — the same synchronous lock as
+  // register-form.tsx's submitLockRef: `closing` state disables the confirm
+  // button only after a re-render, and a fast double click on the modal can
+  // still fire closeTicket() twice before that render happens.
+  const submitLockRef = useRef(false);
 
   // `loading` is initialised to true and this component is remounted (via a
   // `key={ticketId}` at the call site) whenever the selected ticket changes,
@@ -495,15 +504,27 @@ function TicketDetailView({
       onUpdated(updated);
       setDraft("");
       toast(t.toasts.replySent, "check");
-    } catch {
-      toast(t.toasts.error, "warn");
+    } catch (e) {
+      // SUPPORT.E04: the ticket was closed (by staff, or in another tab) while
+      // this reply was being written. Retrying can never work — the user needs
+      // to open a new ticket, so say that instead of "something went wrong".
+      const closed = mapBackendCode(e, { "SUPPORT.E04": true as const });
+      toast(
+        closed
+          ? t.toasts.ticketClosed
+          : errorMessage(e, dict.errors, t.toasts.error),
+        "warn",
+        undefined,
+        "error",
+      );
     } finally {
       setSending(false);
     }
   };
 
   const doClose = async () => {
-    if (!ticket) return;
+    if (!ticket || submitLockRef.current) return;
+    submitLockRef.current = true;
     setClosing(true);
     try {
       const updated = await closeTicket(ticket.id);
@@ -512,9 +533,10 @@ function TicketDetailView({
       toast(t.toasts.closed, "check");
       setConfirmingClose(false);
     } catch {
-      toast(t.toasts.error, "warn");
+      toast(t.toasts.error, "warn", undefined, "error");
     } finally {
       setClosing(false);
+      submitLockRef.current = false;
     }
   };
 
@@ -556,7 +578,7 @@ function TicketDetailView({
     return (
       <div>
         {backButton}
-        <div style={{ fontSize: 13.5, color: "var(--s-error-600)" }}>
+        <div role="alert" style={{ fontSize: 13.5, color: "var(--s-error-600)" }}>
           {t.loadError}
         </div>
       </div>
@@ -1041,7 +1063,7 @@ export function SupportSection({
   if (tickets === null) {
     if (loadError) {
       return (
-        <div style={{ fontSize: 13.5, color: "var(--s-error-600)" }}>
+        <div role="alert" style={{ fontSize: 13.5, color: "var(--s-error-600)" }}>
           {st.loadError}
         </div>
       );
@@ -1086,7 +1108,7 @@ export function SupportSection({
         </div>
       )}
       {loadError && (
-        <div style={{ fontSize: 12.5, color: "var(--s-error-600)" }}>
+        <div role="alert" style={{ fontSize: 12.5, color: "var(--s-error-600)" }}>
           {st.loadError}
         </div>
       )}

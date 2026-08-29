@@ -4,6 +4,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { Button, Icon, Spinner, useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/dictionaries";
+import { customerErrorMessage } from "@/lib/api/customer-error-messages";
 import { submitReview } from "@/lib/api/marketplace/customer";
 import type {
   AppointmentDetail,
@@ -82,7 +83,7 @@ export function ReviewModal({
   });
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const mini = apptMiniProps(appointment, dict.common.photo);
 
@@ -98,7 +99,7 @@ export function ReviewModal({
   const submit = async () => {
     if (!ready || submitting) return;
     setSubmitting(true);
-    setError(false);
+    setError(null);
 
     const body: SubmitReviewBody = { appointmentUuid: appointment.uuid };
 
@@ -129,8 +130,12 @@ export function ReviewModal({
       toast(isEdit ? t.successEdit : t.successNew, "star");
       await onChanged?.();
       onClose();
-    } catch {
-      setError(true);
+    } catch (e) {
+      // CUSTOMER_REVIEW.* codes ("already reviewed", "not completed yet",
+      // "no rating given", "professional not on this appointment") each get
+      // their own copy via `customerErrorMessage`; anything unrecognised
+      // falls back to this modal's own generic line.
+      setError(customerErrorMessage(e, dict.errors, t.error));
       setSubmitting(false);
     }
   };
@@ -168,7 +173,7 @@ export function ReviewModal({
             color: "var(--s-error-600)",
           }}
         >
-          {t.error}
+          {error}
         </p>
       )}
 

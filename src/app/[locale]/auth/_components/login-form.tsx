@@ -80,7 +80,9 @@ export function LoginForm({
         onAccountLinkNeeded(linkDetails);
         return;
       }
-      setErrors({ form: authErrorMessage(e, dict.errors) });
+      setErrors({
+        form: authErrorMessage(e, dict.errors, dictionaries[locale].errors),
+      });
     }
   }
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import "./auth-field.css";
 
 /* Inline eye / eye-off glyphs for the password visibility toggle — the
    shared Icon set has no eye, and these are only used here. */
@@ -104,7 +105,7 @@ export function AuthField({
           autoComplete={autoComplete}
           aria-invalid={Boolean(error)}
           aria-describedby={showErrorText ? `${id}-error` : undefined}
-          className={`h-12 w-full rounded-[10px] border bg-white px-3 text-[15px] text-ink shadow-[var(--sh-sm)] outline-none transition-all md:h-11 ${
+          className={`zv-auth-input h-12 w-full rounded-[10px] border bg-white px-3 text-[15px] text-ink shadow-[var(--sh-sm)] outline-none transition-all md:h-11 ${
             hasAdornment ? "pr-11" : ""
           } ${
             error

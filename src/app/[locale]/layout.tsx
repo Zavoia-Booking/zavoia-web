@@ -11,7 +11,7 @@ import { SearchOverlayProvider } from "@/components/search/search-overlay-provid
 import { ConditionalHeader } from "@/components/shell/conditional-header";
 import { ConditionalFooter } from "@/components/shell/conditional-footer";
 import { MobileTabs } from "@/components/shell/mobile-tabs";
-import { AuthProvider } from "@/lib/auth/AuthProvider";
+import { AuthProvider, SessionExpiredToast } from "@/lib/auth/AuthProvider";
 import { AuthModalProvider } from "@/components/shell/auth-modal-provider";
 import { BookingProvider } from "@/lib/booking";
 import { ConsentProvider } from "@/lib/consent/ConsentProvider";
@@ -55,6 +55,10 @@ export default async function LocaleRootLayout({ children, params }: Props) {
           <I18nProvider locale={locale}>
             <ConsentProvider>
             <ToastProvider>
+              {/* AuthProvider wraps this whole tree and can't call useToast()
+                  itself (it sits above ToastProvider) — this bridges an
+                  involuntary session expiry to a toast. See AuthProvider.tsx. */}
+              <SessionExpiredToast locale={locale} />
               {/* The auth modal is owned once here so the header's "Sign in"
                   button and the booking drawer's sign-in gate can both open it
                   via useAuthModal(). It wraps the booking + header tree. */}

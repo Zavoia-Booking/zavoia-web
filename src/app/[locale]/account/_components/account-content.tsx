@@ -13,7 +13,9 @@ import type { Locale } from "@/i18n/locales";
 import { dictionaries, format } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
+import { ResendVerification } from "../../auth/_components/resend-verification";
 import { authErrorMessage } from "@/lib/api/auth-error-messages";
+import { customerErrorMessage } from "@/lib/api/customer-error-messages";
 import { ApiError } from "@/lib/api/http";
 import { GOOGLE_CLIENT_ID } from "@/lib/env";
 import { GoogleSignInButton } from "@/app/[locale]/auth/_components/google-signin-button";
@@ -46,6 +48,15 @@ import type {
   UpdateProfileBody,
 } from "@/lib/api/marketplace/types";
 import { SupportSection } from "./support-section";
+import {
+  NAME_MAX_LENGTH,
+  NAME_MIN_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_REGEX,
+  isValidPhone,
+  normalizePhone,
+  sanitizeName,
+} from "@/lib/validation";
 
 type SectionId = "personal" | "preferences" | "security" | "support";
 
@@ -107,6 +118,7 @@ function SectionLabel({ children, sub }: { children: ReactNode; sub?: string }) 
 function SectionError({ message }: { message: string }) {
   return (
     <div
+      role="alert"
       style={{
         padding: "14px 16px",
         fontSize: 13.5,
@@ -123,6 +135,7 @@ function SectionError({ message }: { message: string }) {
 // ─────────────────────────────────────────────
 
 function EditableRow({
+  id,
   label,
   value,
   type = "text",
@@ -132,7 +145,11 @@ function EditableRow({
   buttons,
   onSave,
   last,
+  validate,
+  sanitize,
 }: {
+  /** Root id for the input + its error message; must be unique on the page. */
+  id: string;
   label: string;
   value: string;
   type?: "text" | "tel" | "date";
@@ -143,6 +160,10 @@ function EditableRow({
   buttons: AcctDict["buttons"];
   onSave: (next: string) => void;
   last?: boolean;
+  /** Live client-side check, mirroring the backend rule for this field. */
+  validate?: (raw: string) => string | undefined;
+  /** Strips characters the field may not contain, applied as the user types. */
+  sanitize?: (raw: string) => string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -152,11 +173,27 @@ function EditableRow({
     if (editing && ref.current) ref.current.focus();
   }, [editing]);
 
+  // Derived from `draft` on every render rather than held in its own state —
+  // there is exactly one field here, so there is no risk of it going stale
+  // the way a multi-field form's errors object can.
+  const error = editing && validate ? validate(draft) : undefined;
+  const errorId = `${id}-error`;
+
   const start = () => {
     setDraft(value);
     setEditing(true);
   };
   const commit = () => {
+    // Re-check rather than trust `error`: a keyboard Enter can fire commit()
+    // in the same tick as the last keystroke's re-render. If it's still
+    // invalid, keep editing open and return focus to the field instead of
+    // silently saving nothing (or nothing at all, per the double-submit note
+    // in register-form.tsx — this is the same "synchronous, not state" idea
+    // applied to a validity check instead of a lock).
+    if (validate?.(draft)) {
+      ref.current?.focus();
+      return;
+    }
     setEditing(false);
     onSave(draft.trim());
   };
@@ -212,31 +249,56 @@ function EditableRow({
                 placeholder={emptyLabel}
               />
             ) : (
-              <input
-                ref={ref}
-                type={type}
-                value={draft}
-                disabled={saving}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commit();
-                  if (e.key === "Escape") cancel();
-                }}
-                style={{
-                  marginTop: 8,
-                  width: "100%",
-                  maxWidth: 340,
-                  boxSizing: "border-box",
-                  padding: "9px 12px",
-                  borderRadius: 10,
-                  border: "1px solid rgba(28,28,26,0.18)",
-                  fontSize: 14,
-                  color: "var(--c-900)",
-                  background: "#fff",
-                  outline: "none",
-                  fontFamily: "inherit",
-                }}
-              />
+              <>
+                <input
+                  id={id}
+                  ref={ref}
+                  type={type}
+                  value={draft}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setDraft(
+                      sanitize ? sanitize(e.target.value) : e.target.value,
+                    )
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commit();
+                    if (e.key === "Escape") cancel();
+                  }}
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? errorId : undefined}
+                  style={{
+                    marginTop: 8,
+                    width: "100%",
+                    maxWidth: 340,
+                    boxSizing: "border-box",
+                    padding: "9px 12px",
+                    borderRadius: 10,
+                    border: error
+                      ? "1px solid var(--s-error-600)"
+                      : "1px solid rgba(28,28,26,0.18)",
+                    fontSize: 14,
+                    color: "var(--c-900)",
+                    background: "#fff",
+                    outline: "none",
+                    fontFamily: "inherit",
+                  }}
+                />
+                {error && (
+                  <div
+                    id={errorId}
+                    role="alert"
+                    style={{
+                      fontSize: 12.5,
+                      color: "var(--s-error-600)",
+                      marginTop: 5,
+                      maxWidth: 340,
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
+              </>
             )
           ) : (
             <div
@@ -256,7 +318,7 @@ function EditableRow({
               type="button"
               className="tap"
               onClick={commit}
-              disabled={saving}
+              disabled={saving || Boolean(error)}
               style={{
                 padding: "7px 14px",
                 borderRadius: 999,
@@ -265,7 +327,8 @@ function EditableRow({
                 color: "#fff",
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: saving ? "default" : "pointer",
+                cursor: saving || error ? "default" : "pointer",
+                opacity: error ? 0.6 : 1,
                 fontFamily: "inherit",
               }}
             >
@@ -333,8 +396,28 @@ function EditableRow({
 // update. Display mode composes "Street Number, City, Country" + mentions.
 // ─────────────────────────────────────────────
 
+// Backend limits (admin-api update-profile.dto.ts, @MaxLength per field) —
+// free text, so the only rule is length. Verified against the DTO directly
+// rather than assumed, since the four fields do NOT share one limit.
+const ADDRESS_MAX_LENGTH = {
+  country: 64,
+  city: 64,
+  street: 128,
+  number: 16,
+  mentions: 500,
+} as const;
+type AddressKey = keyof typeof ADDRESS_MAX_LENGTH;
+const ADDRESS_FIELD_ORDER: AddressKey[] = [
+  "country",
+  "city",
+  "street",
+  "number",
+  "mentions",
+];
+
 function AddressRow({
   fields,
+  errors: errorsDict,
   buttons,
   profile,
   saving,
@@ -342,6 +425,7 @@ function AddressRow({
   last,
 }: {
   fields: AcctDict["fields"];
+  errors: AcctDict["errors"];
   buttons: AcctDict["buttons"];
   profile: CustomerProfile;
   saving: boolean;
@@ -356,11 +440,31 @@ function AddressRow({
     number: "",
     mentions: "",
   });
-  const firstRef = useRef<HTMLInputElement | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<AddressKey, string>>>(
+    {},
+  );
+  const fieldRefs = useRef<Partial<Record<AddressKey, HTMLInputElement | null>>>(
+    {},
+  );
 
   useEffect(() => {
-    if (editing && firstRef.current) firstRef.current.focus();
+    if (editing) fieldRefs.current.country?.focus();
   }, [editing]);
+
+  const validateAddressField = useCallback(
+    (key: AddressKey, raw: string): string | undefined => {
+      const max = ADDRESS_MAX_LENGTH[key];
+      return raw.trim().length > max
+        ? format(errorsDict.addressTooLong, { max: String(max) })
+        : undefined;
+    },
+    [errorsDict],
+  );
+
+  const setField = (key: AddressKey, value: string) => {
+    setDraft((d) => ({ ...d, [key]: value }));
+    setErrors((prev) => ({ ...prev, [key]: validateAddressField(key, value) }));
+  };
 
   const start = () => {
     setDraft({
@@ -370,9 +474,21 @@ function AddressRow({
       number: profile.addressNumber ?? "",
       mentions: profile.addressMentions ?? "",
     });
+    setErrors({});
     setEditing(true);
   };
   const commit = () => {
+    const nextErrors: Partial<Record<AddressKey, string>> = {};
+    for (const key of ADDRESS_FIELD_ORDER) {
+      const err = validateAddressField(key, draft[key]);
+      if (err) nextErrors[key] = err;
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      const firstInvalid = ADDRESS_FIELD_ORDER.find((k) => nextErrors[k]);
+      if (firstInvalid) fieldRefs.current[firstInvalid]?.focus();
+      return;
+    }
     setEditing(false);
     onSave({
       addressCountry: draft.country.trim(),
@@ -383,6 +499,8 @@ function AddressRow({
     });
   };
   const cancel = () => setEditing(false);
+
+  const hasError = Object.values(errors).some(Boolean);
 
   const summary = [
     [profile.addressStreet, profile.addressNumber].filter(Boolean).join(" "),
@@ -411,9 +529,54 @@ function AddressRow({
     color: "var(--c-500)",
     marginBottom: 4,
   };
+  const errorTextStyle: CSSProperties = {
+    fontSize: 11.5,
+    color: "var(--s-error-600)",
+    marginTop: 4,
+  };
   const onKeys = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") commit();
     if (e.key === "Escape") cancel();
+  };
+  // One input per address field, each wired the same way: id for the label's
+  // htmlFor, aria-invalid/aria-describedby pointing at its own error message,
+  // and setField() so a fix-as-you-type keeps the Save button's disabled
+  // state (and the error text) in sync with what would actually be sent.
+  const addressInput = (key: AddressKey, label: string) => {
+    const inputId = `address-${key}`;
+    const errorId = `${inputId}-error`;
+    const fieldError = errors[key];
+    return (
+      <label htmlFor={inputId}>
+        <span style={subLabelStyle}>{label}</span>
+        <input
+          id={inputId}
+          ref={(el) => {
+            fieldRefs.current[key] = el;
+          }}
+          type="text"
+          value={draft[key]}
+          disabled={saving}
+          placeholder={
+            key === "mentions" ? fields.addressMentionsPlaceholder : undefined
+          }
+          onChange={(e) => setField(key, e.target.value)}
+          onKeyDown={onKeys}
+          aria-invalid={Boolean(fieldError)}
+          aria-describedby={fieldError ? errorId : undefined}
+          style={
+            fieldError
+              ? { ...inputStyle, border: "1px solid var(--s-error-600)" }
+              : inputStyle
+          }
+        />
+        {fieldError && (
+          <div id={errorId} role="alert" style={errorTextStyle}>
+            {fieldError}
+          </div>
+        )}
+      </label>
+    );
   };
 
   return (
@@ -452,73 +615,13 @@ function AddressRow({
                 gap: 12,
               }}
             >
-              <label>
-                <span style={subLabelStyle}>{fields.addressCountry}</span>
-                <input
-                  ref={firstRef}
-                  type="text"
-                  value={draft.country}
-                  disabled={saving}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, country: e.target.value }))
-                  }
-                  onKeyDown={onKeys}
-                  style={inputStyle}
-                />
-              </label>
-              <label>
-                <span style={subLabelStyle}>{fields.addressCity}</span>
-                <input
-                  type="text"
-                  value={draft.city}
-                  disabled={saving}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, city: e.target.value }))
-                  }
-                  onKeyDown={onKeys}
-                  style={inputStyle}
-                />
-              </label>
-              <label>
-                <span style={subLabelStyle}>{fields.addressStreet}</span>
-                <input
-                  type="text"
-                  value={draft.street}
-                  disabled={saving}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, street: e.target.value }))
-                  }
-                  onKeyDown={onKeys}
-                  style={inputStyle}
-                />
-              </label>
-              <label>
-                <span style={subLabelStyle}>{fields.addressNumber}</span>
-                <input
-                  type="text"
-                  value={draft.number}
-                  disabled={saving}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, number: e.target.value }))
-                  }
-                  onKeyDown={onKeys}
-                  style={inputStyle}
-                />
-              </label>
-              <label style={{ gridColumn: "1 / -1" }}>
-                <span style={subLabelStyle}>{fields.addressMentions}</span>
-                <input
-                  type="text"
-                  value={draft.mentions}
-                  disabled={saving}
-                  placeholder={fields.addressMentionsPlaceholder}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, mentions: e.target.value }))
-                  }
-                  onKeyDown={onKeys}
-                  style={inputStyle}
-                />
-              </label>
+              {addressInput("country", fields.addressCountry)}
+              {addressInput("city", fields.addressCity)}
+              {addressInput("street", fields.addressStreet)}
+              {addressInput("number", fields.addressNumber)}
+              <div style={{ gridColumn: "1 / -1" }}>
+                {addressInput("mentions", fields.addressMentions)}
+              </div>
             </div>
           ) : (
             <div
@@ -545,7 +648,7 @@ function AddressRow({
               type="button"
               className="tap"
               onClick={commit}
-              disabled={saving}
+              disabled={saving || hasError}
               style={{
                 padding: "7px 14px",
                 borderRadius: 999,
@@ -554,7 +657,8 @@ function AddressRow({
                 color: "#fff",
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: saving ? "default" : "pointer",
+                cursor: saving || hasError ? "default" : "pointer",
+                opacity: hasError ? 0.6 : 1,
                 fontFamily: "inherit",
               }}
             >
@@ -891,7 +995,7 @@ function NotificationsSection({
       toast(t.toasts.prefsUpdated, "check");
     } catch {
       setPrefs(prefs); // revert
-      toast(t.toasts.genericError, "bell");
+      toast(t.toasts.genericError, "bell", undefined, "error");
     } finally {
       setBusyKey(null);
     }
@@ -947,21 +1051,43 @@ function NotificationsSection({
 // Password form
 // ─────────────────────────────────────────────
 
-function PasswordForm({ t, onDone }: { t: AcctDict; onDone: () => void }) {
+function PasswordForm({
+  t,
+  sharedErrors,
+  onDone,
+}: {
+  t: AcctDict;
+  sharedErrors: SharedErrorsDict;
+  onDone: () => void;
+}) {
   const toast = useToast();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Which field the current `error` is about, so the right input gets
+  // aria-invalid/aria-describedby and keyboard focus — there's one shared
+  // message, not one per field, so this has to be tracked separately.
+  const [invalidField, setInvalidField] = useState<
+    "current" | "next" | "confirm" | null
+  >(null);
+  const currentRef = useRef<HTMLInputElement | null>(null);
+  const nextRef = useRef<HTMLInputElement | null>(null);
+  const confirmRef = useRef<HTMLInputElement | null>(null);
+
+  const ERROR_ID = "password-form-error";
 
   const field = (
+    id: string,
     label: string,
     val: string,
     set: (v: string) => void,
     autoComplete: string,
+    ref: React.RefObject<HTMLInputElement | null>,
+    invalid: boolean,
   ) => (
-    <label style={{ display: "block" }}>
+    <label htmlFor={id} style={{ display: "block" }}>
       <span
         style={{
           display: "block",
@@ -974,18 +1100,24 @@ function PasswordForm({ t, onDone }: { t: AcctDict; onDone: () => void }) {
         {label}
       </span>
       <input
+        id={id}
+        ref={ref}
         type="password"
         value={val}
         autoComplete={autoComplete}
         disabled={saving}
         onChange={(e) => set(e.target.value)}
+        aria-invalid={invalid}
+        aria-describedby={invalid ? ERROR_ID : undefined}
         style={{
           width: "100%",
           maxWidth: 360,
           boxSizing: "border-box",
           padding: "10px 12px",
           borderRadius: 10,
-          border: "1px solid rgba(28,28,26,0.18)",
+          border: invalid
+            ? "1px solid var(--s-error-600)"
+            : "1px solid rgba(28,28,26,0.18)",
           fontSize: 14,
           color: "var(--c-900)",
           background: "#fff",
@@ -999,27 +1131,61 @@ function PasswordForm({ t, onDone }: { t: AcctDict; onDone: () => void }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (next.length < 8) {
+    setInvalidField(null);
+    if (next.length < PASSWORD_MIN_LENGTH) {
       setError(t.password.tooShort);
+      setInvalidField("next");
+      nextRef.current?.focus();
+      return;
+    }
+    // The backend applies PASSWORD_REGEX here too (change-password.dto.ts).
+    // Without this check the form accepted exactly what its own hint text
+    // told the user to type ("at least 8 characters"), then failed on the
+    // server with a message carrying no code — so the user was told only
+    // that something went wrong, never that a special character was missing.
+    if (!PASSWORD_REGEX.test(next)) {
+      setError(t.password.weak);
+      setInvalidField("next");
+      nextRef.current?.focus();
       return;
     }
     if (next !== confirm) {
       setError(t.password.mismatch);
+      setInvalidField("confirm");
+      confirmRef.current?.focus();
       return;
     }
     setSaving(true);
     try {
-      const res = await changePassword({
+      await changePassword({
         currentPassword: current,
         newPassword: next,
       });
       setCurrent("");
       setNext("");
       setConfirm("");
-      toast(res.message || t.toasts.passwordChanged, "check");
+      // NOT `res.message || …`: the backend always returns a truthy English
+      // string ("Password changed successfully"), so the localized fallback
+      // could never win and a Romanian user always saw English.
+      toast(t.toasts.passwordChanged, "check");
       onDone();
-    } catch {
-      toast(t.toasts.genericError, "lock");
+    } catch (err) {
+      // /marketplace/customer/profile/change-password (customer.service.ts
+      // changePassword) is migrating to CUSTOMER.E08 (Google-linked account,
+      // no password to change) / CUSTOMER.E09 (wrong current password) —
+      // customerErrorMessage is the mapper that already knows those two
+      // codes (see customer-error-messages.ts), so this call starts
+      // benefiting the moment the backend sends them, with no client change.
+      // Inline, not a toast: this is a field-level failure the user has to
+      // fix in the form that is still in front of them, and the client-side
+      // checks a few lines above already report inline. A toast for the same
+      // class of error vanished in seconds while the wrong password sat in
+      // the field behind it.
+      setError(customerErrorMessage(err, sharedErrors));
+      // Both mapped codes are about the current-password field; anything
+      // unmapped is at least as likely to be that as any other field.
+      setInvalidField("current");
+      currentRef.current?.focus();
     } finally {
       setSaving(false);
     }
@@ -1030,14 +1196,44 @@ function PasswordForm({ t, onDone }: { t: AcctDict; onDone: () => void }) {
       onSubmit={submit}
       style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 360 }}
     >
-      {field(t.password.current, current, setCurrent, "current-password")}
-      {field(t.password.new, next, setNext, "new-password")}
-      {field(t.password.confirm, confirm, setConfirm, "new-password")}
+      {field(
+        "password-current",
+        t.password.current,
+        current,
+        setCurrent,
+        "current-password",
+        currentRef,
+        invalidField === "current",
+      )}
+      {field(
+        "password-new",
+        t.password.new,
+        next,
+        setNext,
+        "new-password",
+        nextRef,
+        invalidField === "next",
+      )}
+      {field(
+        "password-confirm",
+        t.password.confirm,
+        confirm,
+        setConfirm,
+        "new-password",
+        confirmRef,
+        invalidField === "confirm",
+      )}
       <div style={{ fontSize: 12.5, color: "var(--c-500)" }}>
         {t.password.rules}
       </div>
       {error && (
-        <div style={{ fontSize: 13, color: "var(--s-error-600)" }}>{error}</div>
+        <div
+          id={ERROR_ID}
+          role="alert"
+          style={{ fontSize: 13, color: "var(--s-error-600)" }}
+        >
+          {error}
+        </div>
       )}
       <div>
         <Button
@@ -1063,6 +1259,7 @@ function PasswordForm({ t, onDone }: { t: AcctDict; onDone: () => void }) {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type AuthErrorsDict = (typeof dictionaries)[Locale]["auth"]["errors"];
+type SharedErrorsDict = (typeof dictionaries)[Locale]["errors"];
 
 function GoogleConnectionRow({
   t,
@@ -1089,11 +1286,23 @@ function GoogleConnectionRow({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
+  // Disconnecting Google is a dangerous, hard-to-undo action (it can leave the
+  // account with only a password to sign in with, or vice versa) — the same
+  // synchronous-lock reasoning as register-form.tsx's submitLockRef applies:
+  // `busy` state disables the button only after a re-render, so a fast double
+  // Enter/click can still fire unlinkGoogle() twice.
+  const submitLockRef = useRef(false);
 
   const submitDisconnect = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLockRef.current) return;
     setError(null);
-    if (!password) return;
+    if (!password) {
+      passwordRef.current?.focus();
+      return;
+    }
+    submitLockRef.current = true;
     setBusy(true);
     try {
       await unlinkGoogle(password);
@@ -1101,9 +1310,13 @@ function GoogleConnectionRow({
       setPassword("");
       toast(g.disconnectedToast, "check");
     } catch (err) {
-      setError(authErrorMessage(err, authErrors));
+      setError(
+        authErrorMessage(err, authErrors, dictionaries[locale].errors),
+      );
+      passwordRef.current?.focus();
     } finally {
       setBusy(false);
+      submitLockRef.current = false;
     }
   };
 
@@ -1206,7 +1419,7 @@ function GoogleConnectionRow({
             maxWidth: 360,
           }}
         >
-          <label style={{ display: "block" }}>
+          <label htmlFor="google-disconnect-password" style={{ display: "block" }}>
             <span
               style={{
                 display: "block",
@@ -1219,12 +1432,16 @@ function GoogleConnectionRow({
               {g.passwordLabel}
             </span>
             <input
+              id="google-disconnect-password"
+              ref={passwordRef}
               type="password"
               value={password}
               autoComplete="current-password"
               disabled={busy}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={g.passwordPrompt}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "google-disconnect-error" : undefined}
               style={{
                 width: "100%",
                 boxSizing: "border-box",
@@ -1240,7 +1457,11 @@ function GoogleConnectionRow({
             />
           </label>
           {error && (
-            <div style={{ fontSize: 13, color: "var(--s-error-600)" }}>
+            <div
+              id="google-disconnect-error"
+              role="alert"
+              style={{ fontSize: 13, color: "var(--s-error-600)" }}
+            >
               {error}
             </div>
           )}
@@ -1287,28 +1508,40 @@ function GoogleConnectionRow({
 // CURRENT_EMAIL_MISMATCH → current, EMAIL_TAKEN / SAME_EMAIL → new.
 // ─────────────────────────────────────────────
 
+type ResendCopy = (typeof dictionaries)[Locale]["auth"]["resendVerification"];
+
 function ChangeEmailRow({
   t,
   authErrors,
+  sharedErrors,
   currentEmail,
+  emailVerified,
+  resendCopy,
   onChanged,
   last,
 }: {
   t: AcctDict;
   authErrors: AuthErrorsDict;
+  sharedErrors: SharedErrorsDict;
   currentEmail: string;
+  /** From GET /me. `undefined` = not known yet; render neither state. */
+  emailVerified?: boolean;
+  resendCopy: ResendCopy;
   onChanged: (email: string) => void;
   last?: boolean;
 }) {
   const toast = useToast();
   const { changeEmail } = useAuth();
   const c = t.changeEmail;
+  const rv = resendCopy;
 
   const [open, setOpen] = useState(false);
   const [currentInput, setCurrentInput] = useState("");
   const [newInput, setNewInput] = useState("");
   const [errors, setErrors] = useState<{ current?: string; next?: string }>({});
   const [saving, setSaving] = useState(false);
+  const currentRef = useRef<HTMLInputElement | null>(null);
+  const nextRef = useRef<HTMLInputElement | null>(null);
 
   const reset = () => {
     setCurrentInput("");
@@ -1337,6 +1570,9 @@ function ChangeEmailRow({
     }
     if (local.current || local.next) {
       setErrors(local);
+      // Current is the first field in the form, so it wins when both are
+      // invalid — matches reading order for keyboard/screen-reader users.
+      (local.current ? currentRef : nextRef).current?.focus();
       return;
     }
 
@@ -1352,11 +1588,16 @@ function ChangeEmailRow({
     } catch (err) {
       const code =
         err instanceof ApiError && err.code ? err.code.toUpperCase() : null;
-      const message = authErrorMessage(err, authErrors);
+      const message = authErrorMessage(err, authErrors, sharedErrors);
       // CURRENT_EMAIL_MISMATCH is the only code about the first field;
       // EMAIL_TAKEN / SAME_EMAIL and anything unmapped belong to the new one.
-      if (code === "CURRENT_EMAIL_MISMATCH") setErrors({ current: message });
-      else setErrors({ next: message });
+      if (code === "CURRENT_EMAIL_MISMATCH") {
+        setErrors({ current: message });
+        currentRef.current?.focus();
+      } else {
+        setErrors({ next: message });
+        nextRef.current?.focus();
+      }
     } finally {
       setSaving(false);
     }
@@ -1429,6 +1670,62 @@ function ChangeEmailRow({
             <span style={{ color: "var(--c-400)" }}>{c.currentValueLabel}:</span>{" "}
             {currentEmail}
           </div>
+          {/* Verification state. `emailVerified` is only guaranteed by /me, so
+              `undefined` renders nothing at all — "unknown yet" must never be
+              shown as unverified. */}
+          {emailVerified === false && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: "var(--c-100)",
+                border: "1px solid rgba(28,28,26,0.08)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: "var(--c-900)",
+                }}
+              >
+                <Icon name="warn" size={14} color="var(--c-700)" />
+                {rv.unverifiedTitle}
+              </div>
+              <div
+                className="txt-pretty"
+                style={{
+                  fontSize: 12.5,
+                  lineHeight: 1.5,
+                  color: "var(--c-600)",
+                  marginTop: 4,
+                }}
+              >
+                {rv.unverifiedBody}
+              </div>
+              <ResendVerification email={currentEmail} />
+            </div>
+          )}
+          {emailVerified === true && (
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                marginTop: 7,
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: "var(--p-700)",
+              }}
+            >
+              <Icon name="check" size={13} color="var(--p-700)" />
+              {c.verifiedLabel}
+            </div>
+          )}
           <div
             className="txt-pretty"
             style={{ fontSize: 12.5, color: "var(--c-400)", marginTop: 6 }}
@@ -1470,15 +1767,20 @@ function ChangeEmailRow({
             maxWidth: 420,
           }}
         >
-          <label style={{ display: "block" }}>
+          <label htmlFor="change-email-current" style={{ display: "block" }}>
             <span style={subLabelStyle}>{c.currentLabel}</span>
             <input
+              id="change-email-current"
+              ref={currentRef}
               type="email"
               value={currentInput}
               autoComplete="email"
               disabled={saving}
               placeholder={c.currentPlaceholder}
               aria-invalid={!!errors.current}
+              aria-describedby={
+                errors.current ? "change-email-current-error" : undefined
+              }
               onChange={(e) => {
                 setCurrentInput(e.target.value);
                 if (errors.current)
@@ -1490,17 +1792,30 @@ function ChangeEmailRow({
                   : inputStyle
               }
             />
-            {errors.current && <div style={errorStyle}>{errors.current}</div>}
+            {errors.current && (
+              <div
+                id="change-email-current-error"
+                role="alert"
+                style={errorStyle}
+              >
+                {errors.current}
+              </div>
+            )}
           </label>
-          <label style={{ display: "block" }}>
+          <label htmlFor="change-email-next" style={{ display: "block" }}>
             <span style={subLabelStyle}>{c.newLabel}</span>
             <input
+              id="change-email-next"
+              ref={nextRef}
               type="email"
               value={newInput}
               autoComplete="email"
               disabled={saving}
               placeholder={c.newPlaceholder}
               aria-invalid={!!errors.next}
+              aria-describedby={
+                errors.next ? "change-email-next-error" : undefined
+              }
               onChange={(e) => {
                 setNewInput(e.target.value);
                 if (errors.next)
@@ -1512,7 +1827,11 @@ function ChangeEmailRow({
                   : inputStyle
               }
             />
-            {errors.next && <div style={errorStyle}>{errors.next}</div>}
+            {errors.next && (
+              <div id="change-email-next-error" role="alert" style={errorStyle}>
+                {errors.next}
+              </div>
+            )}
           </label>
           <div style={{ display: "flex", gap: 8 }}>
             <Button
@@ -1553,17 +1872,27 @@ function DangerZone({
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Account deletion is irreversible, so it gets the same synchronous lock as
+  // register-form.tsx's submitLockRef: `deleting` state disables the confirm
+  // button only after a re-render, and a fast double Enter/click on the modal
+  // can still fire deleteAccount() twice before that render happens.
+  const submitLockRef = useRef(false);
 
   const doDelete = async () => {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setDeleting(true);
     try {
       await deleteAccount();
       toast(t.toasts.accountDeleted, "check");
       await onDeleted();
+      // Stay locked: onDeleted() navigates away (logout + redirect home), so
+      // there is no further state in this component worth unlocking for.
     } catch {
+      submitLockRef.current = false;
       setDeleting(false);
       setConfirming(false);
-      toast(t.toasts.genericError, "trash");
+      toast(t.toasts.genericError, "trash", undefined, "error");
     }
   };
 
@@ -1727,6 +2056,9 @@ function SectionBody({
   onDeleted: () => Promise<void>;
 }) {
   const [pwOpen, setPwOpen] = useState(false);
+  // Verification state lives on the session user (GET /me), not on the profile
+  // payload — the profile endpoint doesn't carry it.
+  const { user } = useAuth();
   if (id === "personal") {
     if (!profile) {
       return (
@@ -1736,34 +2068,62 @@ function SectionBody({
       );
     }
     const dobValue = profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "";
+    const authErrors = dictionaries[locale].auth.errors;
     return (
       <div>
         <EditableRow
+          id="acct-firstName"
           label={t.fields.firstName}
           value={profile.firstName ?? ""}
           emptyLabel={t.fields.phoneEmpty}
           saving={savingField === "firstName"}
           buttons={t.buttons}
           onSave={(v) => saveField("firstName", v)}
+          sanitize={sanitizeName}
+          validate={(raw) => {
+            const v = raw.trim();
+            if (!v) return authErrors.firstNameRequired;
+            if (v.length < NAME_MIN_LENGTH) return authErrors.nameTooShort;
+            if (v.length > NAME_MAX_LENGTH) return authErrors.nameTooLong;
+            return undefined;
+          }}
         />
         <EditableRow
+          id="acct-lastName"
           label={t.fields.lastName}
           value={profile.lastName ?? ""}
           emptyLabel={t.fields.phoneEmpty}
           saving={savingField === "lastName"}
           buttons={t.buttons}
           onSave={(v) => saveField("lastName", v)}
+          sanitize={sanitizeName}
+          validate={(raw) => {
+            const v = raw.trim();
+            if (!v) return authErrors.lastNameRequired;
+            if (v.length < NAME_MIN_LENGTH) return authErrors.nameTooShort;
+            if (v.length > NAME_MAX_LENGTH) return authErrors.nameTooLong;
+            return undefined;
+          }}
         />
         <EditableRow
+          id="acct-phone"
           label={t.fields.phone}
           value={profile.phone ?? ""}
           type="tel"
           emptyLabel={t.fields.phoneEmpty}
           saving={savingField === "phone"}
           buttons={t.buttons}
-          onSave={(v) => saveField("phone", v)}
+          // Phone is optional — an empty value clears it, so only a non-empty,
+          // ill-formed one is an error. Sent normalized (no spaces/dashes),
+          // matching what the backend's PHONE_REGEX accepts.
+          onSave={(v) => saveField("phone", normalizePhone(v))}
+          validate={(raw) => {
+            const v = raw.trim();
+            return v && !isValidPhone(v) ? authErrors.phoneInvalid : undefined;
+          }}
         />
         <EditableRow
+          id="acct-dob"
           label={t.fields.dateOfBirth}
           value={dobValue}
           type="date"
@@ -1775,12 +2135,16 @@ function SectionBody({
         />
         <ChangeEmailRow
           t={t}
-          authErrors={dictionaries[locale].auth.errors}
+          authErrors={authErrors}
+          sharedErrors={dictionaries[locale].errors}
           currentEmail={profile.email}
+          emailVerified={user?.emailVerified}
+          resendCopy={dictionaries[locale].auth.resendVerification}
           onChanged={onEmailChanged}
         />
         <AddressRow
           fields={t.fields}
+          errors={t.errors}
           buttons={t.buttons}
           profile={profile}
           saving={savingField === "address"}
@@ -1924,7 +2288,11 @@ function SecuritySection({
                 borderTop: "1px solid rgba(28,28,26,0.06)",
               }}
             >
-              <PasswordForm t={t} onDone={() => setPwOpen(false)} />
+              <PasswordForm
+                t={t}
+                sharedErrors={dictionaries[locale].errors}
+                onDone={() => setPwOpen(false)}
+              />
             </div>
           )}
         </Card>
@@ -2581,7 +2949,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
         setProfile(updated); // reconcile from response
         toast(t.toasts.profileSaved, "check");
       } catch {
-        toast(t.toasts.genericError, "pencil");
+        toast(t.toasts.genericError, "pencil", undefined, "error");
       } finally {
         setSavingField(null);
       }
@@ -2600,7 +2968,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
         setProfile(updated); // reconcile from response
         toast(t.toasts.profileSaved, "check");
       } catch {
-        toast(t.toasts.genericError, "pencil");
+        toast(t.toasts.genericError, "pencil", undefined, "error");
       } finally {
         setSavingField(null);
       }
@@ -2627,7 +2995,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
         void refreshUser().catch(() => {});
         toast(t.toasts.photoUpdated, "check");
       } catch {
-        toast(t.toasts.genericError, "pencil");
+        toast(t.toasts.genericError, "pencil", undefined, "error");
       } finally {
         setUploadingPhoto(false);
       }

@@ -5,14 +5,16 @@ import { REVALIDATE_SECRET } from "@/lib/env";
 import {
   BRAND_TAG,
   BUSINESS_TAG,
+  WEBSITE_TAG,
   brandTag,
   businessTag,
+  websiteTag,
 } from "@/lib/cache/tags";
 
 /**
  * Cache invalidation hook for admin-api.
  *
- * The listing and brand pages are ISR with a 300s floor, so this endpoint is
+ * The listing, brand and website pages are ISR with a 600s floor, so this is
  * an ACCELERATOR, not a correctness requirement: a missed or failed call costs
  * at most one revalidate window of staleness. That is deliberate — it means
  * admin-api can add call sites incrementally (publish first, content edits
@@ -24,9 +26,11 @@ import {
  *
  * `locations` are the LOCATION slugs (or numeric ids) that appear in
  * /business/<slug> URLs — a business with three locations has three pages and
- * should send all three. `brands` are businessSlugs behind /brand/<slug>.
- * `{ "all": true }` flushes every listing and brand page; use it for a
- * taxonomy-wide change, not per business.
+ * should send all three. `brands` are businessSlugs, and each one flushes BOTH
+ * pages addressed by that slug: /brand/<slug> and the published Website Builder
+ * microsite at /<slug>. They share a key, so they can never drift apart and
+ * admin-api needs no second array. `{ "all": true }` flushes every listing,
+ * brand and website page; use it for a taxonomy-wide change, not per business.
  *
  * Revalidation uses the "max" profile: tagged entries are marked stale and
  * refreshed in the background on next visit, so a publish never causes a
@@ -83,7 +87,8 @@ export async function POST(req: NextRequest) {
   if (body.all === true) {
     revalidateTag(BUSINESS_TAG, "max");
     revalidateTag(BRAND_TAG, "max");
-    revalidated.push(BUSINESS_TAG, BRAND_TAG);
+    revalidateTag(WEBSITE_TAG, "max");
+    revalidated.push(BUSINESS_TAG, BRAND_TAG, WEBSITE_TAG);
     return NextResponse.json({ revalidated });
   }
 
@@ -103,9 +108,11 @@ export async function POST(req: NextRequest) {
     revalidated.push(tag);
   }
   for (const slug of brands) {
-    const tag = brandTag(slug);
-    revalidateTag(tag, "max");
-    revalidated.push(tag);
+    // One payload key, two pages: the brand page and the microsite.
+    for (const tag of [brandTag(slug), websiteTag(slug)]) {
+      revalidateTag(tag, "max");
+      revalidated.push(tag);
+    }
   }
 
   return NextResponse.json({ revalidated });

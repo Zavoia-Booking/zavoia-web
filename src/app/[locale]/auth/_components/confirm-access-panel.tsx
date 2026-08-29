@@ -89,7 +89,7 @@ export function ConfirmAccessPanel({
       {error && (
         <p
           role="alert"
-          className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          className="mt-4 rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
         >
           {error}
         </p>

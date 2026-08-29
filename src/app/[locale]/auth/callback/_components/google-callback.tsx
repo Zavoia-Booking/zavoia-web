@@ -183,7 +183,7 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
         }
         setView({
           kind: "error",
-          message: authErrorMessage(e, locDict.errors),
+          message: authErrorMessage(e, locDict.errors, dictionaries[loc].errors),
           backHref: locAuthHref,
           backLabel: locT.backToSignIn,
         });
@@ -224,7 +224,7 @@ export function GoogleCallback({ locale }: { locale: Locale }) {
       } catch (e) {
         setView({
           kind: "error",
-          message: authErrorMessage(e, locDict.errors),
+          message: authErrorMessage(e, locDict.errors, dictionaries[loc].errors),
           backHref: locAccountHref,
           backLabel: locT.backToAccount,
         });

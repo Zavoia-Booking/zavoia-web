@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { validateAccountLink } from "@/lib/api/customer-auth";
 import { ApiError } from "@/lib/api/http";
+import {
+  isOfflineError,
+  isServerError,
+  isTimeoutError,
+} from "@/lib/api/error-messages";
 import { defaultPostAuthTarget } from "@/lib/auth/redirects";
 import { useAuth } from "@/lib/auth/useAuth";
 import type { AccountLinkValidation } from "@/lib/auth/types";
@@ -15,11 +20,18 @@ import { GOOGLE_CLIENT_ID } from "@/lib/env";
 import { AuthField } from "../../_components/auth-field";
 import { GoogleSignInButton } from "../../_components/google-signin-button";
 
+// "error": the backend rejected the token itself (not found / already used /
+// expired, or anything else it validated) — the dead-link copy is correct
+// and a retry can never help. "transient": the pre-flight check never
+// reliably reached the backend at all (offline / client timeout / 5xx) — the
+// token might still be perfectly good, so we offer a retry instead of
+// telling the user their link is dead.
 type State =
   | { kind: "checking" }
   | { kind: "confirm"; info: AccountLinkValidation }
   | { kind: "success" }
-  | { kind: "error" };
+  | { kind: "error" }
+  | { kind: "transient" };
 
 /**
  * Landing page of the account-link email. The emailed token alone must not
@@ -45,27 +57,35 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const startedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   // Validate the token once on mount WITHOUT consuming it, to learn how the
-  // user can confirm account ownership.
-  useEffect(() => {
+  // user can confirm account ownership. Shared between the initial auto-run
+  // and the transient-failure retry button.
+  const runValidate = useCallback(async () => {
     if (!token) return;
-    if (startedRef.current) return;
-    startedRef.current = true;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const info = await validateAccountLink(token);
-        if (!cancelled) setState({ kind: "confirm", info });
-      } catch {
-        if (!cancelled) setState({ kind: "error" });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setState({ kind: "checking" });
+    try {
+      const info = await validateAccountLink(token);
+      if (mountedRef.current) setState({ kind: "confirm", info });
+    } catch (err) {
+      if (!mountedRef.current) return;
+      const transient =
+        isOfflineError(err) || isTimeoutError(err) || isServerError(err);
+      setState({ kind: transient ? "transient" : "error" });
+    }
   }, [token]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    if (token && !startedRef.current) {
+      startedRef.current = true;
+      void runValidate();
+    }
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [token, runValidate]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,6 +165,26 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
         >
           {t.backToLogin}
         </Link>
+      </main>
+    );
+  }
+
+  if (state.kind === "transient") {
+    return (
+      <main className="mx-auto max-w-md px-6 py-16">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {dict.errors.linkCheckFailedHeading}
+        </h1>
+        <p className="mt-2 text-sm text-zinc-600">
+          {dict.errors.linkCheckFailedBody}
+        </p>
+        <button
+          type="button"
+          onClick={() => void runValidate()}
+          className="mt-6 inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+        >
+          {dictionaries[locale].errors.retry}
+        </button>
       </main>
     );
   }

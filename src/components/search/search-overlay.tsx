@@ -1639,7 +1639,7 @@ export function SearchOverlay({
           // Resolved a location → close "where", advance to "when".
           setStep("when");
         } else {
-          toast(failMsg, "warn");
+          toast(failMsg, "warn", undefined, "error");
         }
       })
       .finally(() => setResolvingLocation(false));
