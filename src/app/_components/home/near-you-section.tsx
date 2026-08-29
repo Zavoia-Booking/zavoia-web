@@ -1,74 +1,59 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/i18n/useTranslation";
-import { localeHref } from "@/i18n/routes";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { BusinessFeedCard, type BusinessCardData } from "@/components/business";
 import { getNearbyLocations } from "@/lib/api/marketplace/public";
 import { locationCardToData } from "@/lib/marketplace/card-mappers";
+import { useHomeCoords } from "./use-home-coords";
+import { mapHref } from "./map-href";
 
-const PAGE = 8;
+const PAGE = 6;
+// Radius (km) for the "near you" query — roughly a city and its immediate
+// surroundings. The API widens it on its own (up to 50km) when nothing is in
+// range and flags that via `fallback`.
+const RADIUS_KM = 20;
 
-// "More places nearby" — requests geolocation on mount and shows nearby
-// LOCATION cards (with distance) from the API. On denial/error/timeout it
-// falls back to the server-provided latest listings. "Show more" pages by 8.
-export function NearYouSection({ fallback }: { fallback: BusinessCardData[] }) {
+
+// "More places nearby" — nearby LOCATION cards (with distance) within
+// RADIUS_KM, sorted by distance. Coordinates come from the shared home ladder
+// (geolocation → IP estimate), so this rail and "In your city" prompt once
+// between them.
+//
+// `strict` stops the server widening an empty 20km query out to 50km: a rail
+// that promises "nearby" hides rather than showing places that are not.
+// "Show more" pages by 6.
+export function NearYouSection() {
   const { locale, dict } = useTranslation();
   const router = useRouter();
   const s = dict.homeSections.nearYou;
 
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  // null = haven't decided yet; true = use nearby; false = use fallback.
-  const [useNearby, setUseNearby] = useState<boolean | null>(null);
+  const { coords, city, resolving } = useHomeCoords();
   const [nearby, setNearby] = useState<BusinessCardData[]>([]);
   const [limit, setLimit] = useState(PAGE);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  // Tracks the visible count for the fallback path (paged client-side).
-  const [fallbackLimit, setFallbackLimit] = useState(PAGE);
-  const requested = useRef(false);
 
-  // Ask for geolocation once. State is only updated from async callbacks (the
-  // geolocation success/error handlers, or a deferred microtask for the
-  // no-API path) so we never call setState synchronously inside the effect.
+  // Fetch nearby whenever coords or limit change.
   useEffect(() => {
-    if (requested.current) return;
-    requested.current = true;
-
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      Promise.resolve().then(() => {
-        setUseNearby(false);
-        setLoading(false);
-      });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setUseNearby(true);
-      },
-      () => {
-        setUseNearby(false);
-        setLoading(false);
-      },
-      { timeout: 8000, maximumAge: 5 * 60 * 1000 },
-    );
-  }, []);
-
-  // Fetch nearby whenever coords or limit change (only on the nearby path).
-  useEffect(() => {
-    if (useNearby !== true || !coords) return;
+    if (!coords) return;
     let cancelled = false;
     // Mark loading via a microtask so the spinner/disabled state shows during
     // pagination without a synchronous setState in the effect body.
     Promise.resolve().then(() => {
       if (!cancelled) setLoading(true);
     });
-    getNearbyLocations({ lat: coords.lat, lng: coords.lng, limit })
+    getNearbyLocations({
+      lat: coords.lat,
+      lng: coords.lng,
+      radius: RADIUS_KM,
+      strict: true,
+      limit,
+    })
       .then((res) => {
         if (cancelled) return;
         setNearby(res.data.map((l) => locationCardToData(l, locale)));
@@ -76,8 +61,9 @@ export function NearYouSection({ fallback }: { fallback: BusinessCardData[] }) {
       })
       .catch(() => {
         if (cancelled) return;
-        // Network/back-end failure → fall back to latest listings.
-        setUseNearby(false);
+        // Network/back-end failure → keep the rail empty rather than filling it
+        // with listings that are not actually nearby.
+        setNearby([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -85,22 +71,18 @@ export function NearYouSection({ fallback }: { fallback: BusinessCardData[] }) {
     return () => {
       cancelled = true;
     };
-  }, [useNearby, coords, limit, locale]);
+  }, [coords, limit, locale]);
 
-  const showMoreNearby = useCallback(() => setLimit((l) => l + PAGE), []);
-  const showMoreFallback = useCallback(
-    () => setFallbackLimit((l) => l + PAGE),
-    [],
-  );
+  const showMore = useCallback(() => setLimit((l) => l + PAGE), []);
 
-  const onNearbyPath = useNearby === true;
-  const cards = onNearbyPath ? nearby : fallback.slice(0, fallbackLimit);
-  const hasMore = onNearbyPath
-    ? nearby.length < total
-    : fallbackLimit < fallback.length;
+  const cards = nearby;
+  const hasMore = nearby.length < total;
+  // `loading` only means anything once there is an anchor to load for: no coords and
+  // done resolving is a settled empty state, not a pending one.
+  const busy = resolving || (coords != null && loading);
 
-  // Nothing to show on either path → hide the section entirely.
-  if (!loading && cards.length === 0) return null;
+  // Nothing in range, or nowhere to anchor → hide the section entirely.
+  if (!busy && cards.length === 0) return null;
 
   return (
     <section className="zw-container" style={{ paddingTop: 60 }}>
@@ -108,9 +90,9 @@ export function NearYouSection({ fallback }: { fallback: BusinessCardData[] }) {
         kicker={s.kicker}
         title={s.title}
         action={s.action}
-        onAction={() => router.push(localeHref(locale, "search"))}
+        onAction={() => router.push(mapHref(locale, city))}
       />
-      {loading && cards.length === 0 ? (
+      {busy && cards.length === 0 ? (
         <div
           style={{
             display: "flex",
@@ -144,8 +126,8 @@ export function NearYouSection({ fallback }: { fallback: BusinessCardData[] }) {
               <Button
                 kind="secondary"
                 size="lg"
-                onClick={onNearbyPath ? showMoreNearby : showMoreFallback}
-                disabled={loading}
+                onClick={showMore}
+                disabled={busy}
               >
                 {s.showMore}
               </Button>

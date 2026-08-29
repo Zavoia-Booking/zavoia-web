@@ -12,7 +12,7 @@ import { HomeContent } from "@/app/_components/home-content";
 import {
   getBrands,
   getIndustries,
-  getLatestListings,
+  searchListings,
 } from "@/lib/api/marketplace/public";
 import type {
   BrandCard,
@@ -72,8 +72,11 @@ export default async function Home({ params }: Props) {
   // (a failed/absent backend never crashes the render) and ensures the promise
   // is already handled before its consumer awaits it.
   const industries = getIndustries().catch((): Industry[] => []);
-  const latest = getLatestListings({ limit: 10 })
-    .then((res) => res.data)
+  // Editor's pick is the one home feed that is NOT location-scoped: it renders
+  // on the server, before any coordinates exist. No geo params → the search
+  // path's default order (top-rated, then newest).
+  const editorsPick = searchListings({ limit: 10 })
+    .then((res) => res.locations)
     .catch((): LocationCard[] => []);
   const brands = getBrands({ limit: 10 })
     .then((res) => res.data)
@@ -83,7 +86,7 @@ export default async function Home({ params }: Props) {
     <HomeContent
       locale={localeParam}
       industries={industries}
-      latest={latest}
+      editorsPick={editorsPick}
       brands={brands}
     />
   );

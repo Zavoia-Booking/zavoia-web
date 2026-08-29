@@ -298,7 +298,7 @@
         "description": "Răspunde la întrebările frecvente înainte ca vizitatorii să se programeze."
       },
       "footer": {
-        "label": "Subsol",
+        "label": "Footer",
         "description": "Încheie cu locațiile, datele de contact și opțiunea de programare."
       },
       "variants": {

@@ -41,7 +41,7 @@ export interface Envelope<T> {
   data: T;
 }
 
-/** List wrapper used by brands / latest-listings / nearby-locations. */
+/** List wrapper used by brands / nearby-locations. */
 export interface OffsetPage<T> {
   data: T[];
   total: number;
@@ -714,16 +714,12 @@ export interface GetBrandsParams {
   offset?: number;
 }
 
-export interface LatestListingsBody {
-  industryId?: number;
-  limit?: number;
-  offset?: number;
-}
-
 export interface NearbyLocationsBody {
   lat: number;
   lng: number;
   radius?: number;
+  /** See `SearchListingsParams.strict` — the nearby endpoint forwards it to the same search path. */
+  strict?: boolean;
   industryId?: number;
   tagIds?: number[];
   limit?: number;
@@ -732,6 +728,16 @@ export interface NearbyLocationsBody {
 
 export interface SearchListingsParams {
   search?: string;
+  /**
+   * Stable shuffle key. Randomises the result order (ignored when `search` is set) while
+   * keeping it consistent across offset pages, so a paged feed never repeats or skips a card.
+   */
+  seed?: string;
+  /**
+   * Suppress the server's relaxation ladder: an empty result stays empty instead of coming
+   * back widened past the requested radius. Required for any feed that advertises a scope.
+   */
+  strict?: boolean;
   lat?: number;
   lng?: number;
   radius?: number;
@@ -1460,4 +1466,22 @@ export interface CreateGuestTicketBody {
 export interface GuestTicketReceipt {
   uuid: string;
   createdAt: string;
+}
+
+/** One crawlable URL: the slug that addresses it, and when it last changed. */
+export interface SitemapEntry {
+  /** Location slug (or numeric id as a string) for listings; businessSlug otherwise. */
+  slug: string;
+  updatedAt: string;
+}
+
+/**
+ * GET /marketplace/public/sitemap — the three public URL families, each already
+ * filtered to what actually renders: `locations` → /business/<slug>,
+ * `brands` → /brand/<slug>, `websites` → /<businessSlug>.
+ */
+export interface MarketplaceSitemap {
+  locations: SitemapEntry[];
+  brands: SitemapEntry[];
+  websites: SitemapEntry[];
 }

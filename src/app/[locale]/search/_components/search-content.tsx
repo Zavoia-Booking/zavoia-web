@@ -212,6 +212,14 @@ export function SearchContent({
         derived.lat != null && derived.lng != null
           ? SEARCH_RADIUS_KM
           : undefined,
+      // A city arrival with no anchor (the home rails' "see all") is a whole-city
+      // query: no radius at all, and strict so the server can't quietly drop the
+      // city and backfill from everywhere. A map titled by one city must not show
+      // another's places.
+      strict:
+        derived.city != null && derived.lat == null && derived.lng == null
+          ? true
+          : undefined,
       limit: SEARCH_LIMIT,
       offset: 0,
     };

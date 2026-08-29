@@ -14,7 +14,11 @@ import { BlogPost } from "@/app/_components/blog/blog-post";
 import { toBlogCardVM } from "@/app/_components/blog/vm";
 import type { BlogCardVM } from "@/app/_components/blog/types";
 
-export const revalidate = 0;
+// One-hour floor plus tag invalidation: `getPostBySlug` is tagged `post` and
+// `post:<slug>`, and the Sanity webhook flushes both on publish. Posts are
+// prerendered at build from `generateStaticParams`; a post created later is
+// rendered on first request and cached from then on (dynamicParams).
+export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {

@@ -26,10 +26,12 @@ export const en: {
       kicker: string;
       title: string;
     };
-    available: {
+    inCity: {
       kicker: string;
       title: string;
       action: string;
+      showMore: string;
+      locating: string;
       empty: string;
     };
     brands: {
@@ -1443,6 +1445,24 @@ export const en: {
       error: string;
     };
   };
+  notFound: {
+    generic: {
+      kicker: string;
+      title: string;
+      body: string;
+      home: string;
+      explore: string;
+    };
+    claim: {
+      kicker: string;
+      title: string;
+      body: string;
+      bullets: string[];
+      primary: string;
+      secondary: string;
+      explore: string;
+    };
+  };
 } = {
   preposition: "in",
   home: {
@@ -1474,10 +1494,12 @@ export const en: {
       kicker: "Browse",
       title: "What are you looking for?",
     },
-    available: {
-      kicker: "Just joined",
-      title: "Fresh on Zavoia",
+    inCity: {
+      kicker: "Around town",
+      title: "Places in your city",
       action: "See all",
+      showMore: "Show more places",
+      locating: "Finding your city…",
       empty: "New places are joining all the time — check back soon.",
     },
     brands: {
@@ -3362,6 +3384,28 @@ export const en: {
       professionalLabel: "Rate {name}",
       starsAria: "{n} stars",
       error: "We couldn't submit your review. Please try again.",
+    },
+  },
+  notFound: {
+    generic: {
+      kicker: "404",
+      title: "This page doesn't exist.",
+      body: "The link may be broken, or the page may have moved.",
+      home: "Back to home",
+      explore: "Explore places",
+    },
+    claim: {
+      kicker: "Address available",
+      title: "This page could be yours.",
+      body: "Nothing lives at zavoia.com/{slug} yet. Claim it for your business and get a bookable website on this exact address — your services, your team, your hours.",
+      bullets: [
+        "A website that takes bookings, live in minutes",
+        "Your own zavoia.com address",
+        "Free for the first 2 weeks, no card required",
+      ],
+      primary: "Start free trial",
+      secondary: "See how it works",
+      explore: "Or explore places on Zavoia",
     },
   },
 };

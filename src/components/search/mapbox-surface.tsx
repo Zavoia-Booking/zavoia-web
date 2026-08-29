@@ -264,7 +264,8 @@ export function MapboxSurface({
           latitude: pins[0]?.lat ?? DEFAULT_CENTER_LAT,
           zoom: pins.length ? FIT_MAX_ZOOM : DEFAULT_ZOOM,
         }}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        // mapStyle="mapbox://styles/mapbox/streets-v12"
+        mapStyle="mapbox://styles/zavoia/cmphvlj8p002c01sgdl3q3kpb"
         style={{ width: "100%", height: "100%" }}
         onMoveEnd={handleMoveEnd}
       >

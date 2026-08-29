@@ -11,7 +11,7 @@ import {
 } from "@/lib/marketplace/card-mappers";
 import { Hero } from "@/app/_components/home/hero";
 import { CategoryRail } from "@/app/_components/home/category-rail";
-import { AvailableToday } from "@/app/_components/home/available-today";
+import { InYourCity } from "@/app/_components/home/in-your-city";
 import { BrandsSection } from "@/app/_components/home/brands-section";
 import { NearYouSection } from "@/app/_components/home/near-you-section";
 import { RecentlyViewed } from "@/app/_components/home/recently-viewed";
@@ -32,7 +32,7 @@ export interface HomeContentProps {
   // over unawaited so the editorial shell can stream immediately while the
   // marketplace feeds are still in flight.
   industries: Promise<Industry[]>;
-  latest: Promise<LocationCard[]>;
+  editorsPick: Promise<LocationCard[]>;
   brands: Promise<BrandCard[]>;
 }
 
@@ -44,12 +44,12 @@ export interface HomeContentProps {
 // Sections & their data source:
 //   1. Hero .............. editorial (client: typewriter + router)
 //   2. Category rail ..... getIndustries          [streamed]
-//   3. Fresh on Zavoia ... getLatestListings      [streamed]
+//   3. In your city ...... searchListings (client: coords + 50km + seeded
+//                          shuffle, strict, paged 10/page)
 //   4. Brands ............ getBrands              [streamed]
 //   5. Recently viewed ... localStorage + getListingsBulk (client, 1 call)
-//   6. Editor's pick ..... reuses the latest-listings array (no extra fetch)
-//   7. Near you .......... getNearbyLocations (client geolocation; falls
-//                          back to latest listings)
+//   6. Editor's pick ..... searchListings, no geo (server-rendered)
+//   7. Near you .......... getNearbyLocations (client coords + 20km, strict)
 //   8. App band .......... editorial
 //   9. Trust band ........ editorial
 //  10. For-business strip  editorial
@@ -59,7 +59,7 @@ export interface HomeContentProps {
 export function HomeContent({
   locale,
   industries,
-  latest,
+  editorsPick,
   brands,
 }: HomeContentProps) {
   return (
@@ -70,9 +70,7 @@ export function HomeContent({
         <CategorySection locale={locale} industries={industries} />
       </Suspense>
 
-      <Suspense fallback={<CardGridSkeleton />}>
-        <LatestSection locale={locale} latest={latest} />
-      </Suspense>
+      <InYourCity />
 
       <Suspense fallback={<CardGridSkeleton count={4} />}>
         <BrandsBlock locale={locale} brands={brands} />
@@ -81,8 +79,10 @@ export function HomeContent({
       <RecentlyViewed />
 
       <Suspense fallback={<CardGridSkeleton />}>
-        <PicksAndNearYou locale={locale} latest={latest} />
+        <PicksSection locale={locale} editorsPick={editorsPick} />
       </Suspense>
+
+      <NearYouSection />
 
       <AppBand locale={locale} />
       <TrustBand locale={locale} />
@@ -101,19 +101,6 @@ async function CategorySection({
   return <CategoryRail locale={locale} industries={await industries} />;
 }
 
-// Fresh on Zavoia is location-led: one card per LOCATION (name, photo,
-// per-location rating), linking to that location's detail page.
-async function LatestSection({
-  locale,
-  latest,
-}: {
-  locale: Locale;
-  latest: Promise<LocationCard[]>;
-}) {
-  const cards = (await latest).map((l) => locationCardToData(l, locale));
-  return <AvailableToday cards={cards} />;
-}
-
 // Brand cards lead with the brand name; nav target is still the primary
 // location page until the dedicated brand page exists.
 async function BrandsBlock({
@@ -127,20 +114,15 @@ async function BrandsBlock({
   return <BrandsSection cards={cards} />;
 }
 
-// Both sections read the same latest-listings array, so they share one
-// boundary — awaiting the same promise twice costs nothing.
-async function PicksAndNearYou({
+// The only server-rendered card feed left on the home page: everything else is
+// location-scoped, so it can only be resolved on the client.
+async function PicksSection({
   locale,
-  latest,
+  editorsPick,
 }: {
   locale: Locale;
-  latest: Promise<LocationCard[]>;
+  editorsPick: Promise<LocationCard[]>;
 }) {
-  const cards = (await latest).map((l) => locationCardToData(l, locale));
-  return (
-    <>
-      <EditorsPick cards={cards} />
-      <NearYouSection fallback={cards} />
-    </>
-  );
+  const cards = (await editorsPick).map((l) => locationCardToData(l, locale));
+  return <EditorsPick cards={cards} />;
 }

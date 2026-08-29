@@ -33,10 +33,12 @@ export const ro: Dictionary = {
       kicker: "Explorează",
       title: "Ce cauți?",
     },
-    available: {
-      kicker: "Tocmai adăugate",
-      title: "Noutăți pe Zavoia",
+    inCity: {
+      kicker: "Prin oraș",
+      title: "Locuri în orașul tău",
       action: "Vezi toate",
+      showMore: "Arată mai multe locuri",
+      locating: "Îți căutăm orașul…",
       empty: "Mereu se alătură locuri noi — revino în curând.",
     },
     brands: {
@@ -1932,6 +1934,28 @@ export const ro: Dictionary = {
       professionalLabel: "Evaluează {name}",
       starsAria: "{n} stele",
       error: "Nu am putut trimite recenzia. Te rugăm să încerci din nou.",
+    },
+  },
+  notFound: {
+    generic: {
+      kicker: "404",
+      title: "Această pagină nu există.",
+      body: "Linkul poate fi greșit sau pagina a fost mutată.",
+      home: "Înapoi la pagina principală",
+      explore: "Explorează locații",
+    },
+    claim: {
+      kicker: "Adresă disponibilă",
+      title: "Această pagină ar putea fi a ta.",
+      body: "La zavoia.com/{slug} nu există încă nimic. Revendic-o pentru business-ul tău și primești, chiar pe această adresă, un website cu rezervări — serviciile, echipa și programul tău.",
+      bullets: [
+        "Un website care primește rezervări, gata în câteva minute",
+        "Propria ta adresă zavoia.com",
+        "Gratuit primele 2 săptămâni, fără card",
+      ],
+      primary: "Începe perioada gratuită",
+      secondary: "Vezi cum funcționează",
+      explore: "Sau explorează locații pe Zavoia",
     },
   },
 };

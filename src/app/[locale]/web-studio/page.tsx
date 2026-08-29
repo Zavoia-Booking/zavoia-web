@@ -9,13 +9,20 @@ import {
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { getPublicWebsite } from "@/lib/api/marketplace/public";
+import { WEBSITE_TAG, websiteTag } from "@/lib/cache/tags";
 import { buildMicrositeRender } from "@/features/website/publicWebsite";
 import type { PreviewData } from "@/features/website/components/builder/preview/shared/types";
 import { WebStudioContent } from "@/app/_components/web-studio/web-studio-content";
 
-// Live data (the showcase site) is resolved per request, and the backend may be
-// down during `next build` — never statically prerender this route.
-export const dynamic = "force-dynamic";
+// The showcase is one published site rendered as a specimen: the same content
+// for every visitor, changing only when its owner republishes. An hour of ISR
+// is the right cadence — and the fetch carries the website tags, so a publish
+// of the showcased site refreshes this page too rather than waiting the hour.
+//
+// It is prerendered per locale at build. A build while the backend is down
+// still succeeds: `loadShowcase` swallows the failure and the page falls back
+// to its authored specimen, which then self-heals on the next revalidation.
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -57,7 +64,10 @@ async function loadShowcase(
 ): Promise<{ data: PreviewData; name: string } | null> {
   for (const slug of SHOWCASE_SLUGS) {
     try {
-      const site = await getPublicWebsite(slug);
+      const site = await getPublicWebsite(slug, {
+        revalidate: 3600,
+        tags: [WEBSITE_TAG, websiteTag(slug)],
+      });
       const { data } = buildMicrositeRender(site, locale);
       if (richEnough(data)) return { data, name: data.businessName };
     } catch {

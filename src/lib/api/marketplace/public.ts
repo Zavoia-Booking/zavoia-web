@@ -6,7 +6,7 @@
  *
  * Envelope handling:
  * - RAW (body IS the payload): industries, listing detail, team-member profiles.
- * - OWN list wrapper: brands / latest / nearby / search return their own
+ * - OWN list wrapper: brands / nearby / search return their own
  *   pagination object; review feeds return `{ data, pagination }`.
  * - WRAPPED `{ message, data }`: booking-context only (unwrapped here).
  */
@@ -19,10 +19,9 @@ import type {
   Envelope,
   GetBrandsParams,
   Industry,
-  LatestListingsBody,
   ListingDetail,
   ListingLightCard,
-  LocationCard,
+  MarketplaceSitemap,
   NearbyLocationsBody,
   NearbyLocationsResult,
   OffsetPage,
@@ -75,20 +74,6 @@ export function getBrands(
   });
 }
 
-/** POST /marketplace/public/latest-listings — newest public LOCATIONS, one card
- * per location (same LocationCard shape as search/nearby). Own paginated wrapper. */
-export function getLatestListings(
-  body: LatestListingsBody = {},
-): Promise<OffsetPage<LocationCard>> {
-  return apiFetch<OffsetPage<LocationCard>>(
-    "/marketplace/public/latest-listings",
-    {
-      method: "POST",
-      body: JSON.stringify(body),
-    },
-  );
-}
-
 /** POST /marketplace/public/nearby-locations — own wrapper with fallback (LocationCard). */
 export function getNearbyLocations(
   body: NearbyLocationsBody,
@@ -108,6 +93,8 @@ export function searchListings(
 ): Promise<SearchListingsResult> {
   const query = buildQuery({
     search: params.search,
+    seed: params.seed,
+    strict: params.strict,
     lat: params.lat,
     lng: params.lng,
     radius: params.radius,
@@ -194,11 +181,28 @@ export function getBrand(
  * Builder site for zavoia.com/[businessSlug]). Slug only — numeric business ids
  * are not resolved. 404s unless the site is published and entitled.
  */
-export function getPublicWebsite(slug: string): Promise<PublicWebsite> {
+export function getPublicWebsite(
+  slug: string,
+  opts?: CacheOptions,
+): Promise<PublicWebsite> {
   return apiFetch<PublicWebsite>(
     `/marketplace/public/website/${encodeURIComponent(slug)}`,
-    { method: "GET" },
+    { method: "GET", ...cacheInit(opts) },
   );
+}
+
+/**
+ * GET /marketplace/public/sitemap — every public URL the marketplace should
+ * advertise to crawlers, gated by the same visibility rules the pages enforce.
+ * Three families: location pages, brand pages, published microsites.
+ */
+export function getSitemapEntries(
+  opts?: CacheOptions,
+): Promise<MarketplaceSitemap> {
+  return apiFetch<MarketplaceSitemap>("/marketplace/public/sitemap", {
+    method: "GET",
+    ...cacheInit(opts),
+  });
 }
 
 /** GET /marketplace/public/team-member/:id — RAW TeamMemberProfile (no listing context). */

@@ -1,12 +1,27 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { DEFAULT_LOCALE, LOCALES } from "@/i18n/locales";
 import { CSRF_COOKIE_NAME } from "@/lib/auth/cookies";
+import { PATHNAME_HEADER } from "@/lib/pathname-header";
 
 const PREFIXED = LOCALES.filter((l) => l !== DEFAULT_LOCALE);
 
 const ACCOUNT_PATH_RE = new RegExp(
   `^/(?:(${PREFIXED.join("|")})/)?account(?:/.*)?$`,
 );
+
+/**
+ * The visitor's real pathname, forwarded to the render.
+ *
+ * `not-found.tsx` receives no params and sits above the [locale] segment, so
+ * this header is the only way the 404 can know which URL was asked for — which
+ * locale to speak, and whether the URL was a free one-segment address worth
+ * offering (see src/app/not-found.tsx).
+ */
+function withPathname(request: NextRequest): { request: { headers: Headers } } {
+  const headers = new Headers(request.headers);
+  headers.set(PATHNAME_HEADER, request.nextUrl.pathname);
+  return { request: { headers } };
+}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -35,14 +50,14 @@ export function proxy(request: NextRequest) {
 
   for (const l of PREFIXED) {
     if (pathname === `/${l}` || pathname.startsWith(`/${l}/`)) {
-      return;
+      return NextResponse.next(withPathname(request));
     }
   }
 
   const url = request.nextUrl.clone();
   url.pathname =
     pathname === "/" ? `/${DEFAULT_LOCALE}` : `/${DEFAULT_LOCALE}${pathname}`;
-  return NextResponse.rewrite(url);
+  return NextResponse.rewrite(url, withPathname(request));
 }
 
 export const config = {
