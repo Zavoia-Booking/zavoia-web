@@ -857,6 +857,9 @@ export const en: {
     centeredOnLocation: string;
     closePinCard: string;
     mapUnavailable: string;
+    pinListLabel: string;
+    browseMore: string;
+    sheetHandleAria: string;
     filters: {
       title: string;
       activeLabel: string;
@@ -2493,6 +2496,9 @@ export const en: {
     centeredOnLocation: "Centred on your location",
     closePinCard: "Close",
     mapUnavailable: "Map unavailable",
+    pinListLabel: "Places on the map",
+    browseMore: "More",
+    sheetHandleAria: "Drag to resize the results panel",
     filters: {
       title: "Filters",
       activeLabel: "Filters, {count} active",

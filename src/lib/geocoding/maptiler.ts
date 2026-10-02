@@ -15,8 +15,27 @@ const BASE = "https://api.maptiler.com/geocoding";
 const SEARCH_TYPES =
   "region,subregion,county,municipality,municipal_district,locality,place,neighbourhood";
 
-// Coarser set for reverse geocoding (a single best-match locality).
-const REVERSE_TYPES = "municipality,municipal_district,locality,place";
+/**
+ * Reverse geocoding resolves a coordinate to its CITY, and never anything finer.
+ *
+ * The resolved name is not just a label: it is sent to the API as the `city`
+ * filter, which matches it against the city stored on each location
+ * (`map_point.cityNorm`). So it must resolve to the same level a business
+ * address stores — the city — and nothing below it:
+ *  - `place` in Romania is the neighbourhood ("Berceni", "Titan - Balta Albă")
+ *  - `municipal_district` is the sector ("Sector 3")
+ * Neither can ever match a stored city, and because every search is `strict`
+ * the map comes back EMPTY rather than merely wrong.
+ *
+ * Hence this chain: municipality ("Cluj-Napoca") → locality (communes and
+ * villages) → region. The `region` fallback exists because Bucharest has NO
+ * municipality feature in MapTiler — the city itself is `region.557`
+ * ("București"). MapTiler orders most-specific-first, so `features[0]` is the
+ * municipality wherever one exists and the region only where it does not.
+ *
+ * Mirrors the RN marketplace-app's `locationApi.reverse`.
+ */
+const REVERSE_TYPES = "municipality,locality,region";
 
 export interface CityResult {
   id: string;
@@ -127,11 +146,16 @@ export async function searchCities(
 // ── Reverse geocoding ──────────────────────────────────────────────────────
 
 /**
- * Reverse geocode a coordinate → the best-match CityResult, or null.
+ * Reverse geocode a coordinate → the enclosing CITY, or null.
  *
  * NOTE: MapTiler's reverse endpoint takes coordinates as `lng,lat`.
  * Returns null when the key is absent, the response is non-ok/empty, or any
  * fetch/abort/parse error occurs. Never throws.
+ *
+ * The caller's own coordinates are kept: the geocode contributes the city NAME
+ * (and a stable feature id), but "near you" must stay anchored to the user, not
+ * drift to the city's centroid — which for Bucharest is several km away from
+ * anyone who is not standing in Piața Universității.
  */
 export async function reverseGeocode(
   lat: number,
@@ -148,7 +172,8 @@ export async function reverseGeocode(
     const json = (await res.json()) as MapTilerResponse;
     const first = json.features?.[0];
     if (!first) return null;
-    return featureToCity(first);
+    const city = featureToCity(first);
+    return city && { ...city, lat, lng };
   } catch {
     // Includes AbortError — treated as "no match", never surfaced.
     return null;

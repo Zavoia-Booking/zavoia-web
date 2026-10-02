@@ -1,27 +1,14 @@
 import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { dictionaries } from "@/i18n/dictionaries";
-import { Icon, type IconName } from "@/components/ui/icon";
-import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
-import type { CategoryKey } from "@/components/ui/cat-dot";
+import { Icon } from "@/components/ui/icon";
+import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
+import {
+  industryAccent,
+  industryIcon,
+  resolveIndustrySlug,
+} from "@/lib/marketplace/industry-visuals";
 import type { Industry } from "@/lib/api/marketplace/types";
-
-// Category → icon + dot colour. The colour comes from the per-category CSS var.
-const CAT_ICON: Record<CategoryKey, IconName> = {
-  hair: "scissors",
-  color: "sparkle",
-  nails: "sparkle",
-  skin: "sparkle",
-  massage: "sparkle",
-  brow: "sparkle",
-  auto: "car",
-  dental: "tooth",
-  cleaning: "broom",
-  fitness: "dumbbell",
-  pets: "paw",
-  trades: "wrench",
-};
 
 // Server component: a horizontal rail of round category chips, one per
 // industry TAG, deep-linking to search with a `?tagIds=<id>` querystring.
@@ -34,7 +21,6 @@ export function CategoryRail({
   locale: Locale;
   industries: Industry[];
 }) {
-  const dict = dictionaries[locale];
   const seen = new Set<number>();
   const tagChips = industries.flatMap((industry) =>
     industry.tags.map((tag) => ({ tag, industry })),
@@ -51,8 +37,7 @@ export function CategoryRail({
     <section className="zw-container" style={{ paddingTop: 44 }}>
       <div className="zw-scroll-x" style={{ gap: 6, paddingBottom: 6 }}>
         {chips.map(({ tag, industry }) => {
-          const cat = toCat(industry);
-          const icon = CAT_ICON[cat];
+          const slug = resolveIndustrySlug(industry.slug);
           return (
             <Link
               key={tag.id}
@@ -85,7 +70,7 @@ export function CategoryRail({
                   justifyContent: "center",
                 }}
               >
-                <Icon name={icon} size={21} color={`var(--cat-${cat})`} />
+                <Icon name={industryIcon(slug)} size={21} color={industryAccent(slug)} />
               </span>
               <span
                 style={{

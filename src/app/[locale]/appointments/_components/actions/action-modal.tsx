@@ -105,7 +105,7 @@ export function ActionModal({
         className={closing ? "zw-modal-out" : "zw-modal-in"}
         style={{
           width: `min(${width}px, 100%)`,
-          maxHeight: "calc(100vh - 40px)",
+          maxHeight: "calc(100dvh - 40px)",
           background: "var(--c-canvas)",
           borderRadius: 24,
           boxShadow: "var(--sh-xl)",

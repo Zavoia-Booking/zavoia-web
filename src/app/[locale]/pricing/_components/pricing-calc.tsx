@@ -105,11 +105,14 @@ export function PricingCalc({ copy }: { copy: PricingCalcCopy }) {
                 {format(copy.plan.trialBadge, { trial: String(pricing.trialDays) })}
               </span>
             </div>
+            {/* The figure never breaks ("100 RON" stays on one line); on a
+                narrow screen the caption wraps under it instead. */}
             <div
               style={{
                 display: "flex",
+                flexWrap: "wrap",
                 alignItems: "baseline",
-                gap: 12,
+                gap: "6px 12px",
                 marginTop: 26,
               }}
             >
@@ -119,6 +122,7 @@ export function PricingCalc({ copy }: { copy: PricingCalcCopy }) {
                   fontWeight: 700,
                   letterSpacing: "-0.05em",
                   lineHeight: 1,
+                  whiteSpace: "nowrap",
                   fontVariantNumeric: "tabular-nums",
                 }}
               >

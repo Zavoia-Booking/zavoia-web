@@ -302,6 +302,63 @@ const ICONS = {
   wrench: (
     <path d="M14.5 3.5a4 4 0 0 0-4.8 4.8L3 15l3 3 6.7-6.7a4 4 0 0 0 4.8-4.8L15 9l-2-2 1.5-3.5z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" />
   ),
+  // ── Industry glyphs ──────────────────────────────────────────────────────
+  // One per canonical industry slug (see lib/marketplace/industry-visuals.ts).
+  // Stroke-only and centred in the 24 box, because they are also rasterised
+  // into the map's pin badges where they sit on a coloured disc.
+  leaf: (
+    <>
+      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M3 21c0-3 1.9-5.4 5.1-6C10.5 14.5 13 13 14 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </>
+  ),
+  droplets: (
+    <>
+      <path d="M7 16.3a4 4 0 0 0 4-4.1c0-1.2-.6-2.3-1.7-3.2C8.1 8 7.3 6.7 7 5.3c-.3 1.4-1.1 2.8-2.3 3.7C3.6 9.9 3 11 3 12.2a4 4 0 0 0 4 4.1z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M12.6 6.6A11 11 0 0 0 14 3c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a7 7 0 0 1-11.9 5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  flower: (
+    <>
+      <circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 16.6a4.6 4.6 0 1 1-4.6-4.6A4.6 4.6 0 1 1 12 7.4a4.6 4.6 0 1 1 4.6 4.6 4.6 4.6 0 1 1-4.6 4.6z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+    </>
+  ),
+  stethoscope: (
+    <>
+      <path d="M5 2v6a5 5 0 0 0 10 0V2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M3.5 2h3M13.5 2h3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M10 13v2a5 5 0 0 0 10 0v-2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="20" cy="11" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    </>
+  ),
+  briefcase: (
+    <>
+      <rect x="2.5" y="6.5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8.5 6.5V5a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M2.5 12h19" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    </>
+  ),
+  graduationCap: (
+    <>
+      <path d="M12 3.4 22 8l-10 4.6L2 8l10-4.6z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M6.5 10.4V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-5.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M21.5 8.3v5.2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </>
+  ),
+  camera: (
+    <>
+      <path d="M9.5 4h5l2 3H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3.5l2-3z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    </>
+  ),
+  shapes: (
+    <>
+      <path d="M12 2.8 16.8 11H7.2L12 2.8z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <rect x="2.8" y="13.8" width="7.4" height="7.4" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="17.5" cy="17.5" r="3.7" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    </>
+  ),
   whatIcon: (
     <>
       <circle cx="11" cy="11" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />

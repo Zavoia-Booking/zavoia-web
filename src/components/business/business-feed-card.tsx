@@ -5,6 +5,7 @@ import type { CSSProperties, KeyboardEvent } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Img } from "@/components/ui/image";
 import { Icon } from "@/components/ui/icon";
+import { industryAccent } from "@/lib/marketplace/industry-visuals";
 import type { BusinessCardData } from "./types";
 
 export interface BusinessFeedCardProps {
@@ -103,7 +104,7 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
             gap: 5,
             fontSize: 11,
             fontWeight: 700,
-            color: `var(--cat-${b.cat})`,
+            color: industryAccent(b.cat),
             letterSpacing: "0.02em",
             textTransform: "uppercase",
             whiteSpace: "nowrap",
@@ -117,7 +118,7 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
               width: 6,
               height: 6,
               borderRadius: "50%",
-              background: `var(--cat-${b.cat})`,
+              background: industryAccent(b.cat),
               flexShrink: 0,
             }}
           />

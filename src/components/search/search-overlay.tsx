@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Icon, type IconName } from "@/components/ui/icon";
+import { Icon } from "@/components/ui/icon";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -18,11 +18,14 @@ import { localeHref } from "@/i18n/routes";
 import { Img } from "@/components/ui/image";
 import {
   taxonomyLabel,
-  toCat,
   businessCardToData,
   locationCardToData,
 } from "@/lib/marketplace/card-mappers";
-import type { CategoryKey } from "@/components/ui/cat-dot";
+import {
+  industryAccent,
+  industryIcon,
+  resolveIndustrySlug,
+} from "@/lib/marketplace/industry-visuals";
 import { getIndustries } from "@/lib/api/marketplace/public";
 import type {
   BusinessCard,
@@ -96,22 +99,6 @@ export const EMPTY_QUERY: QueryModel = {
 
 // Radius (km) applied to a coordinate search — matches the RN marketplace app.
 const DEFAULT_RADIUS = 20;
-
-// Category → icon, mirroring the home category rail so the grid is consistent.
-const CAT_ICON: Record<CategoryKey, IconName> = {
-  hair: "scissors",
-  color: "sparkle",
-  nails: "sparkle",
-  skin: "sparkle",
-  massage: "sparkle",
-  brow: "sparkle",
-  auto: "car",
-  dental: "tooth",
-  cleaning: "broom",
-  fitness: "dumbbell",
-  pets: "paw",
-  trades: "wrench",
-};
 
 // Static city convenience list — these just prefill the city text box. There is
 // no city API; this is the unlabeled fallback shown only when there are no
@@ -486,7 +473,7 @@ function CategoryBrowse({
       }}
     >
       {industries.map((ind) => {
-        const cat = toCat(ind);
+        const slug = resolveIndustrySlug(ind.slug);
         const isExpanded = !!expanded[ind.slug];
         const overflow = ind.tags.length > TAGS_COLLAPSED;
         // Collapsed → first N tags, plus any selected tag beyond the window
@@ -513,7 +500,7 @@ function CategoryBrowse({
                 padding: "0 2px",
               }}
             >
-              <Icon name={CAT_ICON[cat]} size={15} color={`var(--cat-${cat})`} />
+              <Icon name={industryIcon(slug)} size={15} color={industryAccent(slug)} />
               <span
                 style={{
                   fontSize: 13.5,

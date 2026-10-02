@@ -2,7 +2,8 @@
 
 import { Chip } from "@/components/ui/chip";
 import { CatDot } from "@/components/ui/cat-dot";
-import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
+import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
+import { resolveIndustrySlug } from "@/lib/marketplace/industry-visuals";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/dictionaries";
 import type { Industry } from "@/lib/api/marketplace/types";
@@ -53,7 +54,7 @@ export function FilterRow({
             onSelectIndustry(activeSlug === c.slug ? null : c.slug)
           }
         >
-          <CatDot cat={toCat(c)} size={6} />
+          <CatDot cat={resolveIndustrySlug(c.slug)} size={6} />
           {taxonomyLabel(c, locale)}
         </Chip>
       ))}

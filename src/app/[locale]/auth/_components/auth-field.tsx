@@ -127,7 +127,7 @@ export function AuthField({
             onClick={() => setShowPassword((v) => !v)}
             tabIndex={-1}
             aria-label={showPassword ? hidePasswordLabel : showPasswordLabel}
-            className="absolute top-1/2 right-3 flex -translate-y-1/2 cursor-pointer items-center justify-center text-primary transition-colors hover:text-p-600"
+            className="absolute top-1/2 right-1 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-primary transition-colors hover:text-p-600"
           >
             <EyeGlyph off={showPassword} />
           </button>

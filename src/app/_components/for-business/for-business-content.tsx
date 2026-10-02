@@ -156,12 +156,12 @@ function FbHero({
               {s.ctaPricing}
             </Link>
           </div>
+          {/* Separators are drawn by CSS (.zw-dotlist) so a wrapped line never
+              starts or ends with an orphaned "·" on narrow screens. */}
           <div
+            className="zw-dotlist"
             style={{
               marginTop: 26,
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "8px 18px",
               fontFamily: "var(--font-mono)",
               fontSize: 11.5,
               fontWeight: 600,
@@ -171,9 +171,7 @@ function FbHero({
             }}
           >
             <span>{s.trust.noCommission}</span>
-            <span aria-hidden="true">·</span>
             <span>{s.trust.noFees}</span>
-            <span aria-hidden="true">·</span>
             <span>{s.trust.freeTrial}</span>
           </div>
         </div>
@@ -1016,17 +1014,21 @@ function FbSwitch({ onOpenDashboard }: { onOpenDashboard: () => void }) {
           </div>
           {s.rows.map((r, i) => {
             const [zavTone, marketTone, softTone] = FB_COMPARE_TONES[i];
-            const cells: { key: string; text: string; tone: FbTone; zav: boolean }[] = [
-              { key: "zav", text: r.zav, tone: zavTone, zav: true },
-              { key: "market", text: r.market, tone: marketTone, zav: false },
-              { key: "soft", text: r.soft, tone: softTone, zav: false },
+            const cells: { key: string; col: string; text: string; tone: FbTone; zav: boolean }[] = [
+              { key: "zav", col: s.colZavoia, text: r.zav, tone: zavTone, zav: true },
+              { key: "market", col: s.colMarket, text: r.market, tone: marketTone, zav: false },
+              { key: "soft", col: s.colSoft, text: r.soft, tone: softTone, zav: false },
             ];
             return (
               <div className="fbcompare-row" key={r.label}>
                 <div className="fbcompare-rowlabel">{r.label}</div>
                 {cells.map((cell) => (
+                  // data-col: on narrow screens the head row is hidden and each
+                  // cell prints its column name itself (CSS ::before), so the
+                  // table stacks into per-feature cards instead of side-scrolling.
                   <div
                     key={cell.key}
+                    data-col={cell.col}
                     className={"fbcompare-cell" + (cell.zav ? " fbcompare-zav" : "")}
                   >
                     <FbMark tone={cell.tone} />
@@ -1327,13 +1329,14 @@ function FbPricingStrip({
           gap: "20px 36px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexShrink: 0 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "4px 12px", minWidth: 0 }}>
           <span
             style={{
               fontSize: "clamp(42px, 4vw, 56px)",
               fontWeight: 700,
               letterSpacing: "-0.05em",
               lineHeight: 1,
+              whiteSpace: "nowrap",
               color: "var(--c-900)",
               fontVariantNumeric: "tabular-nums",
             }}

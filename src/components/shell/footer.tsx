@@ -46,7 +46,7 @@ export function Footer({ locale }: { locale: Locale }) {
   const fLink = (label: string, style: CSSProperties, ...segments: string[]) => (
     <Link
       href={localeHref(locale, ...segments)}
-      className="zw-link"
+      className="zw-link zw-footer-link"
       style={style}
     >
       {label}

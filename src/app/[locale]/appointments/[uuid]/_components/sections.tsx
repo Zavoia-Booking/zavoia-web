@@ -1294,7 +1294,7 @@ export function MobileBar({
 
   return (
     <div
-      className="zw-only-mobile zv-frost"
+      className="zw-only-mobile zv-frost zw-mobile-actionbar"
       style={{
         position: "fixed",
         left: 0,

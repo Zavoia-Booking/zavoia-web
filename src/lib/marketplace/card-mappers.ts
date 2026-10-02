@@ -9,6 +9,7 @@
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import type { CategoryKey } from "@/components/ui/cat-dot";
+import { industrySlugOf } from "./industry-visuals";
 import type { BusinessCardData } from "@/components/business/types";
 import type {
   BrandCard,
@@ -20,30 +21,18 @@ import type {
 import { openStatus } from "./working-hours";
 
 /**
- * Best-effort industry → category-dot key. Matches slug first, then name,
- * checking the most specific tokens before the broader ones. Defaults to
- * `"hair"` so the dot/colour always resolves.
+ * Industry → category key, i.e. the canonical industry slug.
+ *
+ * Cards embed an `IndustryRef` carrying only an id and an English name, so pass
+ * `slugById` (built from the loaded taxonomy) wherever it is available for an
+ * exact mapping; without it this falls back to the canonical name table. See
+ * `lib/marketplace/industry-visuals.ts`.
  */
 export function toCat(
-  industry?: { name?: string | null; slug?: string | null } | null,
+  industry?: { id?: number; name?: string | null; slug?: string | null } | null,
+  slugById?: ReadonlyMap<number, string>,
 ): CategoryKey {
-  const haystack = `${industry?.slug ?? ""} ${industry?.name ?? ""}`.toLowerCase();
-  const has = (...tokens: string[]) => tokens.some((t) => haystack.includes(t));
-
-  // Order matters: check narrower categories before broader fallbacks.
-  if (has("color", "colour")) return "color";
-  if (has("nails", "nail", "manicure")) return "nails";
-  if (has("brow", "brows", "lash", "lashes")) return "brow";
-  if (has("skin", "skincare", "facial", "aesthetics", "beauty")) return "skin";
-  if (has("massage", "spa", "wellness")) return "massage";
-  if (has("auto", "automotive", "garage", "mot", "car")) return "auto";
-  if (has("dental", "dentist")) return "dental";
-  if (has("cleaning", "cleaner")) return "cleaning";
-  if (has("fitness", "gym", "training", "pilates")) return "fitness";
-  if (has("pets", "pet", "grooming")) return "pets";
-  if (has("trades", "electrician", "plumber", "handyman")) return "trades";
-  if (has("hair", "barber", "salon")) return "hair";
-  return "hair";
+  return industrySlugOf(industry, slugById);
 }
 
 /**
@@ -67,13 +56,14 @@ export function taxonomyLabel(
 export function businessCardToData(
   b: BusinessCard,
   locale: Locale,
+  slugById?: ReadonlyMap<number, string>,
 ): BusinessCardData {
   const navTarget = b.slug ?? b.primaryLocationId;
   return {
     id: b.id,
     slug: b.slug ?? undefined,
     name: b.name,
-    cat: toCat(b.industry),
+    cat: toCat(b.industry, slugById),
     catLabel: b.industry ? taxonomyLabel(b.industry, locale) : undefined,
     rating: b.averageRating ?? undefined,
     reviews: b.totalReviews,
@@ -122,13 +112,14 @@ export function brandCardToData(b: BrandCard, locale: Locale): BusinessCardData 
 export function locationCardToData(
   l: LocationCard,
   locale: Locale,
+  slugById?: ReadonlyMap<number, string>,
 ): BusinessCardData {
   const os = openStatus(l);
   return {
     id: l.id,
     slug: l.slug,
     name: l.name,
-    cat: toCat(l.industry),
+    cat: toCat(l.industry, slugById),
     catLabel: l.industry ? taxonomyLabel(l.industry, locale) : undefined,
     rating: l.averageRating ?? undefined,
     reviews: l.totalReviews,

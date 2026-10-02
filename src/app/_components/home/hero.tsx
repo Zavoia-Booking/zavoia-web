@@ -120,7 +120,7 @@ export function Hero() {
         }}
       >
         <h1
-          className="txt-balance zw-rise"
+          className="txt-balance zw-rise zw-hero-h1"
           style={{
             margin: 0,
             fontSize: "clamp(48px, 6.6vw, 88px)",

@@ -2,12 +2,15 @@
 
 import type { CSSProperties } from "react";
 import { Icon } from "@/components/ui/icon";
+import { Spinner } from "@/components/ui/spinner";
 
 export interface MapControlsProps {
   onRecenter?: () => void;
   onLayers?: () => void;
   recenterAria: string;
   layersAria?: string;
+  /** A fix is being resolved — the crosshair shows a spinner and ignores taps. */
+  busy?: boolean;
 }
 
 // Map control stack — recenter / layers. Each button is skipped when its
@@ -17,6 +20,7 @@ export function MapControls({
   onLayers,
   recenterAria,
   layersAria,
+  busy = false,
 }: MapControlsProps) {
   const btn: CSSProperties = {
     width: 40,
@@ -35,17 +39,9 @@ export function MapControls({
 
   if (!onLayers && !onRecenter) return null;
 
+  // Positioning is the caller's — this is just the stack.
   return (
-    <div
-      style={{
-        position: "absolute",
-        right: 12,
-        zIndex: 25,
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {onLayers && (
         <button
           type="button"
@@ -61,11 +57,12 @@ export function MapControls({
         <button
           type="button"
           className="tap"
-          style={btn}
-          onClick={onRecenter}
+          style={{ ...btn, cursor: busy ? "default" : "pointer" }}
+          onClick={busy ? undefined : onRecenter}
           aria-label={recenterAria}
+          aria-busy={busy}
         >
-          <Icon name="nav" size={17} />
+          {busy ? <Spinner size={17} color="var(--c-900)" /> : <Icon name="nav" size={17} />}
         </button>
       )}
     </div>

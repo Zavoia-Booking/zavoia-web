@@ -109,6 +109,58 @@ export const RECENT_LOCATIONS_KEY = "zw-recent-locations";
 /** Maximum number of recent locations kept. */
 export const MAX_RECENT_LOCATIONS = 5;
 
+/**
+ * Storage-schema stamp for the recent-locations list.
+ *
+ * v1: reverse geocoding used to resolve a GPS fix to a NEIGHBOURHOOD
+ * ("Berceni", "Titan - Balta Albă") or a SECTOR ("Sector 3") instead of the
+ * city, and that name was recorded here — then fed to the backend's `city`
+ * filter, which can never match a stored `map_point.cityNorm`, so the map came
+ * back empty. `reverseGeocode` no longer asks for those MapTiler types, but
+ * names captured before the fix are still in storage, so they are purged once.
+ *
+ * MapTiler feature ids carry their type as a prefix (`place.123`,
+ * `municipality.456`), which is what lets the purge be surgical: only the
+ * sub-city levels go, and a city the user picked themselves is kept.
+ */
+const RECENT_LOCATIONS_VERSION_KEY = "zw-recent-locations-v";
+const RECENT_LOCATIONS_VERSION = "1";
+
+/** MapTiler id prefixes that can never match a stored city. */
+const SUB_CITY_ID_PREFIXES = ["place.", "municipal_district.", "neighbourhood."];
+
+function isSubCityEntry(c: CityResult): boolean {
+  return SUB_CITY_ID_PREFIXES.some((p) => c.id.startsWith(p));
+}
+
+/**
+ * Drop pre-fix sub-city entries, once per browser. Runs lazily from the first
+ * read rather than on import, so it stays SSR-safe and costs nothing until the
+ * list is actually used.
+ */
+function migrateRecentLocations(stored: CityResult[]): CityResult[] {
+  try {
+    if (
+      window.localStorage.getItem(RECENT_LOCATIONS_VERSION_KEY) ===
+      RECENT_LOCATIONS_VERSION
+    ) {
+      return stored;
+    }
+    const kept = stored.filter((c) => !isSubCityEntry(c));
+    if (kept.length !== stored.length) {
+      window.localStorage.setItem(RECENT_LOCATIONS_KEY, JSON.stringify(kept));
+    }
+    window.localStorage.setItem(
+      RECENT_LOCATIONS_VERSION_KEY,
+      RECENT_LOCATIONS_VERSION,
+    );
+    return kept;
+  } catch {
+    // Storage disabled — nothing to migrate, and nothing to remember.
+    return stored;
+  }
+}
+
 /** Read the recent-locations list (most-recent first). */
 export function getRecentLocations(): CityResult[] {
   if (typeof window === "undefined") return [];
@@ -116,7 +168,7 @@ export function getRecentLocations(): CityResult[] {
     const raw = window.localStorage.getItem(RECENT_LOCATIONS_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
+    const valid = parsed.filter(
       (v): v is CityResult =>
         !!v &&
         typeof v === "object" &&
@@ -125,6 +177,7 @@ export function getRecentLocations(): CityResult[] {
         Number.isFinite((v as CityResult).lat) &&
         Number.isFinite((v as CityResult).lng),
     );
+    return migrateRecentLocations(valid);
   } catch {
     return [];
   }

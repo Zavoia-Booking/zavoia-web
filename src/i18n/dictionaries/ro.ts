@@ -945,6 +945,9 @@ export const ro: Dictionary = {
     centeredOnLocation: "Centrat pe locația ta",
     closePinCard: "Închide",
     mapUnavailable: "Harta este indisponibilă",
+    pinListLabel: "Locuri pe hartă",
+    browseMore: "Mai multe",
+    sheetHandleAria: "Trage pentru a redimensiona panoul cu rezultate",
     filters: {
       title: "Filtre",
       activeLabel: "Filtre, {count} active",

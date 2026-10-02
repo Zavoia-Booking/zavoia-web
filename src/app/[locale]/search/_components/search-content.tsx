@@ -24,8 +24,11 @@ import {
 import {
   businessCardToData,
   locationCardToData,
-  toCat,
 } from "@/lib/marketplace/card-mappers";
+import {
+  buildSlugById,
+  industrySlugOf,
+} from "@/lib/marketplace/industry-visuals";
 import { searchListings } from "@/lib/api/marketplace/public";
 import { errorMessage } from "@/lib/api/error-messages";
 import type {
@@ -58,9 +61,16 @@ import { useVenueTags } from "@/lib/search/use-venue-tags";
 import { FiltersPanel } from "./filters-panel";
 import { LocationPermissionModal } from "@/components/search/location-permission-modal";
 import { MapFloatingCard } from "@/components/search/map-floating-card";
-import { ipLocate } from "@/lib/geocoding";
+import { getBrowserLocation, ipLocate } from "@/lib/geocoding";
 import { getRecentViews } from "@/lib/recent-views";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
+import { TagRail } from "@/components/search/tag-rail";
+import {
+  BottomSheet,
+  type BottomSheetHandle,
+  type SheetPosition,
+} from "@/components/search/bottom-sheet";
+import { MapSkeleton } from "@/components/search/map-skeleton";
 import { SortMenu } from "./sort-menu";
 import { FilterRow } from "./filter-row";
 
@@ -163,6 +173,10 @@ export function SearchContent({
   );
   const activeFilterCount = countActiveFilters(filters);
 
+  // industry id → slug, so a card's slug-less `IndustryRef` resolves exactly
+  // against the visual registry instead of being guessed from its name.
+  const slugById = useMemo(() => buildSlugById(industries), [industries]);
+
   const hasGeo = derived.lat != null && derived.lng != null;
 
   // A stable key for the current request (excludes the client-only filters),
@@ -212,7 +226,6 @@ export function SearchContent({
     () => numParam(sp.get("focus")) ?? null,
   );
   const [hoverId, setHoverId] = useState<number | null>(null);
-  const [mobileView, setMobileView] = useState<"map" | "list">("map");
   const [isMobile, setIsMobile] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -235,6 +248,59 @@ export function SearchContent({
 
   const listRef = useRef<HTMLDivElement>(null);
   const mapHandleRef = useRef<MapboxSurfaceHandle>(null);
+  const sheetRef = useRef<BottomSheetHandle>(null);
+  const [sheetPosition, setSheetPosition] = useState<SheetPosition>("mid");
+
+  // The mobile tab bar is fixed to the bottom of the viewport, so the map
+  // region has to stop above it or the sheet's peek — and the last result row
+  // — sit underneath it. Measured rather than assumed: the bar's height is
+  // content-driven and grows by the device's bottom safe area.
+  const [tabBarH, setTabBarH] = useState(0);
+  useEffect(() => {
+    const nav = document.querySelector<HTMLElement>("nav.zw-only-mobile");
+    if (!nav) return;
+    const ro = new ResizeObserver(() =>
+      setTabBarH(nav.getBoundingClientRect().height),
+    );
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, []);
+
+  // ── First-load shell ─────────────────────────────────────────────────────
+  // Two-phase mount: the first commit paints the skeleton alone, and mapbox-gl
+  // — by far the heaviest thing on the page — is mounted on the next idle
+  // callback. Mounting both together gates the skeleton on constructing the
+  // very view it exists to mask.
+  const [mapMounted, setMapMounted] = useState(false);
+  useEffect(() => {
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void) => number;
+      cancelIdleCallback?: (h: number) => void;
+    };
+    if (w.requestIdleCallback) {
+      const h = w.requestIdleCallback(() => setMapMounted(true));
+      return () => w.cancelIdleCallback?.(h);
+    }
+    const h = window.setTimeout(() => setMapMounted(true), 0);
+    return () => window.clearTimeout(h);
+  }, []);
+
+  // The skeleton lifts on the map's first IDLE — tiles actually on screen,
+  // which is later than "the style loaded". A safety net lifts it regardless,
+  // so a missed event can never leave the page covered.
+  const [mapPainted, setMapPainted] = useState(false);
+  const [skeletonMounted, setSkeletonMounted] = useState(true);
+  const onMapFirstPaint = useCallback(() => setMapPainted(true), []);
+  useEffect(() => {
+    if (mapPainted) return;
+    const h = window.setTimeout(() => setMapPainted(true), 4000);
+    return () => window.clearTimeout(h);
+  }, [mapPainted]);
+  useEffect(() => {
+    if (!mapPainted || !skeletonMounted) return;
+    const h = window.setTimeout(() => setSkeletonMounted(false), 320);
+    return () => window.clearTimeout(h);
+  }, [mapPainted, skeletonMounted]);
 
   // ── Responsive flag (window.matchMedia) ─────────────────────────────────
   useEffect(() => {
@@ -403,6 +469,8 @@ export function SearchContent({
 
   // ── Geographic pins (over the FULL accumulated visible set) ─────────────
   // Locations without coordinates are skipped (no marker) but still list-rendered.
+  // `cat` is the canonical industry slug, resolved through the loaded taxonomy —
+  // the cards only carry an industry id and an English name.
   const pins: GeoPin[] = useMemo(() => {
     const out: GeoPin[] = [];
     for (const l of visibleLocations) {
@@ -410,13 +478,13 @@ export function SearchContent({
       out.push({
         id: l.id,
         name: l.name,
-        cat: toCat(l.industry),
+        cat: industrySlugOf(l.industry, slugById),
         lat: l.latitude,
         lng: l.longitude,
       });
     }
     return out;
-  }, [visibleLocations]);
+  }, [visibleLocations, slugById]);
 
   // The SEARCH anchor — the current URL lat/lng. Drives the 2km "Search this
   // area" pan threshold. NOT the user dot (that's `deviceLocation`).
@@ -433,9 +501,9 @@ export function SearchContent({
     () =>
       visibleLocations.map((l) => ({
         id: l.id,
-        data: locationCardToData(l, locale),
+        data: locationCardToData(l, locale, slugById),
       })),
-    [visibleLocations, locale],
+    [visibleLocations, locale, slugById],
   );
 
   // Floating-card data for the selected pin — pulled from already-loaded rows
@@ -450,9 +518,9 @@ export function SearchContent({
     if (!derived.search) return [];
     return businesses.map((b) => ({
       id: b.id,
-      data: businessCardToData(b, locale),
+      data: businessCardToData(b, locale, slugById),
     }));
-  }, [businesses, derived.search, locale]);
+  }, [businesses, derived.search, locale, slugById]);
 
   const resultCount = visibleLocations.length + businessRows.length;
 
@@ -472,7 +540,17 @@ export function SearchContent({
   }, [selectedId]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  const onPinSelect = useCallback((id: number) => setSelectedId(id), []);
+  const onPinSelect = useCallback((id: number) => {
+    setSelectedId(id);
+    // Get the sheet out of the way so the pin's card is actually on screen.
+    sheetRef.current?.snapTo("down");
+  }, []);
+
+  // The instant a real gesture starts moving the map, collapse the sheet to its
+  // peek — the map is what the user reached for.
+  const onUserMoveStart = useCallback(() => {
+    sheetRef.current?.snapTo("down");
+  }, []);
 
   // ── "See on map" deep link (?focus=<locationId>) ────────────────────────
   // Selection is seeded in useState above; this flies the camera to the
@@ -486,14 +564,23 @@ export function SearchContent({
     const loc = locations.find((l) => l.id === focusId);
     if (!loc || loc.latitude == null || loc.longitude == null) return;
     focusedOnce.current = true;
-    mapHandleRef.current?.flyTo({ lat: loc.latitude, lng: loc.longitude });
+    // An "arrival" — place the camera, don't animate a fly across the country.
+    mapHandleRef.current?.flyTo(
+      { lat: loc.latitude, lng: loc.longitude },
+      { zoom: 14, duration: 0 },
+    );
   }, [sp, locations]);
 
   // "Search this area" — re-anchor on the new map center; radius stays fixed.
   // updateParams triggers the fetch via the requestKey effect, so no separate
   // fetch is needed here.
+  // The camera is ALREADY on the panned centre — re-anchoring must not move it
+  // again, which is what the old fit-to-results did: pick an area, get panned
+  // straight back off it. The flag is consumed by the anchor-follow effect.
+  const skipAnchorFly = useRef(false);
   const onSearchArea = useCallback(
     ({ lat, lng }: { lat: number; lng: number }) => {
+      skipAnchorFly.current = true;
       updateParams({
         lat: lat.toFixed(6),
         lng: lng.toFixed(6),
@@ -636,37 +723,99 @@ export function SearchContent({
     });
   }, [updateParams]);
 
+  // ── "My location" (the crosshair) ────────────────────────────────────────
+  // The ladder the mobile app uses, in order: the position the map ALREADY
+  // holds for the blue dot, then a fresh fix, then the stored anchor. A fresh
+  // `getCurrentPosition` can take many seconds and fail indoors, so it never
+  // gates the common path — when there is already a dot, the camera moves at
+  // once and the fix refreshes behind it.
+  //
+  // Raw coordinates only: no reverse geocode on this path. The button recentres
+  // and re-anchors; it does not rename where the user is.
+  const [locating, setLocating] = useState(false);
+  const locatingRef = useRef(false);
+
+  const recenterTo = useCallback(
+    (loc: GeoPoint) => {
+      setDeviceLocation(loc);
+      // Fly the camera ourselves: when the URL is already anchored on this
+      // position, updateParams is a no-op and no refetch follows — and when it
+      // is not, the flag stops the anchor-follow effect flying a second time.
+      skipAnchorFly.current = true;
+      mapHandleRef.current?.flyTo(loc);
+      updateParams({
+        lat: loc.lat.toFixed(6),
+        lng: loc.lng.toFixed(6),
+        radius: String(SEARCH_RADIUS_KM),
+      });
+    },
+    [updateParams],
+  );
+
   const requestLocation = useCallback(() => {
+    if (locatingRef.current) return;
     // Geolocation unsupported/blocked → route to the priming modal (its
     // "Use my location" gracefully falls back to IP/Bucharest).
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setLocationModalOpen(true);
       return;
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        };
-        setDeviceLocation(loc);
-        // Fly the camera ourselves: when the URL is already anchored on this
-        // position, updateParams is a no-op and no refetch/refit follows.
-        mapHandleRef.current?.flyTo(loc);
-        updateParams({
-          lat: String(loc.lat),
-          lng: String(loc.lng),
-          radius: String(SEARCH_RADIUS_KM),
-        });
-        toast(t.centeredOnLocation, "nav");
-      },
-      () => {
-        // Permission denied / unavailable → reopen the modal instead of toasting.
-        setLocationModalOpen(true);
-      },
-      { enableHighAccuracy: true, timeout: 8000 },
-    );
-  }, [toast, t.centeredOnLocation, updateParams]);
+    // A dot on the map already means a position we can trust enough to move to.
+    if (deviceLocation) {
+      recenterTo(deviceLocation);
+      toast(t.centeredOnLocation, "nav");
+      // Refresh it quietly for next time; a failure changes nothing on screen.
+      void getBrowserLocation().then((fresh) => {
+        if (fresh) setDeviceLocation(fresh);
+      });
+      return;
+    }
+    locatingRef.current = true;
+    setLocating(true);
+    void getBrowserLocation()
+      .then((loc) => {
+        if (loc) {
+          recenterTo(loc);
+          toast(t.centeredOnLocation, "nav");
+          return;
+        }
+        // No fix. Fall back to the anchor the results are already using, so the
+        // button still does something rather than silently failing — and only
+        // reopen the priming modal when there is nowhere at all to go.
+        if (searchAnchor) mapHandleRef.current?.flyTo(searchAnchor);
+        else setLocationModalOpen(true);
+      })
+      .finally(() => {
+        locatingRef.current = false;
+        setLocating(false);
+      });
+  }, [deviceLocation, recenterTo, searchAnchor, toast, t.centeredOnLocation]);
+
+  // ── The camera follows the anchor ────────────────────────────────────────
+  // Picking a place (overlay, city chip, "use my location") re-anchors the
+  // results, and the map has to agree — searching Cluj while the camera sits
+  // over Bucharest shows an empty map over the wrong city.
+  //
+  // What this deliberately does NOT do is fit the camera to the results on
+  // every fetch: that fought the user after a "Search this area", and re-framed
+  // the map behind their back whenever a filter changed the pin set. The mobile
+  // app never auto-fits either.
+  const anchorKey = searchAnchor
+    ? `${searchAnchor.lat},${searchAnchor.lng}`
+    : "";
+  const lastAnchorKey = useRef(anchorKey);
+  useEffect(() => {
+    if (lastAnchorKey.current === anchorKey) return;
+    lastAnchorKey.current = anchorKey;
+    if (skipAnchorFly.current) {
+      skipAnchorFly.current = false;
+      return;
+    }
+    if (searchAnchor) mapHandleRef.current?.flyTo(searchAnchor);
+    // searchAnchor is derived from anchorKey; keying on the string keeps a
+    // fresh object identity from re-flying to the same coordinates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchorKey]);
 
   // ── Edit search — reopen the overlay prefilled from the active URL params ──
   const editSearch = useCallback(() => {
@@ -690,9 +839,6 @@ export function SearchContent({
   const failureMessage = errorMessage(lastError, dict.errors, t.retryError);
 
   const queryLabel = derived.search || t.allServices;
-  // Changing any refinement re-keys the markers so they re-drop with the new set.
-  const filterKey = JSON.stringify(filters);
-  const wave = `${requestKey}|${filterKey}|${locations.length}`;
 
   // ── Header ──────────────────────────────────────────────────────────────
   const panelHeader = (
@@ -851,30 +997,82 @@ export function SearchContent({
     </div>
   );
 
+  // ── The floating browse rail ─────────────────────────────────────────────
+  // A search is running once something names the query. A date alone is a
+  // detail of the search bar, not a search — same rule the mobile app applies.
+  const searchActive =
+    !!derived.search || !!derived.industrySlug || !!derived.tagIds?.length;
+
+  const onPickTag = useCallback(
+    (industry: Industry, tagId: number) => {
+      // A jump, not an added filter: the chip replaces whatever was typed.
+      updateParams({
+        search: null,
+        industry: industry.slug,
+        tagIds: String(tagId),
+      });
+    },
+    [updateParams],
+  );
+
   // ── Map ──────────────────────────────────────────────────────────────────
   // The desktop results panel floats OVER the map's left edge, so the camera
   // fit has to know about it or every result set puts pins underneath it. The
   // number mirrors the panel's own geometry below: 16px inset + its width.
   const panelInsetPx = isMobile ? 0 : PANEL_EDGE_PX + panelWidthPx;
 
-  const mapSurface = (
+  const mapSurfaceInner = (
     <MapboxSurface
       ref={mapHandleRef}
       pins={pins}
-      selectedId={selectedId ?? hoverId}
-      wave={wave}
+      selectedId={selectedId}
+      hoverId={hoverId}
       userPos={deviceLocation}
       onSelect={onPinSelect}
+      onDismiss={() => setSelectedId(null)}
       onHover={isMobile ? undefined : setHoverId}
       onRecenter={requestLocation}
       recenterAria={t.recenterAria}
+      pinListLabel={t.pinListLabel}
+      language={locale}
+      loading={loading}
+      locating={locating}
       anchor={searchAnchor}
       onSearchArea={onSearchArea}
       searchAreaLabel={t.searchThisArea}
+      onUserMoveStart={onUserMoveStart}
+      onFirstPaint={onMapFirstPaint}
+      chromeHidden={isMobile && sheetPosition === "top"}
       unavailableLabel={t.mapUnavailable}
       fitInset={{ left: panelInsetPx }}
+      // Clear the browse rail while it is up; reclaim the space once it steps
+      // aside, so the "Search this area" pill sits where the eye expects it.
+      topInset={searchActive ? 16 : 64}
+      // Above the floating card, and above the mobile sheet's peek.
+      controlsBottom={isMobile ? 200 : selectedCardData ? 128 : 24}
       viewedIds={viewedIds}
     >
+      {/* Browse rail — floats over the map, clear of the desktop results
+          panel. Steps aside the moment a search names the query. */}
+      <div
+        style={{
+          position: "absolute",
+          top: 12,
+          left: isMobile ? 0 : panelInsetPx + 16,
+          right: 0,
+          zIndex: 36,
+          pointerEvents: "none",
+        }}
+      >
+        <div style={{ pointerEvents: "auto" }}>
+          <TagRail
+            industries={industries}
+            onPick={onPickTag}
+            onMore={editSearch}
+            hidden={searchActive || (isMobile && sheetPosition === "top")}
+          />
+        </div>
+      </div>
       <LocationPermissionModal
         open={locationModalOpen}
         onAllow={() => void handleAllow()}
@@ -895,82 +1093,77 @@ export function SearchContent({
         dictionaries={venueTagDictionaries}
       />
       {selectedCardData ? (
-        <MapFloatingCard
-          key={selectedCardData.id}
-          data={selectedCardData}
-          favorited={locFav.isFavorited(Number(selectedCardData.id))}
-          onFavorite={locFav.canFavorite ? locFav.toggle : undefined}
-          onClose={() => setSelectedId(null)}
-          closeAria={t.closePinCard}
-          bottomOffset={isMobile ? 150 : 28}
-          insetLeft={isMobile ? "0px" : "calc(32px + min(424px, 36vw))"}
-          insetRight="0px"
-        />
+        // On mobile the card and the sheet compete for the same strip of
+        // screen, so the card fades and slides out as the sheet is dragged up
+        // — on the sheet's own clock, published as CSS vars, so following it
+        // costs no re-render per frame. Inert on desktop: no sheet, no vars.
+        <div
+          style={{
+            opacity: "calc(1 - var(--zv-sheet-raise, 0))",
+            transform: "translateY(calc(var(--zv-sheet-raise, 0) * 24px))",
+            transition: "var(--zv-sheet-t, none)",
+            pointerEvents: sheetPosition === "down" ? "auto" : "none",
+          }}
+        >
+          <MapFloatingCard
+            key={selectedCardData.id}
+            data={selectedCardData}
+            favorited={locFav.isFavorited(Number(selectedCardData.id))}
+            onFavorite={locFav.canFavorite ? locFav.toggle : undefined}
+            onClose={() => setSelectedId(null)}
+            closeAria={t.closePinCard}
+            bottomOffset={isMobile ? 128 : 28}
+            insetLeft={isMobile ? "0px" : "calc(32px + min(424px, 36vw))"}
+            insetRight="0px"
+          />
+        </div>
       ) : null}
     </MapboxSurface>
   );
 
-  // ── Mobile: list/map toggle ──────────────────────────────────────────────
+  const mapSurface = (
+    <>
+      {mapMounted && mapSurfaceInner}
+      {skeletonMounted && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            // Above the map's own chrome (controls 30, rail 36, pill 40) and
+            // below the results surfaces (sheet 42, card 45, panel 47), which
+            // already have real rows to show while the tiles arrive.
+            zIndex: 41,
+            opacity: mapPainted ? 0 : 1,
+            transition: "opacity .3s var(--ease-out)",
+            pointerEvents: "none",
+          }}
+        >
+          <MapSkeleton railInsetLeft={isMobile ? 0 : panelInsetPx} />
+        </div>
+      )}
+    </>
+  );
+
+  // ── Mobile: the map, with the results on a sheet over it ────────────────
   if (isMobile) {
     return (
       <main
         style={{
           position: "relative",
-          height: "calc(100vh - var(--nav-h))",
-          display: "flex",
-          flexDirection: "column",
+          height: `calc(100dvh - var(--nav-h) - ${tabBarH}px)`,
           overflow: "hidden",
         }}
       >
-        {mobileView === "map" ? (
-          <div style={{ position: "relative", flex: 1 }}>{mapSurface}</div>
-        ) : (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              background: "var(--c-canvas)",
-            }}
-          >
-            {panelHeader}
-            {resultList}
-          </div>
-        )}
-        <button
-          type="button"
-          className="tap"
-          onClick={() =>
-            setMobileView((v) => (v === "map" ? "list" : "map"))
-          }
-          style={{
-            position: "absolute",
-            bottom: 86,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 50,
-            background: "var(--c-ink)",
-            color: "#fff",
-            border: 0,
-            cursor: "pointer",
-            padding: "12px 22px",
-            borderRadius: 999,
-            fontSize: 14,
-            fontWeight: 600,
-            boxShadow: "var(--sh-lg)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-          }}
+        {mapSurface}
+        <BottomSheet
+          ref={sheetRef}
+          initialPosition="mid"
+          onPositionChange={setSheetPosition}
+          handleAria={t.sheetHandleAria}
+          header={panelHeader}
         >
-          <Icon
-            name={mobileView === "map" ? "list" : "pin"}
-            size={15}
-            color="#fff"
-          />
-          {mobileView === "map" ? t.showList : t.showOnMap}
-        </button>
+          {resultList}
+        </BottomSheet>
       </main>
     );
   }
@@ -980,7 +1173,7 @@ export function SearchContent({
     <main
       style={{
         position: "relative",
-        height: "calc(100vh - var(--nav-h))",
+        height: "calc(100dvh - var(--nav-h))",
         overflow: "hidden",
       }}
     >
@@ -991,7 +1184,7 @@ export function SearchContent({
           top: 16,
           left: 16,
           bottom: 16,
-          zIndex: 35,
+          zIndex: 47,
           width: "min(424px, 36vw)",
           background: "rgba(255,255,255,0.97)",
           borderRadius: 22,
@@ -1007,22 +1200,4 @@ export function SearchContent({
       </div>
     </main>
   );
-}
-
-// Promise-wrapped browser geolocation (8s timeout). Resolves to {lat,lng} on
-// success, or null when unavailable/denied/timed-out — so callers can chain an
-// IP fallback. SSR-safe: returns null when there's no navigator.geolocation.
-function getBrowserLocation(): Promise<GeoPoint | null> {
-  return new Promise((resolve) => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      resolve(null);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 8000 },
-    );
-  });
 }

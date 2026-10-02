@@ -777,7 +777,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         className="zw-modal-in"
         style={{
           width: "min(478px, 100%)",
-          maxHeight: "calc(100vh - 40px)",
+          maxHeight: "calc(100dvh - 40px)",
           background: "var(--c-canvas)",
           boxShadow: "var(--sh-lg)",
           borderRadius: 24,

@@ -848,7 +848,7 @@ function SchedGrid({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(440px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fill, minmax(min(440px, 100%), 1fr))",
         gap: 18,
         paddingBottom: 8,
       }}
@@ -964,7 +964,7 @@ function LoadingState({ t }: { t: ApptDict }) {
         style={{
           marginTop: 28,
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(440px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(min(440px, 100%), 1fr))",
           gap: 18,
         }}
       >
@@ -986,7 +986,7 @@ function ListLoading({ t }: { t: ApptDict }) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(440px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fill, minmax(min(440px, 100%), 1fr))",
         gap: 18,
         paddingBottom: 8,
       }}

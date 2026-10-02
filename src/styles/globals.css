@@ -906,14 +906,6 @@ img.zw-img--in { opacity: 1; }
 }
 .zv-updating-pulse { animation: zv-updating-pulse 1.1s ease-in-out infinite; color: var(--c-600); }
 
-/* Map pins — drop in with stagger when the result set changes */
-@keyframes zv-pin-drop {
-  0%   { opacity: 0; transform: translateY(-14px) scale(0.5); }
-  65%  { opacity: 1; transform: translateY(2px) scale(1.06); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-.zv-pin-drop { animation: zv-pin-drop .45s var(--ease-out) both; }
-
 /* User-location dot — pulsing ring */
 @keyframes zv-pulse {
   0%   { transform: scale(1);   opacity: 0.45; }
@@ -1919,4 +1911,87 @@ img.zw-img--in { opacity: 1; }
 }
 @media (hover: hover) {
   .zw-member-tile:hover img { transform: scale(1.045); }
+}
+
+/* ─────────────────────────────────────────────
+   Map loading indicator — the three-dot pill that floats over the /search map
+   while results are in flight. The panel's own "Updating…" pulse is not visible
+   on the mobile map view, so the map has to say it itself. Geometry and colour
+   are inline on the element (mapbox-surface.tsx styles everything that way);
+   only the keyframes have to live here. Ported from the RN app's LoadingDots.
+   ───────────────────────────────────────────── */
+.zv-map-dot {
+  animation: zv-map-dot 0.98s ease-in-out infinite;
+}
+@keyframes zv-map-dot {
+  0%, 55%, 100% { transform: translateY(0); opacity: 0.35; }
+  27% { transform: translateY(-5px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zv-map-dot { animation: none; opacity: 0.7; }
+}
+
+/* ─────────────────────────────────────────────
+   Mobile pass (phones ≤ 640px). Everything here refines layouts that are
+   already responsive but read poorly on a narrow viewport.
+   ───────────────────────────────────────────── */
+
+/* Footer spacer clears the fixed mobile tab bar; pages with a fixed action
+   bar stacked above the tabs (business "Book now", appointment "Directions")
+   mark it `.zw-mobile-actionbar`, and the spacer grows to clear both. */
+.zw-footer-spacer { height: 70px; }
+body:has(.zw-mobile-actionbar) .zw-footer-spacer { height: 136px; }
+
+/* Footer links: a comfortable thumb target without changing desktop rhythm. */
+@media (max-width: 920px) {
+  .zw-footer-link { padding-block: 5px; margin-block: -3px; }
+}
+
+/* Inline "a · b · c" lists: the dot belongs to the item that follows it, so
+   a wrapped line never starts or ends with a lone separator. */
+.zw-dotlist { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 0; }
+.zw-dotlist > * + *::before { content: "·"; margin: 0 9px; }
+
+@media (max-width: 640px) {
+  /* Home hero: the localized headline (ro is ~40% longer) runs to five lines
+     at 48px; a touch smaller keeps it to three or four. */
+  .zw-hero-h1 { font-size: 42px !important; }
+
+  /* Journal tabs: a single scrollable rail instead of wrapping to two rows
+     (the sliding underline measures offsetLeft, which scrolls with it). */
+  .zw-jtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .zw-jtabs::-webkit-scrollbar { display: none; }
+
+  /* For-business comparison: stack each feature as a card instead of a
+     700px side-scrolling grid whose highlighted Zavoia column was clipped. */
+  .fbcompare-wrap { overflow: visible; }
+  .fbcompare { min-width: 0; }
+  .fbcompare-head { display: none; }
+  .fbcompare-row { grid-template-columns: minmax(0, 1fr); padding: 6px 0 14px; }
+  .fbcompare-rowlabel { padding: 12px 0 8px; }
+  .fbcompare-cell { padding: 11px 12px; border-radius: 12px; }
+  .fbcompare-cell + .fbcompare-cell { margin-top: 4px; }
+  .fbcompare-cell::before {
+    content: attr(data-col);
+    flex: 0 0 96px;
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-500);
+    line-height: 1.3;
+  }
+  .fbcompare-zav::before { color: var(--p-700); }
+  .fbcompare-txt { flex: 1; min-width: 0; }
+  .fbcompare-row:first-child .fbcompare-zav,
+  .fbcompare-row:last-child .fbcompare-zav { border-radius: 12px; }
+  .fbcompare-row:not(.fbcompare-head):hover .fbcompare-rowlabel,
+  .fbcompare-row:not(.fbcompare-head):hover .fbcompare-cell:not(.fbcompare-zav) { background: transparent; }
+}
+
+/* iOS Safari zooms the whole page when a focused field's font-size is under
+   16px. Text fields are 14–15.5px by design on desktop; on phones they are
+   forced to 16px. !important is deliberate: several inputs set their size
+   inline (search overlay), and this is a device guard, not styling. */
+@media (max-width: 640px) {
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea { font-size: 16px !important; }
 }

@@ -18,8 +18,10 @@ export function ConditionalFooter({ locale }: { locale: Locale }) {
   return (
     <>
       <Footer locale={locale} />
-      {/* Spacer so content clears the fixed mobile tab bar */}
-      <div className="zw-only-mobile" style={{ height: 70 }} />
+      {/* Spacer so content clears the fixed mobile tab bar (and, on the
+          business page, the fixed booking bar stacked above it — see the
+          `.zw-footer-spacer` rule in globals.css). */}
+      <div className="zw-only-mobile zw-footer-spacer" />
     </>
   );
 }

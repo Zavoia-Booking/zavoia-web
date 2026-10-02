@@ -481,9 +481,10 @@ export function BusinessDetail({ listing, locale }: Props) {
         </div>
       </div>
 
-      {/* Mobile bottom booking bar */}
+      {/* Mobile bottom booking bar. `zw-mobile-actionbar` lets the shell
+          footer spacer grow so the last footer row can scroll clear of it. */}
       <div
-        className="zw-only-mobile zv-frost"
+        className="zw-only-mobile zv-frost zw-mobile-actionbar"
         style={{
           position: "fixed",
           left: 0,
