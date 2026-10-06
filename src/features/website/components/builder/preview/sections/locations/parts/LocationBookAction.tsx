@@ -1,18 +1,21 @@
 import { ArrowRight } from "lucide-react";
+import { MicrositeBookAction } from "../../../shared/actions";
 import type { CSSProperties } from "react";
 
 /** Builder-safe booking affordance with the executable design's character roll and arrow swap. */
 export function LocationBookAction({
   label,
+  locationId,
   className,
   arrowSize = 16,
 }: {
   label: string;
+  locationId: number;
   className: string;
   arrowSize?: number;
 }) {
   return (
-    <span className={`mc-loc-book-action ${className}`}>
+    <MicrositeBookAction intent={{ locationId }} className={`mc-loc-book-action ${className}`}>
       <span className="mc-loc-book-sr">{label}</span>
       <span className="mc-loc-book-word" aria-hidden>
         {Array.from(label).map((character, index) => (
@@ -34,6 +37,6 @@ export function LocationBookAction({
         <ArrowRight className="mc-loc-book-arrow-a" size={arrowSize} strokeWidth={1.8} />
         <ArrowRight className="mc-loc-book-arrow-b" size={arrowSize} strokeWidth={1.8} />
       </span>
-    </span>
+    </MicrositeBookAction>
   );
 }

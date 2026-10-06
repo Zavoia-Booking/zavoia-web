@@ -1,10 +1,12 @@
 import { ArrowRight } from "lucide-react";
+import { MicrositeBookAction, useMicrositeActions } from "../../../shared/actions";
 import { buildServiceCards, money, serviceDuration } from "../model";
 import type { ServicesVariantProps } from "../types";
 import "./cards.css";
 
 /** Premium Cards layout (`grid` persisted key) — organically chunked category cards, never truncated. */
-export function Cards({ groups, currency, locale, showDescriptions, showDurations, t }: ServicesVariantProps) {
+export function Cards({ location, groups, currency, locale, showDescriptions, showDurations, t }: ServicesVariantProps) {
+  const actions = useMicrositeActions();
   const cards = buildServiceCards(groups);
   return (
     <div className="mc-services-cards">
@@ -21,6 +23,9 @@ export function Cards({ groups, currency, locale, showDescriptions, showDuration
                 key={item.key}
                 type="button"
                 className="mc-services-card-item"
+                disabled={actions?.pending}
+                aria-busy={actions?.pending || undefined}
+                onClick={actions ? () => actions.book({ locationId: location.id, ...(item.isBundle ? { bundleId: item.sourceId } : { serviceId: item.sourceId }) }) : undefined}
                 aria-label={t("businessPage.builder.preview.aria.bookService", { name: item.name })}
               >
                 <span className="mc-services-card-item-name" title={item.name}>
@@ -43,10 +48,10 @@ export function Cards({ groups, currency, locale, showDescriptions, showDuration
             <span className="mc-services-card-from">
               {t("businessPage.builder.preview.servicesFrom")} <b>{money(card.categoryMin, currency, locale).full}</b>
             </span>
-            <span className="mc-services-card-book" aria-label={t("businessPage.builder.preview.servicesBook")}>
+            <MicrositeBookAction intent={{ locationId: location.id }} className="mc-services-card-book" aria-label={t("businessPage.builder.preview.servicesBook")}>
               {t("businessPage.builder.preview.servicesBook")}
               <ArrowRight size={14} strokeWidth={1.8} aria-hidden="true" />
-            </span>
+            </MicrositeBookAction>
           </footer>
         </article>
       ))}

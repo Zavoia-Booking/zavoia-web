@@ -111,7 +111,7 @@ export function Signature({ data, t, footerRef, links, selectedLocationId, onNav
                   if (compact) setOpenColumns((current) => ({ ...current, [index]: open }));
                 }}
               >
-                <CollapsibleTrigger className="mc-fsig-col-h" disabled={!compact}>
+                <CollapsibleTrigger className="mc-fsig-col-h" disabled={!compact} data-contact-trigger={column.items === contactItems ? "" : undefined}>
                   <span>{column.title}</span>
                   <span className="mc-fsig-col-plus" aria-hidden />
                 </CollapsibleTrigger>

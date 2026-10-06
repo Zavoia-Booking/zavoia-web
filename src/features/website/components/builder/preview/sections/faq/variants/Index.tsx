@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowRight, Calendar } from "lucide-react";
 import { localized } from "../../../shared/util";
+import { MicrositeBookAction } from "../../../shared/actions";
 import { MeasuredCollapse } from "../parts/MeasuredCollapse";
 import type { FaqVariantProps } from "../types";
 import "./index.css";
@@ -52,7 +53,7 @@ function IndexContact({ email, label }: { email: string; label: string }) {
         <span className="mc-fqx-cta-ic" aria-hidden="true">
           <Calendar size={18} strokeWidth={1.7} />
         </span>
-        <span className="mc-fqx-cta-link">{label}</span>
+        <MicrositeBookAction className="mc-fqx-cta-link">{label}</MicrositeBookAction>
       </div>
       {mail && (
         <a className="mc-fqx-mail" href={`mailto:${mail}`}>

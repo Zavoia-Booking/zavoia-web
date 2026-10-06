@@ -108,5 +108,5 @@ export default async function BusinessWebsitePage({ params }: Props) {
 
   // The published microsite: the copied Website Builder renderer consuming the
   // frozen snapshot (site.website) + live locations/reviews/tags off the payload.
-  return <BusinessMicrosite site={site} locale={locale} />;
+  return <BusinessMicrosite key={site.slug} site={site} locale={locale} />;
 }

@@ -453,6 +453,7 @@ export function Bento({
               {description ? <p className="mc-locb-lede">{description}</p> : null}
               {featured.allowOnlineBooking ? (
                 <LocationBookAction
+                  locationId={featured.id}
                   className="mc-locb-btn mc-locb-btn--go"
                   label={t("businessPage.builder.preview.bookAt", { name: featured.name })}
                   arrowSize={15}

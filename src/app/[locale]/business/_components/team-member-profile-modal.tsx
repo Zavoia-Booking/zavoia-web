@@ -102,6 +102,7 @@ export function TeamMemberProfileModal({
   member,
   listing,
   businessId,
+  websiteSlug,
   locale,
   onClose,
 }: {
@@ -118,6 +119,8 @@ export function TeamMemberProfileModal({
    * Saved page, where venues across all businesses are the point.
    */
   businessId?: number;
+  /** Website context uses the same location-scoped professional booking journey. */
+  websiteSlug?: string;
   locale: Locale;
   onClose: () => void;
 }) {
@@ -203,7 +206,7 @@ export function TeamMemberProfileModal({
 
   // Shareable deep link (?tab=team&member=<id>) while open; drop it on close.
   // Location-page flow only — the Saved page has no ?member= inbound route.
-  const syncUrl = !!listing;
+  const syncUrl = !!listing && !websiteSlug;
   useEffect(() => {
     if (typeof window === "undefined" || !syncUrl) return;
     const url = new URL(window.location.href);
@@ -430,6 +433,7 @@ export function TeamMemberProfileModal({
     }));
     if (listing) {
       openBooking({
+        websiteSlug,
         businessId: listing.businessId,
         listingId: listing.listingId,
         locationId: listing.locationId,
@@ -460,6 +464,7 @@ export function TeamMemberProfileModal({
     pickedServices,
     openBooking,
     listing,
+    websiteSlug,
     selectedVenue,
     currency,
     member.id,

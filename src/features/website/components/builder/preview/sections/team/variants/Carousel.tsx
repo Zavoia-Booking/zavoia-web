@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight } from "lucide-react";
+import { useMicrositeActions } from "../../../shared/actions";
 import { TeamCard } from "../parts/TeamCard";
 import type { TeamVariantProps } from "../types";
 import "./carousel.css";
@@ -17,6 +18,7 @@ type DragState = { x0: number; last: number; t: number; v: number; dx: number; d
  *  down and desaturate. 1:1 drag with a velocity flick, endpoint rubber-band, and snap settling; tap a side
  *  card to bring it to centre. Ported from the Gallery carousel; the centre-card "open" is inert here. */
 export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: TeamVariantProps) {
+  const actions = useMicrositeActions();
   const viewRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -113,15 +115,19 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
     setDragDX(dx);
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag) return;
     dragRef.current = null;
     setDragging(false);
 
     if (!movedRef.current) {
-      // A stationary tap on a side card brings it to centre; a tap on the centred card is inert in the preview.
+      // Side cards centre first; the public centre card opens the same scoped professional profile.
       if (drag.downIndex >= 0 && drag.downIndex !== active) settleTo(drag.downIndex);
+      else if (drag.downIndex === active && event.type === "pointerup") {
+        const entry = members[active];
+        if (entry && !actions?.pending) actions?.book({ locationId: entry.locId, teamMemberId: entry.m.id });
+      }
       return;
     }
 
@@ -171,10 +177,12 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
                 role="button"
                 tabIndex={index === active ? 0 : -1}
                 aria-label={nameOf(m)}
+                aria-busy={actions?.pending || undefined}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter" && event.key !== " ") return;
                   event.preventDefault();
                   if (index !== active) settleTo(index);
+                  else if (!actions?.pending) actions?.book({ locationId: locId, teamMemberId: m.id });
                 }}
               >
                 <TeamCard name={nameOf(m)} initials={initialsOf(m)} image={m.profileImage ?? null} rating={r && r.count > 0 ? r.rating : null} tint={tintOf(m)} />

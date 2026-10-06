@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { MicrositeBookAction } from "../../../shared/actions";
 import { LocationImage } from "../../locations/parts/LocationImage";
 import { locationPhoto } from "../../../shared/contact";
 import { findScrollParent } from "../../../shared/util";
@@ -83,10 +84,10 @@ export function Feature({
                 <span className="mc-services-feature-from">
                   {from.value}<i>{from.symbol}</i>
                 </span>
-                <span className="mc-services-feature-book" aria-label={t("businessPage.builder.preview.servicesBook")}>
+                <MicrositeBookAction intent={{ locationId: location.id }} className="mc-services-feature-book" aria-label={t("businessPage.builder.preview.servicesBook")}>
                   {t("businessPage.builder.preview.servicesBook")}
                   <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
-                </span>
+                </MicrositeBookAction>
               </div>
               <ActiveCategory key={activeCategory} category={activeCategory} />
             </div>
@@ -117,6 +118,7 @@ export function Feature({
                 >
                   <ServiceRow
                     item={item}
+                    locationId={location.id}
                     currency={currency}
                     locale={locale}
                     showDescriptions={showDescriptions}

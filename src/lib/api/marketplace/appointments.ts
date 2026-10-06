@@ -10,11 +10,15 @@ import { buildQuery } from "./query";
 import type {
   AppointmentDetail,
   AppointmentList,
+  BookingCalendar,
+  BookingDaySlots,
   BookAppointmentBody,
   BookAppointmentResult,
   CancelAppointmentBody,
   CancelAppointmentResult,
   Envelope,
+  GetRescheduleCalendarBody,
+  GetRescheduleSlotsBody,
   ListAppointmentsParams,
   RescheduleAppointmentBody,
   RescheduleAppointmentResult,
@@ -79,6 +83,27 @@ export async function cancelAppointment(
       method: "POST",
       body: JSON.stringify(body),
     },
+  );
+  return res.data;
+}
+
+/** Availability for an owned appointment, using its saved staff and duration. */
+export async function getRescheduleCalendar(
+  body: GetRescheduleCalendarBody,
+): Promise<BookingCalendar> {
+  const res = await apiFetch<Envelope<BookingCalendar>>(
+    "/marketplace/appointments/reschedule/calendar",
+    { method: "POST", body: JSON.stringify(body) },
+  );
+  return res.data;
+}
+
+export async function getRescheduleSlots(
+  body: GetRescheduleSlotsBody,
+): Promise<BookingDaySlots> {
+  const res = await apiFetch<Envelope<BookingDaySlots>>(
+    "/marketplace/appointments/reschedule/slots",
+    { method: "POST", body: JSON.stringify(body) },
   );
   return res.data;
 }

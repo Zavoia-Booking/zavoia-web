@@ -901,7 +901,9 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
             tb={tb}
             onBrowseServices={() => {
               router.push(
-                localeHref(locale, "business", String(payload.locationId)),
+                payload.websiteSlug
+                  ? localeHref(locale, payload.websiteSlug)
+                  : localeHref(locale, "business", String(payload.locationId)),
               );
               onClose();
             }}

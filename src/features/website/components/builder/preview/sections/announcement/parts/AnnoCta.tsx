@@ -1,4 +1,14 @@
 import { ArrowRight } from "lucide-react";
+import { useMicrositeActions } from "../../../shared/actions";
+
+function safeExternalUrl(value: string): string | undefined {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 interface AnnoCtaProps {
   label: string;
@@ -8,7 +18,7 @@ interface AnnoCtaProps {
   appearance?: "bar" | "dialog";
 }
 
-/** Keeps real link semantics in the preview while preventing the builder from navigating away. */
+/** Only published websites navigate, and only to valid HTTP(S) announcement links. */
 export function AnnoCta({
   label,
   url,
@@ -16,16 +26,20 @@ export function AnnoCta({
   showArrow,
   appearance = "bar",
 }: AnnoCtaProps) {
+  const actions = useMicrositeActions();
+  const href = safeExternalUrl(url);
+  const content = <>{label}{showArrow && <ArrowRight className="mc-anno-arrow" strokeWidth={2} aria-hidden />}</>;
+  const className = appearance === "dialog" ? "mc-anno-details-action" : "mc-anno-link";
+  if (!href) return <span className={className}>{content}</span>;
   return (
     <a
-      className={appearance === "dialog" ? "mc-anno-details-action" : "mc-anno-link"}
-      href={url || "#"}
-      target={newTab && url ? "_blank" : undefined}
-      rel={newTab && url ? "noreferrer" : undefined}
-      onClick={(event) => event.preventDefault()}
+      className={className}
+      href={href}
+      target={newTab ? "_blank" : undefined}
+      rel={newTab ? "noopener noreferrer" : undefined}
+      onClick={actions ? undefined : (event) => event.preventDefault()}
     >
-      {label}
-      {showArrow && <ArrowRight className="mc-anno-arrow" strokeWidth={2} aria-hidden />}
+      {content}
     </a>
   );
 }

@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
+import { LOCALES } from "@/i18n/locales";
 import { REVALIDATE_SECRET } from "@/lib/env";
 import {
   BRAND_TAG,
@@ -14,27 +15,26 @@ import {
 /**
  * Cache invalidation hook for admin-api.
  *
- * The listing, brand and website pages are ISR with a 600s floor, so this is
- * an ACCELERATOR, not a correctness requirement: a missed or failed call costs
- * at most one revalidate window of staleness. That is deliberate — it means
- * admin-api can add call sites incrementally (publish first, content edits
- * later) without any of them being load-bearing.
+ * Ordinary content updates use background revalidation. Website publication
+ * changes use immediate expiration so a previously cached unavailable page or
+ * published website cannot be served on the next server request.
  *
  *   POST /api/revalidate/business
  *   x-revalidate-secret: <REVALIDATE_SECRET>
  *   { "locations": ["salon-x", "412"], "brands": ["glow-atelier"] }
+ *   { "websites": ["glow-atelier"] }
  *
  * `locations` are the LOCATION slugs (or numeric ids) that appear in
  * /business/<slug> URLs — a business with three locations has three pages and
  * should send all three. `brands` are businessSlugs, and each one flushes BOTH
  * pages addressed by that slug: /brand/<slug> and the published Website Builder
- * microsite at /<slug>. They share a key, so they can never drift apart and
- * admin-api needs no second array. `{ "all": true }` flushes every listing,
- * brand and website page; use it for a taxonomy-wide change, not per business.
+ * microsite at /<slug>. `websites` also names businessSlugs and is used for
+ * publish, unpublish and deletion: it expires website data immediately and
+ * invalidates each internal locale route plus the sitemap. `{ "all": true }`
+ * marks every listing, brand and website page stale for a taxonomy-wide change.
  *
- * Revalidation uses the "max" profile: tagged entries are marked stale and
- * refreshed in the background on next visit, so a publish never causes a
- * thundering herd of blocking rebuilds.
+ * The response acknowledges cache invalidation; it does not warm pages or
+ * invalidate copies already held by a visitor's browser or social platform.
  */
 
 const MAX_ENTRIES = 200;
@@ -60,6 +60,7 @@ function slugList(value: unknown): string[] {
 type Payload = {
   locations?: unknown;
   brands?: unknown;
+  websites?: unknown;
   all?: unknown;
 };
 
@@ -94,10 +95,15 @@ export async function POST(req: NextRequest) {
 
   const locations = slugList(body.locations);
   const brands = slugList(body.brands);
+  const websites = slugList(body.websites);
+  const lifecycleWebsiteTags = new Set(websites.map(websiteTag));
 
-  if (!locations.length && !brands.length) {
+  if (!locations.length && !brands.length && !websites.length) {
     return NextResponse.json(
-      { error: "Nothing to revalidate: send `locations`, `brands`, or `all`" },
+      {
+        error:
+          "Nothing to revalidate: send `locations`, `brands`, `websites`, or `all`",
+      },
       { status: 400 },
     );
   }
@@ -110,10 +116,30 @@ export async function POST(req: NextRequest) {
   for (const slug of brands) {
     // One payload key, two pages: the brand page and the microsite.
     for (const tag of [brandTag(slug), websiteTag(slug)]) {
+      // A lifecycle request must expire this tag only once, below.
+      if (lifecycleWebsiteTags.has(tag)) continue;
       revalidateTag(tag, "max");
       revalidated.push(tag);
     }
   }
 
-  return NextResponse.json({ revalidated });
+  const revalidatedPaths: string[] = [];
+  for (const slug of websites) {
+    const tag = websiteTag(slug);
+    revalidateTag(tag, { expire: 0 });
+    revalidated.push(tag);
+
+    // English URLs are rewritten to /en/<slug>; invalidate the destination.
+    for (const locale of LOCALES) {
+      const path = `/${locale}/${encodeURIComponent(slug)}`;
+      revalidatePath(path);
+      revalidatedPaths.push(path);
+    }
+  }
+  if (websites.length) {
+    revalidatePath("/sitemap.xml");
+    revalidatedPaths.push("/sitemap.xml");
+  }
+
+  return NextResponse.json({ revalidated, revalidatedPaths });
 }

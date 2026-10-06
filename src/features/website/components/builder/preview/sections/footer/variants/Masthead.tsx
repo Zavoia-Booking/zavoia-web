@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { MicrositeBookAction } from "../../../shared/actions";
 import { mapHref, telHref } from "../../../shared/contact";
 import { FootSocials } from "../parts/FootSocials";
 import { FooterLegal } from "../parts/FooterLegal";
@@ -108,9 +109,9 @@ export function Masthead({ data, t, footerRef, links, selectedLocationId, onNavi
                 {websiteLabel}
               </a>
             )}
-            <span className="mc-fmh-link mc-fmh-link--decorative">
+            <MicrositeBookAction intent={{ locationId: selectedLocationId ?? undefined }} className="mc-fmh-link mc-fmh-link--decorative">
               {t("businessPage.builder.preview.book")}
-            </span>
+            </MicrositeBookAction>
           </nav>
 
           {socials.length > 0 && (

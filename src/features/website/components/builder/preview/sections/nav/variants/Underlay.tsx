@@ -1,9 +1,10 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ArrowRight } from "lucide-react";
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { cn } from "../../../../../../../../shared/lib/utils";
 import { DISPLAY, MONO } from "../../../shared/constants";
 import { prefersReducedMotion } from "../../../shared/util";
+import { useMicrositeActions } from "../../../shared/actions";
 import {
   BurgerGlyph,
   NavBrand,
@@ -17,12 +18,25 @@ import "./underlay.css";
 /** Underlay — a restrained top bar; opening reveals a paper navigation behind the translated page. */
 export function Underlay(props: NavVariantViewProps) {
   const motionFrameRef = useRef(0);
+  const actions = useMicrositeActions();
+  const pendingBookingRef = useRef(false);
   const chrome = navChromeStyle(props);
   const menuLabel = props.t(
     props.menuOpen
       ? "businessPage.builder.preview.closeMenu"
       : "businessPage.builder.preview.menu",
   );
+
+  // Underlay keeps its dialog mounted, so dispatch after the existing menu closes
+  // and its scroll lock is released rather than relying on an unmount callback.
+  useEffect(() => {
+    if (props.menuOpen || !pendingBookingRef.current) return;
+    const frame = window.requestAnimationFrame(() => {
+      pendingBookingRef.current = false;
+      actions?.book();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [props.menuOpen, actions]);
 
   useLayoutEffect(() => {
     const root = props.portalRoot;
@@ -123,6 +137,9 @@ export function Underlay(props: NavVariantViewProps) {
                   type="button"
                   className="mc-nav-underlay-link mc-nav-underlay-link--book"
                   tabIndex={props.menuOpen ? 0 : -1}
+                  disabled={actions?.pending}
+                  aria-busy={actions?.pending || undefined}
+                  onClick={() => { pendingBookingRef.current = !!actions; }}
                 >
                   <span style={DISPLAY}>{props.t("businessPage.builder.preview.book")}</span>
                   <ArrowRight aria-hidden />

@@ -48,6 +48,8 @@ export interface BookingSelectionItem {
 
 /** Everything the booking flow needs to start, handed over by the detail page. */
 export interface OpenBookingPayload {
+  /** Website return address for this booking drawer. */
+  websiteSlug?: string;
   businessId: number;
   /** BusinessMarketplaceListing id — required by the booking endpoints. */
   listingId: number;

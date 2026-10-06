@@ -1,10 +1,12 @@
 import { ArrowRight } from "lucide-react";
+import { useMicrositeActions } from "../../../shared/actions";
 import { money, serviceDuration } from "../model";
 import type { ServiceMenuItem } from "../types";
 import type { T } from "../../../shared/types";
 
 export function ServiceRow({
   item,
+  locationId,
   currency,
   locale,
   showDescriptions,
@@ -12,18 +14,23 @@ export function ServiceRow({
   t,
 }: {
   item: ServiceMenuItem;
+  locationId: number;
   currency: string;
   locale: "en" | "ro";
   showDescriptions: boolean;
   showDurations: boolean;
   t: T;
 }) {
+  const actions = useMicrositeActions();
   const price = money(item.priceMinor, currency, locale);
   const description = item.isBundle && item.includes.length ? item.includes.join(" + ") : item.description;
   return (
     <button
       type="button"
       className="mc-service-row"
+      disabled={actions?.pending}
+      aria-busy={actions?.pending || undefined}
+      onClick={actions ? () => actions.book({ locationId, ...(item.isBundle ? { bundleId: item.sourceId } : { serviceId: item.sourceId }) }) : undefined}
       aria-label={t("businessPage.builder.preview.aria.bookService", { name: item.name })}
     >
       <span className="mc-service-row-title" title={item.name}>

@@ -101,7 +101,7 @@ export function Editorial({
       <div className="mc-foot-pad">
         <div className={`mc-foot-top${headline ? "" : " mc-foot-top--action-only"}`}>
           {headline ? <h2 className="mc-foot-headline">{headline}</h2> : null}
-          <FooterBookAction label={bookingLabel} />
+          <FooterBookAction label={bookingLabel} locationId={selectedLocation?.id} />
         </div>
 
         <div
