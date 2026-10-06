@@ -787,6 +787,7 @@ export const ro: Dictionary = {
     retry: "Încearcă din nou",
     loading: "Se încarcă…",
     loadError: "Nu am putut încărca disponibilitatea. Te rugăm încearcă din nou.",
+    catalogLoadError: "Nu am putut încărca serviciile. Te rugăm să încerci din nou.",
     rebookError: "Unele servicii s-ar putea să se fi schimbat — verifică meniul pentru a rezerva din nou.",
     rebookServiceGone:
       "„{service}” nu mai este oferit la acest local — iată meniul actual.",

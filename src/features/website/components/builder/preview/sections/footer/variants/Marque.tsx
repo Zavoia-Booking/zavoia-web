@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { MicrositeBookAction } from "../../../shared/actions";
 import { prettyAddress, telHref } from "../../../shared/contact";
 import { FooterLegal } from "../parts/FooterLegal";
 import { socialLinks } from "../parts/socials";
@@ -58,10 +59,10 @@ export function Marque({ data, t, footerRef, links, selectedLocationId, onNaviga
                 <span>{link.label}</span>
               </a>
             ))}
-            <span className="mc-fmq-link mc-fmq-link--decorative">
+            <MicrositeBookAction intent={{ locationId: selectedLocationId ?? undefined }} className="mc-fmq-link mc-fmq-link--decorative">
               <span className="mc-fmq-box" aria-hidden>[ ]</span>
               <span>{t("businessPage.builder.preview.book")}</span>
-            </span>
+            </MicrositeBookAction>
           </nav>
 
           {socials.length > 0 && (

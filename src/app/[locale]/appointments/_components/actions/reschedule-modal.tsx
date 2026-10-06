@@ -13,10 +13,10 @@ import { dictionaries, format } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
 import { ApiError } from "@/lib/api/http";
 import {
-  getBookingCalendar,
-  getBookingSlots,
-} from "@/lib/api/marketplace/booking";
-import { rescheduleAppointment } from "@/lib/api/marketplace/appointments";
+  getRescheduleCalendar,
+  getRescheduleSlots,
+  rescheduleAppointment,
+} from "@/lib/api/marketplace/appointments";
 import type {
   AppointmentDetail,
   BookingCalendar,
@@ -117,15 +117,11 @@ function rescheduleErrorMessage(
 
 /**
  * Reschedule modal. Ports `ZwRescheduleModal`
- * (web-appointment-actions.jsx:170-227) but driven by the LIVE booking calendar
- * + slots endpoints, replicating BookingDrawer's date-strip → grouped-slot UX.
+ * (web-appointment-actions.jsx:170-227), using authenticated reschedule
+ * availability and BookingDrawer's date-strip → grouped-slot UX.
  *
- * Service-selection derivation: single-service appointments expose a numeric
- * `service.id`; composite (merged same-staff run) appointments carry numeric
- * per-item ids in `items` (built from `bookingItemsSnapshot`), so both drive
- * the availability endpoints. Plain BUNDLE appointments expose only
- * `bundle.uuid` (no numeric id) — those render a graceful inline message
- * instead of sending a malformed body.
+ * Preserve the existing item-identity guard for incomplete appointment data.
+ * Availability itself uses the owned appointment's server-side snapshots.
  *
  * Reschedule window note: API window is in MINUTES → converted to hours.
  */
@@ -151,9 +147,8 @@ export function RescheduleModal({
   const pinnedStaffId = primaryStaff(appointment)?.teamMemberId;
   const items = appointment.items;
 
-  // Reschedulable when the availability request can be rebuilt: a numeric
-  // serviceId (single-service), or numeric ids on every breakdown item
-  // (composite run). Plain bundles only expose a uuid → null → unsupported.
+  // Preserve the existing supported-item guard: a numeric serviceId or
+  // numeric ids on every breakdown item. Requests now use the appointment UUID.
   const services: ServiceSelection[] | null = useMemo(() => {
     const staff = pinnedStaffId != null ? { teamMemberId: pinnedStaffId } : {};
     if (serviceId != null) return [{ serviceId, ...staff }];
@@ -213,13 +208,10 @@ export function RescheduleModal({
     setCalLoading(true);
     setCalError(false);
     try {
-      const res = await getBookingCalendar({
-        businessId,
-        locationId,
-        services,
+      const res = await getRescheduleCalendar({
+        uuid: appointment.uuid,
         startDate: todayInTz(timeZone),
         daysToCheck: CAL_DAYS_TO_CHECK,
-        ...(pinnedStaffId != null ? { teamMemberId: pinnedStaffId } : {}),
       });
       setCalendar(res);
     } catch {
@@ -227,7 +219,7 @@ export function RescheduleModal({
     } finally {
       setCalLoading(false);
     }
-  }, [supported, businessId, locationId, services, timeZone, pinnedStaffId]);
+  }, [supported, businessId, locationId, services, timeZone, appointment.uuid]);
 
   // ── Step 2: fetch slots for a chosen date. ──
   const loadSlots = useCallback(
@@ -239,12 +231,9 @@ export function RescheduleModal({
       setSlotsError(false);
       setSelectedSlot(null);
       try {
-        const res = await getBookingSlots({
-          businessId,
-          locationId,
-          services,
+        const res = await getRescheduleSlots({
+          uuid: appointment.uuid,
           date,
-          ...(pinnedStaffId != null ? { teamMemberId: pinnedStaffId } : {}),
         });
         setDaySlots(res);
       } catch {
@@ -253,7 +242,7 @@ export function RescheduleModal({
         setSlotsLoading(false);
       }
     },
-    [supported, businessId, locationId, services, pinnedStaffId, setSelectedSlot],
+    [supported, businessId, locationId, services, appointment.uuid, setSelectedSlot],
   );
 
   // ── On mount: fetch the calendar (microtask, matching the codebase idiom). ──
@@ -366,8 +355,7 @@ export function RescheduleModal({
       <ApptMini {...mini} />
 
       {!supported ? (
-        // Bundle appointment: no numeric id derivable. Retrying can't help, so
-        // say so honestly instead of a generic "something went wrong".
+        // Missing item identity cannot be recovered by retrying availability.
         <p
           className="txt-pretty"
           style={{

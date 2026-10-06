@@ -228,6 +228,7 @@ export function Panorama({ shown, idx, onSelect, t }: LocationsVariantProps) {
                   </div>
                   {location.allowOnlineBooking ? (
                     <LocationBookAction
+                      locationId={location.id}
                       className="mc-locp-book"
                       label={t("businessPage.builder.preview.locBookHere")}
                       arrowSize={15}

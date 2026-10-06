@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { MicrositeBookAction } from "../../../shared/actions";
 import { mapHref, telHref } from "../../../shared/contact";
 import { FootSocials } from "../parts/FootSocials";
 import { FooterLegal } from "../parts/FooterLegal";
@@ -125,10 +126,10 @@ export function Directory({ data, t, footerRef, links, selectedLocationId, showL
 
           <div className="mc-fdir-util">
             <div className="mc-fdir-util-row">
-              <span className="mc-fdir-book">
+              <MicrositeBookAction intent={{ locationId: selectedLocationId ?? undefined }} className="mc-fdir-book">
                 <span>{t("businessPage.builder.preview.book")}</span>
                 <ArrowRight aria-hidden size={13} strokeWidth={1.8} />
-              </span>
+              </MicrositeBookAction>
               <FootSocials social={data.social} />
             </div>
           </div>

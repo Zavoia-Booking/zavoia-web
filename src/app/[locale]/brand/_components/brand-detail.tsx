@@ -9,11 +9,11 @@
  *   text ramp, terracotta primary (--p-500/600), Geist Sans, photo-forward
  *   cards with hover-lift + zoom, stagger rise-in as the one authored motion.
  * STORY: visitor lands from a brand card → recognizes the brand and its
- *   credibility in one line (logo, rating, established, industry) → compares
+ *   credibility in one line (logo, rating, industry) → compares
  *   locations immediately → clicks one to book, or meets the team and jumps to
  *   a member's profile on their location page.
  * FIRST VIEWPORT: back link; identity band (logo avatar left; name; rating ·
- *   industry · city · since meta; tagline) directly above a full-width
+ *   industry · city meta) directly above a full-width
  *   locations grid — one large photo card per location with name, address,
  *   rating, and the page's primary action ("View & book").
  * FORM: Location-first — candidate 3 of 7 grounded structures; seed a70871c2.
@@ -76,7 +76,7 @@ export function BrandDetail({ brand, locale }: Props) {
   ] as string[];
   const placeLabel = cities.length === 1 ? cities[0] : (brand.country ?? null);
 
-  const aboutText = brand.aboutContent ?? brand.description;
+  const aboutText = brand.description;
   const multiLocation = brand.locations.length > 1;
 
   // Team member profile opens in place (favorites-flow modal: unscoped profile
@@ -173,11 +173,6 @@ export function BrandDetail({ brand, locale }: Props) {
                 </span>
               ),
               placeLabel && <span>{placeLabel}</span>,
-              brand.establishedYear != null && (
-                <span>
-                  {format(t.since, { year: String(brand.establishedYear) })}
-                </span>
-              ),
             ]
               .filter(Boolean)
               .map((item, i, arr) => (
@@ -199,20 +194,6 @@ export function BrandDetail({ brand, locale }: Props) {
                 </span>
               ))}
           </div>
-          {brand.tagline && (
-            <p
-              className="txt-pretty"
-              style={{
-                margin: "10px 0 0",
-                fontSize: 15.5,
-                lineHeight: 1.45,
-                color: "var(--c-700)",
-                maxWidth: 560,
-              }}
-            >
-              {brand.tagline}
-            </p>
-          )}
         </div>
       </header>
 
@@ -326,7 +307,7 @@ export function BrandDetail({ brand, locale }: Props) {
       )}
 
       {/* About — story and proof close the page */}
-      {(aboutText || brand.heroImageUrl) && (
+      {aboutText && (
         <section
           style={{
             marginTop: "clamp(38px, 5.5vw, 60px)",
@@ -344,28 +325,6 @@ export function BrandDetail({ brand, locale }: Props) {
           >
             {format(t.aboutTitle, { name: brand.name })}
           </h2>
-          {brand.heroImageUrl && (
-            <div
-              style={{
-                borderRadius: 20,
-                overflow: "hidden",
-                marginBottom: aboutText ? 22 : 0,
-                boxShadow: "var(--sh-md)",
-              }}
-            >
-              <Img
-                src={brand.heroImageUrl}
-                alt={brand.name}
-                label={cat}
-                style={{
-                  width: "100%",
-                  height: "clamp(200px, 30vw, 340px)",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
-            </div>
-          )}
           {aboutText && (
             <p
               className="txt-pretty"

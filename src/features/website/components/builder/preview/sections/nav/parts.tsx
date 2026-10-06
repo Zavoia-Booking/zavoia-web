@@ -4,6 +4,7 @@ import { forwardRef, useRef, type ComponentPropsWithoutRef, type CSSProperties, 
 import { cn } from "../../../../../../../shared/lib/utils";
 import { DISPLAY, MONO } from "../../shared/constants";
 import { BookButton } from "../../shared/primitives";
+import { useMicrositeActions } from "../../shared/actions";
 import type { PreviewData, T } from "../../shared/types";
 
 export type NavStyleKey = "editorial" | "capsule" | "split" | "underlay";
@@ -239,6 +240,8 @@ export function MobileMenuPortal({
   onNavigate: (type: string) => void;
   t: T;
 }) {
+  const actions = useMicrositeActions();
+  const pendingBookingRef = useRef(false);
   const pendingNavigationRef = useRef<string | null>(null);
   if (!portalRoot) return null;
   const cut = Math.max(1, Math.floor(links.length / 2));
@@ -268,6 +271,12 @@ export function MobileMenuPortal({
         className={cn("mc-nav-menu-surface", `mc-nav-menu-surface--${variant}`)}
         aria-describedby={undefined}
         onCloseAutoFocus={(event) => {
+          if (pendingBookingRef.current) {
+            event.preventDefault();
+            pendingBookingRef.current = false;
+            window.requestAnimationFrame(() => actions?.book());
+            return;
+          }
           const targetType = pendingNavigationRef.current;
           if (!targetType) return;
           event.preventDefault();
@@ -311,6 +320,9 @@ export function MobileMenuPortal({
           <button
             type="button"
             className="mc-nav-menu-book"
+            disabled={actions?.pending}
+            aria-busy={actions?.pending || undefined}
+            onClick={() => { pendingBookingRef.current = !!actions; }}
             style={{ "--mc-nav-menu-index": links.length } as CSSProperties}
           >
             <span>{t("businessPage.builder.preview.bookNow")}</span>

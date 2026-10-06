@@ -241,7 +241,7 @@ export function getTeamMemberInListing(
   teamMemberId: number,
   locationId?: number,
 ): Promise<TeamMemberProfile> {
-  const query = locationId != null ? `?locationId=${locationId}` : "";
+  const query = buildQuery({ locationId });
   return apiFetch<TeamMemberProfile>(
     `/marketplace/public/listing/${listingId}/team-member/${teamMemberId}${query}`,
     { method: "GET" },

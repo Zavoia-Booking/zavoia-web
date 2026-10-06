@@ -41,8 +41,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const brand = await getBrand(slug, BRAND_CACHE(slug));
 
     const title = brand.name;
-    const description = brand.tagline ?? brand.description ?? undefined;
-    const image = brand.heroImageUrl ?? brand.logo ?? undefined;
+    const description = brand.description ?? undefined;
+    const image = brand.logo ?? undefined;
 
     // One canonical per locale, the pair declared as alternates — see the
     // business detail route for the reasoning.

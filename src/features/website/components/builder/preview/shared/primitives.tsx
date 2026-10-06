@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { Star, ArrowRight } from "lucide-react";
 import { cn } from "../../../../../../shared/lib/utils";
 import { DISPLAY } from "./constants";
+import { MicrositeBookAction, useMicrositeActions } from "./actions";
 
 /** Count-up that re-runs on mount — eases 0→value with a cubic ease-out (mirrors the microsite RollNum). */
 export function CountUp({ value, decimals = 0, durationMs = 760, delayMs = 0 }: { value: number; decimals?: number; durationMs?: number; delayMs?: number }) {
@@ -91,6 +92,7 @@ export function Placeholder({ children, icon }: { children: React.ReactNode; ico
 }
 
 export function BookButton({ label, tone, size = "md", styleOverride }: { label: string; tone: "accent" | "paper"; size?: "sm" | "md" | "lg" | "nav"; styleOverride?: CSSProperties }) {
+  const actions = useMicrositeActions();
   const style: CSSProperties = {
     // Accent fills use the AA-safe deepened accent (--mc-accent-field) so warm-white labels clear 4.5:1 even
     // on the lightest swatches (raw terracotta/amber sit at ~4.2:1). Identical to --mc-accent for the other 6.
@@ -108,14 +110,14 @@ export function BookButton({ label, tone, size = "md", styleOverride }: { label:
           ? "px-[22px] py-3 text-[14px]" // matches the microsite .mc-btn nav CTA (no resting shadow)
           : "px-5 py-2.5 text-[13.5px]";
   return (
-    <span
-      className={cn("pointer-events-none inline-flex items-center gap-2 whitespace-nowrap rounded-full font-semibold", size !== "nav" && "shadow-sm", sizing)}
+    <MicrositeBookAction
+      className={cn("inline-flex items-center gap-2 whitespace-nowrap rounded-full font-semibold", !actions && "pointer-events-none", size !== "nav" && "shadow-sm", sizing)}
       style={style}
     >
       {label}
       {/* Nav CTA is text-only, matching the microsite `.mc-btn` in the header; hero/footer keep the arrow. */}
       {size !== "nav" && <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />}
-    </span>
+    </MicrositeBookAction>
   );
 }
 

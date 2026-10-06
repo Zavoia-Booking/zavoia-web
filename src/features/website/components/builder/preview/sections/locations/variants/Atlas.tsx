@@ -153,6 +153,7 @@ export function Atlas({ shown, idx, loc, onSelect, dict, t }: LocationsVariantPr
               {loc.allowOnlineBooking && (
                 <div className="mc-loca-book">
                   <LocationBookAction
+                    locationId={loc.id}
                     label={t("businessPage.builder.preview.bookAt", { name: loc.name })}
                     className="mc-loca-book-action"
                   />

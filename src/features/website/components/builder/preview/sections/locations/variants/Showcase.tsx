@@ -170,6 +170,7 @@ export function Showcase({
           {loc.allowOnlineBooking && (
             <div key={`acts-${loc.id}`} className="mc-locx-acts mc-locx-rise" style={{ animationDelay: "360ms" }}>
               <LocationBookAction
+                locationId={loc.id}
                 label={t("businessPage.builder.preview.bookAt", { name: loc.name })}
                 className="mc-locx-book"
               />

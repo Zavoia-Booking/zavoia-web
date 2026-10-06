@@ -709,6 +709,7 @@ export const en: {
     retry: string;
     loading: string;
     loadError: string;
+    catalogLoadError: string;
     rebookError: string;
     rebookServiceGone: string;
     rebookServicesGone: string;
@@ -2340,6 +2341,7 @@ export const en: {
     retry: "Try again",
     loading: "Loading…",
     loadError: "We couldn't load availability. Please try again.",
+    catalogLoadError: "We couldn't load the services. Please try again.",
     rebookError: "Some services may have changed — review the menu to book again.",
     rebookServiceGone:
       "“{service}” is no longer offered at this venue — here's the current menu.",

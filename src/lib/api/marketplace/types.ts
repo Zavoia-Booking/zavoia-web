@@ -1209,6 +1209,20 @@ export interface CancelAppointmentResult {
   cancellation_reason: string | null;
 }
 
+export interface GetRescheduleCalendarBody {
+  uuid: string;
+  /** YYYY-MM-DD */
+  startDate: string;
+  /** 1–60, defaults to 30. */
+  daysToCheck?: number;
+}
+
+export interface GetRescheduleSlotsBody {
+  uuid: string;
+  /** YYYY-MM-DD */
+  date: string;
+}
+
 export interface RescheduleAppointmentBody {
   uuid: string;
   /** ISO datetime */

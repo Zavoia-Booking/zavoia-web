@@ -1,5 +1,6 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Star, ArrowRight } from "lucide-react";
+import { MicrositeBookAction, useMicrositeActions } from "../../../shared/actions";
 import { DISPLAY } from "../../../shared/constants";
 import type { TeamVariantProps } from "../types";
 import "./columns.css";
@@ -9,6 +10,7 @@ import "./columns.css";
  *  when the business has more than one location. Mirrors the source `TeamColumns` + `TmSwitch`. Booking is
  *  inert in the preview, so the CTA is a styled affordance. */
 export function Columns({ locationGroups, ratings, nameOf, initialsOf, tintOf, t }: TeamVariantProps) {
+  const actions = useMicrositeActions();
   const [locIdx, setLocIdx] = useState(0);
   // Clamp once and use everywhere (groups can shrink live in the builder) so the chip highlight never desyncs.
   const idx = Math.min(locIdx, Math.max(0, locationGroups.length - 1));
@@ -64,12 +66,13 @@ export function Columns({ locationGroups, ratings, nameOf, initialsOf, tintOf, t
               className="mc-tmc-col"
               style={{ background: tintOf(m) }}
               data-on={i === active ? "1" : "0"}
-              role="button"
-              tabIndex={0}
+              role={actions ? undefined : "button"}
+              tabIndex={actions ? undefined : 0}
               aria-label={nameOf(m)}
               onMouseEnter={hoverOpens ? () => setOpen(i) : undefined}
               onClick={() => setOpen(i)}
               onKeyDown={(e) => {
+                if (actions) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   setOpen(i);
@@ -98,10 +101,15 @@ export function Columns({ locationGroups, ratings, nameOf, initialsOf, tintOf, t
                     <span>{t("businessPage.builder.preview.reviewsCount", { count: r.count })}</span>
                   </div>
                 )}
-                <span className="mc-tmc-book" aria-hidden>
+                <MicrositeBookAction
+                  intent={{ locationId: activeLoc.id, teamMemberId: m.id }}
+                  className="mc-tmc-book"
+                  aria-hidden={actions ? undefined : true}
+                  onFocus={() => setOpen(i)}
+                >
                   {t("businessPage.builder.preview.teamBookWith", { name: first })}
                   <ArrowRight className="h-3 w-3" strokeWidth={2} />
-                </span>
+                </MicrositeBookAction>
               </div>
             </div>
           );
