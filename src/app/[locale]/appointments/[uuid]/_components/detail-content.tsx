@@ -16,7 +16,9 @@ import { formatDuration } from "@/lib/format/money-time";
 import {
   apptStatusTone,
   apptTime,
+  apptTimeZone,
   deriveTense,
+  wallDateKey,
   formatApptPrice,
   type StatusTone,
   type Tense,
@@ -54,19 +56,17 @@ function relativeLabel(
   t: ApptDict,
   tense: Tense,
   scheduledAt: string,
+  timeZone?: string,
   now: Date = new Date(),
 ): string | null {
   if (tense === "now") return t.relative.inProgress;
   if (tense === "today") return t.relative.today;
   if (tense !== "future") return null;
 
-  // Whole calendar days from `now`'s start-of-day to the appointment's.
-  const startOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const sched = new Date(scheduledAt);
-  const days = Math.round(
-    (startOfDay(sched) - startOfDay(now)) / 86_400_000,
-  );
+  // Whole calendar days between today and the appointment, both counted in
+  // the venue's calendar (the zone its times are shown in).
+  const dayNumber = (d: Date) => Date.parse(wallDateKey(d, timeZone)) / 86_400_000;
+  const days = Math.round(dayNumber(new Date(scheduledAt)) - dayNumber(now));
   if (days <= 1) return t.relative.tomorrow;
   if (days <= 6) return format(t.relative.inDays, { n: String(days) });
   return null;
@@ -383,9 +383,12 @@ function ActionRail({
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--c-900)", letterSpacing: "-0.015em" }}>
-              {new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short" }).format(
-                new Date(appt.scheduled_at),
-              )}
+              {new Intl.DateTimeFormat(locale, {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                timeZone: apptTimeZone(appt.location?.timezone, appt.business?.timezone),
+              }).format(new Date(appt.scheduled_at))}
             </div>
             <div
               style={{
@@ -396,7 +399,9 @@ function ActionRail({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {apptTime(appt.scheduled_at, locale)} – {apptTime(appt.ends_at, locale)}
+              {apptTime(appt.scheduled_at, locale, apptTimeZone(appt.location?.timezone, appt.business?.timezone))}
+              {" – "}
+              {apptTime(appt.ends_at, locale, apptTimeZone(appt.location?.timezone, appt.business?.timezone))}
             </div>
           </div>
         </div>
@@ -502,20 +507,22 @@ function DetailBody({
   // bar drive the SAME rebook call and share one pending state.
   const { rebook, pending: rebooking } = useRebook();
 
-  const tense = deriveTense(appt.scheduled_at, appt.ends_at, appt.status);
+  const tz = apptTimeZone(appt.location?.timezone, appt.business?.timezone);
+  const tense = deriveTense(appt.scheduled_at, appt.ends_at, appt.status, undefined, tz);
   const tone = apptStatusTone(appt.status, tense);
   const cancelled = tone === "warning" || tone === "error";
 
   const services = [appt.primaryItemName, ...appt.additionalServices].filter(Boolean);
-  const time = apptTime(appt.scheduled_at, locale);
-  const endTime = apptTime(appt.ends_at, locale);
+  const time = apptTime(appt.scheduled_at, locale, tz);
+  const endTime = apptTime(appt.ends_at, locale, tz);
   const dateLabel = new Intl.DateTimeFormat(locale, {
     weekday: "short",
     day: "numeric",
     month: "short",
+    timeZone: tz,
   }).format(new Date(appt.scheduled_at));
 
-  const relLabel = relativeLabel(t, tense, appt.scheduled_at);
+  const relLabel = relativeLabel(t, tense, appt.scheduled_at, tz);
   const heroChip =
     formatDuration(Number(appt.duration)) +
     " · " +

@@ -33,6 +33,7 @@ import {
   deriveTense,
   formatApptPrice,
   timeUntil,
+  wallDateKey,
   type ApptStamp,
   type Tense,
   type TimeUntil,
@@ -328,7 +329,8 @@ function TicketCard({
   now: Date;
   onOpen: (uuid: string) => void;
 }) {
-  const tense = deriveTense(a.scheduledAt, a.endsAt, a.status, now);
+  const tz = a.location.timezone ?? undefined;
+  const tense = deriveTense(a.scheduledAt, a.endsAt, a.status, now, tz);
   const isCancelled = a.status === "cancelled" || a.status === "no_show";
 
   // Title: bundle → bookedItemName, else primaryItemName + "+ N more".
@@ -342,8 +344,8 @@ function TicketCard({
   const stamp = apptStamp(a.status, tense);
   const tu = timeUntil(a.scheduledAt, a.status, tense, now);
 
-  const startTime = apptTime(a.scheduledAt, locale);
-  const endTime = apptTime(a.endsAt, locale);
+  const startTime = apptTime(a.scheduledAt, locale, tz);
+  const endTime = apptTime(a.endsAt, locale, tz);
 
   const businessName = a.location.name ?? "";
   const businessLogo = a.location.profileImage;
@@ -610,8 +612,9 @@ function TimelineRow({
   now: Date;
   onOpen: (uuid: string) => void;
 }) {
-  const tense = deriveTense(a.scheduledAt, a.endsAt, a.status, now);
-  const { dow, day, mon } = apptDateParts(a.scheduledAt, locale);
+  const tz = a.location.timezone ?? undefined;
+  const tense = deriveTense(a.scheduledAt, a.endsAt, a.status, now, tz);
+  const { dow, day, mon } = apptDateParts(a.scheduledAt, locale, tz);
   return (
     <div
       style={{ display: "flex", alignItems: "stretch", gap: 14, minWidth: 0 }}
@@ -827,7 +830,9 @@ function SchedGrid({
   let lastYear = now.getFullYear();
   items.forEach((a) => {
     if (withYears) {
-      const y = new Date(a.scheduledAt).getFullYear();
+      const y = Number(
+        wallDateKey(new Date(a.scheduledAt), a.location.timezone ?? undefined).slice(0, 4),
+      );
       if (y !== lastYear) {
         nodes.push(<YearSep key={`sep-${y}-${a.uuid}`} year={y} />);
         lastYear = y;

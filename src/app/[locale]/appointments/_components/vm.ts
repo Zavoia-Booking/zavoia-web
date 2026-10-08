@@ -89,6 +89,7 @@ export function deriveTense(
   endsAt: string,
   status: AppointmentStatus,
   now: Date = new Date(),
+  timeZone?: string,
 ): Tense {
   const start = new Date(scheduledAt);
   const end = new Date(endsAt);
@@ -98,10 +99,8 @@ export function deriveTense(
     return "now";
   }
 
-  const sameDay =
-    start.getFullYear() === now.getFullYear() &&
-    start.getMonth() === now.getMonth() &&
-    start.getDate() === now.getDate();
+  // "Today" is the venue's calendar day, matching the times shown.
+  const sameDay = wallDateKey(start, timeZone) === wallDateKey(now, timeZone);
 
   if (sameDay && start.getTime() > t) return "today";
   if (start.getTime() > t) return "future";
@@ -171,25 +170,54 @@ export function apptStamp(
 }
 
 /**
+ * Calendar date (`YYYY-MM-DD`) of an instant in `timeZone` — the device zone
+ * when omitted. Used to compare days (today / tomorrow / year breaks) in the
+ * same zone the times are displayed in.
+ */
+export function wallDateKey(d: Date, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone,
+  }).format(d);
+}
+
+/**
+ * Appointment times are shown in the VENUE's timezone (what the customer
+ * booked against), not the viewer's device zone. Location zone with business
+ * fallback; undefined → device zone for legacy payloads without either.
+ */
+export function apptTimeZone(
+  timeZone: string | null | undefined,
+  fallback?: string | null,
+): string | undefined {
+  return timeZone || fallback || undefined;
+}
+
+/**
  * Date-pill parts for the timeline rail. `dow`/`mon` are 3-letter UPPERCASE,
- * `day` is the day-of-month number. Localized via `toLocaleDateString`.
+ * `day` is the day-of-month number, all in `timeZone` (device zone if omitted).
  */
 export function apptDateParts(
   iso: string,
   locale: string,
+  timeZone?: string,
 ): { dow: string; day: number; mon: string } {
   const d = new Date(iso);
-  const dow = d.toLocaleDateString(locale, { weekday: "short" }).toUpperCase();
-  const mon = d.toLocaleDateString(locale, { month: "short" }).toUpperCase();
-  return { dow, day: d.getDate(), mon };
+  const dow = d.toLocaleDateString(locale, { weekday: "short", timeZone }).toUpperCase();
+  const mon = d.toLocaleDateString(locale, { month: "short", timeZone }).toUpperCase();
+  const day = Number(wallDateKey(d, timeZone).slice(8));
+  return { dow, day, mon };
 }
 
-/** Local clock time as `HH:mm` (24-hour). */
-export function apptTime(iso: string, locale: string): string {
+/** Clock time as `HH:mm` (24-hour) in `timeZone` (device zone if omitted). */
+export function apptTime(iso: string, locale: string, timeZone?: string): string {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
+    timeZone,
   }).format(new Date(iso));
 }
 

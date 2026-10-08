@@ -22,6 +22,7 @@ import { Avatar, Icon, Img, Rating, Stars } from "@/components/ui";
 import { formatDuration, formatMoney } from "@/lib/format/money-time";
 import {
   apptTime,
+  apptTimeZone,
   formatApptPrice,
   type StatusTone,
   type Tense,
@@ -1285,11 +1286,13 @@ export function MobileBar({
     tense === "past" || appt.status === "completed" || cancelled;
   const bizName = appt.business?.name ?? "";
   const canBookAgain = appt.location?.id != null;
-  const time = apptTime(appt.scheduled_at, locale);
+  const tz = apptTimeZone(appt.location?.timezone, appt.business?.timezone);
+  const time = apptTime(appt.scheduled_at, locale, tz);
   const dateLabel = new Intl.DateTimeFormat(locale, {
     weekday: "short",
     day: "numeric",
     month: "short",
+    timeZone: tz,
   }).format(new Date(appt.scheduled_at));
 
   return (

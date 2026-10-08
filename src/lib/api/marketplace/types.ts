@@ -1005,6 +1005,8 @@ export interface AppointmentListItem {
     id: number | null;
     name: string | null;
     profileImage: string | null;
+    /** Venue timezone (location, then business) — times display in it. */
+    timezone?: string | null;
   };
   staff: {
     id: number;
@@ -1085,6 +1087,8 @@ export interface AppointmentDetailLocation {
   cancellationWindowMinutes: number;
   allowCustomerReschedule: boolean;
   rescheduleWindowMinutes: number;
+  /** Location timezone with business fallback — the zone slot times use. */
+  timezone?: string | null;
 }
 
 export interface AppointmentDetailStaffMember {

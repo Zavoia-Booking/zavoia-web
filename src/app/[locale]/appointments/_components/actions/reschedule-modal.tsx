@@ -116,6 +116,22 @@ function rescheduleErrorMessage(
 }
 
 /**
+ * Availability enforces the same eligibility rules as the final submit, so an
+ * APPOINTMENTS.* refusal (window passed, reschedule disabled…) shows its real
+ * reason instead of a retry prompt that can never succeed.
+ */
+function availabilityErrorLabel(
+  e: unknown,
+  t: (typeof dictionaries)[Locale]["appointmentActions"]["reschedule"],
+  tb: (typeof dictionaries)[Locale]["booking"],
+): string {
+  const code = e instanceof ApiError ? e.code : undefined;
+  return code?.startsWith("APPOINTMENTS.")
+    ? rescheduleErrorMessage(code, t, tb.errors)
+    : tb.loadError;
+}
+
+/**
  * Reschedule modal. Ports `ZwRescheduleModal`
  * (web-appointment-actions.jsx:170-227), using authenticated reschedule
  * availability and BookingDrawer's date-strip → grouped-slot UX.
@@ -173,24 +189,29 @@ export function RescheduleModal({
   // ── Flow state ──
   const [calendar, setCalendar] = useState<BookingCalendar | null>(null);
   const [calLoading, setCalLoading] = useState(false);
-  const [calError, setCalError] = useState(false);
+  // Error copy for the date/slot sections; null = no error.
+  const [calError, setCalError] = useState<string | null>(null);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [daySlots, setDaySlots] = useState<BookingDaySlots | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const [slotsError, setSlotsError] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
 
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Authoritative tz: appointment business → calendar response → resolved zone.
-  const timeZone =
+  // Slot times are wall-clock in the LOCATION's zone (business is only its
+  // fallback). The calendar response is authoritative once loaded; before
+  // that, the detail payload's resolved zone picks the calendar's start date.
+  // Kept separate so the calendar's arrival doesn't refire the request.
+  const requestTimeZone =
+    appointment.location?.timezone ??
     appointment.business?.timezone ??
-    calendar?.timezone ??
     Intl.DateTimeFormat().resolvedOptions().timeZone ??
     "UTC";
+  const timeZone = calendar?.timezone ?? requestTimeZone;
 
   const windowHours = Math.round(
     (appointment.location?.rescheduleWindowMinutes ?? 1440) / 60,
@@ -206,20 +227,20 @@ export function RescheduleModal({
       return;
     }
     setCalLoading(true);
-    setCalError(false);
+    setCalError(null);
     try {
       const res = await getRescheduleCalendar({
         uuid: appointment.uuid,
-        startDate: todayInTz(timeZone),
+        startDate: todayInTz(requestTimeZone),
         daysToCheck: CAL_DAYS_TO_CHECK,
       });
       setCalendar(res);
-    } catch {
-      setCalError(true);
+    } catch (e) {
+      setCalError(availabilityErrorLabel(e, t, tb));
     } finally {
       setCalLoading(false);
     }
-  }, [supported, businessId, locationId, services, timeZone, appointment.uuid]);
+  }, [supported, businessId, locationId, services, requestTimeZone, appointment.uuid, t, tb]);
 
   // ── Step 2: fetch slots for a chosen date. ──
   const loadSlots = useCallback(
@@ -228,7 +249,7 @@ export function RescheduleModal({
         return;
       }
       setSlotsLoading(true);
-      setSlotsError(false);
+      setSlotsError(null);
       setSelectedSlot(null);
       try {
         const res = await getRescheduleSlots({
@@ -236,13 +257,13 @@ export function RescheduleModal({
           date,
         });
         setDaySlots(res);
-      } catch {
-        setSlotsError(true);
+      } catch (e) {
+        setSlotsError(availabilityErrorLabel(e, t, tb));
       } finally {
         setSlotsLoading(false);
       }
     },
-    [supported, businessId, locationId, services, appointment.uuid, setSelectedSlot],
+    [supported, businessId, locationId, services, appointment.uuid, setSelectedSlot, t, tb],
   );
 
   // ── On mount: fetch the calendar (microtask, matching the codebase idiom). ──
@@ -395,7 +416,7 @@ export function RescheduleModal({
               <LoadingBlock label={tb.loading} />
             ) : calError && !calendar ? (
               <ErrorBlock
-                label={tb.loadError}
+                label={calError}
                 retry={tb.retry}
                 onRetry={() => void loadCalendar()}
               />
@@ -421,7 +442,7 @@ export function RescheduleModal({
                 <LoadingBlock label={tb.loading} />
               ) : slotsError ? (
                 <ErrorBlock
-                  label={tb.loadError}
+                  label={slotsError}
                   retry={tb.retry}
                   onRetry={() => void loadSlots(selectedDate)}
                 />
