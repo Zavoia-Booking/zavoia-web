@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button, Icon, Spinner } from "@/components/ui";
-import { format, type Dictionary } from "@/i18n/dictionaries";
+import { type Dictionary } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
 import { createGuestTicket } from "@/lib/api/marketplace/support";
 import { ApiError } from "@/lib/api/http";

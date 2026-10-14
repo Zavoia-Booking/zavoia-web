@@ -10,7 +10,7 @@ import "./wall.css";
 /** Wall — the included base. A compact rating chip pinned to the header (the board itself is the proof), over
  *  a CSS-columns pinboard of verified quote cards that rise on mount with a small stagger and lift on hover.
  *  Mirrors the source `RvWall`. */
-export function Wall({ quotes, rating, count, dist, distTotal, showHeading, heading, kicker, no, t }: ReviewsViewProps) {
+export function Wall({ locale, quotes, rating, count, dist, distTotal, showHeading, heading, kicker, no, t }: ReviewsViewProps) {
   const fiveShare = dist && distTotal > 0 ? Math.round((dist["5" as keyof RatingBars] / distTotal) * 100) : 0;
   return (
     <>
@@ -18,12 +18,12 @@ export function Wall({ quotes, rating, count, dist, distTotal, showHeading, head
         {count > 0 && (
           <div className="mc-rv-hrate">
             <span className="mc-rv-hrate-n">
-              <CountUp value={rating} decimals={1} />
+              <CountUp value={rating} decimals={1} locale={locale} />
             </span>
             <span className="mc-rv-hrate-tx">
               <Stars value={rating} size={15} />
               <span className="mc-rv-hrate-cnt">
-                <b>{count.toLocaleString()}</b> {t("businessPage.builder.preview.reviewsVerifiedReviews")}
+                <b>{count.toLocaleString(locale)}</b> {t("businessPage.builder.preview.reviewsVerifiedReviews")}
                 {fiveShare > 0 && <> · {t("businessPage.builder.preview.reviewsFiveStarShare", { pct: fiveShare })}</>}
               </span>
             </span>
@@ -41,7 +41,7 @@ export function Wall({ quotes, rating, count, dist, distTotal, showHeading, head
               </span>
               <span className="mc-rvw-txt">
                 <span className="mc-rvw-nm">{r.customerName}</span>
-                <span className="mc-rvw-sub">{[r.locationName, formatReviewDate(r.createdAt)].filter(Boolean).join(" · ")}</span>
+                <span className="mc-rvw-sub">{[r.locationName, formatReviewDate(r.createdAt, locale)].filter(Boolean).join(" · ")}</span>
               </span>
               <span className="mc-rvw-vf">
                 <ShieldCheck className="h-[11px] w-[11px]" strokeWidth={2} /> {t("businessPage.builder.preview.reviewsVerified")}

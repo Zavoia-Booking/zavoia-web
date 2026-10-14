@@ -60,6 +60,7 @@ export function MobileTabs({ locale }: { locale: Locale }) {
 
   return (
     <nav
+      data-marketplace-chrome
       className="zw-only-mobile zv-frost"
       style={{
         position: "fixed",

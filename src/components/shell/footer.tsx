@@ -1,164 +1,112 @@
 "use client";
 
-import { type CSSProperties } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { Icon } from "@/components/ui";
+import Image from "next/image";
+import { LanguageSwitcher } from "@/app/_components/language-switcher";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/shared/components/ui/collapsible";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
-import { LOCALES, type Locale } from "@/i18n/locales";
+import type { Locale } from "@/i18n/locales";
 import { useConsent } from "@/lib/consent/ConsentProvider";
+import styles from "./footer.module.css";
 
-// Port of ZwFooter (docs/web-shell.jsx). All labels i18n'd.
-// Language switch lives in the bottom bar (en/ro via localeHref).
-
-export function Footer({ locale }: { locale: Locale }) {
+/** Signature's ruled wordmark band and sitemap, adapted to marketplace navigation. */
+export function Footer({ locale, explore }: { locale: Locale; explore: ReactNode }) {
   const { dict } = useTranslation();
   const t = dict.footer;
   const { openSettings } = useConsent();
 
-  const col: CSSProperties = { display: "flex", flexDirection: "column", gap: 11 };
-  const head: CSSProperties = {
-    fontFamily: "var(--font-mono)",
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: "0.14em",
-    textTransform: "uppercase",
-    color: "var(--c-500)",
-    marginBottom: 4,
-  };
-  const link: CSSProperties = {
-    background: "transparent",
-    border: 0,
-    padding: 0,
-    fontSize: 14,
-    color: "var(--c-700)",
-    textAlign: "left",
-    letterSpacing: "-0.01em",
-    textDecoration: "none",
-  };
-  const monoLink: CSSProperties = {
-    ...link,
-    fontFamily: "var(--font-mono)",
-    fontSize: 11.5,
-    color: "var(--c-500)",
-  };
-
-  const fLink = (label: string, style: CSSProperties, ...segments: string[]) => (
-    <Link
-      href={localeHref(locale, ...segments)}
-      className="zw-link zw-footer-link"
-      style={style}
-    >
+  const fLink = (label: string, ...segments: string[]) => (
+    <Link href={localeHref(locale, ...segments)} className={styles.link}>
       {label}
     </Link>
   );
 
   return (
-    <footer style={{ background: "var(--c-shade)", marginTop: 72 }}>
-      <div className="zw-container" style={{ padding: "52px var(--gutter) 36px" }}>
-        <div className="zw-footer-grid">
-          <div style={{ ...col, gap: 14 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/brand/wordmark-cropped.png"
+    <footer data-marketplace-chrome className={styles.footer}>
+      <div className={`zw-container ${styles.frame}`}>
+        <div className={styles.markBand}>
+          <Link href={localeHref(locale)} className={styles.mark}>
+            <Image
+              src="/brand/wordmark.svg"
               alt="Zavoia"
-              style={{ height: 28, width: "auto", alignSelf: "flex-start" }}
+              width={766}
+              height={232}
+              className={styles.logo}
+              unoptimized
             />
-            <p
-              className="txt-pretty"
-              style={{
-                margin: 0,
-                fontSize: 14,
-                lineHeight: 1.55,
-                color: "var(--c-600)",
-                maxWidth: 300,
-              }}
-            >
-              {t.tagline}
-            </p>
+          </Link>
+        </div>
+
+        <div className={styles.sitemap}>
+          <div className={styles.intro}>
+            <p className={`txt-pretty ${styles.tagline}`}>{t.tagline}</p>
           </div>
 
-          <div style={col}>
-            <div style={head}>{t.explore}</div>
-            {fLink(t.offers, link, "offers")}
-            {fLink(t.catHair, link, "l", "london", "hair")}
-            {fLink(t.catNails, link, "l", "london", "nails")}
-            {fLink(t.catMassage, link, "l", "london", "massage")}
-            {fLink(t.catDental, link, "l", "london", "dental")}
-            {fLink(t.catAuto, link, "l", "london", "auto")}
-            {fLink(t.catCleaning, link, "l", "london", "cleaning")}
-          </div>
+          <div className={styles.navigation}>
+            <FooterColumn title={t.explore}>
+              {fLink(t.offers, "offers")}
+              {explore}
+            </FooterColumn>
 
-          <div style={col}>
-            <div style={head}>{t.zavoia}</div>
-            {fLink(t.about, link, "about")}
-            {fLink(t.journal, link, "blog")}
-            {fLink(t.forBusiness, link, "for-business")}
-            {fLink(t.pricing, link, "pricing")}
-            {fLink(t.businessDashboard, link, "for-business")}
-          </div>
+            <FooterColumn title={t.zavoia}>
+              {fLink(t.about, "about")}
+              {fLink(t.journal, "blog")}
+              {fLink(t.forBusiness, "for-business")}
+              {fLink(t.pricing, "pricing")}
+              {fLink(t.businessDashboard, "for-business")}
+            </FooterColumn>
 
-          <div style={col}>
-            <div style={head}>{t.support}</div>
-            {fLink(t.helpCentre, link, "help")}
-            {fLink(t.myTickets, link, "support")}
-            {fLink(t.cancellation, link, "terms", "booking-policy")}
+            <FooterColumn title={t.support}>
+              {fLink(t.helpCentre, "help")}
+              {fLink(t.myTickets, "support")}
+              {fLink(t.cancellation, "terms", "booking-policy")}
+            </FooterColumn>
           </div>
         </div>
 
-        <div
-          style={{
-            marginTop: 44,
-            paddingTop: 22,
-            borderTop: "1px solid rgba(28,28,26,0.08)",
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 18,
-            fontFamily: "var(--font-mono)",
-            fontSize: 11.5,
-            color: "var(--c-500)",
-          }}
-        >
-          <span>{t.rights}</span>
-          {fLink(t.privacy.toUpperCase(), monoLink, "terms", "privacy-policy")}
-          {fLink(t.terms.toUpperCase(), monoLink, "terms")}
-          {/* Reopens the consent banner — GDPR requires withdrawing consent
-              to be as easy as giving it. */}
-          <button
-            type="button"
-            className="zw-link tap"
-            onClick={openSettings}
-            style={{ ...monoLink, cursor: "pointer", textTransform: "uppercase" }}
-          >
-            {t.cookieSettings.toUpperCase()}
-          </button>
-          <span style={{ flex: 1 }} />
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Icon name="globe" size={13} color="var(--c-500)" />
-              {t.langLine}
-            </span>
-            <span style={{ display: "inline-flex", gap: 8 }}>
-              {LOCALES.map((l) => (
-                <Link
-                  key={l}
-                  href={localeHref(l)}
-                  hrefLang={l}
-                  className="zw-link"
-                  style={{
-                    ...monoLink,
-                    color: l === locale ? "var(--c-800)" : "var(--c-500)",
-                    fontWeight: l === locale ? 700 : 600,
-                  }}
-                >
-                  {l.toUpperCase()}
-                </Link>
-              ))}
-            </span>
-          </span>
+        <div className={styles.base}>
+          <span className={styles.rights}>{t.rights}</span>
+          <div className={styles.legal}>
+            {fLink(t.privacy, "terms", "privacy-policy")}
+            {fLink(t.terms, "terms")}
+            <button type="button" className={styles.link} onClick={openSettings}>
+              {t.cookieSettings}
+            </button>
+          </div>
+          <div className={styles.language}>
+            <LanguageSwitcher currentLocale={locale} placement="above" />
+          </div>
         </div>
+
+        {/* All navigation remains rendered when JavaScript is unavailable. */}
+        <noscript>
+          <style>{`.${styles.columnContent}[data-state="closed"]{display:flex!important}.${styles.trigger}{display:none!important}.${styles.desktopTitle}{display:block!important}`}</style>
+        </noscript>
       </div>
     </footer>
+  );
+}
+
+function FooterColumn({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Collapsible className={styles.column}>
+      <h2 className={styles.heading}>
+        <span className={styles.desktopTitle}>{title}</span>
+        <CollapsibleTrigger className={styles.trigger}>
+          <span>{title}</span>
+          <span className={styles.plus} aria-hidden="true" />
+        </CollapsibleTrigger>
+      </h2>
+      {/* CSS handles the responsive disclosure; SEO links stay in the HTML. */}
+      <CollapsibleContent forceMount className={styles.columnContent}>
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

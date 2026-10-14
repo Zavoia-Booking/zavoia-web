@@ -105,6 +105,7 @@ export const en: {
     listHeading: string;
     comingSoon: string;
     seeAll: string;
+    servicesHeading: string;
     otherCitiesHeading: string;
     otherIndustriesHeading: string;
   };
@@ -908,6 +909,8 @@ export const en: {
   footer: {
     tagline: string;
     explore: string;
+    findBusiness: string;
+    inCity: string;
     zavoia: string;
     support: string;
     about: string;
@@ -997,6 +1000,7 @@ export const en: {
   };
   breadcrumbHome: string;
   localeNames: Record<Locale, string>;
+  language: { label: string; loading: string; unavailable: string };
   tryStudio: {
     pageTitle: string;
     pageDescription: string;
@@ -1406,6 +1410,7 @@ export const en: {
     getDirections: string;
     callVenue: string;
     leaveReview: string;
+    openApp: string;
     bookAgain: string;
     directions: string;
     reschedule: string;
@@ -1546,22 +1551,30 @@ export const en: {
     };
   };
   notFound: {
-    generic: {
-      kicker: string;
+    page: {
+      skip: string;
+      navigation: string;
+      language: string;
+      signIn: string;
+      signInShort: string;
+      businessTitle: string;
+      businessTitleLead: string;
+      businessTitlePre: string;
+      businessTitleWord: string;
+      businessTitlePost: string;
+      createAccount: string;
+      offerFirst: string;
+      offerSecond: string;
+      businessDescription: string;
+      trialDetail: string;
+      websiteDetail: string;
+      how: string;
+      lost: string;
       title: string;
-      body: string;
-      home: string;
+      description: string;
       explore: string;
     };
-    claim: {
-      kicker: string;
-      title: string;
-      body: string;
-      bullets: string[];
-      primary: string;
-      secondary: string;
-      explore: string;
-    };
+
   };
 } = {
   preposition: "in",
@@ -1688,6 +1701,7 @@ export const en: {
     comingSoon:
       "Businesses coming soon — Zavoia is onboarding {industryLower} in {city} now.",
     seeAll: "See all on the map",
+    servicesHeading: "{industry} services in {city}",
     otherCitiesHeading: "{industry} in other cities",
     otherIndustriesHeading: "Other services in {city}",
   },
@@ -2687,6 +2701,8 @@ export const en: {
     tagline:
       "Book trusted local professionals — beauty, health, home and more — in a couple of clicks.",
     explore: "Explore",
+    findBusiness: "Find a business",
+    inCity: "In {city}",
     zavoia: "Zavoia",
     support: "Support",
     about: "About",
@@ -2779,6 +2795,7 @@ export const en: {
   },
   breadcrumbHome: "Home",
   localeNames: { ro: "Română", en: "English" },
+  language: { label: "Language", loading: "Loading…", unavailable: "Not available" },
   tryStudio: {
     pageTitle: "Try Web Studio — shuffle a real website",
     pageDescription:
@@ -3413,6 +3430,7 @@ export const en: {
     getDirections: "Get directions",
     callVenue: "Call venue",
     leaveReview: "Leave a review",
+    openApp: "Open in app",
     bookAgain: "Book again",
     directions: "Directions",
     reschedule: "Reschedule",
@@ -3643,24 +3661,29 @@ export const en: {
     },
   },
   notFound: {
-    generic: {
-      kicker: "404",
-      title: "This page doesn't exist.",
-      body: "The link may be broken, or the page may have moved.",
-      home: "Back to home",
-      explore: "Explore places",
+    page: {
+      skip: "Skip to content",
+      navigation: "Page navigation",
+      language: "Language",
+      signIn: "Business sign in",
+      signInShort: "Sign in",
+      businessTitle: "Give your business a home on Zavoia.",
+      businessTitleLead: "Give your business",
+      businessTitlePre: "a ",
+      businessTitleWord: "home",
+      businessTitlePost: " on Zavoia.",
+      createAccount: "Create business account",
+      offerFirst: "Create your website.",
+      offerSecond: "Take bookings online.",
+      businessDescription: "Show your services, prices and team. Manage your appointments and website in one place.",
+      trialDetail: "{days} days free on Standard. No card required.",
+      websiteDetail: "Website publishing is included with Plus.",
+      how: "See how it works",
+      lost: "lost",
+      title: "This page isn’t available.",
+      description: "You can still find businesses and book appointments on Zavoia.",
+      explore: "Find a business",
     },
-    claim: {
-      kicker: "Address available",
-      title: "This page could be yours.",
-      body: "Nothing lives at zavoia.com/{slug} yet. Claim it for your business and get a bookable website on this exact address — your services, your team, your hours.",
-      bullets: [
-        "A website that takes bookings, live in minutes",
-        "Your own zavoia.com address",
-      ],
-      primary: "Start free trial",
-      secondary: "See how it works",
-      explore: "Or explore places on Zavoia",
-    },
+
   },
 };

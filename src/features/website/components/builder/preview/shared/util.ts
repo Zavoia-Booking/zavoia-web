@@ -1,4 +1,5 @@
 import type { WebsiteBuilderLocation } from "../../../../types";
+import type { PreviewData } from "./types";
 
 /** Localized string accessor with EN→RO fallback; empty string when the value is absent. */
 export const localized = (v: { en: string; ro: string } | undefined, locale: "en" | "ro") =>
@@ -13,13 +14,13 @@ export function aggregateReviews(locations: WebsiteBuilderLocation[]) {
   return { rating, count };
 }
 
-/** A review's ISO timestamp → a short "Mon YYYY" label (visitor locale); empty on an unparseable date.
- *  Shared by the reviews showcase slide + the wall/deck cards. */
-export function formatReviewDate(iso: string): string {
+/** A review's ISO timestamp → a short month/year label in the page locale.
+ *  UTC keeps server and browser output identical at month boundaries. */
+export function formatReviewDate(iso: string, locale: PreviewData["locale"]): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   try {
-    return d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+    return d.toLocaleDateString(locale, { month: "short", year: "numeric", timeZone: "UTC" });
   } catch {
     return "";
   }

@@ -29,6 +29,11 @@ export default async function RegisterPage({ params, searchParams }: Props) {
   const query = new URLSearchParams();
   query.set("mode", "register");
   if (redirectParam) query.set("redirect", redirectParam);
+  for (const language of LOCALES) {
+    const key = `redirect.${language}`;
+    const value = Array.isArray(sp[key]) ? sp[key][0] : sp[key];
+    if (value) query.set(key, value);
+  }
   if (sourceParam) query.set("src", sourceParam);
 
   redirect(`${localeHref(locale, "auth")}?${query.toString()}`);

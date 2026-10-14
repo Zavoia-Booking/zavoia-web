@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { ApiError } from "@/lib/api/http";
 import { resendVerificationEmail } from "@/lib/api/customer-auth";
 import { errorMessage } from "@/lib/api/error-messages";

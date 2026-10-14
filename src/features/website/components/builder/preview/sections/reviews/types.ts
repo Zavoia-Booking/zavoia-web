@@ -1,10 +1,11 @@
-import type { PreviewReview, RatingBars, T } from "../../shared/types";
+import type { PreviewData, PreviewReview, RatingBars, T } from "../../shared/types";
 
 /** Everything a self-contained Reviews layout renders against. The orchestrator (Reviews.tsx) owns data prep,
  *  the empty state and the section wrapper; each variant under variants/ renders its own head + its own
  *  rating-summary form + its "voices", so no two variants open the same way (mirrors the source `SecReviews`,
  *  where the intro changes shape with the layout). Quotes are already sliced to the variant's own limit. */
 export type ReviewsViewProps = {
+  locale: PreviewData["locale"];
   /** Curated 5★ quotes, pre-sliced to this variant's quote budget. */
   quotes: PreviewReview[];
   /** Aggregate rating (weighted mean across rated locations). */

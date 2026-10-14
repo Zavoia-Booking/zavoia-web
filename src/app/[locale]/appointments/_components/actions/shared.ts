@@ -41,6 +41,19 @@ export function canCancel(appt: AppointmentDetail): boolean {
   return minutesUntil(appt.scheduled_at) >= (loc.cancellationWindowMinutes ?? 0);
 }
 
+/** The create-only review API accepts one submission per completed appointment. */
+export function canLeaveReview(appt: AppointmentDetail): boolean {
+  const reviews = appt.reviews;
+  return (
+    appt.status === "completed" &&
+    appt.location != null &&
+    reviews.business == null &&
+    reviews.professionals.every((p) => p.review == null) &&
+    (reviews.canLeaveBusinessReview ||
+      reviews.professionals.some((p) => p.canLeaveReview))
+  );
+}
+
 /** Human display name for a staff member, falling back across the API fields. */
 export function staffDisplayName(
   staff: AppointmentDetailStaffMember | null | undefined,

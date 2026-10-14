@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
+import { useId } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { useAuth } from "@/lib/auth/useAuth";
+import { useRetainedAuthAction } from "@/lib/auth/retained-flow";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 
 /**
@@ -17,17 +18,25 @@ export function EnableAccessPanel({
   locale,
   details,
   onCancel,
+  flowKey,
 }: {
   locale: Locale;
   details: AccountLinkNeededDetails;
   onCancel: () => void;
+  /** Callback identity keeps a sent email/pending request across locale changes. */
+  flowKey?: string;
 }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const t = dict.enableAccess;
   const { sendAccountLink } = useAuth();
 
-  const [sending, setSending] = useState(false);
-  const [sentMessage, setSentMessage] = useState<string | null>(null);
+  const instance = useId();
+  const action = useRetainedAuthAction(
+    JSON.stringify(["enable-access", flowKey ?? instance, details.email]),
+  );
+  const sending = action.status === "pending";
+  const sent = action.status === "success";
 
   // The register-path 409 carries no name (nothing is verified there), so the
   // greeting falls back to the email the user typed.
@@ -35,17 +44,14 @@ export function EnableAccessPanel({
     `${details.firstName ?? ""} ${details.lastName ?? ""}`.trim();
   const greeting = t.greeting.replace("{name}", fullName || details.email);
 
-  async function handleSendLink() {
-    setSending(true);
-    try {
-      const message = await sendAccountLink(details.email, locale);
-      setSentMessage(message || t.sentFallback);
-    } catch {
-      // Keep UX resilient (and enumeration-safe): show the neutral fallback.
-      setSentMessage(t.sentFallback);
-    } finally {
-      setSending(false);
-    }
+  function handleSendLink() {
+    void action.run(async () => {
+      try {
+        await sendAccountLink(details.email, locale);
+      } catch {
+        // Preserve the enumeration-safe neutral outcome, in the UI language.
+      }
+    });
   }
 
   return (
@@ -54,12 +60,12 @@ export function EnableAccessPanel({
       <p className="mt-4 text-sm text-zinc-800">{greeting}</p>
       <p className="mt-2 text-sm text-zinc-600">{t.explanation}</p>
 
-      {sentMessage ? (
+      {sent ? (
         <p
           role="status"
           className="mt-6 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700"
         >
-          {sentMessage}
+          {t.sentFallback}
         </p>
       ) : (
         <button

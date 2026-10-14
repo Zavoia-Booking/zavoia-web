@@ -4,6 +4,7 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { CITY_ENTRIES, listIndustryTaxonomy } from "@/data/seo";
 import { localeHref } from "@/i18n/routes";
 import { listPostsForSitemap } from "@/sanity/queries";
+import { getPostAlternates } from "@/lib/blog/alternates";
 import { LEGAL_DOCUMENTS } from "@/data/legal";
 import { getIndustries, getSitemapEntries } from "@/lib/api/marketplace/public";
 import {
@@ -149,25 +150,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const posts = await loadBlogEntries();
   const postEntries: MetadataRoute.Sitemap = posts.flatMap((post) => {
-    const languages: Partial<Record<Locale, string>> = {};
-    for (const l of LOCALES) {
-      const slug = post.slug[l]?.current;
-      if (slug) languages[l] = abs(localeHref(l, "blog", slug));
-    }
+    const alternates = getPostAlternates(post);
+    const languages = Object.fromEntries(
+      Object.entries(alternates).map(([language, path]) => [language, abs(path)]),
+    );
 
     const entries: MetadataRoute.Sitemap = [];
     for (const locale of LOCALES) {
-      const slug = post.slug[locale]?.current;
-      if (!slug) continue;
+      const path = alternates[locale];
+      if (!path) continue;
       entries.push({
-        url: abs(localeHref(locale, "blog", slug)),
+        url: abs(path),
         lastModified: new Date(post.publishedAt),
         changeFrequency: "monthly",
         priority: 0.6,
         alternates: {
           languages: {
-            ...(languages as Record<Locale, string>),
-            "x-default": languages[DEFAULT_LOCALE] ?? abs(localeHref(locale, "blog", slug)),
+            ...languages,
+            "x-default": languages[DEFAULT_LOCALE] ?? abs(path),
           },
         },
       });

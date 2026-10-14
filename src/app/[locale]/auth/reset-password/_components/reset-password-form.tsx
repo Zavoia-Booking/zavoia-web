@@ -1,10 +1,10 @@
 "use client";
 
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { authErrorMessage } from "@/lib/api/auth-error-messages";
 import { resetPassword } from "@/lib/api/customer-auth";
@@ -27,7 +27,8 @@ function isDeadTokenError(error: unknown): boolean {
 }
 
 export function ResetPasswordForm({ locale }: { locale: Locale }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const t = dict.resetPassword;
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -77,7 +78,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
       submitLockRef.current = false;
       setSubmitting(false);
       setErrors({
-        form: authErrorMessage(e, dict.errors, dictionaries[locale].errors),
+        form: authErrorMessage(e, dict.errors, dictionary.errors),
       });
       setTokenDead(isDeadTokenError(e));
     }

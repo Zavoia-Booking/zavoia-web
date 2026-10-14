@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { prefersReducedMotion } from "../../../shared/util";
-import type { PreviewReview, T } from "../../../shared/types";
+import { useReducedMotion } from "../../../shared/hooks";
+import type { PreviewData, PreviewReview, T } from "../../../shared/types";
 import { RvSlide } from "./RvSlide";
 
 /** Reviewer name as two stacked char layers — on row hover the top glyphs roll up as their duplicates rise
@@ -23,9 +23,9 @@ function HoverName({ text }: { text: string }) {
   );
 }
 
-export function RvShowcase({ items, italic, t }: { items: PreviewReview[]; italic: boolean; t: T }) {
+export function RvShowcase({ locale, items, italic, t }: { locale: PreviewData["locale"]; items: PreviewReview[]; italic: boolean; t: T }) {
   const n = items.length;
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [inView, setInView] = useState(reduced);
@@ -106,7 +106,7 @@ export function RvShowcase({ items, italic, t }: { items: PreviewReview[]; itali
         <span className="mc-rv-stage-no" aria-hidden>
           {num(active)}
         </span>
-        <RvSlide key={active} item={cur} animateIn={inView && !reduced} italic={italic} t={t} />
+        <RvSlide locale={locale} key={active} item={cur} animateIn={inView && !reduced} italic={italic} t={t} />
         <span className="mc-rv-prog" aria-hidden>
           <span className="mc-rv-prog-fill" ref={progRef} />
         </span>

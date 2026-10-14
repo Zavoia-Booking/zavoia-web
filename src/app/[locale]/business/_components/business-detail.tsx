@@ -19,7 +19,7 @@ import {
 import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { openStatus } from "@/lib/marketplace/working-hours";
 import { useTranslation } from "@/i18n/useTranslation";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
 import {
   formatMoney,
@@ -1306,6 +1306,7 @@ function ReviewsTab({
   locale: Locale;
   dict: typeof import("@/i18n/dictionaries/en").en.business;
 }) {
+  const dictionary = useTranslation().dict;
   const [reviews, setReviews] = useState<Review[]>(listing.reviews);
   const [offset, setOffset] = useState(listing.reviews.length);
   const [total, setTotal] = useState(listing.reviewStats.totalCount);
@@ -1342,11 +1343,11 @@ function ReviewsTab({
       // same button doubles as the retry.
       .catch((e) => {
         setLoadMoreError(
-          errorMessage(e, dictionaries[locale].errors, dict.loadMoreReviewsError),
+          errorMessage(e, dictionary.errors, dict.loadMoreReviewsError),
         );
       })
       .finally(() => setLoading(false));
-  }, [listing.locationId, offset, locale, dict.loadMoreReviewsError]);
+  }, [listing.locationId, offset, dict.loadMoreReviewsError, dictionary.errors]);
 
   if (stats.totalCount === 0 && reviews.length === 0) {
     return (

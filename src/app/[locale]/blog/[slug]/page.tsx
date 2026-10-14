@@ -4,11 +4,12 @@ import {
   LOCALES,
   DEFAULT_LOCALE,
   isLocale,
-  type Locale,
 } from "@/i18n/locales";
 import { getPostBySlug, listPostSlugs, listPosts } from "@/sanity/queries";
 import { localeHref } from "@/i18n/routes";
-import { selectRelated } from "@/lib/blog";
+import { dictionaries } from "@/i18n/dictionaries";
+import { getPostAlternates, getPostTranslation, selectRelated } from "@/lib/blog";
+import { LocaleRouteAlternates } from "@/i18n/locale-navigation";
 import type { PostListItem } from "@/sanity/types";
 import { BlogPost } from "@/app/_components/blog/blog-post";
 import { toBlogCardVM } from "@/app/_components/blog/vm";
@@ -60,20 +61,14 @@ export async function generateMetadata({
 
   const canonical = localeHref(localeParam, "blog", slug);
 
-  const languages: Partial<Record<Locale, string>> = {};
-  for (const l of LOCALES) {
-    const localizedSlug = post.slug[l]?.current;
-    if (localizedSlug) {
-      languages[l] = localeHref(l, "blog", localizedSlug);
-    }
-  }
+  const languages = getPostAlternates(post);
 
   return {
     title,
     description,
     alternates: {
       canonical,
-      languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] },
+      languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] ?? canonical },
     },
     openGraph: {
       title,
@@ -97,11 +92,23 @@ export default async function PostPage({ params }: Props) {
   // selectRelated only reads `_id`/`category`; a minimal current stand-in is
   // enough to exclude the open post and prefer same-category neighbours.
   const current = { _id: post._id, category: post.category } as PostListItem;
-  const related = selectRelated<PostListItem>(allPosts, current, 3);
+  const translatedPosts = allPosts.filter((candidate) => getPostTranslation(candidate, localeParam));
+  const related = selectRelated<PostListItem>(translatedPosts, current, 3);
   const relatedVMs: BlogCardVM[] = related.flatMap((p) => {
     const vm = toBlogCardVM(p, localeParam);
     return vm ? [vm] : [];
   });
 
-  return <BlogPost locale={localeParam} post={post} related={relatedVMs} />;
+  return (
+    <>
+      <LocaleRouteAlternates
+        pathname={localeHref(localeParam, "blog", slug)}
+        alternates={getPostAlternates(post)}
+        currentLocale={localeParam}
+        label={dictionaries[localeParam].language.label}
+        localeNames={dictionaries[localeParam].localeNames}
+      />
+      <BlogPost locale={localeParam} post={post} related={relatedVMs} />
+    </>
+  );
 }

@@ -1,8 +1,8 @@
 "use client";
 
+import { useTranslation } from "@/i18n/useTranslation";
 import { useMemo, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import {
   CATEGORY_ORDER,
@@ -38,7 +38,8 @@ export function BlogList({
   locale: Locale;
   posts: BlogCardVM[];
 }) {
-  const dict = dictionaries[locale];
+  const dictionary = useTranslation().dict;
+  const dict = dictionary;
   const [cat, setCat] = useState<BlogTab>("all");
   const [page, setPage] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);

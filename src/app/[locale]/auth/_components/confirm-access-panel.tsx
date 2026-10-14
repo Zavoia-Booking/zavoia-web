@@ -1,14 +1,15 @@
 "use client";
 
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import {
   defaultPostAuthTarget,
   safeRedirectTarget,
 } from "@/lib/auth/redirects";
 import { useAuth } from "@/lib/auth/useAuth";
+import { useRetainedAuthAction } from "@/lib/auth/retained-flow";
 
 export type ConfirmAccessContext = {
   /** Single-use tx (10 min TTL) from the 409, consumed by confirm-access. */
@@ -39,13 +40,14 @@ export function ConfirmAccessPanel({
   /** Post-auth target carried by the OAuth flow context on /auth/callback. */
   redirect?: string | null;
 }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const t = dict.confirmAccess;
   const router = useRouter();
   const { status, confirmMarketplaceAccess } = useAuth();
 
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const action = useRetainedAuthAction(`confirm-access:${context.txId}`);
+  const submitting = action.status === "pending" || action.status === "success";
 
   // Once confirmMarketplaceAccess establishes the session, redirect like the
   // sign-in forms.
@@ -60,18 +62,11 @@ export function ConfirmAccessPanel({
     }
   }, [status, locale, router, redirect]);
 
-  async function handleConfirm() {
-    setError(null);
-    setSubmitting(true);
-    try {
-      await confirmMarketplaceAccess(context.txId);
-      // Redirect handled by the effect once status flips to authenticated.
-    } catch {
-      // The tx is single-use with a short TTL, so the actionable advice is
-      // always the same: run the Google sign-in again.
-      setError(t.error);
-      setSubmitting(false);
-    }
+  function handleConfirm() {
+    void action.run(async () => {
+      await confirmMarketplaceAccess(context.txId, locale);
+      // Redirect follows the session in the currently mounted locale.
+    }).catch(() => {});
   }
 
   const greeting = context.firstName
@@ -86,12 +81,12 @@ export function ConfirmAccessPanel({
         {t.explanation.replace("{email}", context.email)}
       </p>
 
-      {error && (
+      {action.status === "error" && (
         <p
           role="alert"
           className="mt-4 rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
         >
-          {error}
+          {t.error}
         </p>
       )}
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button, Icon, Spinner, useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { customerErrorMessage } from "@/lib/api/customer-error-messages";
 import { submitReview } from "@/lib/api/marketplace/customer";
 import type {
@@ -12,7 +12,7 @@ import type {
   SubmitReviewBody,
 } from "@/lib/api/marketplace/types";
 import { ActionModal, ApptMini } from "./action-modal";
-import { apptMiniProps, staffDisplayName } from "./shared";
+import { apptMiniProps, canLeaveReview, staffDisplayName } from "./shared";
 
 type ReviewDict = ReturnType<
   typeof useTranslation
@@ -24,22 +24,17 @@ interface TargetState {
   comment: string;
 }
 
-/**
- * Review modal. Ports `ZwReviewModal` (web-appointment-actions.jsx:94-152) but
- * adapted to the SPLIT review API: one venue/business target plus one target per
- * eligible professional. Existing reviews pre-fill rating + comment (editing).
- *
- * RUNTIME GOTCHA: existing `review.rating` can arrive as a numeric string, so we
- * coerce with `Number()` before seeding the star state.
- */
+/** One create-only submission with optional location and professional ratings. */
 export function ReviewModal({
   appointment,
   onClose,
   onChanged,
+  onSubmitted,
 }: {
   appointment: AppointmentDetail;
   onClose: () => void;
   onChanged?: () => void | Promise<void>;
+  onSubmitted?: (uuid: string) => void;
 }) {
   const { dict } = useTranslation();
   const t = dict.appointmentActions.review;
@@ -48,56 +43,48 @@ export function ReviewModal({
   const reviews = appointment.reviews;
   const businessName = appointment.business?.name ?? "";
 
-  // Which professional blocks to render: eligible OR already-reviewed.
+  const eligible = canLeaveReview(appointment);
   const professionalTargets = useMemo(
-    () =>
-      reviews.professionals.filter(
-        (p) => p.canLeaveReview || p.review != null,
-      ),
+    () => reviews.professionals.filter((p) => p.canLeaveReview && p.review == null),
     [reviews.professionals],
   );
+  const showBusiness = reviews.canLeaveBusinessReview && reviews.business == null;
 
-  // Render the business block when eligible OR an existing review is present.
-  const showBusiness =
-    reviews.canLeaveBusinessReview || reviews.business != null;
-
-  // Editing when ANY target already has an existing review.
-  const isEdit =
-    reviews.business != null ||
-    professionalTargets.some((p) => p.review != null);
-
-  // ── Seed state (coerce rating; ratings may be numeric strings at runtime). ──
-  const [businessState, setBusinessState] = useState<TargetState>(() => ({
-    rating: reviews.business ? Number(reviews.business.rating) || 0 : 0,
-    comment: reviews.business?.comment ?? "",
-  }));
+  const [businessState, setBusinessState] = useState<TargetState>({
+    rating: 0,
+    comment: "",
+  });
   const [proStates, setProStates] = useState<Record<number, TargetState>>(() => {
     const seed: Record<number, TargetState> = {};
     for (const p of professionalTargets) {
-      seed[p.staffId] = {
-        rating: p.review ? Number(p.review.rating) || 0 : 0,
-        comment: p.review?.comment ?? "",
-      };
+      seed[p.staffId] = { rating: 0, comment: "" };
     }
     return seed;
   });
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
+  const closingRef = useRef(false);
+  const handleClosing = useCallback(() => {
+    closingRef.current = true;
+  }, []);
 
   const mini = apptMiniProps(appointment, dict.common.photo);
 
   // Ready when at least one rendered target has a rating > 0.
   const ready =
-    (showBusiness && businessState.rating > 0) ||
-    professionalTargets.some((p) => (proStates[p.staffId]?.rating ?? 0) > 0);
+    eligible &&
+    ((showBusiness && businessState.rating > 0) ||
+      professionalTargets.some((p) => (proStates[p.staffId]?.rating ?? 0) > 0));
 
   const setProTarget = (staffId: number, next: TargetState) => {
     setProStates((prev) => ({ ...prev, [staffId]: next }));
   };
 
   const submit = async () => {
-    if (!ready || submitting) return;
+    if (!ready || inFlightRef.current || closingRef.current) return;
+    inFlightRef.current = true;
     setSubmitting(true);
     setError(null);
 
@@ -127,24 +114,32 @@ export function ReviewModal({
 
     try {
       await submitReview(body);
-      toast(isEdit ? t.successEdit : t.successNew, "star");
-      await onChanged?.();
-      onClose();
     } catch (e) {
       // CUSTOMER_REVIEW.* codes ("already reviewed", "not completed yet",
       // "no rating given", "professional not on this appointment") each get
       // their own copy via `customerErrorMessage`; anything unrecognised
       // falls back to this modal's own generic line.
       setError(customerErrorMessage(e, dict.errors, t.error));
+      inFlightRef.current = false;
       setSubmitting(false);
+      return;
     }
+
+    onSubmitted?.(appointment.uuid);
+    toast(t.successNew, "star");
+    onClose();
+    // The existing detail refresh handles its errors; a confirmed submission
+    // must not wait for that request before finishing the interaction.
+    void onChanged?.();
   };
 
   return (
     <ActionModal
-      title={isEdit ? t.titleEdit : t.titleNew}
+      title={t.titleNew}
       subtitle={format(t.sub, { business: businessName })}
       onClose={onClose}
+      dismissible={!submitting}
+      onClosing={handleClosing}
       footer={
         <>
           <span style={{ flex: 1, fontSize: 12.5, color: "var(--c-500)" }}>
@@ -156,7 +151,7 @@ export function ReviewModal({
             disabled={!ready || submitting}
             onClick={() => void submit()}
           >
-            {submitting ? <Spinner size={16} /> : isEdit ? t.submitEdit : t.submitNew}
+            {submitting ? <Spinner size={16} /> : t.submitNew}
           </Button>
         </>
       }
@@ -187,7 +182,7 @@ export function ReviewModal({
       >
         {showBusiness && (
           <RatingBlock
-            label={format(t.businessLabel, { business: businessName })}
+            label={format(t.businessLabel, { business: appointment.location?.name ?? businessName })}
             state={businessState}
             onChange={setBusinessState}
             t={t}

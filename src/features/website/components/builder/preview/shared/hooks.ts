@@ -1,5 +1,20 @@
-import { useEffect, useLayoutEffect, useState } from "react";
-import { findScrollParent } from "./util";
+import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
+import { findScrollParent, prefersReducedMotion } from "./util";
+
+const motionQuery = "(prefers-reduced-motion: reduce)";
+const serverReducedMotion = () => false;
+
+function subscribeReducedMotion(onChange: () => void) {
+  const media = window.matchMedia?.(motionQuery);
+  if (!media) return () => undefined;
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+/** The server and hydration share a stable snapshot; browser preference changes remain reactive. */
+export function useReducedMotion(): boolean {
+  return useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, serverReducedMotion);
+}
 
 /** IntersectionObserver gate (F5): tracks whether `ref` is in view (continuously, so callers can pause motion
  *  when scrolled away), defaulting to true where IO is unavailable. `once` latches true on first intersect

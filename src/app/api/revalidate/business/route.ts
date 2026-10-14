@@ -5,6 +5,8 @@ import { LOCALES } from "@/i18n/locales";
 import { REVALIDATE_SECRET } from "@/lib/env";
 import {
   BRAND_TAG,
+  DISCOVERY_TAG,
+  TAXONOMY_TAG,
   BUSINESS_TAG,
   WEBSITE_TAG,
   brandTag,
@@ -89,7 +91,9 @@ export async function POST(req: NextRequest) {
     revalidateTag(BUSINESS_TAG, "max");
     revalidateTag(BRAND_TAG, "max");
     revalidateTag(WEBSITE_TAG, "max");
-    revalidated.push(BUSINESS_TAG, BRAND_TAG, WEBSITE_TAG);
+    revalidateTag(DISCOVERY_TAG, { expire: 0 });
+    revalidateTag(TAXONOMY_TAG, { expire: 0 });
+    revalidated.push(BUSINESS_TAG, BRAND_TAG, WEBSITE_TAG, DISCOVERY_TAG, TAXONOMY_TAG);
     return NextResponse.json({ revalidated });
   }
 
@@ -107,6 +111,11 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Membership, visibility, ratings and identity can affect either home feed.
+  // Expire immediately so the next request cannot reuse a now-hidden listing.
+  revalidateTag(DISCOVERY_TAG, { expire: 0 });
+  revalidated.push(DISCOVERY_TAG);
 
   for (const slug of locations) {
     const tag = businessTag(slug);

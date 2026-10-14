@@ -1,10 +1,10 @@
 "use client";
 
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { validateAccountLink } from "@/lib/api/customer-auth";
 import { ApiError } from "@/lib/api/http";
@@ -42,7 +42,8 @@ type State =
  * signed in.
  */
 export function VerifyAccountLink({ locale }: { locale: Locale }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const t = dict.verifyLink;
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -183,7 +184,7 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
           onClick={() => void runValidate()}
           className="mt-6 inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
         >
-          {dictionaries[locale].errors.retry}
+          {dictionary.errors.retry}
         </button>
       </main>
     );

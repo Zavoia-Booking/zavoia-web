@@ -43,6 +43,8 @@ export interface CityResult {
   city: string;
   region?: string;
   country?: string;
+  /** ISO 3166-1 alpha-2, independent of the display language. */
+  countryCode?: string;
   lat: number;
   lng: number;
 }
@@ -52,6 +54,7 @@ export interface CityResult {
 interface MapTilerContextEntry {
   id?: string;
   text?: string;
+  country_code?: string;
 }
 
 interface MapTilerFeature {
@@ -61,10 +64,17 @@ interface MapTilerFeature {
   // MapTiler returns center as [lng, lat].
   center?: number[];
   context?: MapTilerContextEntry[];
+  properties?: { country_code?: string };
 }
 
 interface MapTilerResponse {
   features?: MapTilerFeature[];
+}
+
+function countryCode(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const code = value.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : undefined;
 }
 
 // ── Mapping (mirrors RN api.ts featureToCity) ──────────────────────────────
@@ -92,7 +102,8 @@ function featureToCity(feature: MapTilerFeature): CityResult | null {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
   const context = feature.context ?? [];
-  const country = context.find((c) => c.id?.startsWith("country"))?.text;
+  const countryContext = context.find((c) => c.id?.startsWith("country"));
+  const country = countryContext?.text;
   const region = context.find((c) =>
     /^(region|subregion|county|municipality)/.test(c.id ?? ""),
   )?.text;
@@ -103,6 +114,8 @@ function featureToCity(feature: MapTilerFeature): CityResult | null {
     city: name,
     region,
     country,
+    countryCode: countryCode(feature.properties?.country_code)
+      ?? countryCode(countryContext?.country_code),
     lat,
     lng,
   };
@@ -188,6 +201,7 @@ interface IpWhoResponse {
   city?: string;
   region?: string;
   country?: string;
+  country_code?: string;
   latitude?: number;
   longitude?: number;
 }
@@ -205,7 +219,8 @@ export async function ipLocate(signal?: AbortSignal): Promise<CityResult | null>
     const json = (await res.json()) as IpWhoResponse;
     if (json.success === false) return null;
     const { latitude: lat, longitude: lng, city } = json;
-    if (typeof lat !== "number" || typeof lng !== "number") return null;
+    if (typeof lat !== "number" || typeof lng !== "number"
+      || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
     const label = city || "Current location";
     return {
       id: json.ip ? `ip-${json.ip}` : `${lat},${lng}`,
@@ -213,6 +228,7 @@ export async function ipLocate(signal?: AbortSignal): Promise<CityResult | null>
       city: label,
       region: json.region || undefined,
       country: json.country || undefined,
+      countryCode: countryCode(json.country_code),
       lat,
       lng,
     };

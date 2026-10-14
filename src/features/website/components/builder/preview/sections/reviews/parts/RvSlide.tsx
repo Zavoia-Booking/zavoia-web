@@ -2,15 +2,17 @@ import { Fragment, useEffect, useState, type CSSProperties } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Stars } from "../../../shared/primitives";
 import { formatReviewDate } from "../../../shared/util";
-import type { PreviewReview, T } from "../../../shared/types";
+import type { PreviewData, PreviewReview, T } from "../../../shared/types";
 
 export function RvSlide({
+  locale,
   item,
   animateIn,
   italic,
   t,
   starEmpty,
 }: {
+  locale: PreviewData["locale"];
   item: PreviewReview;
   animateIn: boolean;
   italic: boolean;
@@ -28,7 +30,7 @@ export function RvSlide({
   }, [animateIn]);
   const shown = !animateIn || entered;
   const initial = (item.customerName || "?").trim().charAt(0).toUpperCase() || "?";
-  const sub = [item.locationName, formatReviewDate(item.createdAt)].filter(Boolean).join(" · ");
+  const sub = [item.locationName, formatReviewDate(item.createdAt, locale)].filter(Boolean).join(" · ");
   const words = item.comment.split(" ");
   return (
     <>

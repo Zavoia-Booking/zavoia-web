@@ -17,6 +17,10 @@
 export const BUSINESS_TAG = "business";
 export const BRAND_TAG = "brand";
 export const WEBSITE_TAG = "website";
+/** Anonymous homepage data, shared across locales. */
+export const DISCOVERY_TAG = "discovery";
+export const TAXONOMY_TAG = "taxonomy";
+export const DISCOVERY_REVALIDATE_SECONDS = 60;
 
 /** `idOrSlug` is whatever the URL carried: a location slug or a numeric id. */
 export function businessTag(idOrSlug: string): string {

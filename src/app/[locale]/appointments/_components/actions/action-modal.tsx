@@ -3,11 +3,14 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type ReactNode,
 } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Icon } from "@/components/ui";
+import { useTranslation } from "@/i18n/useTranslation";
 
 export interface ActionModalProps {
   title: string;
@@ -17,6 +20,10 @@ export interface ActionModalProps {
   footer?: ReactNode;
   /** Called once the close-out animation completes (~220ms after a close). */
   onClose: () => void;
+  /** Prevent user dismissal while the action is being submitted. */
+  dismissible?: boolean;
+  /** Called synchronously when a user dismissal starts. */
+  onClosing?: () => void;
   /** Card max width in px. Defaults to 480. */
   width?: number;
 }
@@ -28,11 +35,9 @@ export interface ActionModalProps {
  * over a blurred backdrop, scale-in on open (`zw-modal-in`) and scale-out on
  * close (`zw-modal-out`) with a ~220ms delay before the parent unmounts it.
  *
- * Accessibility / UX (mirrors BookingDrawer):
- * - `role="dialog"`, `aria-modal`, an accessible label from `title`.
- * - Closes on ESC, on backdrop click, and via the header close button.
- * - Locks body scroll while mounted; restores the previous value on unmount.
- * - Restores focus to the previously-focused element on unmount.
+ * Radix owns the modal focus scope, background isolation and scroll lock. It stays
+ * open through the exit animation so background content cannot receive focus early.
+ * Appointment buttons live outside Dialog.Trigger, so focus restoration is explicit.
  */
 const CLOSE_ANIM_MS = 220;
 
@@ -42,163 +47,180 @@ export function ActionModal({
   children,
   footer,
   onClose,
+  dismissible = true,
+  onClosing,
   width = 480,
 }: ActionModalProps) {
+  const { dict } = useTranslation();
+  const descriptionId = useId();
   const [closing, setClosing] = useState(false);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Animate out, then ask the parent to unmount us. `onClose` comes from the
-  // provider's useCallback-stable `close`, so closing over it here is safe.
+  // Animate out, then close the action that requested dismissal.
   const requestClose = useCallback(() => {
-    if (closeTimerRef.current) return;
+    if (!dismissible || closeTimerRef.current) return;
+    onClosing?.();
     setClosing(true);
     closeTimerRef.current = setTimeout(onClose, CLOSE_ANIM_MS);
-  }, [onClose]);
+  }, [dismissible, onClose, onClosing]);
 
-  // ── ESC to close + scroll-lock + focus restore (effect-based, like BookingDrawer). ──
   useEffect(() => {
-    const previouslyFocused =
-      typeof document !== "undefined"
-        ? (document.activeElement as HTMLElement | null)
-        : null;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") requestClose();
-    };
-    window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const timer = closeTimerRef;
     return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
       if (timer.current) clearTimeout(timer.current);
-      // Restore focus politely (do not steal focus if it has already moved on).
-      if (previouslyFocused && typeof previouslyFocused.focus === "function") {
-        previouslyFocused.focus();
-      }
     };
-  }, [requestClose]);
+  }, []);
 
   return (
-    <div
-      className="zv-sheet-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) requestClose();
-      }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 300,
-        background: "rgba(28,28,26,0.34)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
+    <DialogPrimitive.Root
+      open
+      onOpenChange={(open) => {
+        if (!open) requestClose();
       }}
     >
-      <div
-        className={closing ? "zw-modal-out" : "zw-modal-in"}
-        style={{
-          width: `min(${width}px, 100%)`,
-          maxHeight: "calc(100dvh - 40px)",
-          background: "var(--c-canvas)",
-          borderRadius: 24,
-          boxShadow: "var(--sh-xl)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <div
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          className="zv-sheet-backdrop"
           style={{
-            padding: "20px 22px 16px",
+            position: "fixed",
+            inset: 0,
+            zIndex: 300,
+            background: "rgba(28,28,26,0.34)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             display: "flex",
-            alignItems: "flex-start",
-            gap: 12,
-            borderBottom: "1px solid rgba(28,28,26,0.07)",
-            background: "#fff",
-            flexShrink: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
           }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <DialogPrimitive.Content
+            className={closing ? "zw-modal-out" : "zw-modal-in"}
+            aria-describedby={subtitle ? descriptionId : undefined}
+            onOpenAutoFocus={() => {
+              // Capture before Radix focuses the first enabled control inside the dialog.
+              returnFocusRef.current =
+                document.activeElement instanceof HTMLElement
+                  ? document.activeElement
+                  : null;
+            }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              if (returnFocusRef.current?.isConnected) {
+                returnFocusRef.current.focus({ preventScroll: true });
+              }
+            }}
+            onEscapeKeyDown={(event) => {
+              if (!dismissible) event.preventDefault();
+            }}
+            onPointerDownOutside={(event) => {
+              if (!dismissible) event.preventDefault();
+            }}
+            style={{
+              width: `min(${width}px, 100%)`,
+              maxHeight: "calc(100dvh - 40px)",
+              background: "var(--c-canvas)",
+              borderRadius: 24,
+              boxShadow: "var(--sh-xl)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            {/* Header */}
             <div
               style={{
-                fontSize: 18,
-                fontWeight: 600,
-                letterSpacing: "-0.02em",
-                color: "var(--c-900)",
+                padding: "20px 22px 16px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+                borderBottom: "1px solid rgba(28,28,26,0.07)",
+                background: "#fff",
+                flexShrink: 0,
               }}
             >
-              {title}
-            </div>
-            {subtitle && (
-              <div
-                className="txt-pretty"
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <DialogPrimitive.Title asChild>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 600,
+                      letterSpacing: "-0.02em",
+                      color: "var(--c-900)",
+                    }}
+                  >
+                    {title}
+                  </div>
+                </DialogPrimitive.Title>
+                {subtitle && (
+                  <DialogPrimitive.Description asChild id={descriptionId}>
+                    <div
+                      className="txt-pretty"
+                      style={{
+                        fontSize: 13.5,
+                        color: "var(--c-600)",
+                        marginTop: 4,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {subtitle}
+                    </div>
+                  </DialogPrimitive.Description>
+                )}
+              </div>
+              <button
+                type="button"
+                className="tap"
+                onClick={requestClose}
+                disabled={!dismissible}
+                aria-label={dict.booking.close}
                 style={{
-                  fontSize: 13.5,
-                  color: "var(--c-600)",
-                  marginTop: 4,
-                  lineHeight: 1.45,
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  border: 0,
+                  background: "var(--c-100)",
+                  cursor: dismissible ? "pointer" : "default",
+                  opacity: dismissible ? 1 : 0.5,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                {subtitle}
+                <Icon name="x" size={15} color="var(--c-800)" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div
+              className="zw-scroll-y"
+              style={{ flex: 1, minHeight: 0, padding: "20px 22px" }}
+            >
+              {children}
+            </div>
+
+            {/* Footer */}
+            {footer && (
+              <div
+                style={{
+                  padding: "14px 22px",
+                  borderTop: "1px solid rgba(28,28,26,0.07)",
+                  background: "#fff",
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {footer}
               </div>
             )}
-          </div>
-          <button
-            type="button"
-            className="tap"
-            onClick={requestClose}
-            aria-label="Close"
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "50%",
-              border: 0,
-              background: "var(--c-100)",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="x" size={15} color="var(--c-800)" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div
-          className="zw-scroll-y"
-          style={{ flex: 1, minHeight: 0, padding: "20px 22px" }}
-        >
-          {children}
-        </div>
-
-        {/* Footer */}
-        {footer && (
-          <div
-            style={{
-              padding: "14px 22px",
-              borderTop: "1px solid rgba(28,28,26,0.07)",
-              background: "#fff",
-              display: "flex",
-              gap: 10,
-              alignItems: "center",
-              flexShrink: 0,
-            }}
-          >
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Overlay>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
@@ -316,7 +338,12 @@ function ApptMiniImg({
       onError={() => setErr(true)}
       loading="lazy"
       decoding="async"
-      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        display: "block",
+      }}
     />
   );
 }

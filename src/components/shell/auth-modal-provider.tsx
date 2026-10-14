@@ -9,7 +9,9 @@ import {
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useTranslation } from "@/i18n/useTranslation";
-import { localeHref } from "@/i18n/routes";
+import { localizedPathname } from "@/i18n/routes";
+import { useLocaleAlternates } from "@/i18n/locale-navigation";
+import { authEntryHref, safeRedirectTarget } from "@/lib/auth/redirects";
 
 // ─────────────────────────────────────────────
 // Auth-entry context — any client component (the header account menu, the
@@ -26,7 +28,7 @@ import { localeHref } from "@/i18n/routes";
 export type AuthMode = "signin" | "signup";
 
 export interface AuthModalApi {
-  openAuthModal: (mode?: AuthMode) => void;
+  openAuthModal: (mode?: AuthMode, returnTo?: string) => void;
 }
 
 const NOOP: AuthModalApi = {
@@ -44,18 +46,20 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { locale } = useTranslation();
+  const alternates = useLocaleAlternates(pathname ?? "/");
 
   const openAuthModal = useCallback(
-    (m: AuthMode = "signin") => {
+    (m: AuthMode = "signin", returnTo?: string) => {
       const mode = m === "signup" ? "register" : "login";
-      const base = localeHref(locale, "auth");
-      const redirect =
-        pathname && pathname !== "/"
-          ? `&redirect=${encodeURIComponent(pathname)}`
-          : "";
-      router.push(`${base}?mode=${mode}${redirect}`);
+      const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      const target = safeRedirectTarget(returnTo ?? null, locale, current);
+      const targetUrl = new URL(target, window.location.origin);
+      // Only attach the active page's authoritative map when returning to it.
+      // An explicit returnTo may instead point at an account or appointment.
+      const returnsHere = localizedPathname(targetUrl.pathname, locale) === localizedPathname(window.location.pathname, locale);
+      router.push(authEntryHref(locale, mode, target, returnsHere ? alternates : undefined));
     },
-    [router, pathname, locale],
+    [router, locale, alternates],
   );
 
   const api = useMemo<AuthModalApi>(() => ({ openAuthModal }), [openAuthModal]);

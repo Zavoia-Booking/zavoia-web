@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import type { CityView, TaxonomyView } from "@/data/seo";
 import { listCities, listTaxonomy } from "@/data/seo";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { dictionaries } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { BusinessFeedCard } from "@/components/business";
 import { locationCardToData } from "@/lib/marketplace/card-mappers";
@@ -36,6 +37,11 @@ export function CategoryContent({
   // other industries. Either way the reader gets the neighbouring choices at
   // their own level rather than a flat dump of all 91 taxonomy entries.
   const taxonomy = listTaxonomy(industries, locale);
+  // The sitemap advertises industries. Link their services in server HTML so
+  // service pages remain discoverable without geolocation or client JavaScript.
+  const services = entry.kind === "industry"
+    ? taxonomy.filter((t) => t.kind === "tag" && t.industrySlug === entry.industrySlug)
+    : [];
   const siblings = (
     entry.kind === "tag"
       ? taxonomy.filter(
@@ -48,9 +54,15 @@ export function CategoryContent({
 
   // "See all" hands the query to /search, which owns the map, the filters and
   // the pagination — this page is a landing surface, not a second search UI.
-  const searchHref = `${localeHref(locale, "search")}?city=${encodeURIComponent(
-    city.name,
-  )}&industry=${encodeURIComponent(entry.industrySlug)}`;
+  // A service landing page must keep its tag when opening the map; using
+  // only its parent industry would broaden, for example, Hair Salon to Beauty.
+  const searchParams = new URLSearchParams({ city: city.name });
+  if (entry.kind === "tag") {
+    searchParams.set("tagIds", String(entry.tagId));
+  } else {
+    searchParams.set("industry", entry.industrySlug);
+  }
+  const searchHref = `${localeHref(locale, "search")}?${searchParams}`;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
@@ -103,6 +115,26 @@ export function CategoryContent({
           </ul>
         )}
       </section>
+
+      {services.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-lg font-medium">
+            {format(dict.category.servicesHeading, vars)}
+          </h2>
+          <ul className="mt-3 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-sm text-zinc-700">
+            {services.map((service) => (
+              <li key={service.id}>
+                <Link
+                  href={localeHref(locale, city.slug, service.slug)}
+                  className="hover:underline"
+                >
+                  {service.name} {dict.preposition} {city.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-12">
         <h2 className="text-lg font-medium">

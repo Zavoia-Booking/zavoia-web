@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { Kicker } from "@/components/ui/kicker";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -64,6 +64,7 @@ import { MapFloatingCard } from "@/components/search/map-floating-card";
 import { getBrowserLocation, ipLocate } from "@/lib/geocoding";
 import { getRecentViews } from "@/lib/recent-views";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
+import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { TagRail } from "@/components/search/tag-rail";
 import {
   BottomSheet,
@@ -994,6 +995,17 @@ export function SearchContent({
           ))}
         </>
       )}
+      <footer
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginTop: 16,
+          paddingTop: 12,
+          borderTop: "1px solid var(--c-mist)",
+        }}
+      >
+        <LanguageSwitcher currentLocale={locale} placement="above" />
+      </footer>
     </div>
   );
 

@@ -1,3 +1,4 @@
+import { dictionaries } from "@/i18n/dictionaries";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LOCALES, isLocale, type Locale } from "@/i18n/locales";
@@ -8,7 +9,8 @@ import { getPublicWebsite } from "@/lib/api/marketplace/public";
 import { WEBSITE_TAG, websiteTag } from "@/lib/cache/tags";
 import type { PublicWebsite } from "@/lib/api/marketplace/types";
 import { BusinessMicrosite } from "./_components/business-microsite";
-import { ClaimPage } from "@/app/_components/not-found/claim-page";
+import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
+import { notFoundMetadata } from "@/app/_components/not-found/metadata";
 
 // Published business website — zavoia.com/[businessSlug].
 //
@@ -24,11 +26,9 @@ import { ClaimPage } from "@/app/_components/not-found/claim-page";
 // renders changes — publish/unpublish, services, prices, assignments. Whichever
 // comes first. Must be a literal to be statically analysable.
 //
-// This segment deliberately has NO loading.tsx: it is the wildcard that catches
-// every unknown one-segment URL, and without a boundary the render completes
-// before headers go out, which keeps the `notFound()` paths below able to
-// answer a real 404. The streamed shell is worth little here anyway — only the
-// first visitor to a slug waits on the backend; everyone after is a cache hit.
+// This segment has no loading.tsx: its first render waits for the lookup and
+// subsequent visitors use ISR. An API 404 renders the shared fallback in-page
+// with explicit noindex metadata; it retains the existing HTTP 200 behavior.
 export const revalidate = 600;
 
 // Required for ISR even though it enumerates nothing: without a
@@ -76,10 +76,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         images: site.identity.logo ? [site.identity.logo] : undefined,
       },
     };
-  } catch {
-    // No site at this address: the page below sells it instead of 404ing, so
-    // the noindex has to be explicit — nothing throws `notFound()` to add one.
-    return { robots: { index: false, follow: false } };
+  } catch (error) {
+    // The matched fallback does not throw notFound(), so supply its metadata.
+    // Operational failures are rethrown by the page and must not become misses.
+    if (error instanceof ApiError && error.status === 404) return notFoundMetadata(locale);
+    return {};
   }
 }
 
@@ -91,8 +92,8 @@ export default async function BusinessWebsitePage({ params }: Props) {
   // Now that the render is CACHED, the two failure modes have to be told apart.
   //
   //   404          → nothing is published at this address, and that is a real,
-  //                  cacheable answer: show the claim page (metadata marks it
-  //                  noindex) rather than an apology.
+  //                  cacheable answer: show the shared missing-page UI (metadata marks it
+  //                  noindex) without claiming the address is available.
   //   anything else → backend down, 500, timeout. Rethrown, so the render fails
   //                  and Next stores NOTHING; the next request retries. An
   //                  outage must never freeze a wrong answer in for ten minutes.
@@ -101,7 +102,7 @@ export default async function BusinessWebsitePage({ params }: Props) {
     site = await getPublicWebsite(slug, WEBSITE_CACHE(slug));
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
-      return <ClaimPage slug={slug} />;
+      return <NotFoundPage dictionary={dictionaries[locale]} locale={locale} pathname={localeHref(locale, slug)} />;
     }
     throw error;
   }

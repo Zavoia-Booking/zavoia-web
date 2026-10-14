@@ -16,7 +16,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import type { Locale } from "@/i18n/locales";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { Avatar, Icon, Img, Rating, Stars } from "@/components/ui";
 import { formatDuration, formatMoney } from "@/lib/format/money-time";

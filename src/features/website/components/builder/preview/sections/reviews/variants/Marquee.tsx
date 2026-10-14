@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Stars } from "../../../shared/primitives";
-import { prefersReducedMotion } from "../../../shared/util";
-import { useInView } from "../../../shared/hooks";
+import { useInView, useReducedMotion } from "../../../shared/hooks";
 import { RvHead } from "../parts/RvHead";
 import type { PreviewReview } from "../../../shared/types";
 import type { ReviewsViewProps } from "../types";
@@ -15,7 +14,7 @@ function RvLane({ items, dir, speed }: { items: PreviewReview[]; dir: 1 | -1; sp
   const trackRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const inView = useInView(rootRef, { threshold: 0.1 });
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     const track = trackRef.current;
@@ -67,7 +66,7 @@ function RvLane({ items, dir, speed }: { items: PreviewReview[]; dir: 1 | -1; sp
 
 /** Marquee — a centred one-line aggregate over two counter-drifting lanes; the motion carries the section.
  *  Mirrors the source `RvMarquee`. */
-export function Marquee({ quotes, rating, count, showHeading, heading, kicker, no, t }: ReviewsViewProps) {
+export function Marquee({ locale, quotes, rating, count, showHeading, heading, kicker, no, t }: ReviewsViewProps) {
   const cut = Math.ceil(quotes.length / 2);
   const a = quotes.slice(0, cut);
   const b = quotes.slice(cut);
@@ -78,13 +77,13 @@ export function Marquee({ quotes, rating, count, showHeading, heading, kicker, n
           <div className="mc-rv-line">
             <Stars value={rating} size={14} />
             <span>
-              <b>{rating.toFixed(1)}</b> {t("businessPage.builder.preview.reviewsAverageWord")}
+              <b>{rating.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</b> {t("businessPage.builder.preview.reviewsAverageWord")}
             </span>
             <span className="mc-rv-line-dot" aria-hidden>
               ·
             </span>
             <span>
-              <b>{count.toLocaleString()}</b> {t("businessPage.builder.preview.reviewsVerifiedReviews")}
+              <b>{count.toLocaleString(locale)}</b> {t("businessPage.builder.preview.reviewsVerifiedReviews")}
             </span>
           </div>
         )}

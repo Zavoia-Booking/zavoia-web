@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { findScrollParent, prefersReducedMotion } from "../../shared/util";
+import { useReducedMotion } from "../../shared/hooks";
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
@@ -185,7 +186,7 @@ export function useAboutParallax(ref: RefObject<HTMLElement | null>, speed = 0.0
 }
 
 export function useAboutCounter(value: number, decimals: number, delayMs: number, raw = false) {
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
   const [shown, setShown] = useState(raw || reduced ? value : 0);
   const ref = useRef<HTMLSpanElement>(null);
 

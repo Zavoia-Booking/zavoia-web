@@ -390,6 +390,16 @@ img.zw-img--in { opacity: 1; }
   to   { transform: translateY(0); }
 }
 .zw-page-in { animation: zw-page-in 0.38s var(--ease-out); }
+.zw-page-in[data-locale-navigation],
+.zw-page-in[data-locale-navigation] :is(.zw-rise, .zw-feat, .zw-try-hint),
+.zw-page-in[data-locale-navigation] .zw-stagger > * { animation: none; }
+/* A translation is the same content. Keep scroll reveals visible while
+   leaving loading indicators, hover feedback and user-triggered motion alone. */
+.zw-page-in[data-locale-navigation] .zw-reveal {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
 
 /* Toast */
 @keyframes zv-toast-in {

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/i18n/useTranslation";
+import type { Dictionary } from "@/i18n/dictionaries";
 import {
   useCallback,
   useEffect,
@@ -10,7 +12,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ResendVerification } from "../../auth/_components/resend-verification";
@@ -60,7 +62,7 @@ import {
 
 type SectionId = "personal" | "preferences" | "security" | "support";
 
-type AcctDict = (typeof dictionaries)[Locale]["account"];
+type AcctDict = Dictionary["account"];
 
 // ─────────────────────────────────────────────
 // Card / section primitives (Tailwind-free inline styles, matching the
@@ -1258,8 +1260,8 @@ function PasswordForm({
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type AuthErrorsDict = (typeof dictionaries)[Locale]["auth"]["errors"];
-type SharedErrorsDict = (typeof dictionaries)[Locale]["errors"];
+type AuthErrorsDict = Dictionary["auth"]["errors"];
+type SharedErrorsDict = Dictionary["errors"];
 
 function GoogleConnectionRow({
   t,
@@ -1272,6 +1274,7 @@ function GoogleConnectionRow({
   locale: Locale;
   last?: boolean;
 }) {
+  const dictionary = useTranslation().dict;
   const toast = useToast();
   const { user, unlinkGoogle } = useAuth();
   const g = t.googleConnection;
@@ -1311,7 +1314,7 @@ function GoogleConnectionRow({
       toast(g.disconnectedToast, "check");
     } catch (err) {
       setError(
-        authErrorMessage(err, authErrors, dictionaries[locale].errors),
+        authErrorMessage(err, authErrors, dictionary.errors),
       );
       passwordRef.current?.focus();
     } finally {
@@ -1508,7 +1511,7 @@ function GoogleConnectionRow({
 // CURRENT_EMAIL_MISMATCH → current, EMAIL_TAKEN / SAME_EMAIL → new.
 // ─────────────────────────────────────────────
 
-type ResendCopy = (typeof dictionaries)[Locale]["auth"]["resendVerification"];
+type ResendCopy = Dictionary["auth"]["resendVerification"];
 
 function ChangeEmailRow({
   t,
@@ -2055,6 +2058,7 @@ function SectionBody({
   onEmailChanged: (email: string) => void;
   onDeleted: () => Promise<void>;
 }) {
+  const dictionary = useTranslation().dict;
   const [pwOpen, setPwOpen] = useState(false);
   // Verification state lives on the session user (GET /me), not on the profile
   // payload — the profile endpoint doesn't carry it.
@@ -2068,7 +2072,7 @@ function SectionBody({
       );
     }
     const dobValue = profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "";
-    const authErrors = dictionaries[locale].auth.errors;
+    const authErrors = dictionary.auth.errors;
     return (
       <div>
         <EditableRow
@@ -2136,10 +2140,10 @@ function SectionBody({
         <ChangeEmailRow
           t={t}
           authErrors={authErrors}
-          sharedErrors={dictionaries[locale].errors}
+          sharedErrors={dictionary.errors}
           currentEmail={profile.email}
           emailVerified={user?.emailVerified}
-          resendCopy={dictionaries[locale].auth.resendVerification}
+          resendCopy={dictionary.auth.resendVerification}
           onChanged={onEmailChanged}
         />
         <AddressRow
@@ -2208,8 +2212,9 @@ function SecuritySection({
   setPwOpen: React.Dispatch<React.SetStateAction<boolean>>;
   onDeleted: () => Promise<void>;
 }) {
+  const dictionary = useTranslation().dict;
   const { refreshUser } = useAuth();
-  const authErrors = dictionaries[locale].auth.errors;
+  const authErrors = dictionary.auth.errors;
 
   // Refresh /me once so googleSub / hasPassword reflect the backend. Failures
   // degrade silently — the row falls back to whatever `user` already holds.
@@ -2290,7 +2295,7 @@ function SecuritySection({
             >
               <PasswordForm
                 t={t}
-                sharedErrors={dictionaries[locale].errors}
+                sharedErrors={dictionary.errors}
                 onDone={() => setPwOpen(false)}
               />
             </div>
@@ -2866,7 +2871,8 @@ function LoadingState({ loadingLabel }: { loadingLabel: string }) {
 // ─────────────────────────────────────────────
 
 export function AccountContent({ locale }: { locale: Locale }) {
-  const t = dictionaries[locale].account;
+  const dictionary = useTranslation().dict;
+  const t = dictionary.account;
   const router = useRouter();
   const toast = useToast();
   const { status, logout, refreshUser } = useAuth();

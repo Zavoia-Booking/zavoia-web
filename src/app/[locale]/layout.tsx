@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import "@/styles/globals.css";
 import { fontVariables } from "@/styles/fonts";
@@ -6,10 +7,13 @@ import { SITE_URL } from "@/lib/site";
 import { LOCALES, isLocale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { LocaleNavigationProvider } from "@/i18n/locale-navigation";
 import { ToastProvider, ToastHost } from "@/components/ui";
 import { SearchOverlayProvider } from "@/components/search/search-overlay-provider";
 import { ConditionalHeader } from "@/components/shell/conditional-header";
 import { ConditionalFooter } from "@/components/shell/conditional-footer";
+import { FooterExplore } from "@/components/shell/footer-explore";
+import { FooterExploreLinks } from "@/components/shell/footer-explore-links";
 import { MobileTabs } from "@/components/shell/mobile-tabs";
 import { AuthProvider, SessionExpiredToast } from "@/lib/auth/AuthProvider";
 import { AuthModalProvider } from "@/components/shell/auth-modal-provider";
@@ -17,6 +21,7 @@ import { BookingProvider } from "@/lib/booking";
 import { ConsentProvider } from "@/lib/consent/ConsentProvider";
 import { CookieBanner } from "@/components/shell/cookie-banner";
 import { AnalyticsGate } from "@/components/shell/analytics-gate";
+import { PageEntrance } from "@/components/shell/page-entrance";
 
 export async function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -52,7 +57,8 @@ export default async function LocaleRootLayout({ children, params }: Props) {
     <html lang={locale}>
       <body className={`${fontVariables} antialiased`}>
         <AuthProvider>
-          <I18nProvider locale={locale}>
+          <I18nProvider locale={locale} dict={dictionaries[locale]}>
+            <LocaleNavigationProvider>
             <ConsentProvider>
             <ToastProvider>
               {/* AuthProvider wraps this whole tree and can't call useToast()
@@ -75,10 +81,14 @@ export default async function LocaleRootLayout({ children, params }: Props) {
                 {/* Each Phase-1 page renders its own <main> landmark, so this
                     content region is a plain wrapper to avoid nesting two
                     <main> elements (invalid HTML / duplicate landmark). */}
-                <div className="zw-page-in">{children}</div>
+                <PageEntrance>{children}</PageEntrance>
                 {/* Footer + mobile spacer are suppressed on the full-bleed
                     /search route (a nested layout can't remove parent chrome). */}
-                <ConditionalFooter locale={locale} />
+                <ConditionalFooter locale={locale} explore={
+                  <Suspense fallback={<FooterExploreLinks locale={locale} categories={[]} />}>
+                    <FooterExplore locale={locale} />
+                  </Suspense>
+                } />
                 <MobileTabs locale={locale} />
                 <ToastHost />
                 {/* GDPR consent: banner asks on first visit; GA mounts only
@@ -90,6 +100,7 @@ export default async function LocaleRootLayout({ children, params }: Props) {
               </AuthModalProvider>
             </ToastProvider>
             </ConsentProvider>
+            </LocaleNavigationProvider>
           </I18nProvider>
         </AuthProvider>
       </body>

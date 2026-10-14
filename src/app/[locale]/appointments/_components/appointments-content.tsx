@@ -1,9 +1,11 @@
 "use client";
 
+import { useTranslation } from "@/i18n/useTranslation";
+import type { Dictionary } from "@/i18n/dictionaries";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
@@ -39,7 +41,7 @@ import {
   type TimeUntil,
 } from "./vm";
 
-type ApptDict = (typeof dictionaries)[Locale]["appointments"];
+type ApptDict = Dictionary["appointments"];
 
 type Filter = "all" | "upcoming" | "past" | "cancelled" | "no_show";
 
@@ -1044,7 +1046,8 @@ function ErrorState({ t, onRetry }: { t: ApptDict; onRetry: () => void }) {
 // Page
 // ─────────────────────────────────────────────
 export function AppointmentsContent({ locale }: { locale: Locale }) {
-  const t = dictionaries[locale].appointments;
+  const dictionary = useTranslation().dict;
+  const t = dictionary.appointments;
   const router = useRouter();
   const { status } = useAuth();
   const { openAuthModal } = useAuthModal();

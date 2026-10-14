@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { getPricing, formatPrice, TRIAL_DAYS } from "@/lib/marketing/pricing";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useToast } from "@/components/ui";

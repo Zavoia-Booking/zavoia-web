@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { LOCALES, isLocale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
-import { DetailContent } from "./_components/detail-content";
+import { DetailContent, DetailLoadingState } from "./_components/detail-content";
 
 // Auth-gated personal data, fetched client-side from the authenticated
 // session — the server contributes only the shell and never calls the backend.
@@ -39,5 +40,9 @@ export default async function AppointmentDetailPage({ params }: Props) {
   if (!isLocale(locale)) notFound();
   if (!uuid) notFound();
 
-  return <DetailContent locale={locale} uuid={uuid} />;
+  return (
+    <Suspense fallback={<DetailLoadingState loadingLabel={dictionaries[locale].appointmentDetail.loading} />}>
+      <DetailContent locale={locale} uuid={uuid} />
+    </Suspense>
+  );
 }

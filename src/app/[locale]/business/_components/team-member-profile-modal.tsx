@@ -13,7 +13,7 @@ import { Avatar, Button, HeartButton, Icon, Rating, Stars } from "@/components/u
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { EmptyState } from "./empty-state";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { mapBackendCode } from "@/lib/api/error-messages";
 import type { Locale } from "@/i18n/locales";
 import { formatDuration, formatMoney } from "@/lib/format/money-time";

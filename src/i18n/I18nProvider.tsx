@@ -1,25 +1,14 @@
 "use client";
 
-import { createContext, type ReactNode } from "react";
+import { createContext, useMemo, type ReactNode } from "react";
 import type { Locale } from "./locales";
-import { dictionaries, type Dictionary } from "./dictionaries";
+import type { Dictionary } from "./dictionaries";
 
-export interface I18nContextValue {
-  locale: Locale;
-  dict: Dictionary;
-}
-
-// Null when no provider is mounted — consumers fall back to the default
-// locale (see useTranslation) so components stay robust without a provider.
+export interface I18nContextValue { locale: Locale; dict: Dictionary }
 export const I18nContext = createContext<I18nContextValue | null>(null);
 
-export function I18nProvider({
-  locale,
-  children,
-}: {
-  locale: Locale;
-  children: ReactNode;
-}) {
-  const value: I18nContextValue = { locale, dict: dictionaries[locale] };
+/** The locale layout selects and serializes one language on the server. */
+export function I18nProvider({ locale, dict, children }: I18nContextValue & { children: ReactNode }) {
+  const value = useMemo(() => ({ locale, dict }), [locale, dict]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

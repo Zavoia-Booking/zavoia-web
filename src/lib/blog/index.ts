@@ -9,3 +9,4 @@ export { readingMinutes, formatReadingTime } from "./reading-time";
 export { headingSlug } from "./slug";
 export { pageWindow } from "./pagination";
 export { selectRelated } from "./related";
+export { getPostAlternates, getPostTranslation } from "./alternates";

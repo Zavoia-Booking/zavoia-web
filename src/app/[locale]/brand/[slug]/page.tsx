@@ -1,3 +1,4 @@
+import { dictionaries } from "@/i18n/dictionaries";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
@@ -8,7 +9,8 @@ import { getBrand } from "@/lib/api/marketplace/public";
 import { BRAND_TAG, brandTag } from "@/lib/cache/tags";
 import type { BrandDetail as BrandDetailData } from "@/lib/api/marketplace/types";
 import { BrandDetail } from "../_components/brand-detail";
-import { BusinessNotFound } from "../../business/_components/business-not-found";
+import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
+import { notFoundMetadata } from "@/app/_components/not-found/metadata";
 
 // ISR, same shape as the business detail route. The param is a businessSlug
 // (vanity URL) or a numeric business id — non-enumerable, so nothing is
@@ -34,10 +36,9 @@ const BRAND_CACHE = (slug: string) => ({
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale, slug } = await params;
+  if (!isLocale(locale) || !slug) return {};
   try {
-    const { locale, slug } = await params;
-    if (!isLocale(locale)) return {};
-    if (!slug) return {};
     const brand = await getBrand(slug, BRAND_CACHE(slug));
 
     const title = brand.name;
@@ -68,7 +69,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   } catch (error) {
     // Dead slug → the not-found state below, which needs an explicit noindex.
     if (error instanceof ApiError && error.status === 404) {
-      return { robots: { index: false, follow: false } };
+      return notFoundMetadata(locale);
     }
     return {};
   }
@@ -88,7 +89,7 @@ export default async function BrandPage({ params }: Props) {
     brand = await getBrand(slug, BRAND_CACHE(slug));
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
-      return <BusinessNotFound locale={locale} />;
+      return <NotFoundPage dictionary={dictionaries[locale]} locale={locale} pathname={localeHref(locale, "brand", slug)} />;
     }
     throw error;
   }

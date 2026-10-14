@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Avatar, Icon } from "@/components/ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import type { Locale } from "@/i18n/locales";
 import {
@@ -364,6 +364,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 
   return (
     <header
+      data-marketplace-chrome
       className="zv-frost"
       style={{
         position: "sticky",
@@ -378,7 +379,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           height: "var(--nav-h)",
           display: "flex",
           alignItems: "center",
-          gap: 24,
+          gap: "clamp(8px, 2vw, 24px)",
         }}
       >
         <Link

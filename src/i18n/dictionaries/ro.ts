@@ -127,6 +127,7 @@ export const ro: Dictionary = {
     comingSoon:
       "În curând — Zavoia înregistrează acum {industryLower} din {city}.",
     seeAll: "Vezi toate pe hartă",
+    servicesHeading: "Servicii de {industryLower} în {city}",
     otherCitiesHeading: "{industry} în alte orașe",
     otherIndustriesHeading: "Alte servicii în {city}",
   },
@@ -1133,6 +1134,8 @@ export const ro: Dictionary = {
     tagline:
       "Rezervă profesioniști locali de încredere — frumusețe, sănătate, casă și altele — în câteva clicuri.",
     explore: "Explorează",
+    findBusiness: "Caută o afacere",
+    inCity: "În {city}",
     zavoia: "Zavoia",
     support: "Asistență",
     about: "Despre",
@@ -1225,6 +1228,7 @@ export const ro: Dictionary = {
   },
   breadcrumbHome: "Acasă",
   localeNames: { ro: "Română", en: "English" },
+  language: { label: "Limba", loading: "Se încarcă…", unavailable: "Indisponibil" },
   tryStudio: {
     pageTitle: "Încearcă Web Studio — amestecă un site adevărat",
     pageDescription:
@@ -1862,6 +1866,7 @@ export const ro: Dictionary = {
     getDirections: "Obține indicații",
     callVenue: "Sună locația",
     leaveReview: "Lasă o recenzie",
+    openApp: "Deschide în aplicație",
     bookAgain: "Rezervă din nou",
     directions: "Indicații",
     reschedule: "Reprogramează",
@@ -2094,24 +2099,29 @@ export const ro: Dictionary = {
     },
   },
   notFound: {
-    generic: {
-      kicker: "404",
-      title: "Această pagină nu există.",
-      body: "Linkul poate fi greșit sau pagina a fost mutată.",
-      home: "Înapoi la pagina principală",
-      explore: "Explorează locații",
+    page: {
+      skip: "Mergi la conținut",
+      navigation: "Navigare pagină",
+      language: "Limbă",
+      signIn: "Autentificare pentru afaceri",
+      signInShort: "Intră",
+      businessTitle: "Oferă-i afacerii tale un loc pe Zavoia.",
+      businessTitleLead: "Oferă-i afacerii tale",
+      businessTitlePre: "un ",
+      businessTitleWord: "loc",
+      businessTitlePost: " pe Zavoia.",
+      createAccount: "Creează contul afacerii",
+      offerFirst: "Creează-ți site-ul.",
+      offerSecond: "Primește programări online.",
+      businessDescription: "Prezintă-ți serviciile, prețurile și echipa. Gestionează programările și site-ul într-un singur loc.",
+      trialDetail: "{days} zile gratuite pe Standard. Fără card.",
+      websiteDetail: "Publicarea site-ului este inclusă în Plus.",
+      how: "Cum funcționează",
+      lost: "pierdut",
+      title: "Această pagină nu este disponibilă.",
+      description: "Poți să descoperi afaceri și să faci programări pe Zavoia.",
+      explore: "Caută o afacere",
     },
-    claim: {
-      kicker: "Adresă disponibilă",
-      title: "Această pagină ar putea fi a ta.",
-      body: "La zavoia.com/{slug} nu există încă nimic. Revendic-o pentru business-ul tău și primești, chiar pe această adresă, un website cu rezervări — serviciile, echipa și programul tău.",
-      bullets: [
-        "Un website care primește rezervări, gata în câteva minute",
-        "Propria ta adresă zavoia.com",
-      ],
-      primary: "Începe perioada gratuită",
-      secondary: "Vezi cum funcționează",
-      explore: "Sau explorează locații pe Zavoia",
-    },
+
   },
 };

@@ -8,8 +8,8 @@ import { cn } from "../../../../../shared/lib/utils";
 
 import "./shared/animations.css";
 import { UNNUMBERED } from "./shared/constants";
-import { findScrollParent, prefersReducedMotion } from "./shared/util";
-import { useFooterReveal } from "./shared/hooks";
+import { findScrollParent } from "./shared/util";
+import { useFooterReveal, useReducedMotion } from "./shared/hooks";
 import {
   AnnouncementBar,
   normalizeAnnouncementLayout,
@@ -145,7 +145,7 @@ function LivePreviewImpl({
   const rootRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const reducedMotion = prefersReducedMotion();
+  const reducedMotion = useReducedMotion();
   const progress = !chrome || !overHero ? 0 : reducedMotion ? 1 : scrollProgress;
   const editorialFooterReveal = chrome && footerOn && stacked.length > 0 && footerVariant === "editorial";
 

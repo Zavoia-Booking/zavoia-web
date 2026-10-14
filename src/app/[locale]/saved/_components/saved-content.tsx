@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/i18n/useTranslation";
+import type { Dictionary } from "@/i18n/dictionaries";
 import {
   useCallback,
   useEffect,
@@ -10,7 +12,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -39,12 +41,14 @@ import {
   removeFavoriteProfessional,
 } from "@/lib/api/marketplace/customer";
 import type { AllFavorites } from "@/lib/api/marketplace/types";
+import { getAuthenticatedSessionId } from "@/lib/auth/session-store";
+import { recordFavoriteChange } from "@/lib/favorites/store";
 import {
   TeamMemberProfileModal,
   type TeamMemberSeed,
 } from "@/app/[locale]/business/_components/team-member-profile-modal";
 
-type SavedDict = (typeof dictionaries)[Locale]["saved"];
+type SavedDict = Dictionary["saved"];
 
 type RowKind = "business" | "location" | "person";
 type FilterKind = "all" | RowKind;
@@ -563,8 +567,9 @@ function Row({
 // ─────────────────────────────────────────────
 
 export function SavedContent({ locale }: { locale: Locale }) {
-  const t = dictionaries[locale].saved;
-  const errorsDict = dictionaries[locale].errors;
+  const dictionary = useTranslation().dict;
+  const t = dictionary.saved;
+  const errorsDict = dictionary.errors;
   const router = useRouter();
   const toast = useToast();
   const { status } = useAuth();
@@ -652,17 +657,22 @@ export function SavedContent({ locale }: { locale: Locale }) {
   // (unscoped) mode — venues + menus resolve from the booking context.
   const [openPerson, setOpenPerson] = useState<TeamMemberSeed | null>(null);
 
-  const removeApi = useCallback((row: SavedRow) => {
-    if (row.kind === "business") return removeFavoriteBusiness(row.entityId);
-    if (row.kind === "location") return removeFavoriteLocation(row.entityId);
-    return removeFavoriteProfessional(row.entityId);
+  const changeFavorite = useCallback(async (row: SavedRow, present: boolean) => {
+    const session = getAuthenticatedSessionId();
+    const kind = row.kind === "person" ? "professional" : row.kind;
+    const action = present
+      ? { business: addFavoriteBusiness, location: addFavoriteLocation, professional: addFavoriteProfessional }[kind]
+      : { business: removeFavoriteBusiness, location: removeFavoriteLocation, professional: removeFavoriteProfessional }[kind];
+    try {
+      await action(row.entityId);
+    } catch (error) {
+      if (isBenignCustomerError(error)) recordFavoriteChange(kind, row.entityId, present, session);
+      throw error;
+    }
+    recordFavoriteChange(kind, row.entityId, present, session);
   }, []);
-
-  const addApi = useCallback((row: SavedRow) => {
-    if (row.kind === "business") return addFavoriteBusiness(row.entityId);
-    if (row.kind === "location") return addFavoriteLocation(row.entityId);
-    return addFavoriteProfessional(row.entityId);
-  }, []);
+  const removeApi = useCallback((row: SavedRow) => changeFavorite(row, false), [changeFavorite]);
+  const addApi = useCallback((row: SavedRow) => changeFavorite(row, true), [changeFavorite]);
 
   // Rows with a remove/undo mutation in flight, keyed by `row.key` — guards
   // against a rapid double-click (or a remove/undo race) firing two

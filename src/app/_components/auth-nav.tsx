@@ -1,9 +1,9 @@
 "use client";
 
+import { useTranslation } from "@/i18n/useTranslation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { CSRF_COOKIE_NAME, readCookie } from "@/lib/auth/cookies";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -13,8 +13,9 @@ type Props = {
 };
 
 export function AuthNav({ locale }: Props) {
+  const dictionary = useTranslation().dict;
   const { status, user } = useAuth();
-  const dict = dictionaries[locale].header;
+  const dict = dictionary.header;
   // Client-side hint to render the right placeholder shape during hydration,
   // avoiding the "Authentication" → "Hi Andrei" jump for logged-in users.
   const [hasSessionHint, setHasSessionHint] = useState(false);
