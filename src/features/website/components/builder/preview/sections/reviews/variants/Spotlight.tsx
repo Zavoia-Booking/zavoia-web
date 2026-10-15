@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Stars } from "../../../shared/primitives";
-import { prefersReducedMotion } from "../../../shared/util";
-import { useInView } from "../../../shared/hooks";
+import { useInView, useReducedMotion } from "../../../shared/hooks";
 import { RvHead } from "../parts/RvHead";
 import { RvSlide } from "../parts/RvSlide";
 import type { ReviewsViewProps } from "../types";
@@ -15,9 +14,9 @@ const DARK_EMPTY = "color-mix(in oklch, var(--mc-bg) 22%, transparent)";
  *  stars, a giant number ornament, a height-locked slide (every voice laid out invisibly so the panel keeps
  *  its tallest quote's height), and an accent progress hairline along the bottom edge. Auto-advances (driven
  *  by setInterval + performance.now, like the showcase, so an idled rAF can't freeze it). Mirrors `RvSpotlight`. */
-export function Spotlight({ quotes, rating, count, showHeading, heading, kicker, no, italic, t }: ReviewsViewProps) {
+export function Spotlight({ locale, quotes, rating, count, showHeading, heading, kicker, no, italic, t }: ReviewsViewProps) {
   const n = quotes.length;
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -80,7 +79,7 @@ export function Spotlight({ quotes, rating, count, showHeading, heading, kicker,
           </span>
           {count > 0 && (
             <span className="mc-rvst-agg">
-              <b>{rating.toFixed(1)}</b> / 5.0 · {t("businessPage.builder.preview.reviewsVerifiedCount", { count })}
+              <b>{rating.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</b> / {(5).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} · {t("businessPage.builder.preview.reviewsVerifiedCount", { count })}
             </span>
           )}
         </div>
@@ -92,11 +91,11 @@ export function Spotlight({ quotes, rating, count, showHeading, heading, kicker,
         <div className="mc-rv-lock">
           {quotes.map((r, i) => (
             <div key={`g${i}`} className="mc-rv-ghost" aria-hidden>
-              <RvSlide item={r} animateIn={false} italic={italic} t={t} starEmpty={DARK_EMPTY} />
+              <RvSlide locale={locale} item={r} animateIn={false} italic={italic} t={t} starEmpty={DARK_EMPTY} />
             </div>
           ))}
           <div>
-            <RvSlide key={activeIndex} item={cur} animateIn={inView && !reduced} italic={italic} t={t} starEmpty={DARK_EMPTY} />
+            <RvSlide locale={locale} key={activeIndex} item={cur} animateIn={inView && !reduced} italic={italic} t={t} starEmpty={DARK_EMPTY} />
           </div>
         </div>
         <div className="mc-rvst-foot">

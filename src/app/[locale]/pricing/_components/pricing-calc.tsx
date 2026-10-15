@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button, CheckRow, Icon, Kicker } from "@/components/ui";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { formatPrice, getPricing } from "@/lib/marketing/pricing";
 import { useTranslation } from "@/i18n/useTranslation";
 

@@ -1,3 +1,4 @@
+import { dictionaries } from "@/i18n/dictionaries";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
@@ -8,7 +9,8 @@ import { getListing } from "@/lib/api/marketplace/public";
 import { BUSINESS_TAG, businessTag } from "@/lib/cache/tags";
 import type { ListingDetail } from "@/lib/api/marketplace/types";
 import { BusinessDetail } from "../_components/business-detail";
-import { BusinessNotFound } from "../_components/business-not-found";
+import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
+import { notFoundMetadata } from "@/app/_components/not-found/metadata";
 
 // ISR. The route param is a LOCATION slug (non-enumerable — the backend
 // resolves it, or a numeric id, to a listing), so nothing is prerendered at
@@ -44,10 +46,9 @@ const LISTING_CACHE = (slug: string) => ({
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale, slug } = await params;
+  if (!isLocale(locale) || !slug) return {};
   try {
-    const { locale, slug } = await params;
-    if (!isLocale(locale)) return {};
-    if (!slug) return {};
     const listing = await getListing(slug, LISTING_CACHE(slug));
 
     // Location page → the location's own name titles the tab (business-level
@@ -79,12 +80,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
     };
   } catch (error) {
-    // A dead slug renders the not-found state below (a 200, because the route
-    // streams), so the noindex has to be explicit — nothing throws
+    // An API 404 renders normal fallback JSX below (HTTP 200), so noindex
+    // has to be explicit — nothing throws
     // `notFound()` to add one. Any other failure gets no metadata and the page
     // rethrows anyway.
     if (error instanceof ApiError && error.status === 404) {
-      return { robots: { index: false, follow: false } };
+      return notFoundMetadata(locale);
     }
     return {};
   }
@@ -107,7 +108,7 @@ export default async function BusinessDetailPage({ params }: Props) {
     listing = await getListing(slug, LISTING_CACHE(slug));
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
-      return <BusinessNotFound locale={locale} />;
+      return <NotFoundPage dictionary={dictionaries[locale]} locale={locale} pathname={localeHref(locale, "business", slug)} />;
     }
     throw error;
   }

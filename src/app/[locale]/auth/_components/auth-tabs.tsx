@@ -1,9 +1,10 @@
 "use client";
 
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
+import { LOCALES, type Locale } from "@/i18n/locales";
+import { authRedirectTarget } from "@/lib/auth/redirects";
 import { localeHref } from "@/i18n/routes";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 import { BUSINESS_APP_URL, GOOGLE_CLIENT_ID } from "@/lib/env";
@@ -15,17 +16,20 @@ import { RegisterForm } from "./register-form";
 
 type Mode = "login" | "register";
 
-function tabHref(locale: Locale, mode: Mode, redirect: string | null): string {
-  const params = new URLSearchParams();
-  params.set("mode", mode);
-  if (redirect) params.set("redirect", redirect);
+function tabHref(locale: Locale, mode: Mode, search: Pick<URLSearchParams, "get">): string {
+  const params = new URLSearchParams({ mode });
+  for (const key of ["redirect", ...LOCALES.map((language) => `redirect.${language}`), "src"]) {
+    const value = search.get(key);
+    if (value) params.set(key, value);
+  }
   return `${localeHref(locale, "auth")}?${params.toString()}`;
 }
 
 export function AuthTabs({ locale }: { locale: Locale }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect");
+  const redirect = authRedirectTarget(searchParams, locale);
   const mode: Mode = searchParams.get("mode") === "register" ? "register" : "login";
 
   const [linkDetails, setLinkDetails] =
@@ -70,8 +74,8 @@ export function AuthTabs({ locale }: { locale: Locale }) {
           mode={mode}
           title={mode === "login" ? dict.loginHeading : dict.registerHeading}
           subtitle={mode === "login" ? dict.loginSubtitle : dict.registerSubtitle}
-          loginHref={tabHref(locale, "login", redirect)}
-          registerHref={tabHref(locale, "register", redirect)}
+          loginHref={tabHref(locale, "login", searchParams)}
+          registerHref={tabHref(locale, "register", searchParams)}
           tabLoginLabel={dict.tabLogin}
           tabRegisterLabel={dict.tabRegister}
           tablistLabel={dict.pageTitle}

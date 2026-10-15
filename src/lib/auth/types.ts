@@ -1,3 +1,5 @@
+import type { Locale } from "@/i18n/locales";
+
 export type AuthUser = {
   uuid: string;
   email: string;
@@ -253,7 +255,11 @@ export type AuthContextValue = {
    * collision code (`account_exists_unlinked_google` or
    * `account_exists_needs_marketplace_access`).
    */
-  googleSignIn: (code: string, intent: GoogleAuthIntent) => Promise<void>;
+  googleSignIn: (
+    code: string,
+    intent: GoogleAuthIntent,
+    locale?: Locale,
+  ) => Promise<void>;
   /**
    * Complete the verify-then-link flow: exchanges a tx_id + re-auth proof for
    * tokens and establishes the session (auto-login).
@@ -265,7 +271,7 @@ export type AuthContextValue = {
    * role to the Google-linked business account (auto-login). Re-throws the
    * ApiError on failure (expired/consumed tx) so the UI can offer a retry.
    */
-  confirmMarketplaceAccess: (txId: string) => Promise<void>;
+  confirmMarketplaceAccess: (txId: string, locale?: Locale) => Promise<void>;
   /**
    * Re-fetch GET /marketplace/auth/me and reflect it into `user`. Needed so the
    * account page has authoritative `googleSub` / `hasPassword` even when the

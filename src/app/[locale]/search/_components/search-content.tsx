@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { Kicker } from "@/components/ui/kicker";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -61,9 +61,11 @@ import { useVenueTags } from "@/lib/search/use-venue-tags";
 import { FiltersPanel } from "./filters-panel";
 import { LocationPermissionModal } from "@/components/search/location-permission-modal";
 import { MapFloatingCard } from "@/components/search/map-floating-card";
-import { getBrowserLocation, ipLocate } from "@/lib/geocoding";
+import { getBrowserLocation, ipLocate, resolveCity } from "@/lib/geocoding";
+import { CITY_ENTRIES, slugifyRo } from "@/data/seo";
 import { getRecentViews } from "@/lib/recent-views";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
+import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { TagRail } from "@/components/search/tag-rail";
 import {
   BottomSheet,
@@ -117,6 +119,33 @@ function csvNums(v: string | null): number[] | undefined {
   return arr.length ? arr : undefined;
 }
 
+function deriveSearchParams(params: Pick<URLSearchParams, "get">): DerivedParams {
+  return {
+    search: params.get("search") ?? undefined,
+    industrySlug: params.get("industry") ?? undefined,
+    tagIds: csvNums(params.get("tagIds")),
+    city: params.get("city") ?? undefined,
+    date: params.get("date") ?? undefined,
+    lat: numParam(params.get("lat")),
+    lng: numParam(params.get("lng")),
+    offset: 0,
+    limit: SEARCH_LIMIT,
+  };
+}
+
+function searchRequestKey(params: DerivedParams): string {
+  return JSON.stringify([
+    params.search, params.industrySlug, params.tagIds,
+    params.city, params.date, params.lat, params.lng,
+  ]);
+}
+
+function cameraRequestKey(params: DerivedParams, filters: MapFilters, focus: number | null): string {
+  return JSON.stringify([
+    searchRequestKey(params), { ...filters, sort: EMPTY_FILTERS.sort }, focus,
+  ]);
+}
+
 export interface SearchContentProps {
   locale: Locale;
   industries: Industry[];
@@ -149,20 +178,7 @@ export function SearchContent({
   // query uses one fixed radius, and "show me somewhere smaller" is the
   // client-side `maxDistanceKm` filter instead. Reading it here while sending a
   // fixed radius is how a shared ?radius=5 link used to return 20km of results.
-  const derived: DerivedParams = useMemo(
-    () => ({
-      search: sp.get("search") ?? undefined,
-      industrySlug: sp.get("industry") ?? undefined,
-      tagIds: csvNums(sp.get("tagIds")),
-      city: sp.get("city") ?? undefined,
-      date: sp.get("date") ?? undefined,
-      lat: numParam(sp.get("lat")),
-      lng: numParam(sp.get("lng")),
-      offset: 0,
-      limit: SEARCH_LIMIT,
-    }),
-    [sp],
-  );
+  const derived = useMemo(() => deriveSearchParams(sp), [sp]);
 
   // Client-side refinement of whatever the search returned. Persisted in the
   // URL (the web's equivalent of the mobile filters store) so a filtered search
@@ -181,19 +197,13 @@ export function SearchContent({
 
   // A stable key for the current request (excludes the client-only filters),
   // used to trigger a fresh single fetch when any query/geo param changes.
-  const requestKey = useMemo(
-    () =>
-      [
-        derived.search ?? "",
-        derived.industrySlug ?? "",
-        (derived.tagIds ?? []).join(","),
-        derived.city ?? "",
-        derived.date ?? "",
-        derived.lat ?? "",
-        derived.lng ?? "",
-      ].join("|"),
-    [derived],
-  );
+  const requestKey = searchRequestKey(derived);
+  const focusId = numParam(sp.get("focus")) ?? null;
+  // Sorting changes row order, not the set of places the camera should reveal.
+  const cameraKey = cameraRequestKey(derived, filters, focusId);
+  const handledCameraKey = useRef<string | null>(null);
+  const cameraArrived = useRef(false);
+  const lastCameraAnchor = useRef("");
 
   // ── Result state (one fetch replaces the whole set; no pagination) ──────
   const [locations, setLocations] = useState<LocationCard[]>(
@@ -201,6 +211,8 @@ export function SearchContent({
   );
   const [businesses, setBusinesses] = useState(initialResult.businesses);
   const [loading, setLoading] = useState(false);
+  // Previous results remain visible while fetching; never aim a new search at them.
+  const [resultsKey, setResultsKey] = useState(requestKey);
 
   // "No data" vs. "the request failed" — resultsFailed drives which empty
   // state renders; lastError is the underlying error (null for the SSR
@@ -222,9 +234,12 @@ export function SearchContent({
 
   // Seeded from the "See on map" deep link (?focus=<locationId>) so the
   // focused location's pin arrives already selected (card + list highlight).
-  const [selectedId, setSelectedId] = useState<number | null>(
-    () => numParam(sp.get("focus")) ?? null,
-  );
+  const [selectedId, setSelectedId] = useState<number | null>(focusId);
+  const [selectionContext, setSelectionContext] = useState({ requestKey, focusId });
+  if (selectionContext.requestKey !== requestKey || selectionContext.focusId !== focusId) {
+    setSelectionContext({ requestKey, focusId });
+    setSelectedId(focusId);
+  }
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -250,6 +265,13 @@ export function SearchContent({
   const mapHandleRef = useRef<MapboxSurfaceHandle>(null);
   const sheetRef = useRef<BottomSheetHandle>(null);
   const [sheetPosition, setSheetPosition] = useState<SheetPosition>("mid");
+  const [sheetGeometry, setSheetGeometry] = useState<{
+    height: number;
+    position: SheetPosition;
+  } | null>(null);
+  const onSheetHeightChange = useCallback((height: number, position: SheetPosition) => {
+    setSheetGeometry({ height, position });
+  }, []);
 
   // The mobile tab bar is fixed to the bottom of the viewport, so the map
   // region has to stop above it or the sheet's peek — and the last result row
@@ -396,7 +418,7 @@ export function SearchContent({
       // "showing first 300" note. Deferred — no new i18n keys this slice.
       setLocations(res.locations);
       setBusinesses(res.businesses);
-      setSelectedId(null);
+      setResultsKey(requestKey);
       setResultsFailed(false);
       setLastError(null);
       hasDataRef.current = res.locations.length > 0 || res.businesses.length > 0;
@@ -414,7 +436,7 @@ export function SearchContent({
     } finally {
       if (id === requestIdRef.current) setLoading(false);
     }
-  }, [derived, hasGeo, dict.errors, t.retry, t.retryError, toast]);
+  }, [derived, hasGeo, requestKey, dict.errors, t.retry, t.retryError, toast]);
 
   // Keep the ref pointing at the latest fetch for retry callbacks.
   useEffect(() => {
@@ -436,7 +458,7 @@ export function SearchContent({
 
   // ── URL param updates (shareable, no reload) ────────────────────────────
   const updateParams = useCallback(
-    (patch: Record<string, string | null>) => {
+    (patch: Record<string, string | null>, options?: { preserveCamera: boolean }) => {
       const next = new URLSearchParams(sp.toString());
       for (const [k, v] of Object.entries(patch)) {
         if (v == null || v === "") next.delete(k);
@@ -444,10 +466,23 @@ export function SearchContent({
       }
       // No pagination — strip any stale offset param from older URLs.
       if (!("offset" in patch)) next.delete("offset");
+      const nextDerived = deriveSearchParams(next);
+      const nextFilters = parseFilters(next);
+      // A new search replaces a business deep link; sorting alone preserves it.
+      if (!("focus" in patch) &&
+          cameraRequestKey(nextDerived, nextFilters, null) !==
+          cameraRequestKey(derived, filters, null)) {
+        next.delete("focus");
+      }
+      if (options?.preserveCamera) {
+        handledCameraKey.current = cameraRequestKey(
+          nextDerived, nextFilters, numParam(next.get("focus")) ?? null,
+        );
+      }
       const qs = next.toString();
       router.replace(localeHref(locale, "search") + (qs ? `?${qs}` : ""));
     },
-    [sp, router, locale],
+    [sp, router, locale, derived, filters],
   );
 
   // ── Per-result distance (sorting + the distance cap) ────────────────────
@@ -486,14 +521,45 @@ export function SearchContent({
     return out;
   }, [visibleLocations, slugById]);
 
-  // The SEARCH anchor — the current URL lat/lng. Drives the 2km "Search this
-  // area" pan threshold. NOT the user dot (that's `deviceLocation`).
+  // City-only links deliberately search the whole city. Resolve a camera
+  // target separately: adding these coordinates to the URL/API would turn that
+  // into a city AND radius search and could exclude legitimate results.
+  const cameraCity = !hasGeo ? derived.city?.trim() || null : null;
+  const [cityCamera, setCityCamera] = useState<{
+    city: string;
+    point: GeoPoint | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!cameraCity) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+    let active = true;
+    const knownCity = CITY_ENTRIES.find((entry) =>
+      Object.values(entry.name).some((name) => slugifyRo(name) === slugifyRo(cameraCity)),
+    );
+    void resolveCity(cameraCity, controller.signal, {
+      countryCode: knownCity?.countryCode,
+      aliases: knownCity ? Object.values(knownCity.name) : undefined,
+    }).then((point) => {
+      if (active) setCityCamera({ city: cameraCity, point });
+    });
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [cameraCity]);
+  const cityCameraPending = !!cameraCity && cityCamera?.city !== cameraCity;
+  const resolvedCityPoint = cityCamera?.city === cameraCity ? cityCamera?.point : null;
+  const mapEnabled = !cameraCity || !!resolvedCityPoint;
+
+  // Camera and "Search this area" origin, never the user dot. `hasGeo` and
+  // distance filters still depend only on actual coordinates in the URL.
   const searchAnchor: GeoPoint | null = useMemo(
-    () =>
-      hasGeo && derived.lat != null && derived.lng != null
-        ? { lat: derived.lat, lng: derived.lng }
-        : null,
-    [hasGeo, derived.lat, derived.lng],
+    () => hasGeo && derived.lat != null && derived.lng != null
+      ? { lat: derived.lat, lng: derived.lng }
+      : resolvedCityPoint ?? null,
+    [hasGeo, derived.lat, derived.lng, resolvedCityPoint],
   );
 
   // ── Row data ────────────────────────────────────────────────────────────
@@ -546,46 +612,21 @@ export function SearchContent({
     sheetRef.current?.snapTo("down");
   }, []);
 
-  // The instant a real gesture starts moving the map, collapse the sheet to its
-  // peek — the map is what the user reached for.
+  // A gesture takes ownership even when search results are still arriving.
   const onUserMoveStart = useCallback(() => {
+    handledCameraKey.current = cameraKey;
     sheetRef.current?.snapTo("down");
-  }, []);
+  }, [cameraKey]);
 
-  // ── "See on map" deep link (?focus=<locationId>) ────────────────────────
-  // Selection is seeded in useState above; this flies the camera to the
-  // focused location once it is present in the result set. One-shot per mount
-  // so later searches and pin clicks are never overridden.
-  const focusedOnce = useRef(false);
-  useEffect(() => {
-    if (focusedOnce.current) return;
-    const focusId = numParam(sp.get("focus"));
-    if (focusId == null) return;
-    const loc = locations.find((l) => l.id === focusId);
-    if (!loc || loc.latitude == null || loc.longitude == null) return;
-    focusedOnce.current = true;
-    // An "arrival" — place the camera, don't animate a fly across the country.
-    mapHandleRef.current?.flyTo(
-      { lat: loc.latitude, lng: loc.longitude },
-      { zoom: 14, duration: 0 },
-    );
-  }, [sp, locations]);
-
-  // "Search this area" — re-anchor on the new map center; radius stays fixed.
-  // updateParams triggers the fetch via the requestKey effect, so no separate
-  // fetch is needed here.
-  // The camera is ALREADY on the panned centre — re-anchoring must not move it
-  // again, which is what the old fit-to-results did: pick an area, get panned
-  // straight back off it. The flag is consumed by the anchor-follow effect.
-  const skipAnchorFly = useRef(false);
+  // The visitor has already positioned the camera for "Search this area".
   const onSearchArea = useCallback(
     ({ lat, lng }: { lat: number; lng: number }) => {
-      skipAnchorFly.current = true;
       updateParams({
+        city: null,
         lat: lat.toFixed(6),
         lng: lng.toFixed(6),
         radius: String(SEARCH_RADIUS_KM),
-      });
+      }, { preserveCamera: true });
     },
     [updateParams],
   );
@@ -596,6 +637,7 @@ export function SearchContent({
   const applyAnchor = useCallback(
     (p: GeoPoint) => {
       updateParams({
+        city: null,
         lat: p.lat.toFixed(6),
         lng: p.lng.toFixed(6),
         radius: String(SEARCH_RADIUS_KM),
@@ -738,16 +780,14 @@ export function SearchContent({
   const recenterTo = useCallback(
     (loc: GeoPoint) => {
       setDeviceLocation(loc);
-      // Fly the camera ourselves: when the URL is already anchored on this
-      // position, updateParams is a no-op and no refetch follows — and when it
-      // is not, the flag stops the anchor-follow effect flying a second time.
-      skipAnchorFly.current = true;
+      // This explicit destination owns the camera, including after its fetch.
       mapHandleRef.current?.flyTo(loc);
       updateParams({
+        city: null,
         lat: loc.lat.toFixed(6),
         lng: loc.lng.toFixed(6),
         radius: String(SEARCH_RADIUS_KM),
-      });
+      }, { preserveCamera: true });
     },
     [updateParams],
   );
@@ -791,31 +831,37 @@ export function SearchContent({
       });
   }, [deviceLocation, recenterTo, searchAnchor, toast, t.centeredOnLocation]);
 
-  // ── The camera follows the anchor ────────────────────────────────────────
-  // Picking a place (overlay, city chip, "use my location") re-anchors the
-  // results, and the map has to agree — searching Cluj while the camera sits
-  // over Bucharest shows an empty map over the wrong city.
-  //
-  // What this deliberately does NOT do is fit the camera to the results on
-  // every fetch: that fought the user after a "Search this area", and re-framed
-  // the map behind their back whenever a filter changed the pin set. The mobile
-  // app never auto-fits either.
-  const anchorKey = searchAnchor
-    ? `${searchAnchor.lat},${searchAnchor.lng}`
-    : "";
-  const lastAnchorKey = useRef(anchorKey);
+  // One camera intent per search/refinement, after matching results and the
+  // map are ready. Like the app, reveal off-screen matches without zooming in;
+  // background renders, sorting and manually searched areas leave the view alone.
+  const anchorKey = searchAnchor ? `${searchAnchor.lat},${searchAnchor.lng}` : "";
   useEffect(() => {
-    if (lastAnchorKey.current === anchorKey) return;
-    lastAnchorKey.current = anchorKey;
-    if (skipAnchorFly.current) {
-      skipAnchorFly.current = false;
-      return;
+    const map = mapHandleRef.current;
+    if (
+      !mapMounted || !mapEnabled || !map || loading || resultsFailed || lastError ||
+      resultsKey !== requestKey ||
+      (isMobile && (
+        !sheetGeometry || sheetGeometry.position !== sheetPosition || sheetPosition === "top"
+      ))
+    ) return;
+    const anchorChanged = lastCameraAnchor.current !== anchorKey;
+    lastCameraAnchor.current = anchorKey;
+    if (handledCameraKey.current === cameraKey) return;
+
+    const focusedPin = focusId == null ? undefined : pins.find((pin) => pin.id === focusId);
+    const duration = cameraArrived.current ? 450 : 0;
+    if (focusedPin) {
+      map.flyTo(focusedPin, { zoom: 14, duration });
+    } else if (pins.length) {
+      map.revealPins(pins, { duration });
+    } else if (searchAnchor && (anchorChanged || !cameraArrived.current)) {
+      map.flyTo(searchAnchor, { duration });
     }
-    if (searchAnchor) mapHandleRef.current?.flyTo(searchAnchor);
-    // searchAnchor is derived from anchorKey; keying on the string keeps a
-    // fresh object identity from re-flying to the same coordinates.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchorKey]);
+    handledCameraKey.current = cameraKey;
+    cameraArrived.current = true;
+  }, [mapMounted, mapEnabled, loading, resultsFailed, lastError, resultsKey,
+    requestKey, cameraKey, focusId, pins, searchAnchor, anchorKey,
+    isMobile, sheetGeometry, sheetPosition]);
 
   // ── Edit search — reopen the overlay prefilled from the active URL params ──
   const editSearch = useCallback(() => {
@@ -927,6 +973,7 @@ export function SearchContent({
   const resultList = (
     <div
       ref={listRef}
+      data-locale-scroll="search-results"
       className="zw-scroll-y"
       style={{ flex: 1, padding: "4px 10px 16px", position: "relative" }}
     >
@@ -994,6 +1041,17 @@ export function SearchContent({
           ))}
         </>
       )}
+      <footer
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginTop: 16,
+          paddingTop: 12,
+          borderTop: "1px solid var(--c-mist)",
+        }}
+      >
+        <LanguageSwitcher currentLocale={locale} placement="above" />
+      </footer>
     </div>
   );
 
@@ -1043,8 +1101,13 @@ export function SearchContent({
       onUserMoveStart={onUserMoveStart}
       onFirstPaint={onMapFirstPaint}
       chromeHidden={isMobile && sheetPosition === "top"}
-      unavailableLabel={t.mapUnavailable}
-      fitInset={{ left: panelInsetPx }}
+      enabled={mapEnabled}
+      unavailableLabel={cityCameraPending ? t.updating : t.mapUnavailable}
+      fitInset={{
+        left: panelInsetPx,
+        top: searchActive ? 16 : 64,
+        bottom: isMobile ? (sheetGeometry?.height ?? 0) : 16,
+      }}
       // Clear the browse rail while it is up; reclaim the space once it steps
       // aside, so the "Search this area" pill sits where the eye expects it.
       topInset={searchActive ? 16 : 64}
@@ -1159,6 +1222,7 @@ export function SearchContent({
           ref={sheetRef}
           initialPosition="mid"
           onPositionChange={setSheetPosition}
+          onVisibleHeightChange={onSheetHeightChange}
           handleAria={t.sheetHandleAria}
           header={panelHeader}
         >

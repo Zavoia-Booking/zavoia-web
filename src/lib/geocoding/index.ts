@@ -1,6 +1,7 @@
 export {
   type CityResult,
   searchCities,
+  resolveCity,
   reverseGeocode,
   ipLocate,
   citySecondary,

@@ -1,19 +1,16 @@
 "use client";
 
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { authErrorMessage } from "@/lib/api/auth-error-messages";
 import { getAccountLinkNeededDetails } from "@/lib/api/customer-auth";
 import { GOOGLE_CLIENT_ID } from "@/lib/env";
 import { useAuth } from "@/lib/auth/useAuth";
-import {
-  defaultPostAuthTarget,
-  safeRedirectTarget,
-} from "@/lib/auth/redirects";
+import { authRedirectTarget } from "@/lib/auth/redirects";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 import { AuthField } from "./auth-field";
 
@@ -26,7 +23,8 @@ export function LoginForm({
   locale: Locale;
   onAccountLinkNeeded: (details: AccountLinkNeededDetails) => void;
 }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status, login } = useAuth();
@@ -42,11 +40,7 @@ export function LoginForm({
 
   useEffect(() => {
     if (status === "authenticated") {
-      const target = safeRedirectTarget(
-        searchParams.get("redirect"),
-        locale,
-        defaultPostAuthTarget(locale),
-      );
+      const target = authRedirectTarget(searchParams, locale);
       router.replace(target);
     }
   }, [status, locale, router, searchParams]);
@@ -81,7 +75,7 @@ export function LoginForm({
         return;
       }
       setErrors({
-        form: authErrorMessage(e, dict.errors, dictionaries[locale].errors),
+        form: authErrorMessage(e, dict.errors, dictionary.errors),
       });
     }
   }

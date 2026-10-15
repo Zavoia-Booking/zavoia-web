@@ -12,6 +12,7 @@
  */
 
 import { apiFetch } from "@/lib/api/http";
+import { otherIndustryLast } from "@/lib/marketplace/industry-order";
 import { buildQuery } from "./query";
 import type {
   BrandCard,
@@ -51,10 +52,13 @@ function cacheInit(opts?: CacheOptions): RequestInit {
 }
 
 /** GET /marketplace/public/industries — RAW Industry[]. */
-export function getIndustries(): Promise<Industry[]> {
-  return apiFetch<Industry[]>("/marketplace/public/industries", {
+export async function getIndustries(opts?: CacheOptions): Promise<Industry[]> {
+  const industries = await apiFetch<Industry[]>("/marketplace/public/industries", {
+    ...cacheInit(opts),
     method: "GET",
   });
+  // All display consumers share this order. Local shuffles/sorts reapply it.
+  return otherIndustryLast(industries, (industry) => industry.slug);
 }
 
 /**
@@ -72,6 +76,7 @@ export function getVenueTags(): Promise<VenueTagDictionaries> {
 /** GET /marketplace/public/brands — own paginated wrapper. */
 export function getBrands(
   params: GetBrandsParams = {},
+  opts?: CacheOptions,
 ): Promise<OffsetPage<BrandCard>> {
   const query = buildQuery({
     search: params.search,
@@ -83,6 +88,7 @@ export function getBrands(
     offset: params.offset,
   });
   return apiFetch<OffsetPage<BrandCard>>(`/marketplace/public/brands${query}`, {
+    ...cacheInit(opts),
     method: "GET",
   });
 }
@@ -90,10 +96,12 @@ export function getBrands(
 /** POST /marketplace/public/nearby-locations — own wrapper with fallback (LocationCard). */
 export function getNearbyLocations(
   body: NearbyLocationsBody,
+  opts?: { signal?: AbortSignal },
 ): Promise<NearbyLocationsResult> {
   return apiFetch<NearbyLocationsResult>(
     "/marketplace/public/nearby-locations",
     {
+      signal: opts?.signal,
       method: "POST",
       body: JSON.stringify(body),
     },
@@ -103,6 +111,7 @@ export function getNearbyLocations(
 /** GET /marketplace/public/listings — unified search; own grouped wrapper. tagIds → CSV. */
 export function searchListings(
   params: SearchListingsParams = {},
+  opts?: CacheOptions & { signal?: AbortSignal },
 ): Promise<SearchListingsResult> {
   const query = buildQuery({
     search: params.search,
@@ -123,7 +132,7 @@ export function searchListings(
   });
   return apiFetch<SearchListingsResult>(
     `/marketplace/public/listings${query}`,
-    { method: "GET" },
+    { ...cacheInit(opts), method: "GET", signal: opts?.signal },
   );
 }
 

@@ -61,8 +61,7 @@ export function Hero() {
       style={{
         position: "relative",
         overflow: "hidden",
-        background:
-          "radial-gradient(135% 95% at 50% -12%, #FDFCF8 0%, #F4F1E8 48%, var(--c-shade) 100%)",
+        background: "var(--surface-warm)",
         borderBottom: "1px solid rgba(28,28,26,0.05)",
       }}
     >
@@ -169,7 +168,7 @@ export function Hero() {
               alignItems: "center",
               width: "100%",
               maxWidth: 640,
-              cursor: "text",
+              cursor: "pointer",
               background: "#fff",
               borderRadius: 999,
               border: "1px solid rgba(28,28,26,0.07)",

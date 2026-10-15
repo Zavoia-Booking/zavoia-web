@@ -8,6 +8,10 @@ export interface BusinessCardData {
   /** Non-enumerable location slug — the detail-route nav target (absent for slug-less business cards). */
   slug?: string;
   name: string;
+  /** Location identity and parent business, when supplied by discovery results. */
+  locationName?: string;
+  businessName?: string;
+  address?: string;
   cat: CategoryKey | string;
   catLabel?: string;
   rating?: number;

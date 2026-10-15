@@ -81,6 +81,7 @@ export function Reviews({ entry, data, t, no }: { entry: SectionEntry; data: Pre
               showHeading={showHeading}
             />
             <RvSummary
+              locale={data.locale}
               t={t}
               rating={rating}
               count={count}
@@ -91,6 +92,7 @@ export function Reviews({ entry, data, t, no }: { entry: SectionEntry; data: Pre
           </>
         ) : (
           <View
+            locale={data.locale}
             quotes={quotes}
             rating={rating}
             count={count}

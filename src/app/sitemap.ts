@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
-import { CITY_ENTRIES, listIndustryTaxonomy } from "@/data/seo";
 import { localeHref } from "@/i18n/routes";
+import { CITY_ENTRIES, listTaxonomy, slugifyRo } from "@/data/seo";
 import { listPostsForSitemap } from "@/sanity/queries";
+import { getPostAlternates } from "@/lib/blog/alternates";
 import { LEGAL_DOCUMENTS } from "@/data/legal";
 import { getIndustries, getSitemapEntries } from "@/lib/api/marketplace/public";
 import {
@@ -42,19 +43,6 @@ async function loadMarketplaceEntries(): Promise<MarketplaceSitemap> {
   }
 }
 
-/**
- * The live category taxonomy. Degrades to an empty list on failure, which drops
- * the city × industry URLs from this render rather than failing the whole file
- * — same contract as the two loaders around it.
- */
-async function loadIndustries(): Promise<Industry[]> {
-  try {
-    return await getIndustries();
-  } catch {
-    return [];
-  }
-}
-
 // Same degrade-not-fail contract as `loadMarketplaceEntries` above, applied
 // to the Sanity fetch: a blip there previously took the whole `/sitemap.xml`
 // down with it (no `.catch`) instead of just omitting the blog URLs.
@@ -68,20 +56,75 @@ async function loadBlogEntries(): Promise<
   }
 }
 
+async function loadIndustries(): Promise<Industry[]> {
+  try {
+    return await getIndustries();
+  } catch {
+    return [];
+  }
+}
+
+/** Advertise only city/taxonomy combinations supported by a searchable location.
+ * Reuses the existing sitemap feed and taxonomy request; no per-city searches.
+ */
+function categoryEntries(marketplace: MarketplaceSitemap, industries: Industry[]): MetadataRoute.Sitemap {
+  const taxonomy = listTaxonomy(industries, DEFAULT_LOCALE);
+  const industryById = new Map(industries.map((industry) => [industry.id, industry.slug]));
+  const tagById = new Map(taxonomy.flatMap((entry) => entry.kind === "tag" ? [[entry.tagId, entry.id] as const] : []));
+  const eligible = new Map<string, Set<string>>();
+
+  for (const location of marketplace.locations) {
+    const category = location.category;
+    if (!category?.city) continue;
+    // Match actual indexed city names against configured aliases. Visitor
+    // geolocation/country fallbacks must never invent inventory for a city.
+    const cityKey = slugifyRo(category.city);
+    const city = CITY_ENTRIES.find((candidate) =>
+      [candidate.id, ...Object.values(candidate.name), ...Object.values(candidate.slug)]
+        .some((alias) => slugifyRo(alias) === cityKey),
+    );
+    if (!city) continue;
+    const entries = eligible.get(city.id) ?? new Set<string>();
+    const industry = category.industryId == null ? undefined : industryById.get(category.industryId);
+    if (industry) entries.add(industry);
+    for (const tagId of category.tagIds) {
+      const tag = tagById.get(tagId);
+      if (tag) entries.add(tag);
+    }
+    eligible.set(city.id, entries);
+  }
+
+  const taxonomyByLocale = Object.fromEntries(
+    LOCALES.map((locale) => [locale, new Map(listTaxonomy(industries, locale).map((entry) => [entry.id, entry]))]),
+  ) as Record<Locale, Map<string, (typeof taxonomy)[number]>>;
+
+  return CITY_ENTRIES.flatMap((city) =>
+    [...(eligible.get(city.id) ?? [])].sort().flatMap((id) => {
+      const languages = Object.fromEntries(LOCALES.flatMap((locale) => {
+        const entry = taxonomyByLocale[locale].get(id);
+        return entry ? [[locale, abs(localeHref(locale, city.slug[locale], entry.slug))]] : [];
+      }));
+      return LOCALES.flatMap((locale) => languages[locale] ? [{
+        url: languages[locale],
+        // The feed cannot establish the category's last significant change.
+        // An omitted date is more accurate than regeneration time.
+        alternates: { languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] } },
+      }] : []);
+    }),
+  );
+}
+
 function abs(path: string): string {
   return `${SITE_URL}${path}`;
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
-
   const homeLanguages = Object.fromEntries(
     LOCALES.map((l) => [l, abs(localeHref(l))]),
   ) as Record<Locale, string>;
 
   const homeEntries: MetadataRoute.Sitemap = LOCALES.map((locale) => ({
     url: abs(localeHref(locale)),
-    lastModified: now,
     changeFrequency: "weekly",
     priority: 1,
     alternates: {
@@ -92,43 +135,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   }));
 
-  // City × INDUSTRY landing pages, built from the live taxonomy so a slug here
-  // is always one the category route resolves. Tag-level pages exist too and
-  // are reachable from every category page, but they are not advertised here:
-  // 13 cities × 77 tags is mostly combinations no business occupies yet, and a
-  // sitemap should list pages worth crawling, not every URL that resolves.
-  const industries = await loadIndustries();
-  const taxonomyByLocale = Object.fromEntries(
-    LOCALES.map((l) => [l, listIndustryTaxonomy(industries, l)]),
-  ) as Record<Locale, ReturnType<typeof listIndustryTaxonomy>>;
-
-  const categoryEntries: MetadataRoute.Sitemap = LOCALES.flatMap((locale) =>
-    CITY_ENTRIES.flatMap((city) =>
-      taxonomyByLocale[locale].map((entry) => {
-        const languages = Object.fromEntries(
-          LOCALES.map((l) => {
-            const match = taxonomyByLocale[l].find((t) => t.id === entry.id);
-            return [
-              l,
-              match ? abs(localeHref(l, city.slug[l], match.slug)) : null,
-            ];
-          }).filter(([, href]) => href != null),
-        ) as Record<Locale, string>;
-        return {
-          url: abs(localeHref(locale, city.slug[locale], entry.slug)),
-          lastModified: now,
-          changeFrequency: "weekly" as const,
-          priority: 0.8,
-          alternates: {
-            languages: {
-              ...languages,
-              "x-default": languages[DEFAULT_LOCALE],
-            },
-          },
-        };
-      }),
-    ),
+  const industryDirectoryLanguages = Object.fromEntries(
+    LOCALES.map((l) => [l, abs(localeHref(l, "industries"))]),
   );
+  const industryDirectoryEntries: MetadataRoute.Sitemap = LOCALES.map((locale) => ({
+    url: abs(localeHref(locale, "industries")),
+    changeFrequency: "weekly",
+    priority: 0.7,
+    alternates: {
+      languages: {
+        ...industryDirectoryLanguages,
+        "x-default": industryDirectoryLanguages[DEFAULT_LOCALE],
+      },
+    },
+  }));
 
   const blogIndexLanguages = Object.fromEntries(
     LOCALES.map((l) => [l, abs(localeHref(l, "blog"))]),
@@ -136,7 +156,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const blogIndexEntries: MetadataRoute.Sitemap = LOCALES.map((locale) => ({
     url: abs(localeHref(locale, "blog")),
-    lastModified: now,
     changeFrequency: "weekly",
     priority: 0.7,
     alternates: {
@@ -149,25 +168,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const posts = await loadBlogEntries();
   const postEntries: MetadataRoute.Sitemap = posts.flatMap((post) => {
-    const languages: Partial<Record<Locale, string>> = {};
-    for (const l of LOCALES) {
-      const slug = post.slug[l]?.current;
-      if (slug) languages[l] = abs(localeHref(l, "blog", slug));
-    }
+    const alternates = getPostAlternates(post);
+    const languages = Object.fromEntries(
+      Object.entries(alternates).map(([language, path]) => [language, abs(path)]),
+    );
 
     const entries: MetadataRoute.Sitemap = [];
     for (const locale of LOCALES) {
-      const slug = post.slug[locale]?.current;
-      if (!slug) continue;
+      const path = alternates[locale];
+      if (!path) continue;
       entries.push({
-        url: abs(localeHref(locale, "blog", slug)),
+        url: abs(path),
         lastModified: new Date(post.publishedAt),
         changeFrequency: "monthly",
         priority: 0.6,
         alternates: {
           languages: {
-            ...(languages as Record<Locale, string>),
-            "x-default": languages[DEFAULT_LOCALE] ?? abs(localeHref(locale, "blog", slug)),
+            ...languages,
+            "x-default": languages[DEFAULT_LOCALE] ?? abs(path),
           },
         },
       });
@@ -182,7 +200,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const legalEntries: MetadataRoute.Sitemap = [
     ...LOCALES.map((locale) => ({
       url: abs(localeHref(locale, "terms")),
-      lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.4,
       alternates: {
@@ -199,7 +216,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ) as Record<Locale, string>;
         return {
           url: abs(localeHref(locale, "terms", doc.slug)),
-          lastModified: now,
           changeFrequency: "monthly" as const,
           priority: 0.3,
           alternates: {
@@ -217,7 +233,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // data is the same; only the chrome is translated), so each URL is listed
   // once per locale with the pair declared as alternates — never as two
   // competing canonicals.
-  const marketplace = await loadMarketplaceEntries();
+  const [marketplace, industries] = await Promise.all([loadMarketplaceEntries(), loadIndustries()]);
 
   const localizedEntries = (
     entries: typeof marketplace.locations,
@@ -267,7 +283,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...homeEntries,
-    ...categoryEntries,
+    ...industryDirectoryEntries,
+    ...categoryEntries(marketplace, industries),
     ...listingEntries,
     ...websiteEntries,
     ...brandEntries,

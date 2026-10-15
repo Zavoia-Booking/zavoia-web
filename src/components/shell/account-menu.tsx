@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useSyncExternalStore } from "react";
+import { useLocaleAlternates } from "@/i18n/locale-navigation";
+import { authEntryHref } from "@/lib/auth/redirects";
 import { Avatar, Icon, type IconName, useToast } from "@/components/ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -44,10 +47,25 @@ const identityStyle = {
   textDecoration: "none",
 };
 
+function subscribeHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  window.addEventListener("popstate", onChange);
+  return () => {
+    window.removeEventListener("hashchange", onChange);
+    window.removeEventListener("popstate", onChange);
+  };
+}
+
+const getHash = () => window.location.hash;
+const getServerHash = () => "";
+
 export function AccountMenu({ locale, onClose }: Props) {
   const { status, user, logout } = useAuth();
   const { dict } = useTranslation();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const hash = useSyncExternalStore(subscribeHash, getHash, getServerHash);
+  const alternates = useLocaleAlternates(pathname);
   const toast = useToast();
   const t = dict.accountMenu;
 
@@ -56,11 +74,9 @@ export function AccountMenu({ locale, onClose }: Props) {
 
   // Signed-out "Sign in" → the dedicated /auth route (login tab), returning to
   // the current page afterwards via ?redirect=.
-  const loginHref = `${localeHref(locale, "auth")}?mode=login${
-    pathname && pathname !== "/"
-      ? `&redirect=${encodeURIComponent(pathname)}`
-      : ""
-  }`;
+  const query = searchParams.toString();
+  const current = `${pathname}${query ? `?${query}` : ""}${hash}`;
+  const loginHref = authEntryHref(locale, "login", current, alternates);
 
   const linkRow = (
     icon: IconName,

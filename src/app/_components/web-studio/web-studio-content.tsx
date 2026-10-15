@@ -34,7 +34,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { useTranslation } from "@/i18n/useTranslation";
 import {
   getPricing,

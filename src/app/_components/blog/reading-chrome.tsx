@@ -40,7 +40,7 @@ const C = 2 * Math.PI * R;
 // Reading chrome — owns the one scroll-progress value and feeds BOTH the top
 // hairline bar (ZwReadProgress, web-blog.jsx:39-51) and the left share rail
 // (ZwShareRail, web-blog.jsx:438-471). The `.zw-share-rail` is auto-hidden
-// below 1380px by globals.css. The byline/avatar from the prototype is absent
+// when there is not enough outer margin by globals.css. The byline/avatar is absent
 // here by design — this component carries no author data.
 export function ReadingChrome({ title }: { title: string }) {
   const progress = useScrollProgress();
@@ -94,7 +94,13 @@ export function ReadingChrome({ title }: { title: string }) {
       </div>
 
       {/* Left share rail — reading ring + actions */}
-      <div className="zw-share-rail" aria-label={dict.blog.shareLabel}>
+      <div
+        className="zw-share-rail"
+        aria-label={dict.blog.shareLabel}
+        style={{
+          left: "max(14px, calc((100vw - var(--content-max)) / 2 - 62px))",
+        }}
+      >
         <div
           style={{
             position: "relative",

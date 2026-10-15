@@ -6,11 +6,12 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Avatar, Icon } from "@/components/ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import type { Locale } from "@/i18n/locales";
 import {
   useSearchOverlay,
+  useSearchPageContext,
   type OpenSearchOpts,
 } from "@/components/search/search-overlay-provider";
 import type {
@@ -24,11 +25,12 @@ import { routeKey } from "./active-route";
 import { AccountMenu } from "./account-menu";
 import { NotifPanel } from "./notif-panel";
 import { useUnreadBadge } from "@/lib/notifications/use-notifications";
+import styles from "./site-header.module.css";
 
 // Port of ZwTopNav + ZwNavSearchPill (docs/web-shell.jsx) on Next routing.
 // Each pill segment opens the command-search overlay at the matching step.
 
-const EXPLORE_KEYS = ["search", "businesses", "business", "l"];
+const EXPLORE_KEYS = ["industries", "search", "businesses", "business", "l"];
 
 function SearchPill({
   onOpen,
@@ -41,112 +43,34 @@ function SearchPill({
   const { dict } = useTranslation();
   const t = dict.searchPill;
 
-  const seg = (label: string, value: string, grow: boolean, step: SearchStep) => (
+  const seg = (label: string, value: string, step: SearchStep) => (
     <button
       type="button"
-      className="zw-pill-seg tap"
+      className={styles.segment}
+      data-search-step={step}
       onClick={() => onOpen(step)}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        gap: 1,
-        background: "transparent",
-        border: 0,
-        cursor: "pointer",
-        textAlign: "left",
-        padding: "6px 16px",
-        minWidth: 0,
-        flex: grow ? "1 1 auto" : "0 1 auto",
-        borderRadius: 999,
-      }}
     >
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 9.5,
-          fontWeight: 600,
-          letterSpacing: "0.13em",
-          textTransform: "uppercase",
-          color: "var(--c-500)",
-          lineHeight: 1,
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: 500,
-          letterSpacing: "-0.01em",
-          lineHeight: 1.25,
-          color: "var(--c-600)",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        {value}
-      </span>
+      <span className={styles.segmentLabel}>{label}</span>
+      <span className={styles.segmentValue}>{value}</span>
     </button>
   );
 
-  const divider = (
-    <span
-      aria-hidden="true"
-      style={{
-        width: 1,
-        height: 26,
-        background: "rgba(28,28,26,0.10)",
-        flexShrink: 0,
-      }}
-    />
-  );
+  const divider = <span aria-hidden="true" className={styles.divider} />;
 
   return (
-    <div
-      className="zw-nav-pill"
-      role="search"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        minWidth: 0,
-        maxWidth: "min(100%, 460px)",
-        height: 48,
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.10)",
-        borderRadius: 999,
-        paddingRight: 5,
-        paddingLeft: 4,
-        boxShadow:
-          "0 1px 2px rgba(28,28,26,0.05), 0 4px 12px rgba(28,28,26,0.04)",
-      }}
-    >
-      {seg(t.what, active?.what || t.anything, true, "what")}
+    <div className={styles.searchPill} role="search" aria-label={t.searchAria}>
+      {seg(t.what, active?.what || t.anything, "what")}
       {divider}
-      {seg(t.where, active?.where || t.defaultWhere, true, "where")}
+      {seg(t.where, active?.where || t.defaultWhere, "where")}
       {divider}
-      {seg(t.when, active?.when || t.anyTime, false, "when")}
+      {seg(t.when, active?.when || t.anyTime, "when")}
       <button
         type="button"
-        className="tap zw-pill-go"
+        className={styles.searchGo}
         aria-label={t.searchAria}
         onClick={() => onOpen("what")}
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: "50%",
-          background: "var(--p-500)",
-          border: 0,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginLeft: 6,
-          flexShrink: 0,
-          cursor: "pointer",
-        }}
       >
-        <Icon name="search" size={15} color="#fff" />
+        <Icon name="search" size={18} />
       </button>
     </div>
   );
@@ -266,6 +190,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const { status, user, initializing, optimisticUser } = useAuth();
   const { dict } = useTranslation();
   const { openSearch } = useSearchOverlay();
+  const pageSearch = useSearchPageContext(pathname);
 
   const key = routeKey(pathname);
   const onHome = key === "";
@@ -308,13 +233,13 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const forBusinessActive = key === "for-business" || key === "pricing";
   const webStudioActive = key === "web-studio";
 
-  // On the search route, best-effort prefill the overlay from the current URL
-  // params so editing preserves the active query; elsewhere open empty. Params
+  // Search URL params remain authoritative on /search. Landing pages provide
+  // their server-resolved filters through SearchPageContext. URL params
   // are read lazily from window.location at click time (not via
   // useSearchParams) so this handler doesn't force the whole header into the
   // pill's Suspense bailout (see LiveSearchPill).
   const open = (step: SearchStep, extra?: InitialQuery) => {
-    let initial: InitialQuery | undefined;
+    let initial: InitialQuery | undefined = pageSearch?.initial;
     if (key === "search" && typeof window !== "undefined") {
       const sp = new URLSearchParams(window.location.search);
       const tagsRaw = sp.get("tagIds");
@@ -339,6 +264,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
     const opts: OpenSearchOpts = {
       step,
       initial: { ...initial, ...extra },
+      industries: key === "search" ? undefined : pageSearch?.industries,
     };
     openSearch(opts);
   };
@@ -364,11 +290,12 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 
   return (
     <header
-      className="zv-frost"
+      data-marketplace-chrome
       style={{
         position: "sticky",
         top: 0,
         zIndex: 90,
+        background: "var(--c-canvas)",
         borderBottom: "1px solid rgba(28,28,26,0.06)",
       }}
     >
@@ -378,7 +305,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           height: "var(--nav-h)",
           display: "flex",
           alignItems: "center",
-          gap: 24,
+          gap: "clamp(8px, 2vw, 24px)",
         }}
       >
         <Link
@@ -390,7 +317,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           <img
             src="/brand/wordmark-cropped.png"
             alt="Zavoia"
-            style={{ height: 28, width: "auto" }}
+            style={{ height: 34, width: "auto" }}
           />
         </Link>
 
@@ -412,36 +339,43 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           </Link>
         </nav>
 
-        <div
-          className="zw-only-desktop"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            display: "flex",
-            justifyContent: "center",
-            overflow: "hidden",
-          }}
-        >
+        <div className={styles.searchSlot}>
           {showPill && (
             <div
-              className={onHome ? "zw-pill-pop" : ""}
-              style={{
-                minWidth: 0,
-                maxWidth: "100%",
-                display: "flex",
-              }}
+              className={styles.searchControls}
+              data-entrance={onHome ? "true" : undefined}
             >
-              <Suspense fallback={<SearchPill onOpen={(step) => open(step)} />}>
-                <LiveSearchPill
-                  onOpen={(step) => open(step)}
-                  onSearchRoute={key === "search"}
-                />
-              </Suspense>
+              <div className={styles.searchShell}>
+                {key === "search" ? (
+                  <Suspense fallback={<SearchPill onOpen={(step) => open(step)} />}>
+                    <LiveSearchPill
+                      onOpen={(step) => open(step)}
+                      onSearchRoute
+                    />
+                  </Suspense>
+                ) : (
+                  <SearchPill
+                    onOpen={(step) => open(step)}
+                    active={pageSearch ? {
+                      what: pageSearch.label,
+                      where: pageSearch.initial.where?.label ?? pageSearch.initial.city,
+                    } : undefined}
+                  />
+                )}
+              </div>
+              <button
+                type="button"
+                className={styles.compactSearch}
+                onClick={() => open("what")}
+              >
+                <Icon name="search" size={18} />
+                <span>{dict.searchPill.searchAria}</span>
+              </button>
             </div>
           )}
         </div>
 
-        <div style={{ flex: 1 }} className="zw-only-mobile" />
+        <div className={styles.phoneSpacer} />
 
         <div
           style={{
@@ -478,10 +412,9 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 
           <button
             type="button"
-            className="tap zw-only-mobile"
+            className={styles.phoneSearch}
             onClick={() => open("what")}
             aria-label={dict.nav.search}
-            style={{ ...iconBtn, background: "transparent" }}
           >
             <Icon name="search" size={18} color="var(--c-800)" />
           </button>

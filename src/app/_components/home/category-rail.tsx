@@ -1,92 +1,84 @@
+"use client";
+
 import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
+import { useTranslation } from "@/i18n/useTranslation";
 import { Icon } from "@/components/ui/icon";
+import { useSearchOverlay } from "@/components/search/search-overlay-provider";
 import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
-import {
-  industryAccent,
-  industryIcon,
-  resolveIndustrySlug,
-} from "@/lib/marketplace/industry-visuals";
+import { industryAccent, industryIcon } from "@/lib/marketplace/industry-visuals";
 import type { Industry } from "@/lib/api/marketplace/types";
+import { useHomeLocationSnapshot } from "./use-home-coords";
+import styles from "./category-rail.module.css";
 
-// Server component: a horizontal rail of round category chips, one per
-// industry TAG, deep-linking to search with a `?tagIds=<id>` querystring.
-// Tags are flattened across industries (keeping the parent industry for the
-// icon/colour) and de-duplicated by tag id (first occurrence wins).
-export function CategoryRail({
-  locale,
-  industries,
-}: {
+export function CategoryRail({ locale, industries, featuredIndustryIds }: {
   locale: Locale;
   industries: Industry[];
+  featuredIndustryIds: number[];
 }) {
-  const seen = new Set<number>();
-  const tagChips = industries.flatMap((industry) =>
-    industry.tags.map((tag) => ({ tag, industry })),
-  );
-  const chips = tagChips.filter(({ tag }) => {
-    if (seen.has(tag.id)) return false;
-    seen.add(tag.id);
-    return true;
+  const { dict } = useTranslation();
+  const { openSearch } = useSearchOverlay();
+  const location = useHomeLocationSnapshot();
+  const t = dict.searchOverlay;
+  const featured = featuredIndustryIds.flatMap((id) => {
+    const industry = industries.find((item) => item.id === id);
+    return industry ? [industry] : [];
   });
 
-  if (!chips.length) return null;
+  if (industries.length === 0) return null;
+
+  const browse = (industry: Industry) => openSearch({
+    step: "what",
+    browseIndustry: industry.slug,
+    industries,
+    initial: {
+      where: {
+        label: location.city ?? undefined,
+        lat: location.coords?.lat,
+        lng: location.coords?.lng,
+      },
+    },
+  });
 
   return (
-    <section className="zw-container" style={{ paddingTop: 44 }}>
-      <div className="zw-scroll-x" style={{ gap: 6, paddingBottom: 6 }}>
-        {chips.map(({ tag, industry }) => {
-          const slug = resolveIndustrySlug(industry.slug);
-          return (
+    <section className={`zw-container ${styles.section}`} aria-label={t.browseByIndustry}>
+      <ul className={styles.grid} role="list">
+        {featured.map((industry) => (
+          <li key={industry.id}>
             <Link
-              key={tag.id}
-              href={`${localeHref(locale, "search")}?tagIds=${tag.id}`}
-              className="tap"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 10,
-                textDecoration: "none",
-                borderRadius: 16,
-                padding: "8px 8px 6px",
-                minWidth: 92,
-                flexShrink: 0,
-                scrollSnapAlign: "start",
+              href={`${localeHref(locale, "search")}?industry=${encodeURIComponent(industry.slug)}`}
+              prefetch={false}
+              className={styles.tile}
+              aria-haspopup={industry.tags.length > 0 ? "dialog" : undefined}
+              onNavigate={(event) => {
+                // Tagless industries still have a working industry search.
+                // Modified clicks and no-JS navigation use the real href.
+                if (industry.tags.length === 0) return;
+                event.preventDefault();
+                browse(industry);
               }}
             >
-              <span
-                className="zw-hover-lift"
-                style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: "50%",
-                  background: "#fff",
-                  border: "1px solid rgba(28,28,26,0.07)",
-                  boxShadow: "var(--sh-sm)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Icon name={industryIcon(slug)} size={21} color={industryAccent(slug)} />
+              <span className={styles.glyph}>
+                <Icon name={industryIcon(industry.slug)} size={24} color={industryAccent(industry.slug)} />
               </span>
-              <span
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: 500,
-                  color: "var(--c-700)",
-                  letterSpacing: "-0.01em",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {taxonomyLabel(tag, locale)}
-              </span>
+              <span className={styles.label}>{taxonomyLabel(industry, locale, dict.industries)}</span>
             </Link>
-          );
-        })}
-      </div>
+          </li>
+        ))}
+        <li>
+          <Link
+            href={localeHref(locale, "industries")}
+            prefetch={false}
+            className={styles.tile}
+          >
+            <span className={`${styles.glyph} ${styles.allGlyph}`}>
+              <Icon name="grid" size={23} />
+            </span>
+            <span className={styles.label}>{t.seeAllIndustries}</span>
+          </Link>
+        </li>
+      </ul>
     </section>
   );
 }

@@ -70,6 +70,9 @@ const ICONS = {
       <path d="M12 7v5l3 2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </>
   ),
+  arrowUR: (
+    <path d="M6 18L17 7M7 7h10v10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  ),
   arrowUL: (
     <path d="M18 18L7 7M7 7v8M7 7h8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
   ),

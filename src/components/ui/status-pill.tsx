@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 
 export interface StatusPillProps {
   status: "open" | "closed" | "24-7" | string;

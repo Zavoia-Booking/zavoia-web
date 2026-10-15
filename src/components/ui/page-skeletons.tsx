@@ -6,7 +6,7 @@ import { Skeleton } from "./skeleton";
 // in flight.
 
 // Detail routes with a lead image and a two-column body: /business/[slug],
-// /brand/[slug], the published microsite at /[city].
+// /brand/[slug].
 export function DetailPageSkeleton() {
   return (
     <main
@@ -27,6 +27,7 @@ export function DetailPageSkeleton() {
         <Skeleton w="28%" h={14} />
       </div>
       <div
+        data-biz-cols="1"
         style={{
           marginTop: 34,
           display: "grid",
@@ -49,13 +50,14 @@ export function DetailPageSkeleton() {
 // The full-bleed /search route: filter chrome, then the map/list split.
 export function SearchPageSkeleton() {
   return (
-    <main style={{ padding: "18px 20px 0" }} aria-hidden="true">
-      <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+    <main style={{ padding: "18px var(--gutter) 0" }} aria-hidden="true">
+      <div style={{ display: "flex", gap: 10, marginBottom: 18, overflow: "hidden" }}>
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} w={104} h={36} r={999} />
+          <Skeleton key={i} w={104} h={36} r={999} style={{ flexShrink: 0 }} />
         ))}
       </div>
       <div
+        data-biz-cols="1"
         style={{
           display: "grid",
           gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.1fr)",
@@ -63,7 +65,7 @@ export function SearchPageSkeleton() {
           height: "min(70vh, 640px)",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="zw-only-desktop" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} w="100%" h={104} r={14} />
           ))}
@@ -82,12 +84,12 @@ export function FeedPageSkeleton() {
       style={{ paddingTop: 44 }}
       aria-hidden="true"
     >
-      <Skeleton w={280} h={34} r={10} />
+      <Skeleton w="min(280px, 100%)" h={34} r={10} />
       <div
         style={{
           marginTop: 30,
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))",
           gap: 22,
         }}
       >
@@ -110,29 +112,32 @@ export function FeedPageSkeleton() {
 export function ArticlePageSkeleton() {
   return (
     <main
-      style={{ maxWidth: 720, margin: "0 auto", padding: "44px 20px 0" }}
+      className="zw-container"
+      style={{ paddingTop: 44 }}
       aria-hidden="true"
     >
-      <Skeleton w="34%" h={12} />
-      <div style={{ marginTop: 16 }}>
-        <Skeleton w="88%" h={38} r={10} />
-      </div>
-      <div style={{ marginTop: 28 }}>
-        <Skeleton w="100%" h={300} r={16} />
-      </div>
-      <div
-        style={{
-          marginTop: 30,
-          display: "flex",
-          flexDirection: "column",
-          gap: 13,
-        }}
-      >
-        {["100%", "96%", "98%", "72%", "100%", "89%", "94%", "58%"].map(
-          (w, i) => (
-            <Skeleton key={i} w={w} h={13} />
-          ),
-        )}
+      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+        <Skeleton w="34%" h={12} />
+        <div style={{ marginTop: 16 }}>
+          <Skeleton w="88%" h={38} r={10} />
+        </div>
+        <div style={{ marginTop: 28 }}>
+          <Skeleton w="100%" h={300} r={16} />
+        </div>
+        <div
+          style={{
+            marginTop: 30,
+            display: "flex",
+            flexDirection: "column",
+            gap: 13,
+          }}
+        >
+          {["100%", "96%", "98%", "72%", "100%", "89%", "94%", "58%"].map(
+            (w, i) => (
+              <Skeleton key={i} w={w} h={13} />
+            ),
+          )}
+        </div>
       </div>
     </main>
   );

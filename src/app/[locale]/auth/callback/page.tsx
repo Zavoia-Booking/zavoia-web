@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { LOCALES, isLocale } from "@/i18n/locales";
+import { LOCALES, isLocale, type Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { AuthSkeleton } from "../_components/auth-skeleton";
 import { GoogleCallback } from "./_components/google-callback";
+import type { AuthMessages } from "../_components/auth-messages";
 
 export const dynamicParams = false;
 
@@ -34,9 +35,14 @@ export default async function GoogleCallbackPage({ params }: Props) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
 
+  const messages = Object.fromEntries(LOCALES.map((language) => [language, {
+    auth: dictionaries[language].auth,
+    errors: dictionaries[language].errors,
+  }])) as Record<Locale, AuthMessages>;
+
   return (
     <Suspense fallback={<AuthSkeleton />}>
-      <GoogleCallback locale={locale} />
+      <GoogleCallback locale={locale} messages={messages} />
     </Suspense>
   );
 }

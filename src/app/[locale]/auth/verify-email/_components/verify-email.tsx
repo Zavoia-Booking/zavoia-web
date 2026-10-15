@@ -1,12 +1,13 @@
 "use client";
 
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { verifyEmail } from "@/lib/api/customer-auth";
+import { useRetainedAuthAction } from "@/lib/auth/retained-flow";
 import {
   isOfflineError,
   isServerError,
@@ -23,48 +24,32 @@ import { ResendVerification } from "../../_components/resend-verification";
 type State = "verifying" | "success" | "invalid" | "transient";
 
 export function VerifyEmail({ locale }: { locale: Locale }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const t = dict.verifyEmail;
   const e = dict.errors;
-  const shared = dictionaries[locale].errors;
+  const shared = dictionary.errors;
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
-  // A missing token is a render-time fact (no async needed), so derive the
-  // initial state instead of calling setState in the effect.
-  const [state, setState] = useState<State>(token ? "verifying" : "invalid");
-  const startedRef = useRef(false);
-  const mountedRef = useRef(true);
+  const { status, error, run } = useRetainedAuthAction(`verify-email:${token ?? ""}`);
+  const state: State = !token
+    ? "invalid"
+    : status === "success"
+      ? "success"
+      : status === "error"
+        ? isOfflineError(error) || isTimeoutError(error) || isServerError(error)
+          ? "transient"
+          : "invalid"
+        : "verifying";
 
-  // The backend marks the email verified and returns the user but does NOT
-  // issue tokens, so there is no session to adopt here — on success we
-  // instruct the user to sign in. Shared between the initial auto-run and the
-  // transient-failure retry button.
-  const runVerify = useCallback(async () => {
-    if (!token) return;
-    setState("verifying");
-    try {
-      await verifyEmail(token);
-      if (mountedRef.current) setState("success");
-    } catch (err) {
-      if (!mountedRef.current) return;
-      const transient =
-        isOfflineError(err) || isTimeoutError(err) || isServerError(err);
-      setState(transient ? "transient" : "invalid");
-    }
-  }, [token]);
-
-  // Verify once on mount.
+  // Verification consumes the token, without establishing a session. Reuse its
+  // pending/settled outcome on locale changes; a new URL token is a new action.
   useEffect(() => {
-    mountedRef.current = true;
-    if (token && !startedRef.current) {
-      startedRef.current = true;
-      void runVerify();
+    if (token && status === "idle") {
+      void run(async () => { await verifyEmail(token); }).catch(() => {});
     }
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [token, runVerify]);
+  }, [token, status, run]);
 
   const loginHref = `${localeHref(locale, "auth")}?mode=login`;
 
@@ -118,7 +103,9 @@ export function VerifyEmail({ locale }: { locale: Locale }) {
           <p className="mt-2 text-sm text-zinc-600">{e.linkCheckFailedBody}</p>
           <button
             type="button"
-            onClick={() => void runVerify()}
+            onClick={() => {
+              if (token) void run(async () => { await verifyEmail(token); }).catch(() => {});
+            }}
             className="mt-6 inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
           >
             {shared.retry}

@@ -3,8 +3,8 @@
 import { useEffect, useRef } from "react";
 
 // Reading-progress hairline pinned under the site nav. Long legal documents
-// run past a dozen sections, so the bar answers "how much is left" without the
-// reader hunting for a scrollbar (they are hidden site-wide by globals.css).
+// run past a dozen sections, so the bar keeps reading progress visible near
+// the document heading as the reader scrolls.
 // Writes the scale directly to the node — this repaints on every scroll frame
 // and has no business re-rendering React.
 export function LegalProgress() {

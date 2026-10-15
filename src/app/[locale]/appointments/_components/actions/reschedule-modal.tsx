@@ -1,5 +1,6 @@
 "use client";
 
+import type { Dictionary } from "@/i18n/dictionaries";
 import {
   useCallback,
   useEffect,
@@ -9,8 +10,7 @@ import {
 } from "react";
 import { Button, Icon, Spinner, useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
-import { dictionaries, format } from "@/i18n/dictionaries";
-import type { Locale } from "@/i18n/locales";
+import { format } from "@/i18n/format";
 import { ApiError } from "@/lib/api/http";
 import {
   getRescheduleCalendar,
@@ -91,8 +91,8 @@ function fmtIsoWhen(iso: string, locale: string, timeZone: string): string {
  */
 function rescheduleErrorMessage(
   code: string | undefined,
-  t: (typeof dictionaries)[Locale]["appointmentActions"]["reschedule"],
-  bookingErrors: (typeof dictionaries)[Locale]["booking"]["errors"],
+  t: Dictionary["appointmentActions"]["reschedule"],
+  bookingErrors: Dictionary["booking"]["errors"],
 ): string {
   switch (code) {
     // The notice window lapsed — most likely while this modal sat open.
@@ -122,8 +122,8 @@ function rescheduleErrorMessage(
  */
 function availabilityErrorLabel(
   e: unknown,
-  t: (typeof dictionaries)[Locale]["appointmentActions"]["reschedule"],
-  tb: (typeof dictionaries)[Locale]["booking"],
+  t: Dictionary["appointmentActions"]["reschedule"],
+  tb: Dictionary["booking"],
 ): string {
   const code = e instanceof ApiError ? e.code : undefined;
   return code?.startsWith("APPOINTMENTS.")

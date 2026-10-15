@@ -5,11 +5,14 @@ import {
   findCity,
   findTaxonomy,
   getCategoryAlternates,
+  taxonomyDisplayName,
   type CityView,
   type TaxonomyView,
 } from "@/data/seo";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { dictionaries } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
+import { LocaleRouteAlternates } from "@/i18n/locale-navigation";
 import { getIndustries, searchListings } from "@/lib/api/marketplace/public";
 import type {
   Industry,
@@ -21,8 +24,9 @@ import { CategoryContent } from "@/app/_components/category-content";
 // The taxonomy behind these pages is LIVE (GET /marketplace/public/industries),
 // not a hand-maintained list, so a slug here can never drift from what the
 // search endpoint accepts. That makes the route data-dependent, which is why it
-// prerenders nothing and caches per-path on first request instead: the backend
-// is never called during `next build`.
+// prerenders nothing and caches per-path on first request instead: category
+// listing searches are not run during `next build`. The shared layout may
+// independently load the public taxonomy for its footer.
 export const revalidate = 600;
 
 export const dynamicParams = true;
@@ -56,15 +60,16 @@ async function resolve(
       entry: TaxonomyView;
       industries: Industry[];
       listings: LocationCard[];
+      total: number;
     }
 > {
   const city = findCity(locale, citySlug);
   if (!city) return { kind: "notFound" };
 
-  // A taxonomy outage must not turn every category URL into a 404 — but it also
-  // can't be rendered as "no businesses here", so it degrades to notFound and
-  // the page is retried on the next revalidate.
-  const industries = await getIndustries().catch((): Industry[] => []);
+  // Only a successful taxonomy response can establish that a category is absent.
+  // Let operational failures reach the existing error boundary, preserving ISR
+  // data rather than caching an outage as a missing or empty category.
+  const industries = await getIndustries();
   if (industries.length === 0) return { kind: "notFound" };
 
   const { entry, redirectTo } = findTaxonomy(industries, locale, taxonomySlug);
@@ -84,12 +89,9 @@ async function resolve(
       ? { tagIds: [entry.tagId] }
       : { industrySlug: entry.industrySlug }),
   };
-  const listings = await searchListings(params).then(
-    (r) => r.locations,
-    () => [] as LocationCard[],
-  );
+  const { locations: listings, total } = await searchListings(params);
 
-  return { kind: "ok", city, entry, industries, listings };
+  return { kind: "ok", city, entry, industries, listings, total };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -101,9 +103,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { city, entry, industries, listings } = resolved;
   const dict = dictionaries[localeParam];
+  const name = taxonomyDisplayName(entry, industries, localeParam, dict);
   const vars = {
-    industry: entry.name,
-    industryLower: entry.name.toLowerCase(),
+    industry: name,
+    industryLower: name.toLocaleLowerCase(localeParam),
     city: city.name,
   };
 
@@ -143,12 +146,22 @@ export default async function CategoryPage({ params }: Props) {
   if (resolved.kind !== "ok") notFound();
 
   return (
-    <CategoryContent
-      locale={localeParam}
-      city={resolved.city}
-      entry={resolved.entry}
-      industries={resolved.industries}
-      listings={resolved.listings}
-    />
+    <>
+      <LocaleRouteAlternates
+        pathname={localeHref(localeParam, citySlug, slug)}
+        alternates={getCategoryAlternates(resolved.industries, resolved.city.id, resolved.entry.id)}
+        currentLocale={localeParam}
+        label={dictionaries[localeParam].language.label}
+        localeNames={dictionaries[localeParam].localeNames}
+      />
+      <CategoryContent
+        locale={localeParam}
+        city={resolved.city}
+        entry={resolved.entry}
+        industries={resolved.industries}
+        listings={resolved.listings}
+        total={resolved.total}
+      />
+    </>
   );
 }

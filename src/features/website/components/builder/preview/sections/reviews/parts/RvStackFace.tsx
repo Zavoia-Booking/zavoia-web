@@ -3,18 +3,20 @@ import { ShieldCheck } from "lucide-react";
 import { Stars } from "../../../shared/primitives";
 import { formatReviewDate } from "../../../shared/util";
 import { pullQuote } from "./pull";
-import type { PreviewReview, T } from "../../../shared/types";
+import type { PreviewData, PreviewReview, T } from "../../../shared/types";
 
 /** One deck card face — identity row (monogram + name/place + brand mark) over a hairline, then the pulled
  *  headline (left) beside the full quote (right). Entrance mirrors the section's voice: the headline rises
  *  word by word (masked), the full quote fades up just behind it. Mirrors the source `RvStackFace`. */
 export function RvStackFace({
+  locale,
   item,
   brand,
   animateIn,
   italic,
   t,
 }: {
+  locale: PreviewData["locale"];
   item: PreviewReview;
   brand: string;
   animateIn: boolean;
@@ -31,7 +33,7 @@ export function RvStackFace({
   }, [animateIn]);
   const shown = !animateIn || entered;
   const initial = (item.customerName || "?").trim().charAt(0).toUpperCase() || "?";
-  const sub = [item.locationName, formatReviewDate(item.createdAt)].filter(Boolean).join(" · ");
+  const sub = [item.locationName, formatReviewDate(item.createdAt, locale)].filter(Boolean).join(" · ");
   const words = pullQuote(item.comment).split(" ");
   return (
     <div className="mc-rvx-face">

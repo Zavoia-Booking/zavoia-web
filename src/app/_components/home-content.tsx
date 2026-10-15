@@ -9,6 +9,8 @@ import {
   brandCardToData,
   locationCardToData,
 } from "@/lib/marketplace/card-mappers";
+import { currentDaySeed, seededShuffle } from "@/lib/marketplace/industry-teaser";
+import { otherIndustryLast } from "@/lib/marketplace/industry-order";
 import { Hero } from "@/app/_components/home/hero";
 import { CategoryRail } from "@/app/_components/home/category-rail";
 import { InYourCity } from "@/app/_components/home/in-your-city";
@@ -108,7 +110,16 @@ async function CategorySection({
 }) {
   const result = await industries;
   if (!result.ok) return <SectionFailed paddingTop={44} />;
-  return <CategoryRail locale={locale} industries={result.data} />;
+  // Resolve discovery order on the server so refreshes and locale changes
+  // share the same daily order without a client-side shuffle after hydration.
+  // Keep Other last before taking the responsive discovery subset.
+  const featuredIndustryIds = otherIndustryLast(
+    seededShuffle(result.data, currentDaySeed()),
+    (industry) => industry.slug,
+  )
+    .slice(0, 11)
+    .map((industry) => industry.id);
+  return <CategoryRail locale={locale} industries={result.data} featuredIndustryIds={featuredIndustryIds} />;
 }
 
 // Brand cards lead with the brand name; nav target is still the primary

@@ -1,17 +1,14 @@
 "use client";
 
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { authErrorMessage } from "@/lib/api/auth-error-messages";
 import { getAccountLinkNeededDetails } from "@/lib/api/customer-auth";
 import { useAuth } from "@/lib/auth/useAuth";
-import {
-  defaultPostAuthTarget,
-  safeRedirectTarget,
-} from "@/lib/auth/redirects";
+import { authRedirectTarget } from "@/lib/auth/redirects";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 import { Icon } from "@/components/ui/icon";
 import { AuthField } from "./auth-field";
@@ -56,7 +53,8 @@ export function RegisterForm({
   onTermsChange: (accepted: boolean) => void;
   onTermsInvalid: () => void;
 }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status, register } = useAuth();
@@ -79,11 +77,7 @@ export function RegisterForm({
 
   useEffect(() => {
     if (status === "authenticated") {
-      const target = safeRedirectTarget(
-        searchParams.get("redirect"),
-        locale,
-        defaultPostAuthTarget(locale),
-      );
+      const target = authRedirectTarget(searchParams, locale);
       router.replace(target);
     }
   }, [status, locale, router, searchParams]);
@@ -174,7 +168,7 @@ export function RegisterForm({
         return;
       }
       setErrors({
-        form: authErrorMessage(e, dict.errors, dictionaries[locale].errors),
+        form: authErrorMessage(e, dict.errors, dictionary.errors),
       });
     }
   }

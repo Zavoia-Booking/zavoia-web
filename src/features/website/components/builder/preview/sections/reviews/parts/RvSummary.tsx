@@ -6,6 +6,7 @@ import { RvDistRow } from "./RvDistRow";
 /** Rating score + real per-star distribution bars — constant across every reviews layout, so the orchestrator
  *  renders it once above the chosen variant's voices (mirrors the source's persistent `lb-rv-sum`). */
 export function RvSummary({
+  locale,
   t,
   rating,
   count,
@@ -13,6 +14,7 @@ export function RvSummary({
   distTotal,
   showDist,
 }: {
+  locale: PreviewData["locale"];
   t: T;
   rating: number;
   count: number;
@@ -24,7 +26,7 @@ export function RvSummary({
     <div className={cn("mc-rv-sum", !showDist && "mc-rv-sum--solo")}>
       <div className="mc-rv-score">
         <span className="mc-rv-score-n">
-          <CountUp value={rating} decimals={1} />
+          <CountUp value={rating} decimals={1} locale={locale} />
         </span>
         <span className="mc-rv-score-meta">
           <Stars value={rating} size={17} />

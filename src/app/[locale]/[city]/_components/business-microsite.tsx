@@ -3,7 +3,6 @@
 // Bundled faces match the builder preview.
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -167,7 +166,7 @@ export function BusinessMicrosite({ site, locale }: { site: PublicWebsite; local
 
   return (
     <>
-      <main ref={mainRef} style={{ height: "100dvh", overflowY: "auto", overflowX: "hidden" }}>
+      <main ref={mainRef} data-locale-scroll={`website:${site.slug}`} style={{ height: "100dvh", overflowY: "auto", overflowX: "hidden" }}>
         {fontHref && (
           <>
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

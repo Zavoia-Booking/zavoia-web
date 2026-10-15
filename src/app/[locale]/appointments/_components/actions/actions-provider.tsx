@@ -12,6 +12,7 @@ import type { AppointmentDetail } from "@/lib/api/marketplace/types";
 import { CancelModal } from "./cancel-modal";
 import { RescheduleModal } from "./reschedule-modal";
 import { ReviewModal } from "./review-modal";
+import { canLeaveReview } from "./shared";
 
 /**
  * Imperative API for opening the appointment action modals. The detail page
@@ -36,17 +37,18 @@ const ApptActionsContext = createContext<ApptActionsApi | null>(null);
 /**
  * Owns the active-action state and renders the matching modal over the page.
  *
- * After ANY successful action it invokes `onChanged()` (Slice 4 passes a
- * refetch) and then closes the modal. Mirrors the `BookingProvider` idiom:
- * a client component that exposes an imperative open API through context.
- * NOTE: not mounted anywhere yet — Slice 4 mounts it around the detail page.
+ * Actions invoke `onChanged()` to refresh the detail. Reviews close immediately
+ * after confirmation and refresh in the background. Mirrors the `BookingProvider`
+ * idiom: a client component exposing an imperative open API through context.
  */
 export function AppointmentActionsProvider({
   children,
   onChanged,
+  onReviewSubmitted,
 }: {
   children: ReactNode;
   onChanged?: () => void | Promise<void>;
+  onReviewSubmitted?: (uuid: string) => void;
 }) {
   const [active, setActive] = useState<ActiveAction | null>(null);
 
@@ -57,10 +59,17 @@ export function AppointmentActionsProvider({
     setActive({ kind: "reschedule", appointment: appt });
   }, []);
   const openReview = useCallback((appt: AppointmentDetail) => {
-    setActive({ kind: "review", appointment: appt });
+    if (!canLeaveReview(appt)) return;
+    setActive((current) => current?.kind === "review"
+      ? current
+      : { kind: "review", appointment: appt });
   }, []);
 
   const close = useCallback(() => setActive(null), []);
+  const closeReview = useCallback(() => {
+    // A late review completion must never dismiss a newer action.
+    setActive((current) => current === active ? null : current);
+  }, [active]);
 
   const api = useMemo<ApptActionsApi>(
     () => ({ openCancel, openReschedule, openReview }),
@@ -87,8 +96,9 @@ export function AppointmentActionsProvider({
       {active?.kind === "review" && (
         <ReviewModal
           appointment={active.appointment}
-          onClose={close}
+          onClose={closeReview}
           onChanged={onChanged}
+          onSubmitted={onReviewSubmitted}
         />
       )}
     </ApptActionsContext.Provider>

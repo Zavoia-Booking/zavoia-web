@@ -37,13 +37,16 @@ export function toCat(
 
 /**
  * Locale-aware label for an industry or industry tag: the Romanian `nameRo`
- * for the ro locale when the API provides one, else the English `name`.
+ * for the ro locale when the API provides one. Category browsers can supply
+ * their existing slug-keyed dictionary as a fallback for untranslated API rows.
  */
 export function taxonomyLabel(
-  x: { name: string; nameRo?: string | null },
+  x: { name: string; nameRo?: string | null; slug?: string },
   locale: Locale,
+  labels?: Readonly<Record<string, string>>,
 ): string {
-  return locale === "ro" && x.nameRo ? x.nameRo : x.name;
+  if (locale === "ro" && x.nameRo) return x.nameRo;
+  return (x.slug && labels?.[x.slug]) || x.name;
 }
 
 /**
@@ -119,6 +122,9 @@ export function locationCardToData(
     id: l.id,
     slug: l.slug,
     name: l.name,
+    locationName: l.locationName,
+    businessName: l.businessName,
+    address: l.address ?? undefined,
     cat: toCat(l.industry, slugById),
     catLabel: l.industry ? taxonomyLabel(l.industry, locale) : undefined,
     rating: l.averageRating ?? undefined,

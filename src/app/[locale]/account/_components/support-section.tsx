@@ -1,5 +1,7 @@
 "use client";
 
+import type { Dictionary } from "@/i18n/dictionaries";
+
 /**
  * Support tab — ticket-based support UI inside the account settings page.
  *
@@ -20,7 +22,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Button, Icon, Skeleton, Spinner, useToast } from "@/components/ui";
@@ -39,7 +41,7 @@ import type {
   TicketStatus,
 } from "@/lib/api/marketplace/types";
 
-type AcctDict = (typeof dictionaries)[Locale]["account"];
+type AcctDict = Dictionary["account"];
 type SupportDict = AcctDict["support"];
 
 const ACTIVE_STATUSES: TicketStatus[] = ["OPEN", "IN_PROGRESS", "REOPENED"];
@@ -761,6 +763,7 @@ function TicketDetailView({
             justifyContent: "center",
             padding: 20,
             background: "rgba(28,28,26,0.42)",
+            cursor: closing ? "default" : "pointer",
           }}
           onClick={() => {
             if (!closing) setConfirmingClose(false);
@@ -770,6 +773,7 @@ function TicketDetailView({
             onClick={(e) => e.stopPropagation()}
             style={{
               background: "#fff",
+              cursor: "default",
               borderRadius: 18,
               boxShadow: "var(--sh-lg)",
               padding: "24px 24px 20px",

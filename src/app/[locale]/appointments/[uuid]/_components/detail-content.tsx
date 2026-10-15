@@ -1,9 +1,11 @@
 "use client";
 
+import { useTranslation } from "@/i18n/useTranslation";
+import type { Dictionary } from "@/i18n/dictionaries";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries, format, type Dictionary } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
@@ -27,7 +29,7 @@ import {
   AppointmentActionsProvider,
   useAppointmentActions,
 } from "../../_components/actions/actions-provider";
-import { canCancel, canReschedule } from "../../_components/actions/shared";
+import { canCancel, canLeaveReview, canReschedule } from "../../_components/actions/shared";
 import {
   AboutCard,
   CloserBand,
@@ -44,7 +46,7 @@ import {
   WithCard,
 } from "./sections";
 
-type ApptDict = (typeof dictionaries)[Locale]["appointmentDetail"];
+type ApptDict = Dictionary["appointmentDetail"];
 
 /**
  * Short relative-time label for the hero, next to the status stamp (prototype
@@ -74,7 +76,7 @@ function relativeLabel(
 
 // ── Loading skeleton ────────────────────────────────────────────────────────
 
-function LoadingState({ loadingLabel }: { loadingLabel: string }) {
+export function DetailLoadingState({ loadingLabel }: { loadingLabel: string }) {
   return (
     <div
       className="zw-container"
@@ -344,9 +346,7 @@ function ActionRail({
   // there is a resolvable location id to rebook against.
   const canBookAgain = loc?.id != null;
 
-  const canReview =
-    appt.reviews.canLeaveBusinessReview ||
-    appt.reviews.professionals.some((p) => p.canLeaveReview);
+  const canReview = canLeaveReview(appt);
 
   const showManage = upcomingOrLive && !cancelled;
   // Mirror the server-side notice windows so we don't offer an action that the
@@ -497,10 +497,12 @@ function DetailBody({
   t,
   appt,
   locale,
+  onOpenApp,
 }: {
   t: ApptDict;
   appt: AppointmentDetail;
   locale: Locale;
+  onOpenApp?: () => void;
 }) {
   const router = useRouter();
   // Owned here, not in ActionRail, so the desktop rail and the mobile sticky
@@ -545,28 +547,42 @@ function DetailBody({
 
   return (
     <div className="zw-container" style={{ paddingTop: 22, width: "100%" }}>
-      <button
-        type="button"
-        className="tap"
-        onClick={() => router.push(localeHref(locale, "appointments"))}
+      <div
         style={{
-          display: "inline-flex",
+          display: "flex",
           alignItems: "center",
-          gap: 6,
+          justifyContent: "space-between",
+          gap: 12,
           marginBottom: 22,
-          background: "transparent",
-          border: 0,
-          cursor: "pointer",
-          fontSize: 13.5,
-          fontWeight: 600,
-          color: "var(--c-600)",
-          padding: "4px 0",
-          fontFamily: "inherit",
         }}
       >
-        <Icon name="back" size={14} color="var(--c-600)" />
-        {t.back}
-      </button>
+        <button
+          type="button"
+          className="tap"
+          onClick={() => router.push(localeHref(locale, "appointments"))}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "transparent",
+            border: 0,
+            cursor: "pointer",
+            fontSize: 13.5,
+            fontWeight: 600,
+            color: "var(--c-600)",
+            padding: "4px 0",
+            fontFamily: "inherit",
+          }}
+        >
+          <Icon name="back" size={14} color="var(--c-600)" />
+          {t.back}
+        </button>
+        {onOpenApp && (
+          <Button kind="ghost" size="sm" onClick={onOpenApp}>
+            {t.openApp}
+          </Button>
+        )}
+      </div>
 
       {/* HERO */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
@@ -783,32 +799,106 @@ function DetailBody({
 
 type Phase = "loading" | "ready" | "notFound" | "error";
 
-export function DetailContent({ locale, uuid }: { locale: Locale; uuid: string }) {
-  const t = dictionaries[locale].appointmentDetail;
-  const router = useRouter();
-  const { status } = useAuth();
-  const { openAuthModal } = useAuthModal();
-
-  const [appt, setAppt] = useState<AppointmentDetail | null>(null);
-  const [phase, setPhase] = useState<Phase>("loading");
-  // In-flight guard for the error state's retry button — set right before
-  // `load()` fires, cleared once the fetch resolves (success or failure).
-  const [retrying, setRetrying] = useState(false);
-
-  const authed = status === "authenticated";
-  const aliveRef = useRef(true);
+/** Consume an email's review intent only after the owned appointment has loaded. */
+function ReviewIntent({
+  appt,
+  requested,
+  onConsumed,
+}: {
+  appt: AppointmentDetail;
+  requested: boolean;
+  onConsumed: () => void;
+}) {
+  const { openReview } = useAppointmentActions();
+  const consumedRef = useRef(false);
 
   useEffect(() => {
-    aliveRef.current = true;
-    return () => {
-      aliveRef.current = false;
-    };
-  }, []);
+    if (!requested || consumedRef.current) return;
+    consumedRef.current = true;
+    if (canLeaveReview(appt)) openReview(appt);
+    onConsumed();
+  }, [appt, requested, openReview, onConsumed]);
 
-  // Resolve a fetch outcome to the next phase. setState lives only in the
-  // promise callbacks below (never synchronously in an effect body).
-  const applyResult = useCallback((data: AppointmentDetail | null) => {
-    if (!aliveRef.current) return;
+  return null;
+}
+
+export function DetailContent({ locale, uuid }: { locale: Locale; uuid: string }) {
+  const dictionary = useTranslation().dict;
+  const t = dictionary.appointmentDetail;
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { status, user } = useAuth();
+  const { openAuthModal } = useAuthModal();
+  const reviewRequested = searchParams.get("review") === "1";
+  const openApp = useCallback(() => {
+    window.location.assign(`marketplaceapp://appointment/${encodeURIComponent(uuid)}?review=1`);
+  }, [uuid]);
+  const consumeReview = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("review");
+    const query = params.toString();
+    router.replace(`${pathname}${query ? `?${query}` : ""}${window.location.hash}`, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  if (status === "idle" || status === "loading") {
+    return <DetailLoadingState loadingLabel={t.loading} />;
+  }
+
+  if (status === "unauthenticated" || status === "error") {
+    return (
+      <SignedOutGate
+        icon="cal"
+        title={t.signedOutTitle}
+        body={t.signedOutBody}
+        onCta={() => openAuthModal(
+          "signin",
+          `${window.location.pathname}${window.location.search}${window.location.hash}`,
+        )}
+        secondaryLabel={reviewRequested ? t.openApp : t.explorePlaces}
+        onSecondary={reviewRequested ? openApp : () => router.push(localeHref(locale, "search"))}
+      />
+    );
+  }
+
+  // A different appointment or signed-in account owns a fresh data/action session.
+  return (
+    <AppointmentDetailSession
+      key={`${uuid}:${user?.uuid ?? ""}`}
+      locale={locale}
+      uuid={uuid}
+      reviewRequested={reviewRequested}
+      onConsumeReview={consumeReview}
+      onOpenApp={openApp}
+    />
+  );
+}
+
+function AppointmentDetailSession({
+  locale,
+  uuid,
+  reviewRequested,
+  onConsumeReview,
+  onOpenApp,
+}: {
+  locale: Locale;
+  uuid: string;
+  reviewRequested: boolean;
+  onConsumeReview: () => void;
+  onOpenApp: () => void;
+}) {
+  const dictionary = useTranslation().dict;
+  const t = dictionary.appointmentDetail;
+  const router = useRouter();
+  const [appt, setAppt] = useState<AppointmentDetail | null>(null);
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [retrying, setRetrying] = useState(false);
+  const [enteredWithReview] = useState(reviewRequested);
+  const aliveRef = useRef(false);
+  const requestRef = useRef(0);
+
+  const applyResult = useCallback((data: AppointmentDetail | null, request: number) => {
+    if (!aliveRef.current || request !== requestRef.current) return;
     setRetrying(false);
     if (!data) {
       setPhase("notFound");
@@ -818,78 +908,77 @@ export function DetailContent({ locale, uuid }: { locale: Locale; uuid: string }
     setPhase("ready");
   }, []);
 
-  const applyError = useCallback((e: unknown) => {
-    if (!aliveRef.current) return;
+  const applyError = useCallback((e: unknown, request: number) => {
+    if (!aliveRef.current || request !== requestRef.current) return;
     setRetrying(false);
-    // A clearly-absent appointment (404) → the not-found block; anything else
-    // (network, 5xx, auth) → the retryable error state.
-    if (e instanceof ApiError && e.status === 404) {
-      setPhase("notFound");
-    } else {
-      setPhase("error");
-    }
+    setPhase(e instanceof ApiError && e.status === 404 ? "notFound" : "error");
   }, []);
 
-  // `load` is used by the retry handler (an event handler — allowed to setState).
   const load = useCallback(() => {
+    if (!aliveRef.current) return;
     setRetrying(true);
-    getAppointment(uuid).then(applyResult, applyError);
+    const request = ++requestRef.current;
+    getAppointment(uuid).then(
+      (data) => applyResult(data, request),
+      (error) => applyError(error, request),
+    );
   }, [uuid, applyResult, applyError]);
 
-  // `refetch` re-runs the fetch silently in the background (keeps the current
-  // body mounted) and is what the actions provider calls after cancel /
-  // reschedule / review succeed.
-  const refetch = useCallback(() => {
-    return getAppointment(uuid).then(
-      (data) => {
-        if (aliveRef.current && data) setAppt(data);
+  // The successful write confirms this appointment's one-shot eligibility,
+  // even when the ordinary detail refresh subsequently cannot complete.
+  const markReviewSubmitted = useCallback((submittedUuid: string) => {
+    if (!aliveRef.current) return;
+    setAppt((current) => current?.uuid !== submittedUuid ? current : {
+      ...current,
+      reviews: {
+        ...current.reviews,
+        canLeaveBusinessReview: false,
+        professionals: current.reviews.professionals.map((professional) => ({
+          ...professional,
+          canLeaveReview: false,
+        })),
       },
-      () => {
-        // Swallow refetch failures — the modal already toasts; keep current view.
-      },
-    );
+    });
+  }, []);
+
+  // Keep the loaded body mounted during the existing post-action background refresh.
+  const refetch = useCallback(async () => {
+    if (!aliveRef.current) return;
+    const request = ++requestRef.current;
+    try {
+      const data = await getAppointment(uuid);
+      if (aliveRef.current && request === requestRef.current) setAppt(data);
+    } catch {
+      // The action's success remains valid even if this background refresh fails.
+    }
   }, [uuid]);
 
   useEffect(() => {
-    if (!authed) return;
-    // setState is performed inside the promise callbacks, not synchronously.
-    getAppointment(uuid).then(applyResult, applyError);
-  }, [authed, uuid, applyResult, applyError]);
-
-  // ── Auth gating ──
-  if (status === "idle" || status === "loading") {
-    return <LoadingState loadingLabel={t.loading} />;
-  }
-
-  if (status === "unauthenticated" || status === "error") {
-    return (
-      <SignedOutGate
-        icon="cal"
-        title={t.signedOutTitle}
-        body={t.signedOutBody}
-        onCta={() => openAuthModal("signin")}
-        secondaryLabel={t.explorePlaces}
-        onSecondary={() => router.push(localeHref(locale, "search"))}
-      />
+    aliveRef.current = true;
+    const request = ++requestRef.current;
+    getAppointment(uuid).then(
+      (data) => applyResult(data, request),
+      (error) => applyError(error, request),
     );
-  }
+    return () => {
+      aliveRef.current = false;
+      requestRef.current += 1;
+    };
+  }, [uuid, applyResult, applyError]);
 
-  // ── Authenticated data states ──
   if (phase === "loading") {
-    return <LoadingState loadingLabel={t.loading} />;
+    return <DetailLoadingState loadingLabel={t.loading} />;
   }
-
   if (phase === "notFound") {
     return (
       <NotFoundState t={t} onBack={() => router.push(localeHref(locale, "appointments"))} />
     );
   }
-
   if (phase === "error" || !appt) {
     return (
       <ErrorState
         t={t}
-        errorsT={dictionaries[locale].errors}
+        errorsT={dictionary.errors}
         onRetry={load}
         retrying={retrying}
       />
@@ -897,8 +986,14 @@ export function DetailContent({ locale, uuid }: { locale: Locale; uuid: string }
   }
 
   return (
-    <AppointmentActionsProvider onChanged={refetch}>
-      <DetailBody t={t} appt={appt} locale={locale} />
+    <AppointmentActionsProvider onChanged={refetch} onReviewSubmitted={markReviewSubmitted}>
+      <ReviewIntent appt={appt} requested={reviewRequested} onConsumed={onConsumeReview} />
+      <DetailBody
+        t={t}
+        appt={appt}
+        locale={locale}
+        onOpenApp={enteredWithReview ? onOpenApp : undefined}
+      />
     </AppointmentActionsProvider>
   );
 }

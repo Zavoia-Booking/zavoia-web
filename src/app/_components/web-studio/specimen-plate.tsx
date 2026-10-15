@@ -1,9 +1,15 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { LivePreview } from "@/features/website/components/builder/preview/Microsite";
+import dynamic from "next/dynamic";
 import type { SectionEntry } from "@/features/website/types";
 import type { PreviewData } from "@/features/website/components/builder/preview/shared/types";
+
+const LivePreview = dynamic(() =>
+  import("@/features/website/components/builder/preview/Microsite").then(
+    (module) => module.LivePreview,
+  ),
+);
 
 /**
  * A catalogue plate: the real microsite renderer at a fixed desktop width,

@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import {
   getListing,

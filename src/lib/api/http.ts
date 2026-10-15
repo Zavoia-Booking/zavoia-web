@@ -132,8 +132,23 @@ const PRE_FLIGHT_REFRESH_THRESHOLD_MS = 30_000;
 
 let tokenStore: TokenStore | null = null;
 let onLogout: (() => void) | null = null;
-let isRefreshing = false;
-let refreshQueue: Array<(token: string | null) => void> = [];
+let refreshGeneration = 0;
+let refreshPromise: Promise<string> | null = null;
+let refreshController: AbortController | null = null;
+
+/** A logout or a different session invalidates every older refresh result. */
+export function invalidateSessionRefresh(): void {
+  refreshGeneration += 1;
+  refreshController?.abort();
+  refreshController = null;
+  refreshPromise = null;
+}
+
+function assertSessionGeneration(generation: number): void {
+  if (generation !== refreshGeneration) {
+    throw new ApiError("Session changed", 401, "SESSION_CHANGED");
+  }
+}
 
 export function setTokenStore(store: TokenStore): void {
   tokenStore = store;
@@ -261,40 +276,79 @@ function buildHeaders(
   return headers;
 }
 
-function waitForRefresh(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    refreshQueue.push((token) => {
-      if (!token) reject(new ApiError("Session refresh failed", 401));
-      else resolve(token);
-    });
-  });
+/** Only backend-confirmed rejected credentials end a session. CSRF mismatch,
+ * rate limiting and infrastructure/network failures are retryable. */
+export function isTerminalRefreshError(error: unknown): boolean {
+  return error instanceof ApiError && (
+    (error.status === 401 && (
+      error.code === "refresh_token_expired" ||
+      error.code === "refresh_token_invalid"
+    )) || (error.status === 400 && error.code === "CUSTOMER_AUTH.E20")
+  );
 }
 
-async function ensureRefreshInFlight(): Promise<string> {
-  if (!isRefreshing) {
-    isRefreshing = true;
-    void (async () => {
-      try {
-        const token = await performRefresh();
-        const queue = refreshQueue;
-        refreshQueue = [];
-        queue.forEach((cb) => cb(token));
-      } catch {
-        const queue = refreshQueue;
-        refreshQueue = [];
-        queue.forEach((cb) => cb(null));
+/**
+ * These controller routes are read-only and explicitly permit anonymous use.
+ * Keep both method and shape constrained: a future public-prefix mutation is
+ * not implicitly safe to replay outside its initiating session.
+ */
+function permitsAnonymousDiscovery(path: string, init: RequestInit): boolean {
+  if (new Headers(init.headers).has("Authorization")) return false;
+  const pathname = path.split("?")[0];
+  const method = (init.method ?? "GET").toUpperCase();
+  if (method === "POST")
+    return pathname === "/marketplace/public/nearby-locations";
+  if (method !== "GET") return false;
+  return /^\/marketplace\/public\/(?:industries|venue-tags|brands|sitemap|listings(?:\/bulk)?|(?:brand|website|listing)\/[^/]+|listing\/[^/]+\/reviews|listing\/[^/]+\/team-member\/[^/]+|team-member\/[^/]+(?:\/(?:reviews|booking-context))?)$/.test(pathname);
+}
+
+async function serializedRefresh(signal: AbortSignal): Promise<string> {
+  // Rotation changes the shared HttpOnly cookie. Read CSRF only after this
+  // tab owns the same-origin lock, after the previous response set its cookies.
+  // Unsupported/insecure contexts retain per-tab deduplication; no token is
+  // persisted to storage or sent over BroadcastChannel.
+  if (typeof navigator !== "undefined" && navigator.locks) {
+    return navigator.locks.request(
+      "zavoia.marketplace.refresh",
+      { signal },
+      () => performRefresh(signal),
+    );
+  }
+  return performRefresh(signal);
+}
+
+function ensureRefreshInFlight(): Promise<string> {
+  if (refreshPromise) return refreshPromise;
+  const generation = refreshGeneration;
+  const controller = new AbortController();
+  refreshController = controller;
+  const request = serializedRefresh(controller.signal)
+    .then((token) => {
+      assertSessionGeneration(generation);
+      tokenStore?.set(token);
+      return token;
+    })
+    .catch((error: unknown) => {
+      // A discarded refresh must never clear a newer login's token/cookie.
+      assertSessionGeneration(generation);
+      if (isTerminalRefreshError(error)) {
         clearCookie(CSRF_COOKIE_NAME);
         tokenStore?.clear();
         onLogout?.();
-      } finally {
-        isRefreshing = false;
       }
-    })();
-  }
-  return waitForRefresh();
+      throw error;
+    })
+    .finally(() => {
+      if (generation === refreshGeneration) {
+        refreshPromise = null;
+        refreshController = null;
+      }
+    });
+  refreshPromise = request;
+  return request;
 }
 
-async function performRefresh(): Promise<string> {
+async function performRefresh(signal: AbortSignal): Promise<string> {
   const csrf = readCookie(CSRF_COOKIE_NAME);
   const headers = new Headers({
     Accept: "application/json",
@@ -303,6 +357,7 @@ async function performRefresh(): Promise<string> {
   if (csrf) headers.set("x-csrf-token", csrf);
 
   const response = await guardedFetch(`${API_URL}${REFRESH_PATH}`, {
+    signal,
     method: "POST",
     credentials: "include",
     headers,
@@ -315,7 +370,6 @@ async function performRefresh(): Promise<string> {
   }
 
   const data = (await response.json()) as RefreshResponse;
-  tokenStore?.set(data.accessToken);
   return data.accessToken;
 }
 
@@ -328,8 +382,12 @@ async function ensureFreshToken(path: string): Promise<void> {
   if (expiry - Date.now() < PRE_FLIGHT_REFRESH_THRESHOLD_MS) {
     try {
       await ensureRefreshInFlight();
-    } catch {
-      // swallow; the actual call will surface a 401 if needed
+    } catch (error) {
+      // A proactive refresh can fail while the current token is still valid.
+      // Keep that request usable, but never send an expired/replaced token.
+      if (tokenStore?.get() === token && expiry > Date.now() &&
+          !isTerminalRefreshError(error)) return;
+      throw error;
     }
   }
 }
@@ -354,16 +412,31 @@ export async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  await ensureFreshToken(path);
+  const generation = refreshGeneration;
+  let anonymousFallback = false;
+  try {
+    await ensureFreshToken(path);
+    assertSessionGeneration(generation);
+  } catch (error) {
+    // A dead session must not block browsing. This continuation carries neither
+    // a token nor cookies, and is restricted to audited read-only endpoints.
+    // If another login already supplied a token, discard the older operation.
+    if (!permitsAnonymousDiscovery(path, init) ||
+        (generation !== refreshGeneration && tokenStore?.get())) {
+      assertSessionGeneration(generation);
+      throw error;
+    }
+    anonymousFallback = true;
+  }
 
-  const accessToken = tokenStore?.get() ?? null;
+  const accessToken = anonymousFallback ? null : tokenStore?.get() ?? null;
   const headers = buildHeaders(path, init, accessToken);
   const safeInit = accessToken ? stripCacheHints(init) : init;
 
   const response = await guardedFetch(`${API_URL}${path}`, {
     ...safeInit,
     headers,
-    credentials: "include",
+    credentials: anonymousFallback ? "omit" : "include",
   });
 
   if (response.ok) {
@@ -375,11 +448,14 @@ export async function apiFetch<T>(
 
   if (
     response.status === 401 &&
+    !anonymousFallback &&
     !shouldSkipRefreshLogic(path) &&
     isExpiredTokenError(error, response)
   ) {
     try {
+      assertSessionGeneration(generation);
       const newToken = await ensureRefreshInFlight();
+      assertSessionGeneration(generation);
       const retryHeaders = new Headers(init.headers ?? {});
       if (
         init.body !== undefined &&

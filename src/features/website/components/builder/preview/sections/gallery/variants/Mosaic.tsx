@@ -7,7 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight } from "lucide-react";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import { GalleryImage } from "../parts/GalleryImage";
 import { useGalleryFan } from "../parts/useGalleryFan";
 import type { GalleryVariantProps } from "../types";
@@ -17,20 +17,6 @@ const COLUMN_WEIGHTS = [1, 1.3, 1.08, 0.92];
 const TILE_WEIGHTS = [1, 1.45, 0.8, 1.2, 0.9, 1.3];
 const formatCount = (value: number) => String(value).padStart(2, "0");
 
-function useReducedMotionPreference() {
-  const [reduced, setReduced] = useState(prefersReducedMotion);
-
-  useEffect(() => {
-    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    if (!media) return;
-    const update = () => setReduced(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-
-  return reduced;
-}
 
 /** Fluid photo wall: focus expands in place, a second press takes over, and large sets page as one conveyor. */
 export function Mosaic({ images, t }: GalleryVariantProps) {
@@ -38,7 +24,7 @@ export function Mosaic({ images, t }: GalleryVariantProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const downTileRef = useRef(-1);
   const previousPageRef = useRef(0);
-  const reducedMotion = useReducedMotionPreference();
+  const reducedMotion = useReducedMotion();
   const [rootWidth, setRootWidth] = useState(1000);
   const [paneWidth, setPaneWidth] = useState(0);
   const [focused, setFocused] = useState(0);

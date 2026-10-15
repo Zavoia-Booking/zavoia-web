@@ -7,8 +7,10 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { useRouter } from "next/navigation";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Spinner } from "@/components/ui/spinner";
@@ -27,6 +29,7 @@ import {
   resolveIndustrySlug,
 } from "@/lib/marketplace/industry-visuals";
 import { getIndustries } from "@/lib/api/marketplace/public";
+import { otherIndustryLast } from "@/lib/marketplace/industry-order";
 import type {
   BusinessCard,
   Industry,
@@ -124,6 +127,9 @@ export interface SearchOverlayProps {
   open: boolean;
   initialStep: SearchStep;
   initial: InitialQuery;
+  browseIndustry?: string;
+  initialIndustries?: Industry[];
+  returnFocusRef: RefObject<HTMLElement | null>;
   onClose: () => void;
 }
 
@@ -287,9 +293,7 @@ function SearchPreviewBlock({
           {businesses.length > 0 && (
             <div>
               <span style={eyebrow}>{t.resultsBusinesses}</span>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 2 }}
-              >
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {businesses.map((b) => {
                   const data = businessCardToData(b, locale);
                   return (
@@ -310,9 +314,7 @@ function SearchPreviewBlock({
           {locations.length > 0 && (
             <div style={{ marginTop: businesses.length > 0 ? 14 : 0 }}>
               <span style={eyebrow}>{t.resultsPlaces}</span>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 2 }}
-              >
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {locations.map((l) => {
                   const data = locationCardToData(l, locale);
                   return (
@@ -446,153 +448,245 @@ const TAGS_COLLAPSED = 6;
 
 function CategoryBrowse({
   industries,
-  industry,
+  initialIndustry,
+  selectedIndustries,
+  onIndustriesChange,
   tagIds,
   onSelectTag,
 }: {
   industries: Industry[];
-  industry: string;
+  initialIndustry?: string;
+  selectedIndustries: string[];
+  onIndustriesChange: (slugs: string[]) => void;
   tagIds: number[];
   onSelectTag: (industrySlug: string, tagId: number) => void;
 }) {
   const { locale, dict } = useTranslation();
   const t = dict.searchOverlay;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const showingAll = selectedIndustries.length === 0;
+  // Keep the opening industry first, except Other, which always stays last.
+  // Toggling filters changes their state, never their position beneath the pointer.
+  const orderedIndustries = useMemo(
+    () => otherIndustryLast(
+      initialIndustry
+        ? [
+            ...industries.filter((ind) => ind.slug === initialIndustry),
+            ...industries.filter((ind) => ind.slug !== initialIndustry),
+          ]
+        : industries,
+      (industry) => industry.slug,
+    ),
+    [industries, initialIndustry],
+  );
+  const visibleIndustries = showingAll
+    ? industries
+    : industries.filter((ind) => selectedIndustries.includes(ind.slug));
+  const filterStyle = (active: boolean): CSSProperties => ({
+    flexShrink: 0,
+    minHeight: 44,
+    padding: "8px 14px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    border: `1px solid ${active ? "var(--c-ink)" : "rgba(28,28,26,0.10)"}`,
+    borderRadius: 999,
+    background: active ? "var(--c-ink)" : "#fff",
+    color: active ? "#fff" : "var(--c-800)",
+    fontSize: 13.5,
+    fontWeight: 600,
+    whiteSpace: "nowrap",
+    cursor: "pointer",
+  });
 
   return (
-    <div
-      className="zw-noscrollbar"
-      style={{
-        marginTop: 6,
-        maxHeight: 340,
-        overflowY: "auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 18,
-        padding: "2px 0",
-      }}
-    >
-      {industries.map((ind) => {
-        const slug = resolveIndustrySlug(ind.slug);
-        const isExpanded = !!expanded[ind.slug];
-        const overflow = ind.tags.length > TAGS_COLLAPSED;
-        // Collapsed → first N tags, plus any selected tag beyond the window
-        // so an active choice never disappears behind "see more".
-        const visible =
-          !overflow || isExpanded
-            ? ind.tags
-            : [
-                ...ind.tags.slice(0, TAGS_COLLAPSED),
-                ...ind.tags
-                  .slice(TAGS_COLLAPSED)
-                  .filter(
-                    (tag) => industry === ind.slug && tagIds.includes(tag.id),
-                  ),
-              ];
-        return (
-          <div key={ind.id}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 8,
-                padding: "0 2px",
-              }}
+    <div>
+      <div
+        role="group"
+        aria-label={t.browseByIndustry}
+        className="zw-scroll-x"
+        style={{ gap: 8, padding: "2px 0 12px" }}
+      >
+        <button
+          type="button"
+          className="tap"
+          data-industry-filter
+          aria-pressed={showingAll}
+          onClick={() => onIndustriesChange([])}
+          style={filterStyle(showingAll)}
+        >
+          {t.allInCategory}
+        </button>
+        {orderedIndustries.map((ind) => {
+          const active = selectedIndustries.includes(ind.slug);
+          const visualSlug = resolveIndustrySlug(ind.slug);
+          return (
+            <button
+              key={ind.id}
+              type="button"
+              className="tap"
+              data-industry-filter
+              aria-pressed={active}
+              onClick={() =>
+                onIndustriesChange(
+                  active
+                    ? selectedIndustries.filter((slug) => slug !== ind.slug)
+                    : [...selectedIndustries, ind.slug],
+                )
+              }
+              style={filterStyle(active)}
             >
-              <Icon name={industryIcon(slug)} size={15} color={industryAccent(slug)} />
-              <span
+              <Icon
+                name={industryIcon(visualSlug)}
+                size={16}
+                color={active ? "#fff" : industryAccent(visualSlug)}
+              />
+              {taxonomyLabel(ind, locale, dict.industries)}
+            </button>
+          );
+        })}
+      </div>
+      <div
+        className="zw-noscrollbar"
+        style={{
+          marginTop: 6,
+          maxHeight: 340,
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 18,
+          padding: "2px 0",
+        }}
+      >
+        {visibleIndustries.map((ind) => {
+          const slug = resolveIndustrySlug(ind.slug);
+          const isExpanded = !!expanded[ind.slug];
+          const overflow = ind.tags.length > TAGS_COLLAPSED;
+          // Collapsed → first N tags, plus any selected tag beyond the window
+          // so an active choice never disappears behind "see more".
+          const visible =
+            !overflow || isExpanded
+              ? ind.tags
+              : [
+                  ...ind.tags.slice(0, TAGS_COLLAPSED),
+                  ...ind.tags
+                    .slice(TAGS_COLLAPSED)
+                    .filter(
+                      (tag) => tagIds.includes(tag.id),
+                    ),
+                ];
+          return (
+            <div key={ind.id}>
+              <div
                 style={{
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  color: "var(--c-900)",
-                  letterSpacing: "-0.01em",
-                  lineHeight: 1.2,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 8,
+                  padding: "0 2px",
                 }}
               >
-                {taxonomyLabel(ind, locale)}
-              </span>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-              {visible.map((tag) => {
-                const active = industry === ind.slug && tagIds.includes(tag.id);
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => onSelectTag(ind.slug, tag.id)}
-                    className="tap zw-chip-lift"
-                    aria-pressed={active}
-                    style={{
-                      flex: "0 0 auto",
-                      height: 34,
-                      padding: "0 13px",
-                      background: active ? "var(--c-ink)" : "#fff",
-                      border: `1px solid ${active ? "var(--c-ink)" : "rgba(28,28,26,0.09)"}`,
-                      borderRadius: 999,
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span
+                <Icon
+                  name={industryIcon(slug)}
+                  size={15}
+                  color={industryAccent(slug)}
+                />
+                <span
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    color: "var(--c-900)",
+                    letterSpacing: "-0.01em",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {taxonomyLabel(ind, locale, dict.industries)}
+                </span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {visible.map((tag) => {
+                  const active = tagIds.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => onSelectTag(ind.slug, tag.id)}
+                      className="tap zw-chip-lift"
+                      aria-pressed={active}
                       style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: active ? "#fff" : "var(--c-800)",
-                        letterSpacing: "-0.008em",
-                        lineHeight: 1,
-                        whiteSpace: "nowrap",
+                        flex: "0 0 auto",
+                        minHeight: 44,
+                        padding: "8px 13px",
+                        background: active ? "var(--c-ink)" : "#fff",
+                        border: `1px solid ${active ? "var(--c-ink)" : "rgba(28,28,26,0.09)"}`,
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
                       }}
                     >
-                      {taxonomyLabel(tag, locale)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            {overflow && (
-              <button
-                type="button"
-                onClick={() =>
-                  setExpanded((prev) => ({
-                    ...prev,
-                    [ind.slug]: !prev[ind.slug],
-                  }))
-                }
-                className="tap"
-                aria-expanded={isExpanded}
-                style={{
-                  marginTop: 7,
-                  background: "transparent",
-                  border: 0,
-                  cursor: "pointer",
-                  padding: "2px 2px",
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  color: "var(--c-600)",
-                  letterSpacing: "-0.005em",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                }}
-              >
-                {isExpanded
-                  ? t.seeLessTags
-                  : `${t.seeMoreTags} (${ind.tags.length - TAGS_COLLAPSED})`}
-                <Icon
-                  name="chevR"
-                  size={11}
-                  color="var(--c-500)"
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: active ? "#fff" : "var(--c-800)",
+                          letterSpacing: "-0.008em",
+                          lineHeight: 1,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {taxonomyLabel(tag, locale, dict.industryTags)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {overflow && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpanded((prev) => ({
+                      ...prev,
+                      [ind.slug]: !prev[ind.slug],
+                    }))
+                  }
+                  className="tap"
+                  aria-expanded={isExpanded}
                   style={{
-                    transform: isExpanded ? "rotate(-90deg)" : "rotate(90deg)",
+                    marginTop: 7,
+                    background: "transparent",
+                    border: 0,
+                    cursor: "pointer",
+                    minHeight: 44,
+                    padding: "6px 2px",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "var(--c-600)",
+                    letterSpacing: "-0.005em",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
                   }}
-                />
-              </button>
-            )}
-          </div>
-        );
-      })}
+                >
+                  {isExpanded
+                    ? t.seeLessTags
+                    : `${t.seeMoreTags} (${ind.tags.length - TAGS_COLLAPSED})`}
+                  <Icon
+                    name="chevR"
+                    size={11}
+                    color="var(--c-500)"
+                    style={{
+                      transform: isExpanded
+                        ? "rotate(-90deg)"
+                        : "rotate(90deg)",
+                    }}
+                  />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -601,7 +695,6 @@ function CategoryBrowse({
 function WhatSection({
   what,
   setWhat,
-  industry,
   tagIds,
   industries,
   recentSearches,
@@ -610,10 +703,12 @@ function WhatSection({
   onSelectTag,
   onSelectResult,
   autoFocus,
+  initialBrowseIndustry,
+  browseIndustries,
+  onBrowseIndustriesChange,
 }: {
   what: string;
   setWhat: (v: string) => void;
-  industry: string;
   tagIds: number[];
   industries: Industry[];
   recentSearches: RecentSearch[];
@@ -622,6 +717,9 @@ function WhatSection({
   onSelectTag: (industrySlug: string, tagId: number) => void;
   onSelectResult: (href: string) => void;
   autoFocus: boolean;
+  initialBrowseIndustry?: string;
+  browseIndustries: string[];
+  onBrowseIndustriesChange: (slugs: string[]) => void;
 }) {
   const { locale, dict } = useTranslation();
   const t = dict.searchOverlay;
@@ -659,6 +757,7 @@ function WhatSection({
           value={what}
           onChange={(e) => setWhat(e.target.value)}
           placeholder={t.whatPlaceholder}
+          aria-label={t.whatPlaceholder}
           style={{
             flex: 1,
             minWidth: 0,
@@ -728,119 +827,124 @@ function WhatSection({
 
       {/* Recent searches — shown only when the text box is empty AND no preview
           is active. Selecting a row re-applies the past query and re-runs it. */}
-      {!showPreview && what.trim().length === 0 && recentSearches.length > 0 && (
-        <div style={{ marginTop: 18 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 6,
-            }}
-          >
-            <span style={{ ...eyebrow, marginBottom: 0 }}>
-              {t.recentSearches}
-            </span>
-            <button
-              type="button"
-              onClick={onClearRecentSearches}
-              className="tap"
+      {initialBrowseIndustry === undefined &&
+        !showPreview &&
+        what.trim().length === 0 &&
+        recentSearches.length > 0 && (
+          <div style={{ marginTop: 18 }}>
+            <div
               style={{
-                background: "transparent",
-                border: 0,
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--c-600)",
-                padding: "0 4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 6,
               }}
             >
-              {t.clearRecents}
-            </button>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {recentSearches.map((entry) => {
-              const subtitle = [entry.whenLabel, entry.whereLabel]
-                .filter((v) => v && v.trim())
-                .join(" · ");
-              return (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => onSelectRecentSearch(entry)}
-                  className="tap zw-cal-day"
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    background: "transparent",
-                    border: 0,
-                    borderRadius: 12,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 11,
-                    textAlign: "left",
-                  }}
-                >
-                  <Icon
-                    name="arrowUL"
-                    size={17}
-                    color="var(--c-700)"
-                    style={{ flexShrink: 0 }}
-                  />
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: "var(--c-900)",
-                        letterSpacing: "-0.008em",
-                        lineHeight: 1.2,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {entry.label}
-                    </span>
-                    {subtitle && (
+              <span style={{ ...eyebrow, marginBottom: 0 }}>
+                {t.recentSearches}
+              </span>
+              <button
+                type="button"
+                onClick={onClearRecentSearches}
+                className="tap"
+                style={{
+                  background: "transparent",
+                  border: 0,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--c-600)",
+                  padding: "0 4px",
+                }}
+              >
+                {t.clearRecents}
+              </button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {recentSearches.map((entry) => {
+                const subtitle = [entry.whenLabel, entry.whereLabel]
+                  .filter((v) => v && v.trim())
+                  .join(" · ");
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => onSelectRecentSearch(entry)}
+                    className="tap zw-cal-day"
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      background: "transparent",
+                      border: 0,
+                      borderRadius: 12,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 11,
+                      textAlign: "left",
+                    }}
+                  >
+                    <Icon
+                      name="arrowUL"
+                      size={17}
+                      color="var(--c-700)"
+                      style={{ flexShrink: 0 }}
+                    />
+                    <span style={{ flex: 1, minWidth: 0 }}>
                       <span
                         style={{
                           display: "block",
-                          marginTop: 2,
-                          fontSize: 12.5,
-                          color: "var(--c-600)",
-                          letterSpacing: "-0.005em",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: "var(--c-900)",
+                          letterSpacing: "-0.008em",
                           lineHeight: 1.2,
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {subtitle}
+                        {entry.label}
                       </span>
-                    )}
-                  </span>
-                  <Icon
-                    name="chevR"
-                    size={14}
-                    color="var(--c-500)"
-                    style={{ flexShrink: 0 }}
-                  />
-                </button>
-              );
-            })}
+                      {subtitle && (
+                        <span
+                          style={{
+                            display: "block",
+                            marginTop: 2,
+                            fontSize: 12.5,
+                            color: "var(--c-600)",
+                            letterSpacing: "-0.005em",
+                            lineHeight: 1.2,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {subtitle}
+                        </span>
+                      )}
+                    </span>
+                    <Icon
+                      name="chevR"
+                      size={14}
+                      color="var(--c-500)"
+                      style={{ flexShrink: 0 }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {what.trim().length === 0 && browsable.length > 0 && (
         <div style={{ marginTop: 18 }}>
-          <span style={eyebrow}>{t.browseByCategory}</span>
+          <span style={eyebrow}>{t.browseByIndustry}</span>
           <CategoryBrowse
             industries={browsable}
-            industry={industry}
+            initialIndustry={initialBrowseIndustry}
+            selectedIndustries={browseIndustries}
+            onIndustriesChange={onBrowseIndustriesChange}
             tagIds={tagIds}
             onSelectTag={onSelectTag}
           />
@@ -1405,9 +1509,7 @@ function MonthPicker({
               key={i}
               type="button"
               disabled={disabled}
-              onClick={() =>
-                !disabled && onPick(`date:${zwFmtDateISO(d)}`)
-              }
+              onClick={() => !disabled && onPick(`date:${zwFmtDateISO(d)}`)}
               aria-label={d.toLocaleDateString(locale, {
                 weekday: "long",
                 month: "long",
@@ -1497,7 +1599,11 @@ function WhenSection({
 }
 
 // ── Summary resolvers (state → collapsed-header display) ──
-function whenSummary(when: string, t: { dateAny: string; dateToday: string; dateTomorrow: string }, locale: string): string {
+function whenSummary(
+  when: string,
+  t: { dateAny: string; dateToday: string; dateTomorrow: string },
+  locale: string,
+): string {
   if (!when) return t.dateAny;
   if (when === "today") return t.dateToday;
   if (when === "tom") return t.dateTomorrow;
@@ -1521,19 +1627,28 @@ export function SearchOverlay({
   open,
   initialStep,
   initial,
+  browseIndustry,
+  initialIndustries,
+  returnFocusRef,
   onClose,
 }: SearchOverlayProps) {
   const { locale, dict } = useTranslation();
   const t = dict.searchOverlay;
   const router = useRouter();
   const toast = useToast();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // `initialStep`/`initial` are the per-open snapshot — the provider remounts
   // this component (via `key`) each time openSearch() runs, so these useState
   // initializers always reflect the latest open and no re-seed effect is needed.
   const [step, setStep] = useState<SearchStep>(initialStep);
   const [q, setQ] = useState<QueryModel>(() => fromInitial(initial));
-  const [industries, setIndustries] = useState<Industry[]>([]);
+  const [industries, setIndustries] = useState<Industry[]>(
+    () => otherIndustryLast(initialIndustries ?? [], (industry) => industry.slug),
+  );
+  const [browseIndustries, setBrowseIndustries] = useState<string[]>(() =>
+    browseIndustry ? [browseIndustry] : [],
+  );
   const [resolvingLocation, setResolvingLocation] = useState(false);
 
   // Recents are localStorage-only → read once on mount (in an effect, never
@@ -1559,9 +1674,10 @@ export function SearchOverlay({
   // list. No ref guard: under React StrictMode the mount→cleanup→mount cycle
   // would otherwise leave the first (and only) fetch's result discarded by its
   // own cleanup while the guard blocks the second run. The provider remounts
-  // this component per open, so this fetches once per open in production.
+  // this component per open. Home catalogue entries reuse their loaded taxonomy;
+  // other entry points fetch once per open in production.
   useEffect(() => {
-    if (!open) return;
+    if (!open || initialIndustries !== undefined) return;
     let alive = true;
     getIndustries()
       .then((list) => {
@@ -1573,22 +1689,7 @@ export function SearchOverlay({
     return () => {
       alive = false;
     };
-  }, [open]);
-
-  // Escape to close + body scroll lock while open.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open, onClose]);
+  }, [open, initialIndustries]);
 
   const hasGeo = q.where.lat != null && q.where.lng != null;
 
@@ -1655,7 +1756,13 @@ export function SearchOverlay({
             // reverseGeocode never throws, but stay defensive — keep coords.
             const label = t.currentLocationFallback;
             setQ((prev) => ({ ...prev, where: { label, lat, lng } }));
-            recordRecentLocation({ id: `${lat},${lng}`, label, city: label, lat, lng });
+            recordRecentLocation({
+              id: `${lat},${lng}`,
+              label,
+              city: label,
+              lat,
+              lng,
+            });
           })
           .finally(() => {
             setResolvingLocation(false);
@@ -1707,6 +1814,7 @@ export function SearchOverlay({
 
   const clearAll = () => {
     setQ(EMPTY_QUERY);
+    setBrowseIndustries([]);
     setStep("what");
   };
 
@@ -1751,19 +1859,19 @@ export function SearchOverlay({
     const hasContent =
       search.length > 0 || !!model.industry || model.tagIds.length > 0;
     if (!hasContent) return;
-    const tagName =
-      model.tagIds.length > 0
-        ? industries
-            .flatMap((i) => i.tags)
-            .find((tg) => tg.id === model.tagIds[0])?.name
-        : undefined;
+    const selectedTag = industries
+      .flatMap((ind) => ind.tags)
+      .find((tag) => tag.id === model.tagIds[0]);
+    const selectedIndustry = industries.find(
+      (ind) => ind.slug === model.industry,
+    );
     const label =
       search ||
-      tagName ||
-      (model.industry
-        ? (industries.find((i) => i.slug === model.industry)?.name ??
-          model.industry)
-        : t.whatSummary);
+      (selectedTag
+        ? taxonomyLabel(selectedTag, locale, dict.industryTags)
+        : selectedIndustry
+          ? taxonomyLabel(selectedIndustry, locale, dict.industries)
+          : model.industry || t.whatSummary);
     const whenLabel = whenSummary(model.when, t, locale);
     const whereLabel =
       model.where.label?.trim() ||
@@ -1810,17 +1918,17 @@ export function SearchOverlay({
   if (!open) return null;
 
   // ── Collapsed summaries ──
-  const whatSum = q.what.trim()
-    ? q.what.trim()
-    : q.tagIds.length > 0
-      ? (industries
-          .flatMap((i) => i.tags)
-          .find((tg) => tg.id === q.tagIds[0])?.name ??
-        industries.find((i) => i.slug === q.industry)?.name ??
-        t.whatSummary)
-      : q.industry
-        ? (industries.find((i) => i.slug === q.industry)?.name ?? t.whatSummary)
-        : t.whatSummary;
+  const selectedTag = industries
+    .flatMap((ind) => ind.tags)
+    .find((tag) => tag.id === q.tagIds[0]);
+  const selectedIndustry = industries.find((ind) => ind.slug === q.industry);
+  const whatSum =
+    q.what.trim() ||
+    (selectedTag
+      ? taxonomyLabel(selectedTag, locale, dict.industryTags)
+      : selectedIndustry
+        ? taxonomyLabel(selectedIndustry, locale, dict.industries)
+        : t.whatSummary);
   const whereSum = q.where.label?.trim()
     ? q.where.label.trim()
     : hasGeo
@@ -1829,201 +1937,242 @@ export function SearchOverlay({
   const whenSum = whenSummary(q.when, t, locale);
 
   return (
-    <div
-      className="zv-sheet-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 300,
-        background: "rgba(28,28,26,0.40)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        padding: "6vh 16px 40px",
-        overflowY: "auto",
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
       }}
     >
-      <div
-        className="zv-sheet-card"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t.overlayTitle}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 600,
-          background: "var(--c-canvas)",
-          borderRadius: 28,
-          boxShadow: "var(--sh-xl)",
-          border: "1px solid rgba(28,28,26,0.06)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          maxHeight: "88vh",
-        }}
-      >
-        <div
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          className="zv-sheet-backdrop"
           style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 300,
+            background: "rgba(28,28,26,0.40)",
+            cursor: "pointer",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "18px 20px 14px",
-            flexShrink: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 17,
-              fontWeight: 600,
-              letterSpacing: "-0.02em",
-              color: "var(--c-900)",
-            }}
-          >
-            {t.overlayTitle}
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="tap"
-            aria-label={t.close}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              border: "1px solid rgba(28,28,26,0.10)",
-              background: "#fff",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="x" size={16} color="var(--c-800)" />
-          </button>
-        </div>
-
-        <div
-          className="zw-noscrollbar"
-          style={{
-            flex: 1,
+            alignItems: "flex-start",
+            justifyContent: "center",
+            padding: "6vh 16px 40px",
             overflowY: "auto",
-            padding: "0 16px 8px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
           }}
         >
-          <Section
-            label={t.what}
-            summary={whatSum}
-            open={step === "what"}
-            onToggle={() => toggleStep("what")}
-          >
-            <WhatSection
-              what={q.what}
-              setWhat={(v) =>
-                setQ((p) => ({
-                  ...p,
-                  what: v,
-                  industry: v ? "" : p.industry,
-                  tagIds: v ? [] : p.tagIds,
-                }))
+          <DialogPrimitive.Content
+            ref={contentRef}
+            className="zv-sheet-card"
+            aria-describedby={undefined}
+            onOpenAutoFocus={(event) => {
+              if (browseIndustry === undefined) return;
+              // Category entry points focus the selected filter, not the text
+              // field: opening a catalogue should not raise the mobile keyboard.
+              event.preventDefault();
+              const filter =
+                contentRef.current?.querySelector<HTMLButtonElement>(
+                  '[data-industry-filter][aria-pressed="true"]',
+                );
+              (filter ?? contentRef.current)?.focus({ preventScroll: true });
+            }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              if (returnFocusRef.current?.isConnected) {
+                returnFocusRef.current.focus({ preventScroll: true });
               }
-              industry={q.industry}
-              tagIds={q.tagIds}
-              industries={industries}
-              recentSearches={recentSearches}
-              onSelectRecentSearch={onSelectRecentSearch}
-              onClearRecentSearches={onClearRecentSearches}
-              onSelectResult={(href) => {
-                onClose();
-                router.push(href);
-              }}
-              autoFocus={step === "what"}
-              onSelectTag={(slug, id) => {
-                const active =
-                  q.industry === slug && q.tagIds.includes(id);
-                if (active) {
-                  // Re-tapping the selected tag clears it; stay on "what".
-                  setQ((p) => ({ ...p, industry: "", tagIds: [], what: "" }));
-                } else {
-                  // Pick the tag, close "what", advance straight to "where".
-                  setQ((p) => ({ ...p, industry: slug, tagIds: [id], what: "" }));
-                  setStep("where");
-                }
-              }}
-            />
-          </Section>
-
-          <Section
-            label={t.where}
-            summary={whereSum}
-            open={step === "where"}
-            onToggle={() => toggleStep("where")}
-          >
-            <WhereSection
-              hasGeo={hasGeo}
-              resolvingLocation={resolvingLocation}
-              recentLocations={recentLocations}
-              onUseLocation={onUseLocation}
-              onSelectCity={onSelectCity}
-              onSelectStaticCity={onSelectStaticCity}
-            />
-          </Section>
-
-          <Section
-            label={t.when}
-            summary={whenSum}
-            open={step === "when"}
-            onToggle={() => toggleStep("when")}
-          >
-            <WhenSection
-              when={q.when}
-              onChange={(v) => setQ((p) => ({ ...p, when: v }))}
-            />
-          </Section>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "14px 20px",
-            borderTop: "1px solid rgba(28,28,26,0.07)",
-            background: "#fff",
-            flexShrink: 0,
-          }}
-        >
-          <button
-            type="button"
-            className="tap"
-            onClick={clearAll}
+            }}
             style={{
-              background: "transparent",
-              border: 0,
-              cursor: "pointer",
-              fontSize: 14,
-              fontWeight: 600,
-              color: "var(--c-700)",
-              textDecoration: "underline",
-              textUnderlineOffset: 3,
+              width: "100%",
+              maxWidth: 600,
+              cursor: "default",
+              background: "var(--c-canvas)",
+              borderRadius: 28,
+              boxShadow: "var(--sh-xl)",
+              border: "1px solid rgba(28,28,26,0.06)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              maxHeight: "88vh",
             }}
           >
-            {t.clearAll}
-          </button>
-          <Button kind="accent" size="lg" onClick={submit} style={{ padding: "14px 34px" }}>
-            <Icon name="search" size={16} color="#fff" />
-            {t.searchAction}
-          </Button>
-        </div>
-      </div>
-    </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "18px 20px 14px",
+                flexShrink: 0,
+              }}
+            >
+              <DialogPrimitive.Title asChild>
+                <span
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 600,
+                    letterSpacing: "-0.02em",
+                    color: "var(--c-900)",
+                  }}
+                >
+                  {t.overlayTitle}
+                </span>
+              </DialogPrimitive.Title>
+              <button
+                type="button"
+                onClick={onClose}
+                className="tap"
+                aria-label={t.close}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  border: "1px solid rgba(28,28,26,0.10)",
+                  background: "#fff",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name="x" size={16} color="var(--c-800)" />
+              </button>
+            </div>
+
+            <div
+              className="zw-noscrollbar"
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "0 16px 8px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              <Section
+                label={t.what}
+                summary={whatSum}
+                open={step === "what"}
+                onToggle={() => toggleStep("what")}
+              >
+                <WhatSection
+                  what={q.what}
+                  setWhat={(v) =>
+                    setQ((p) => ({
+                      ...p,
+                      what: v,
+                      industry: v ? "" : p.industry,
+                      tagIds: v ? [] : p.tagIds,
+                    }))
+                  }
+                  tagIds={q.tagIds}
+                  industries={industries}
+                  recentSearches={recentSearches}
+                  onSelectRecentSearch={onSelectRecentSearch}
+                  onClearRecentSearches={onClearRecentSearches}
+                  onSelectResult={(href) => {
+                    onClose();
+                    router.push(href);
+                  }}
+                  autoFocus={step === "what" && browseIndustry === undefined}
+                  initialBrowseIndustry={browseIndustry}
+                  browseIndustries={browseIndustries}
+                  onBrowseIndustriesChange={setBrowseIndustries}
+                  onSelectTag={(slug, id) => {
+                    const active = q.tagIds.includes(id);
+                    if (active) {
+                      // Re-tapping the selected tag clears it; stay on "what".
+                      setQ((p) => ({
+                        ...p,
+                        industry: "",
+                        tagIds: [],
+                        what: "",
+                      }));
+                    } else {
+                      // Pick the tag, close "what", advance straight to "where".
+                      setQ((p) => ({
+                        ...p,
+                        industry: slug,
+                        tagIds: [id],
+                        what: "",
+                      }));
+                      setStep("where");
+                    }
+                  }}
+                />
+              </Section>
+
+              <Section
+                label={t.where}
+                summary={whereSum}
+                open={step === "where"}
+                onToggle={() => toggleStep("where")}
+              >
+                <WhereSection
+                  hasGeo={hasGeo}
+                  resolvingLocation={resolvingLocation}
+                  recentLocations={recentLocations}
+                  onUseLocation={onUseLocation}
+                  onSelectCity={onSelectCity}
+                  onSelectStaticCity={onSelectStaticCity}
+                />
+              </Section>
+
+              <Section
+                label={t.when}
+                summary={whenSum}
+                open={step === "when"}
+                onToggle={() => toggleStep("when")}
+              >
+                <WhenSection
+                  when={q.when}
+                  onChange={(v) => setQ((p) => ({ ...p, when: v }))}
+                />
+              </Section>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "14px 20px",
+                borderTop: "1px solid rgba(28,28,26,0.07)",
+                background: "#fff",
+                flexShrink: 0,
+              }}
+            >
+              <button
+                type="button"
+                className="tap"
+                onClick={clearAll}
+                style={{
+                  background: "transparent",
+                  border: 0,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--c-700)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: 3,
+                }}
+              >
+                {t.clearAll}
+              </button>
+              <Button
+                kind="accent"
+                size="lg"
+                onClick={submit}
+                style={{ padding: "14px 34px" }}
+              >
+                <Icon name="search" size={16} color="#fff" />
+                {t.searchAction}
+              </Button>
+            </div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Overlay>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

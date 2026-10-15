@@ -27,15 +27,15 @@
   finish review, the verdict, and DESIGN.md.
 */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Ref } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { useTranslation } from "@/i18n/useTranslation";
 import { TRIAL_DAYS } from "@/lib/marketing/pricing";
 import { Icon } from "@/components/ui/icon";
-import { LivePreview } from "@/features/website/components/builder/preview/Microsite";
 import { SECTION_META } from "@/features/website/components/builder/sectionCatalog";
 import { createWebsiteT } from "@/features/website/i18n/translate";
 import { specimenData } from "@/app/_components/web-studio/specimen-data";
@@ -54,6 +54,12 @@ import {
   type Locks,
   type Look,
 } from "./shuffle-model";
+
+const LivePreview = dynamic(() =>
+  import("@/features/website/components/builder/preview/Microsite").then(
+    (module) => module.LivePreview,
+  ),
+);
 
 const LOCK_KEYS: LockKey[] = ["layout", "colour", "type"];
 
@@ -79,6 +85,29 @@ export function ShuffleExperience({
   const [hinted, setHinted] = useState(true);
   const [shuffleCount, setShuffleCount] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+
+  // The translated hint and controls can wrap or grow with text zoom. Reserve
+  // the dock's actual height so the site's final controls can scroll clear of it.
+  // The stylesheet keeps the initial/no-JS fallback until this measurement runs.
+  useEffect(() => {
+    const stage = scrollerRef.current;
+    const dock = dockRef.current;
+    if (!stage || !dock) return;
+    const previousPadding = stage.style.paddingBottom;
+    const update = () => {
+      stage.style.paddingBottom = `${Math.ceil(dock.getBoundingClientRect().height) + 16}px`;
+    };
+    update();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(dock, { box: "border-box" });
+    window.addEventListener("resize", update);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", update);
+      stage.style.paddingBottom = previousPadding;
+    };
+  }, []);
 
   // "3.2B" not "3,265,920,000": the dock has one line for it, and the exact
   // figure is the catalogue's job, not the demo's.
@@ -163,16 +192,22 @@ export function ShuffleExperience({
       {/* The site under test. It needs a scrollable ancestor: the renderer's
           nav frost, marquee glide and footer reveal all ride the nearest
           scroller, exactly as they do on a published site. */}
-      <div ref={scrollerRef} data-try-stage="" className="zw-try-stage">
+      <div ref={scrollerRef} data-locale-scroll="website-demo" data-try-stage="" className="zw-try-stage">
         <div
           data-try-shuffling={shuffling ? "1" : undefined}
           style={{ transformOrigin: "50% 0" }}
         >
-          <LivePreview key={shuffleCount} layout={layout} data={data} chrome />
+          <LivePreview
+            key={shuffleCount}
+            layout={layout}
+            data={data}
+            chrome
+          />
         </div>
       </div>
 
       <Dock
+        ref={dockRef}
         t={t}
         look={look}
         heroStyle={heroStyle}
@@ -191,6 +226,7 @@ export function ShuffleExperience({
 type T = ReturnType<typeof useTranslation>["dict"]["tryStudio"];
 
 function Dock({
+  ref,
   t,
   look,
   heroStyle,
@@ -202,6 +238,7 @@ function Dock({
   onToggleLock,
   trialHref,
 }: {
+  ref: Ref<HTMLDivElement>;
   t: T;
   look: Look;
   heroStyle: string;
@@ -214,7 +251,7 @@ function Dock({
   trialHref: string;
 }) {
   return (
-    <div data-try-dock="" className="zw-try-dock">
+    <div ref={ref} data-try-dock="" className="zw-try-dock">
       {/* First-visit orientation. A flyer scan arrives with zero context, so
           the very first thing on screen names the product and the gesture. */}
       {hinted && (

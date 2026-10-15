@@ -15,6 +15,8 @@ import {
   searchListings,
 } from "@/lib/api/marketplace/public";
 
+import { DISCOVERY_TAG, TAXONOMY_TAG, DISCOVERY_REVALIDATE_SECONDS, LISTING_REVALIDATE_SECONDS } from "@/lib/cache/tags";
+
 // Reduces a feed promise to a FeedResult instead of collapsing success and
 // failure into the same `[]` — see FeedResult's doc comment in home-content.
 // Attached at promise creation (like the old bare `.catch()`), so this is
@@ -80,14 +82,23 @@ export default async function Home({ params }: Props) {
   // handled before its consumer awaits it. Unlike the old bare `.catch(() =>
   // [])`, failure and a genuine empty result no longer collapse into the same
   // value — see FeedResult.
-  const industries = settle(getIndustries());
+  // Keep the page dynamic while reusing anonymous, locale-independent data.
+  // The existing backend webhook expires discovery data on listing changes.
+  const industries = settle(getIndustries({
+    revalidate: LISTING_REVALIDATE_SECONDS,
+    tags: [TAXONOMY_TAG],
+  }));
+  const discoveryCache = {
+    revalidate: DISCOVERY_REVALIDATE_SECONDS,
+    tags: [DISCOVERY_TAG],
+  };
   // Editor's pick is the one home feed that is NOT location-scoped: it renders
   // on the server, before any coordinates exist. No geo params → the search
   // path's default order (top-rated, then newest).
   const editorsPick = settle(
-    searchListings({ limit: 10 }).then((res) => res.locations),
+    searchListings({ limit: 10 }, discoveryCache).then((res) => res.locations),
   );
-  const brands = settle(getBrands({ limit: 10 }).then((res) => res.data));
+  const brands = settle(getBrands({ limit: 10 }, discoveryCache).then((res) => res.data));
 
   return (
     <HomeContent

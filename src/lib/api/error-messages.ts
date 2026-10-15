@@ -1,5 +1,5 @@
 import type { Dictionary } from "@/i18n/dictionaries";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import {
   ApiError,
   NETWORK_ERROR_CODE,

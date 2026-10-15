@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-
 import Link from "next/link";
 import { Button, Icon } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";

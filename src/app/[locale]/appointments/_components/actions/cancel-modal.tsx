@@ -1,10 +1,9 @@
 "use client";
 
+import type { Dictionary } from "@/i18n/dictionaries";
 import { useState } from "react";
 import { Button, Spinner, useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
-import { dictionaries } from "@/i18n/dictionaries";
-import type { Locale } from "@/i18n/locales";
 import { ApiError } from "@/lib/api/http";
 import { cancelAppointment } from "@/lib/api/marketplace/appointments";
 import type { AppointmentDetail } from "@/lib/api/marketplace/types";
@@ -18,7 +17,7 @@ import { apptMiniProps } from "./shared";
  */
 function cancelErrorMessage(
   code: string | undefined,
-  t: (typeof dictionaries)[Locale]["appointmentActions"]["cancel"],
+  t: Dictionary["appointmentActions"]["cancel"],
 ): string {
   switch (code) {
     // The notice window lapsed — most likely while this modal sat open.

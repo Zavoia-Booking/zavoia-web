@@ -5,7 +5,7 @@ import { CatDot } from "@/components/ui/cat-dot";
 import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { resolveIndustrySlug } from "@/lib/marketplace/industry-visuals";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import type { Industry } from "@/lib/api/marketplace/types";
 
 export interface FilterRowProps {

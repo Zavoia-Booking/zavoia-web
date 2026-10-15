@@ -1,9 +1,9 @@
 "use client";
 
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
 import { useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { forgotPassword } from "@/lib/api/customer-auth";
 import { errorMessage } from "@/lib/api/error-messages";
@@ -16,9 +16,10 @@ const outlineButtonClass =
   "flex h-12 w-full cursor-pointer items-center justify-center rounded-full border border-[rgba(28,28,26,0.14)] bg-white px-4 text-[15px] font-semibold text-ink transition hover:bg-c-100 md:h-11";
 
 export function ForgotPasswordForm({ locale }: { locale: Locale }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const t = dict.forgotPassword;
-  const shared = dictionaries[locale].errors;
+  const shared = dictionary.errors;
 
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<Errors>({});

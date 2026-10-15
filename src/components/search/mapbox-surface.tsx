@@ -101,6 +101,17 @@ export interface GeoPoint {
 /** Imperative camera commands — lets the page fly the map (e.g. recenter). */
 export interface MapboxSurfaceHandle {
   flyTo: (point: GeoPoint, opts?: { zoom?: number; duration?: number }) => void;
+  /** Reveal matches hidden outside the exposed map without zooming in. */
+  revealPins: (points: GeoPoint[], opts?: { duration?: number }) => void;
+}
+
+type CameraIntent =
+  | { kind: "fly"; point: GeoPoint; options?: { zoom?: number; duration?: number } }
+  | { kind: "reveal"; points: GeoPoint[]; options?: { duration?: number } };
+
+function isValidPoint(point: GeoPoint): boolean {
+  return Number.isFinite(point.lat) && Number.isFinite(point.lng)
+    && Math.abs(point.lat) <= 90 && Math.abs(point.lng) <= 180;
 }
 
 const EMPTY_COLLECTION: FeatureCollection = {
@@ -131,7 +142,7 @@ export interface MapboxSurfaceProps {
   recenterAria: string;
   /** BCP-47 tag for basemap labels, so street names match the UI language. */
   language?: string;
-  /** Current search anchor (URL lat/lng) — pan distance is measured from here. */
+  /** Camera/search origin (URL point or resolved city) for the pan threshold. */
   anchor?: GeoPoint | null;
   /**
    * Re-run the search anchored on the new map center (radius is fixed
@@ -165,7 +176,9 @@ export interface MapboxSurfaceProps {
   /** Hide the map's own chrome (controls, re-anchor pill, loading dots) while
    *  something else owns the screen — the mobile sheet at its full height. */
   chromeHidden?: boolean;
-  /** Shown in place of the map when no Mapbox token is configured. */
+  /** Wait for an explicit city's camera target instead of showing another city. */
+  enabled?: boolean;
+  /** Shown when the map cannot be displayed or its city is still resolving. */
   unavailableLabel: string;
   /** Labels the off-screen list that makes the pins keyboard-reachable. */
   pinListLabel: string;
@@ -206,6 +219,7 @@ export function MapboxSurface({
   topInset = 16,
   controlsBottom = 24,
   chromeHidden = false,
+  enabled = true,
   unavailableLabel,
   pinListLabel,
   children,
@@ -213,20 +227,82 @@ export function MapboxSurface({
 }: MapboxSurfaceProps) {
   const mapRef = useRef<MapRef>(null);
   const insetLeft = fitInset?.left ?? 0;
+  const insetRight = fitInset?.right ?? 0;
+  const insetTop = fitInset?.top ?? 0;
+  const insetBottom = fitInset?.bottom ?? 0;
 
-  useImperativeHandle(ref, () => ({
-    flyTo: (point: GeoPoint, opts) => {
-      const map = mapRef.current?.getMap();
-      if (!map) return;
+  // A single queue means a newer focus/reveal replaces an earlier arrival.
+  // Camera commands can arrive before react-map-gl has constructed its map.
+  const pendingCamera = useRef<CameraIntent | null>(null);
+  const applyCamera = useCallback((intent: CameraIntent) => {
+    const map = mapRef.current?.getMap();
+    if (!map) {
+      pendingCamera.current = intent;
+      return;
+    }
+    pendingCamera.current = null;
+    if (intent.kind === "fly") {
+      if (!isValidPoint(intent.point)) return;
       map.flyTo({
-        center: [point.lng, point.lat],
-        zoom: opts?.zoom ?? RECENTER_ZOOM,
-        duration: opts?.duration ?? 900,
-        // Keep the target clear of the floating results panel.
-        offset: [insetLeft / 2, 0],
+        center: [intent.point.lng, intent.point.lat],
+        zoom: intent.options?.zoom ?? RECENTER_ZOOM,
+        duration: intent.options?.duration ?? 900,
+        offset: [(insetLeft - insetRight) / 2, (insetTop - insetBottom) / 2],
+        // Let Mapbox honor the visitor's reduced-motion preference.
+        essential: false,
       });
-    },
-  }));
+      return;
+    }
+
+    const points = intent.points.filter(isValidPoint);
+    if (!points.length) return;
+    // A newer reveal supersedes an earlier programmatic flight. Measure after
+    // stopping it so an old destination cannot move visible matches away.
+    map.stop();
+    const container = map.getContainer();
+    const padding = {
+      left: insetLeft + 32,
+      right: insetRight + 32,
+      top: insetTop + 32,
+      bottom: insetBottom + 32,
+    };
+    const right = container.clientWidth - padding.right;
+    const bottom = container.clientHeight - padding.bottom;
+    if (right <= padding.left || bottom <= padding.top) return;
+    const allVisible = points.every((point) => {
+      const projected = map.project([point.lng, point.lat]);
+      return projected.x >= padding.left && projected.x <= right
+        && projected.y >= padding.top && projected.y <= bottom;
+    });
+    // Filtering an already-visible set must leave the visitor's view alone.
+    if (allVisible) return;
+
+    let west = points[0].lng;
+    let east = west;
+    let south = points[0].lat;
+    let north = south;
+    for (const point of points) {
+      west = Math.min(west, point.lng);
+      east = Math.max(east, point.lng);
+      south = Math.min(south, point.lat);
+      north = Math.max(north, point.lat);
+    }
+    map.fitBounds([[west, south], [east, north]], {
+      padding,
+      maxZoom: map.getZoom(),
+      retainPadding: false,
+      linear: true,
+      duration: intent.options?.duration ?? 450,
+      essential: false,
+    });
+  }, [insetLeft, insetRight, insetTop, insetBottom]);
+  const flyTo: MapboxSurfaceHandle["flyTo"] = useCallback((point, options) => {
+    applyCamera({ kind: "fly", point, options });
+  }, [applyCamera]);
+  const revealPins: MapboxSurfaceHandle["revealPins"] = useCallback((points, options) => {
+    applyCamera({ kind: "reveal", points, options });
+  }, [applyCamera]);
+  useImperativeHandle(ref, () => ({ flyTo, revealPins }), [flyTo, revealPins]);
 
   // ── Camera state the pin layout depends on ──────────────────────────────
   // Badge-vs-dot is decided in Mercator pixels, which depend only on zoom.
@@ -241,8 +317,13 @@ export function MapboxSurface({
   // once and which a pooled map (`reuseMaps`) has already fired before we
   // mount. Each of those then handles style reloads on its own.
   const [mapReady, setMapReady] = useState(false);
+  const [wasEnabled, setWasEnabled] = useState(enabled);
+  if (wasEnabled !== enabled) {
+    setWasEnabled(enabled);
+    setMapReady(false);
+  }
   useEffect(() => {
-    if (!MAPBOX_TOKEN) return;
+    if (!MAPBOX_TOKEN || !enabled) return;
     let raf = 0;
     let cancelled = false;
     const check = () => {
@@ -255,7 +336,10 @@ export function MapboxSurface({
       cancelled = true;
       cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [enabled]);
+  useEffect(() => {
+    if (mapReady && pendingCamera.current) applyCamera(pendingCamera.current);
+  }, [mapReady, applyCamera]);
 
   // Shown after a USER-initiated pan/zoom; hidden again once new results load.
   const [showSearchHere, setShowSearchHere] = useState(false);
@@ -522,7 +606,10 @@ export function MapboxSurface({
   // recenter from collapsing the sheet it just opened.
   const handleMoveStart = useCallback(
     (e: ViewStateChangeEvent) => {
-      if ((e as { originalEvent?: unknown }).originalEvent) onUserMoveStart?.();
+      if ((e as { originalEvent?: unknown }).originalEvent) {
+        pendingCamera.current = null;
+        onUserMoveStart?.();
+      }
     },
     [onUserMoveStart],
   );
@@ -645,8 +732,8 @@ export function MapboxSurface({
     </>
   );
 
-  // No token: render a neutral fallback (do NOT instantiate <Map>).
-  if (!MAPBOX_TOKEN) {
+  // Preserve controls/overlays while a city's camera is unresolved.
+  if (!MAPBOX_TOKEN || !enabled) {
     return (
       <div
         style={{

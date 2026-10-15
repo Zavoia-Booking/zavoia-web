@@ -1,4 +1,5 @@
 import { apiFetch, ApiError } from "@/lib/api/http";
+import type { Locale } from "@/i18n/locales";
 import type {
   AccountLinkNeededDetails,
   AccountLinkValidation,
@@ -198,9 +199,12 @@ export async function googleAuth(
   code: string,
   redirectUri: string,
   intent: GoogleAuthIntent,
+  locale?: Locale,
 ): Promise<AuthResponse> {
   return apiFetch<AuthResponse>("/marketplace/auth/google/web", {
     method: "POST",
+    // The OAuth callback URL uses English; the saved flow can use another locale.
+    headers: locale ? { "x-locale": locale } : undefined,
     body: JSON.stringify({ code, redirectUri, intent }),
   });
 }
@@ -214,11 +218,13 @@ export async function googleAuth(
  */
 export async function confirmMarketplaceAccess(
   txId: string,
+  locale?: Locale,
 ): Promise<AuthResponse> {
   return apiFetch<AuthResponse>(
     "/marketplace/auth/google/web/confirm-access",
     {
       method: "POST",
+      headers: locale ? { "x-locale": locale } : undefined,
       body: JSON.stringify({ tx_id: txId }),
     },
   );

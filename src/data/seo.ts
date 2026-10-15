@@ -1,11 +1,13 @@
 import { LOCALES, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import type { Industry } from "@/lib/api/marketplace/types";
+import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 
 type LocalizedText = Record<Locale, string>;
 
 type CityEntry = {
   id: string;
+  countryCode: string;
   slug: LocalizedText;
   name: LocalizedText;
 };
@@ -21,70 +23,88 @@ type CityEntry = {
 export const CITY_ENTRIES: readonly CityEntry[] = [
   {
     id: "bucharest",
+    countryCode: "RO",
     slug: { ro: "bucuresti", en: "bucharest" },
     name: { ro: "București", en: "Bucharest" },
   },
   {
     id: "cluj",
+    countryCode: "RO",
     slug: { ro: "cluj-napoca", en: "cluj-napoca" },
     name: { ro: "Cluj-Napoca", en: "Cluj-Napoca" },
   },
   {
     id: "timisoara",
+    countryCode: "RO",
     slug: { ro: "timisoara", en: "timisoara" },
     name: { ro: "Timișoara", en: "Timisoara" },
   },
   {
     id: "iasi",
+    countryCode: "RO",
     slug: { ro: "iasi", en: "iasi" },
     name: { ro: "Iași", en: "Iasi" },
   },
   {
     id: "constanta",
+    countryCode: "RO",
     slug: { ro: "constanta", en: "constanta" },
     name: { ro: "Constanța", en: "Constanta" },
   },
   {
     id: "brasov",
+    countryCode: "RO",
     slug: { ro: "brasov", en: "brasov" },
     name: { ro: "Brașov", en: "Brasov" },
   },
   {
     id: "craiova",
+    countryCode: "RO",
     slug: { ro: "craiova", en: "craiova" },
     name: { ro: "Craiova", en: "Craiova" },
   },
   {
     id: "galati",
+    countryCode: "RO",
     slug: { ro: "galati", en: "galati" },
     name: { ro: "Galați", en: "Galati" },
   },
   {
     id: "ploiesti",
+    countryCode: "RO",
     slug: { ro: "ploiesti", en: "ploiesti" },
     name: { ro: "Ploiești", en: "Ploiesti" },
   },
   {
     id: "oradea",
+    countryCode: "RO",
     slug: { ro: "oradea", en: "oradea" },
     name: { ro: "Oradea", en: "Oradea" },
   },
   {
     id: "sibiu",
+    countryCode: "RO",
     slug: { ro: "sibiu", en: "sibiu" },
     name: { ro: "Sibiu", en: "Sibiu" },
   },
   {
     id: "arad",
+    countryCode: "RO",
     slug: { ro: "arad", en: "arad" },
     name: { ro: "Arad", en: "Arad" },
   },
   {
     id: "pitesti",
+    countryCode: "RO",
     slug: { ro: "pitesti", en: "pitesti" },
     name: { ro: "Pitești", en: "Pitesti" },
   },
 ];
+
+/** Country fallbacks are explicit product choices, never inferred from locale. */
+export const COUNTRY_FALLBACK_CITY_IDS: Readonly<Partial<Record<string, string>>> = {
+  RO: "bucharest",
+};
 
 export type CityView = { id: string; slug: string; name: string };
 
@@ -173,7 +193,26 @@ export function listTaxonomy(
   return out;
 }
 
-/** Industry-level entries only — the set advertised in the sitemap. */
+/** Match the directory's translated labels without changing canonical slugs. */
+export function taxonomyDisplayName(
+  entry: TaxonomyView,
+  industries: Industry[],
+  locale: Locale,
+  labels: {
+    industries: Readonly<Record<string, string>>;
+    industryTags: Readonly<Record<string, string>>;
+  },
+): string {
+  const industry = industries.find((item) => item.slug === entry.industrySlug);
+  const source = entry.kind === "industry"
+    ? industry
+    : industry?.tags.find((tag) => tag.id === entry.tagId);
+  return source
+    ? taxonomyLabel(source, locale, entry.kind === "industry" ? labels.industries : labels.industryTags)
+    : entry.name;
+}
+
+/** Industry-level entries for navigation that excludes individual services. */
 export function listIndustryTaxonomy(
   industries: Industry[],
   locale: Locale,
@@ -193,6 +232,34 @@ export function findCity(locale: Locale, slug: string): CityView | undefined {
   const entry = CITY_ENTRIES.find((c) => c.slug[locale] === slug);
   if (!entry) return undefined;
   return { id: entry.id, slug: entry.slug[locale], name: entry.name[locale] };
+}
+
+/**
+ * Match a detected city only within its known country. If that city has no
+ * landing page, use the explicitly configured city for the same country.
+ * A missing country never becomes Romania, even if the city name matches.
+ */
+export function findLocationCity(
+  locale: Locale,
+  location: { city?: string | null; countryCode?: string | null },
+): CityView | undefined {
+  const code = location.countryCode?.trim().toUpperCase();
+  if (!code || !/^[A-Z]{2}$/.test(code)) return undefined;
+
+  const cities = CITY_ENTRIES.filter((city) => city.countryCode === code);
+  const name = slugifyRo(location.city ?? "");
+  const detected = name ? cities.find((city) =>
+    [city.id, ...Object.values(city.slug), ...Object.values(city.name)]
+      .some((value) => slugifyRo(value) === name),
+  ) : undefined;
+  // Filtering by country also prevents a misconfigured fallback from pointing
+  // at a city in another country.
+  const entry = detected ?? cities.find((city) =>
+    city.id === COUNTRY_FALLBACK_CITY_IDS[code],
+  );
+  return entry
+    ? { id: entry.id, slug: entry.slug[locale], name: entry.name[locale] }
+    : undefined;
 }
 
 /**

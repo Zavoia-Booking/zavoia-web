@@ -12,10 +12,9 @@ const ACCOUNT_PATH_RE = new RegExp(
 /**
  * The visitor's real pathname, forwarded to the render.
  *
- * `not-found.tsx` receives no params and sits above the [locale] segment, so
- * this header is the only way the 404 can know which URL was asked for — which
- * locale to speak, and whether the URL was a free one-segment address worth
- * offering (see src/app/not-found.tsx).
+ * `global-not-found.tsx` receives no params and bypasses the locale layout.
+ * This header gives that boundary server-rendered locale and address context;
+ * it does not establish whether a business address is available.
  */
 function withPathname(request: NextRequest): { request: { headers: Headers } } {
   const headers = new Headers(request.headers);
@@ -26,6 +25,12 @@ function withPathname(request: NextRequest): { request: { headers: Headers } } {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Assets keep their original route. Forward context as well so unmatched
+  // dotted URLs (for example /ro/a/b/c/missing.html) get a localized global 404.
+  if (/\.[^/]+$/.test(pathname)) {
+    return NextResponse.next(withPathname(request));
+  }
+
   // Auth gate for /account (and its locale-prefixed variants).
   // Cheap-deny only: presence of CSRF cookie is a hint, not proof of session.
   // Real session validation happens client-side via /refresh + /me.
@@ -35,7 +40,7 @@ export function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = locale === DEFAULT_LOCALE ? "/login" : `/${locale}/login`;
     url.search = "";
-    url.searchParams.set("redirect", pathname);
+    url.searchParams.set("redirect", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url, 307);
   }
 
@@ -62,6 +67,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/|api/|studio(?:/|$)|sitemap\\.xml|robots\\.txt|favicon\\.ico|.*\\.[^/]+$).*)",
+    "/((?!_next/|api/|studio(?:/|$)|sitemap\\.xml|robots\\.txt|favicon\\.ico).*)",
   ],
 };

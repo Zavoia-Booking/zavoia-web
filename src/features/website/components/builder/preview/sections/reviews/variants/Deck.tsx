@@ -8,7 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight } from "lucide-react";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import { useGalleryFanSpread } from "../../gallery/parts/useGalleryFan";
 import { RvHead } from "../parts/RvHead";
 import { RvStackFace } from "../parts/RvStackFace";
@@ -42,14 +42,15 @@ const easeOutQuart = (value: number) => 1 - (1 - value) ** 4;
  *  follows the pointer continuously, but a gesture can move only one voice in either direction and never
  *  inherits release velocity. This keeps the tactile toss while preventing short flicks from racing through
  *  the stack. An invisible sizer locks the deck to the tallest voice. Mirrors the source `RvStack`. */
-export function Deck({ quotes, showHeading, heading, kicker, no, italic, businessName, t }: ReviewsViewProps) {
+export function Deck({ locale, quotes, showHeading, heading, kicker, no, italic, businessName, t }: ReviewsViewProps) {
   const n = quotes.length;
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
   const [hover, setHover] = useState(false);
-  const [vw, setVw] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1200));
+  const [vw, setVw] = useState(1200);
   const deckRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const on = () => setVw(window.innerWidth);
+    on();
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);
@@ -311,7 +312,7 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
           <div className="mc-rvx-sizer" aria-hidden>
             {quotes.map((r, i) => (
               <div key={`g${i}`} className="mc-rvx-card">
-                <RvStackFace item={r} brand={brand} animateIn={false} italic={italic} t={t} />
+                <RvStackFace locale={locale} item={r} brand={brand} animateIn={false} italic={italic} t={t} />
               </div>
             ))}
           </div>
@@ -320,7 +321,7 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
             if (o < -1.15 || o > 3.15) return null;
             return (
               <article key={r.id} className="mc-rvx-card mc-rvx-live" data-i={i} aria-hidden={i !== active} style={faceStyle(o)}>
-                <RvStackFace item={r} brand={brand} animateIn={i === active && !reduced} italic={italic} t={t} />
+                <RvStackFace locale={locale} item={r} brand={brand} animateIn={i === active && !reduced} italic={italic} t={t} />
               </article>
             );
           })}

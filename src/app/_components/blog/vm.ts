@@ -1,7 +1,7 @@
 import type { PortableTextBlock } from "@portabletext/types";
 import type { Locale } from "@/i18n/locales";
 import type { PostListItem } from "@/sanity/types";
-import { headingSlug, readingMinutes } from "@/lib/blog";
+import { getPostTranslation, headingSlug, readingMinutes } from "@/lib/blog";
 import type { BlogCardVM } from "./types";
 
 // Build a serializable BlogCardVM from a Sanity post for a given locale.
@@ -24,9 +24,9 @@ export function toBlogCardVM(
   >,
   locale: Locale,
 ): BlogCardVM | null {
-  const slug = post.slug[locale]?.current;
-  const title = post.title[locale];
-  if (!slug || !title) return null;
+  const translation = getPostTranslation(post, locale);
+  if (!translation) return null;
+  const { slug, title } = translation;
 
   const dateLabel = new Date(post.publishedAt).toLocaleDateString(locale, {
     day: "numeric",

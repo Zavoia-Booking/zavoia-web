@@ -1,31 +1,38 @@
-import Link from "next/link";
-import { LOCALES, type Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
-import { localeHref } from "@/i18n/routes";
+"use client";
 
+import { LOCALES, type Locale } from "@/i18n/locales";
+import type { Dictionary } from "@/i18n/dictionaries";
+import { useContext } from "react";
+import { I18nContext } from "@/i18n/I18nProvider";
+import type { LocaleAlternates } from "@/i18n/locale-navigation";
+import { LanguageDisclosure } from "./language-disclosure";
+
+/** Use the selected locale context, or explicit labels on standalone 404s. */
 export function LanguageSwitcher({
-  currentLocale,
+  currentLocale, pathname, label, placement, compact, alternates, messages,
 }: {
   currentLocale: Locale;
+  messages?: Pick<Dictionary, "language" | "localeNames">;
+  pathname?: string;
+  label?: string;
+  placement?: "above" | "below";
+  compact?: "responsive";
+  alternates?: LocaleAlternates | "same-path";
 }) {
-  const dict = dictionaries[currentLocale];
+  const context = useContext(I18nContext);
+  const dict = messages ?? context?.dict;
+  if (!dict) throw new Error("LanguageSwitcher requires messages or I18nProvider");
   return (
-    <ul className="flex gap-3">
-      {LOCALES.map((l) => (
-        <li key={l}>
-          <Link
-            href={localeHref(l)}
-            hrefLang={l}
-            className={
-              l === currentLocale
-                ? "font-semibold"
-                : "text-zinc-500 hover:underline"
-            }
-          >
-            {dict.localeNames[l]}
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <LanguageDisclosure
+      currentLocale={currentLocale}
+      pathname={pathname}
+      label={label ?? dict.language.label}
+      loadingLabel={dict.language.loading}
+      unavailableLabel={dict.language.unavailable}
+      options={LOCALES.map((locale) => ({ locale, label: dict.localeNames[locale] }))}
+      placement={placement}
+      compact={compact}
+      alternates={alternates}
+    />
   );
 }

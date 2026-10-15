@@ -1,5 +1,6 @@
 import type { Locale } from "@/i18n/locales";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { dictionaries } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { CtaBand, FaqList, PageHead, SectionTitle } from "@/components/ui";
 import { getPricing } from "@/lib/marketing/pricing";
 import { PricingCalc } from "./pricing-calc";

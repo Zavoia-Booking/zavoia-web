@@ -31,7 +31,7 @@ import {
 } from "@/app/[locale]/business/_components/team-member-profile-modal";
 import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import type { Locale } from "@/i18n/locales";
 import type {

@@ -1,17 +1,18 @@
 "use client";
 
+import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { dictionaries } from "@/i18n/dictionaries";
 import { authErrorMessage } from "@/lib/api/auth-error-messages";
 import { reauthForGoogleLink } from "@/lib/api/customer-auth";
 import { ApiError } from "@/lib/api/http";
 import {
-  defaultPostAuthTarget,
+  authRedirectTarget,
   safeRedirectTarget,
 } from "@/lib/auth/redirects";
 import { useAuth } from "@/lib/auth/useAuth";
+import { useRetainedAuthAction } from "@/lib/auth/retained-flow";
 import { AuthField } from "./auth-field";
 
 export type GoogleLinkContext = {
@@ -40,23 +41,34 @@ export function GoogleLinkPanel({
    *  /auth/callback, where the URL has no ?redirect param of its own). */
   redirect?: string | null;
 }) {
-  const dict = dictionaries[locale].auth;
+  const dictionary = useAuthMessages();
+  const dict = dictionary.auth;
   const t = dict.googleLink;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status, linkGoogleAccount } = useAuth();
 
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [validation, setValidation] = useState<"password" | "email" | null>(null);
+  const action = useRetainedAuthAction(`google-link:${context.txId}`);
+  const submitting = action.status === "pending" || action.status === "success";
+  const error = validation === "password"
+    ? dict.errors.passwordRequired
+    : validation === "email"
+      ? t.error
+      : action.status === "error"
+        ? action.error instanceof ApiError
+          ? authErrorMessage(action.error, dict.errors, dictionary.errors)
+          : t.error
+        : null;
 
   // Once linkGoogleAccount establishes the session, redirect like the forms.
   useEffect(() => {
     if (status === "authenticated") {
       const target = safeRedirectTarget(
-        redirect ?? searchParams.get("redirect"),
+        redirect ?? null,
         locale,
-        defaultPostAuthTarget(locale),
+        authRedirectTarget(searchParams, locale),
       );
       router.replace(target);
     }
@@ -66,34 +78,23 @@ export function GoogleLinkPanel({
     ? t.explanation.replace("{email}", context.email)
     : t.explanationNoEmail;
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
     if (!password) {
-      setError(dict.errors.passwordRequired);
+      setValidation("password");
       return;
     }
     if (!context.email) {
-      // Without the email we cannot run re-auth; ask the user to retry.
-      setError(t.error);
+      setValidation("email");
       return;
     }
-
-    setError(null);
-    setSubmitting(true);
-    try {
+    setValidation(null);
+    void action.run(async () => {
       const { proof } = await reauthForGoogleLink(context.email, password);
       await linkGoogleAccount(context.txId, proof);
-      // Redirect handled by the effect once status flips to authenticated.
-    } catch (e) {
-      // Map known backend codes to friendly text; for anything else keep the
-      // panel-specific fallback (a linking failure is usually a wrong password).
-      const message =
-        e instanceof ApiError
-          ? authErrorMessage(e, dict.errors, dictionaries[locale].errors)
-          : t.error;
-      setError(message);
-      setSubmitting(false);
-    }
+      // Password/proof live only in this request, never in retained flow data.
+    }).catch(() => {});
   }
 
   return (
@@ -120,6 +121,8 @@ export function GoogleLinkPanel({
           value={password}
           onChange={setPassword}
           autoComplete="current-password"
+          showPasswordLabel={dict.fields.showPassword}
+          hidePasswordLabel={dict.fields.hidePassword}
         />
 
         {error && (

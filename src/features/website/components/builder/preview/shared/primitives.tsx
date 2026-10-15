@@ -1,16 +1,25 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Star, ArrowRight } from "lucide-react";
 import { cn } from "../../../../../../shared/lib/utils";
 import { DISPLAY } from "./constants";
 import { MicrositeBookAction, useMicrositeActions } from "./actions";
+import type { PreviewData } from "./types";
 
 /** Count-up that re-runs on mount — eases 0→value with a cubic ease-out (mirrors the microsite RollNum). */
-export function CountUp({ value, decimals = 0, durationMs = 760, delayMs = 0 }: { value: number; decimals?: number; durationMs?: number; delayMs?: number }) {
-  const reduce =
-    typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const [shown, setShown] = useState(reduce ? value : 0);
+export function CountUp({ value, decimals = 0, durationMs = 760, delayMs = 0, locale }: { value: number; decimals?: number; durationMs?: number; delayMs?: number; locale?: PreviewData["locale"] }) {
+  const formatter = useMemo(() => locale ? new Intl.NumberFormat(locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }) : null, [locale, decimals]);
+  // The server and first client render agree; browser motion preferences are
+  // applied after hydration instead of changing the initial number.
+  const [shown, setShown] = useState(0);
   useEffect(() => {
-    if (reduce) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      // Synchronize browser-only accessibility preferences after hydration.
+      setShown(value);
+      return;
+    }
     let raf = 0;
     let start = 0;
     const begin = performance.now() + delayMs;
@@ -29,9 +38,8 @@ export function CountUp({ value, decimals = 0, durationMs = 760, delayMs = 0 }: 
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
     // Runs once per mount; the parent re-keys per selected location so it replays.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  return <>{shown.toFixed(decimals)}</>;
+  return <>{formatter ? formatter.format(shown) : shown.toFixed(decimals)}</>;
 }
 
 export function Section({ children, soft, narrow }: { children: React.ReactNode; soft?: boolean; narrow?: boolean }) {

@@ -6,7 +6,8 @@ import {
   isLocale,
   type Locale,
 } from "@/i18n/locales";
-import { dictionaries, format } from "@/i18n/dictionaries";
+import { dictionaries } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { getPricing } from "@/lib/marketing/pricing";
 import { PricingContent } from "./_components/pricing-content";

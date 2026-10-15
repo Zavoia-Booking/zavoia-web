@@ -36,7 +36,7 @@ export function MobileTabs({ locale }: { locale: Locale }) {
     ? [
         { segment: "", icon: "home", activeIcon: "homeF", label: t.explore },
         { segment: "search", icon: "search", label: t.search },
-        { segment: "appointments", icon: "cal", label: t.bookings },
+        { segment: "appointments", icon: "cal", label: t.appointments },
         { segment: "saved", icon: "heartO", label: t.saved },
         { segment: "help", icon: "info", label: t.help },
       ]
@@ -49,7 +49,7 @@ export function MobileTabs({ locale }: { locale: Locale }) {
 
   const isActive = (segment: string) => {
     if (segment === "") {
-      return key === "" || key === "business" || key === "l";
+      return key === "" || key === "industries" || key === "business" || key === "l";
     }
     if (segment === "help") return key === "help" || key === "support";
     return key === segment;
@@ -60,6 +60,7 @@ export function MobileTabs({ locale }: { locale: Locale }) {
 
   return (
     <nav
+      data-marketplace-chrome
       className="zw-only-mobile zv-frost"
       style={{
         position: "fixed",
@@ -99,14 +100,14 @@ export function MobileTabs({ locale }: { locale: Locale }) {
             <Icon
               name={icon}
               size={21}
-              color={active ? "var(--p-600)" : "var(--c-500)"}
+              color={active ? "var(--p-600)" : "var(--c-600)"}
             />
             <span
               style={{
                 fontSize: 10,
                 fontWeight: 600,
                 letterSpacing: "0.01em",
-                color: active ? "var(--p-600)" : "var(--c-500)",
+                color: active ? "var(--p-600)" : "var(--c-600)",
               }}
             >
               {tab.label}
