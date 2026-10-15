@@ -169,7 +169,7 @@ export function Hero() {
               alignItems: "center",
               width: "100%",
               maxWidth: 640,
-              cursor: "text",
+              cursor: "pointer",
               background: "#fff",
               borderRadius: 999,
               border: "1px solid rgba(28,28,26,0.07)",

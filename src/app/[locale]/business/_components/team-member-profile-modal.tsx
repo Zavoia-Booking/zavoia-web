@@ -494,7 +494,7 @@ export function TeamMemberProfileModal({
       <div
         className="zv-sheet-backdrop"
         onClick={onClose}
-        style={{ position: "absolute", inset: 0, background: "rgba(28,28,26,0.42)" }}
+        style={{ position: "absolute", inset: 0, background: "rgba(28,28,26,0.42)", cursor: "pointer" }}
       />
       <div ref={cardRef} tabIndex={-1} className="zw-member-card zw-modal-in" style={{ outline: "none" }}>
         {favorites.canFavorite && (
@@ -1232,7 +1232,7 @@ export function TeamMemberProfileModal({
             alignItems: "center",
             justifyContent: "center",
             padding: 24,
-            cursor: "zoom-out",
+            cursor: "pointer",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}

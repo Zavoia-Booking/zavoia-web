@@ -90,7 +90,7 @@ export function LanguageDisclosure({
       if (event.key === "Escape" && disclosure.open) {
         event.preventDefault();
         close();
-        trigger?.focus();
+        trigger?.focus({ preventScroll: true });
         return;
       }
       // Destinations can arrive after the disclosure mounts.
@@ -128,7 +128,7 @@ export function LanguageDisclosure({
     if (previous.locale === currentLocale && previous.pathname === routerPathname) return;
     const disclosure = ref.current;
     if (disclosure?.open) {
-      if (disclosure.contains(document.activeElement)) disclosure.querySelector("summary")?.focus();
+      if (disclosure.contains(document.activeElement)) disclosure.querySelector("summary")?.focus({ preventScroll: true });
       disclosure.open = false;
     }
   }, [currentLocale, routerPathname]);
@@ -166,13 +166,13 @@ export function LanguageDisclosure({
                       className={styles.option}
                       onNavigate={(event) => {
                         if (!current) {
-                          markLocaleNavigation(target);
+                          markLocaleNavigation(target, ref.current);
                           return;
                         }
                         event.preventDefault();
                         if (ref.current) {
                           ref.current.open = false;
-                          ref.current.querySelector("summary")?.focus();
+                          ref.current.querySelector("summary")?.focus({ preventScroll: true });
                         }
                       }}
                     >

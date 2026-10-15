@@ -928,6 +928,7 @@ export function SearchContent({
   const resultList = (
     <div
       ref={listRef}
+      data-locale-scroll="search-results"
       className="zw-scroll-y"
       style={{ flex: 1, padding: "4px 10px 16px", position: "relative" }}
     >

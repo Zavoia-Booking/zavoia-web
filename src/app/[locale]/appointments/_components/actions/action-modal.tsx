@@ -87,6 +87,7 @@ export function ActionModal({
             inset: 0,
             zIndex: 300,
             background: "rgba(28,28,26,0.34)",
+            cursor: dismissible ? "pointer" : "default",
             backdropFilter: "blur(6px)",
             WebkitBackdropFilter: "blur(6px)",
             display: "flex",
@@ -119,6 +120,7 @@ export function ActionModal({
             }}
             style={{
               width: `min(${width}px, 100%)`,
+              cursor: "default",
               maxHeight: "calc(100dvh - 40px)",
               background: "var(--c-canvas)",
               borderRadius: 24,

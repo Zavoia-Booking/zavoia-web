@@ -3,7 +3,8 @@
 import { usePathname } from "next/navigation";
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import {
-  consumeLocaleNavigation, restoreLocaleScroll, type LocaleNavigation,
+  consumeLocaleNavigation, preserveLocaleDocumentScroll, restoreLocaleScroll, type LocaleNavigation,
+  waitForLocaleScroll,
 } from "@/i18n/locale-transition";
 
 // Audited one-time entrances in the builder CSS. Finish existing instances at
@@ -51,12 +52,12 @@ export function PageEntrance({ children }: { children: ReactNode }) {
     const positions = committed.current.navigation.scrollPositions;
     const restore = () => {
       finishBuilderEntrances(element);
-      restoreLocaleScroll(element, positions);
+      return restoreLocaleScroll(element, positions);
     };
-    // /try and published microsites have no loading boundary: their marked
-    // scrollers are present at commit. Repeat once after passive effects to
-    // include the demo dock's measured padding, then relinquish scroll ownership.
-    restore();
+    // Restore mounted panes now and wait for panes behind loading boundaries.
+    // Repeat once after passive effects to include measured demo dock padding.
+    const stopWaitingForScroll = waitForLocaleScroll(element, restore());
+    const stopDocumentScroll = preserveLocaleDocumentScroll(committed.current.navigation.documentScroll);
     let frame = 0;
     const cancel = () => {
       cancelAnimationFrame(frame);
@@ -68,7 +69,7 @@ export function PageEntrance({ children }: { children: ReactNode }) {
     window.addEventListener("pointerdown", cancel, true);
     window.addEventListener("wheel", cancel, true);
     window.addEventListener("keydown", cancel, true);
-    return cancel;
+    return () => { cancel(); stopDocumentScroll(); stopWaitingForScroll(); };
   }, [pathname]);
 
   return <div ref={ref} className="zw-page-in">{children}</div>;

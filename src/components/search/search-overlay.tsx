@@ -1839,6 +1839,7 @@ export function SearchOverlay({
         inset: 0,
         zIndex: 300,
         background: "rgba(28,28,26,0.40)",
+        cursor: "pointer",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         display: "flex",
@@ -1857,6 +1858,7 @@ export function SearchOverlay({
         style={{
           width: "100%",
           maxWidth: 600,
+          cursor: "default",
           background: "var(--c-canvas)",
           borderRadius: 28,
           boxShadow: "var(--sh-xl)",

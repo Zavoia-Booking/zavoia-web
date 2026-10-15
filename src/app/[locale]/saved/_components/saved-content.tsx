@@ -903,7 +903,7 @@ export function SavedContent({ locale }: { locale: Locale }) {
               className="zv-tab-in"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(400px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(min(400px, 100%), 1fr))",
                 columnGap: 40,
                 rowGap: 0,
                 paddingBottom: 10,

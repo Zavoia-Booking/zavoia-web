@@ -129,6 +129,7 @@ function FiltersPanelBody({
         justifyContent: "center",
         padding: 20,
         background: "rgba(28,28,26,0.45)",
+        cursor: "pointer",
         backdropFilter: "blur(2px)",
       }}
     >
@@ -141,6 +142,7 @@ function FiltersPanelBody({
         className="zv-fade"
         style={{
           width: "min(520px, 100%)",
+          cursor: "default",
           maxHeight: "min(86vh, 760px)",
           background: "var(--c-canvas)",
           borderRadius: 24,

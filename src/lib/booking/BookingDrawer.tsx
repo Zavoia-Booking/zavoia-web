@@ -765,6 +765,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         inset: 0,
         zIndex: 250,
         background: "rgba(28,28,26,0.42)",
+        cursor: "pointer",
         backdropFilter: "blur(6px)",
         WebkitBackdropFilter: "blur(6px)",
         display: "flex",
@@ -777,6 +778,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         className="zw-modal-in"
         style={{
           width: "min(478px, 100%)",
+          cursor: "default",
           maxHeight: "calc(100dvh - 40px)",
           background: "var(--c-canvas)",
           boxShadow: "var(--sh-lg)",

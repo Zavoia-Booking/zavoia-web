@@ -65,7 +65,7 @@ export function CategoryContent({
   const searchHref = `${localeHref(locale, "search")}?${searchParams}`;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
+    <main className="zw-container py-12">
       <nav className="text-sm text-zinc-500">
         <Link href={localeHref(locale)} className="hover:underline">
           {dict.breadcrumbHome}
@@ -87,7 +87,7 @@ export function CategoryContent({
       </div>
 
       <section className="mt-10">
-        <div className="flex items-baseline justify-between gap-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
           <h2 className="text-xl font-medium">
             {format(dict.category.listHeading, vars)}
           </h2>

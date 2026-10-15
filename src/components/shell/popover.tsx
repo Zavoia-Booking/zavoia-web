@@ -38,7 +38,7 @@ export function Popover({ onClose, width = 380, label, children }: PopoverProps)
       <div
         onClick={onClose}
         aria-hidden="true"
-        style={{ position: "fixed", inset: 0, zIndex: 190 }}
+        style={{ position: "fixed", inset: 0, zIndex: 190, cursor: "pointer" }}
       />
       <div
         role="dialog"
@@ -49,7 +49,7 @@ export function Popover({ onClose, width = 380, label, children }: PopoverProps)
           zIndex: 191,
           top: "calc(var(--nav-h) + 10px)",
           right:
-            "max(var(--gutter), calc((100vw - var(--content-max)) / 2 + var(--gutter)))",
+            "max(var(--gutter), calc((100vw - var(--content-max)) / 2))",
           width: `min(${width}px, calc(100vw - 24px))`,
           background: "#fff",
           borderRadius: 20,

@@ -211,8 +211,9 @@ sentence. It labels, indexes, and counts; the sans speaks.
 
 ## Layout
 
-A single centered container: `max-width: 1232px` (`--content-max`) with a
-`28px` gutter (`--gutter`), applied via the `.zw-container` utility. The gutter
+A single centered container with **1400px of usable content** (`--content-max`),
+applied via `.zw-container`. Its border-box maximum adds the two `28px` gutters
+(`max-width: calc(var(--content-max) + 2 * var(--gutter))`). The gutter
 compresses responsively (20px ≤920px, 16px ≤600px) and the fixed frosted nav is
 `68px` tall (`--nav-h`, 60px ≤920px); sticky elements offset against
 `calc(var(--nav-h) + N)`.
@@ -220,15 +221,15 @@ compresses responsively (20px ≤920px, 16px ≤600px) and the fixed frosted nav
 The dominant breakpoint is **920px** — two-column page grids (`[data-biz-cols]`,
 feature/hero grids) collapse to one column, `.zw-only-desktop` /
 `.zw-only-mobile` swap, and detail pages trade the sticky right booking rail
-for a fixed frosted bottom bar. Other observed breakpoints are local: 1380px
+for a fixed frosted bottom bar. Other observed breakpoints are local: 1552px
 (share rail appears only when true margin exists), 1080/540px (footer grid
 4→2→1), 1024px (post/legal TOC rails drop), 980/640px (masonry and carousel
 column counts), 880px (split spotlight stacks).
 
 Horizontal rhythm on the home page comes from contained rails, not the page:
 `.zw-carousel-rail` scrolls 3-up cards (2-up ≤980px, 86%-wide ≤640px) with
-snap-proximity and hidden scrollbars; the split-spotlight rail intentionally
-bleeds off the right screen edge. Offer grids are explicit 3→2→1 so a third
+snap-proximity and hidden scrollbars; the split-spotlight rail scrolls within
+the same 1400px content boundary. Offer grids are explicit 3→2→1 so a third
 card never orphans. Reading surfaces (Journal posts, legal) drop to a narrower
 measured column (58ch–760px) with a 196px sticky TOC rail — "legal reading
 wants a centred column, not the full shop window."
@@ -237,6 +238,21 @@ Section entrance is choreographed once per page: `.zw-rise` sections rise 18px
 and fade over 0.7s, staggered by `data-d` (0.10/0.22/0.34s); grid children
 stagger via `.zw-stagger` (0.06s steps, 8 children deep). Both are gated behind
 `prefers-reduced-motion: no-preference`.
+
+### Layout and cursor rules
+
+- Zavoia page shells, headers and footers share the 1400px content limit. Smaller
+  prose columns, forms, dialogs and cards stay readable inside that boundary.
+- Full-bleed backgrounds, the search map and customer website previews retain
+  their own layout. Customer website templates and Sanity Studio are separate
+  surfaces; do not impose marketplace containers on them.
+- Use `minmax(min(Npx, 100%), 1fr)` for auto-fill card grids so their minimum
+  cannot exceed the available mobile width. Preserve the existing breakpoints.
+- Ordinary text inherits `cursor: default`, without disabling text selection.
+  Enabled links, buttons, disclosures and other clickable controls use pointer.
+  Editable fields keep the text cursor; disabled controls and draggable surfaces
+  keep their state-specific cues. Customer `.mc-root` and `.mc-gallery-lbox`
+  subtrees retain their own cursor rules.
 
 ## Elevation & Depth
 

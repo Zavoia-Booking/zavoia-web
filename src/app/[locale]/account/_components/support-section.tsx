@@ -763,6 +763,7 @@ function TicketDetailView({
             justifyContent: "center",
             padding: 20,
             background: "rgba(28,28,26,0.42)",
+            cursor: closing ? "default" : "pointer",
           }}
           onClick={() => {
             if (!closing) setConfirmingClose(false);
@@ -772,6 +773,7 @@ function TicketDetailView({
             onClick={(e) => e.stopPropagation()}
             style={{
               background: "#fff",
+              cursor: "default",
               borderRadius: 18,
               boxShadow: "var(--sh-lg)",
               padding: "24px 24px 20px",

@@ -578,10 +578,10 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
       </div>
 
       <div
-        className="zw-split"
+        className="zw-container zw-split"
         style={{
           position: "relative",
-          padding: "clamp(48px, 6vw, 92px) 0",
+          paddingBlock: "clamp(48px, 6vw, 92px)",
           minHeight: "70vh",
         }}
       >

@@ -46,6 +46,7 @@ export default function GlobalError({
             "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
           background: "#fff",
           color: "#1c1c1a",
+          cursor: "default",
         }}
       >
         <title>Zavoia</title>
@@ -120,6 +121,7 @@ export default function GlobalError({
                 textDecoration: "none",
                 border: "1px solid rgba(28,28,26,0.14)",
                 color: "#1c1c1a",
+                cursor: "pointer",
               }}
             >
               Home / Acasă

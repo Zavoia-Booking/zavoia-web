@@ -1344,7 +1344,7 @@ export function MobileBar({
               fontWeight: 600,
               borderRadius: "var(--r-full)",
               whiteSpace: "nowrap",
-              cursor: "pointer",
+              cursor: bookingAgain ? "default" : "pointer",
               opacity: bookingAgain ? 0.6 : 1,
             }}
           >

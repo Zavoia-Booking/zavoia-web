@@ -91,7 +91,7 @@
 
   /* Web layout */
   --nav-h: 68px;
-  --content-max: 1232px;
+  --content-max: 1400px; /* Usable content width; gutters are added outside. */
   --gutter: 28px;
 }
 
@@ -183,9 +183,48 @@ img { display: block; }
 .txt-pretty { text-wrap: pretty; }
 .txt-balance { text-wrap: balance; }
 
-/* Container */
+/* Shared cursor vocabulary. Keep this in the base layer so components can
+   describe disabled, editable and drag states without !important overrides.
+   Customer websites/previews own their interaction styles inside .mc-root. */
+@layer base {
+  body { cursor: default; }
+  .mc-root { cursor: auto; }
+
+  :where(
+    a[href], button, summary, select, label[for],
+    label:has(input, select, textarea),
+    input[type="button"], input[type="submit"], input[type="reset"],
+    input[type="checkbox"], input[type="radio"], input[type="range"],
+    input[type="color"], input[type="file"],
+    [role="button"], [role="link"], [role="tab"], [role="menuitem"],
+    [role="menuitemcheckbox"], [role="menuitemradio"],
+    [role="checkbox"], [role="radio"], [role="switch"], [role="option"]
+  ):not(:where(:disabled, [aria-disabled="true"], .mc-root, .mc-root *, .mc-gallery-lbox, .mc-gallery-lbox *)) {
+    cursor: pointer;
+  }
+
+  :where(
+    input:not([type]), input[type="text"], input[type="search"],
+    input[type="email"], input[type="password"], input[type="tel"],
+    input[type="url"], input[type="number"], textarea,
+    [contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"]
+  ):not(:where(:disabled, .mc-root, .mc-root *, .mc-gallery-lbox, .mc-gallery-lbox *)) {
+    cursor: text;
+  }
+
+  :where(:disabled, [aria-disabled="true"]):not(:where(.mc-root, .mc-root *, .mc-gallery-lbox, .mc-gallery-lbox *)) {
+    cursor: default;
+  }
+
+  input[type="file"]:not(:where(:disabled, .mc-root *, .mc-gallery-lbox *))::file-selector-button {
+    cursor: pointer;
+  }
+}
+
+/* Container: the maximum describes content, not content plus gutters. */
 .zw-container {
-  max-width: var(--content-max);
+  width: 100%;
+  max-width: calc(var(--content-max) + 2 * var(--gutter));
   margin: 0 auto;
   padding-left: var(--gutter);
   padding-right: var(--gutter);
@@ -525,22 +564,19 @@ img.zw-img--in { opacity: 1; }
 @media (max-width: 1020px) { .zw-offers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .zw-offers-grid { grid-template-columns: minmax(0, 1fr); } }
 
-/* Split spotlight — intro left, card rail right (bleeds off the screen edge) */
+/* Split spotlight — intro and scrollable cards share the page content width. */
 .zw-split { display: flex; align-items: center; gap: clamp(28px, 4vw, 60px); }
 .zw-split-left {
   flex: 0 0 clamp(360px, 40%, 540px);
-  padding-left: max(var(--gutter), calc((100vw - var(--content-max)) / 2 + var(--gutter)));
+  min-width: 0;
 }
 .zw-split-right { flex: 1 1 0; min-width: 0; overflow: hidden; }
-/* Trailing space so the last editorial card isn't flush against the screen's
-   right edge at max scroll (the rail bleeds off the right intentionally). */
-.zw-rail-split { padding-right: clamp(24px, 5vw, 80px); scroll-snap-type: none; }
+.zw-rail-split { scroll-snap-type: none; }
 .zw-rail-split > .zw-carousel-card { flex: 0 0 clamp(360px, 34vw, 560px); }
 @media (max-width: 880px) {
   .zw-split { flex-direction: column; align-items: stretch; gap: 28px; }
-  .zw-split-left { flex: none; padding-left: var(--gutter); padding-right: var(--gutter); }
+  .zw-split-left { flex: none; }
   .zw-split-right { overflow: visible; }
-  .zw-rail-split { padding-left: var(--gutter); padding-right: var(--gutter); }
   .zw-rail-split > .zw-carousel-card { flex-basis: 80%; }
 }
 
@@ -945,6 +981,7 @@ img.zw-img--in { opacity: 1; }
 
 /* Account — editable avatar (dark overlay on hover) */
 .zw-avatar-edit { position: relative; cursor: pointer; }
+.zw-avatar-edit:disabled { cursor: default; }
 .zw-avatar-edit .zw-avatar-ov {
   position: absolute; inset: 0; border-radius: 50%;
   background: rgba(28, 28, 26, 0.46); color: #fff;
@@ -1332,7 +1369,7 @@ img.zw-img--in { opacity: 1; }
   border-color: rgba(28,28,26,0.26); background: var(--c-shade); color: var(--c-900); box-shadow: var(--sh-sm);
 }
 .zw-pag-btn:active:not(:disabled) { transform: scale(0.95); }
-.zw-pag-btn[data-on="1"] { background: var(--c-ink); border-color: var(--c-ink); color: #fff; cursor: default; }
+.zw-pag-btn[data-on="1"] { background: var(--c-ink); border-color: var(--c-ink); color: #fff; }
 .zw-pag-btn:disabled { opacity: 0.38; cursor: default; }
 .zw-pag-arrow { padding: 0 16px; }
 .zw-pag-lbl { letter-spacing: 0.06em; }
@@ -1352,7 +1389,7 @@ img.zw-img--in { opacity: 1; }
 
 /* Left share rail */
 .zw-share-rail {
-  position: fixed; left: max(14px, calc(50vw - 674px)); top: 50%; transform: translateY(-50%);
+  position: fixed; top: 50%; transform: translateY(-50%);
   z-index: 90; display: flex; flex-direction: column; align-items: center; gap: 14px;
 }
 .zw-share-btn {
@@ -1432,8 +1469,8 @@ img.zw-img--in { opacity: 1; }
 }
 
 /* The rail lives in the left page margin — only show it when the viewport is
-   wide enough that there's genuine margin outside the 1232px content box. (web.css:998) */
-@media (max-width: 1380px) { .zw-share-rail { display: none; } }
+   wide enough for a 42px control, 20px gap and 14px edge outside the 1400px content. */
+@media (max-width: 1552px) { .zw-share-rail { display: none; } }
 
 /* ── Pricing — calculator range slider + receipt tilt ── */
 .zw-range {
@@ -1547,7 +1584,7 @@ img.zw-img--in { opacity: 1; }
    rules, shade→ink icon badges, terracotta as the active/structural accent).
    ───────────────────────────────────────────── */
 
-/* Both surfaces sit on a narrower page than the 1232px marketplace grid —
+/* Both surfaces keep a readable column inside the shared marketplace grid —
    legal reading wants a centred column, not the full shop window. */
 .zw-legal-shell { max-width: 880px; margin: 0 auto; }
 /* Once the contents rail drops away, the document's masthead, callouts and
@@ -1912,7 +1949,7 @@ img.zw-img--in { opacity: 1; }
 /* Portfolio tiles — same zoom-on-hover grammar as page cards. */
 .zw-member-tile {
   position: relative; overflow: hidden; border-radius: 12px;
-  aspect-ratio: 1; cursor: zoom-in; padding: 0; border: 0; background: var(--c-200);
+  aspect-ratio: 1; cursor: pointer; padding: 0; border: 0; background: var(--c-200);
   display: block; width: 100%;
 }
 .zw-member-tile img {
