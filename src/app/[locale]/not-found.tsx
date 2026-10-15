@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
+import { NotFoundBoundary } from "@/app/_components/not-found/not-found-boundary";
 import { useTranslation } from "@/i18n/useTranslation";
 
 // Request headers would opt cached routes into dynamic rendering. Read the
@@ -19,5 +19,5 @@ export default function LocaleNotFound() {
     setPathname(window.location.pathname);
   }, [routePathname]);
 
-  return <NotFoundPage dictionary={dict} locale={locale} pathname={pathname} />;
+  return <NotFoundBoundary dictionary={dict} locale={locale} pathname={pathname} />;
 }

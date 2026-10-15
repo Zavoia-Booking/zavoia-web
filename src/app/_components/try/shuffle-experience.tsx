@@ -29,13 +29,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Ref } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import { format } from "@/i18n/format";
 import { useTranslation } from "@/i18n/useTranslation";
 import { TRIAL_DAYS } from "@/lib/marketing/pricing";
 import { Icon } from "@/components/ui/icon";
-import { LivePreview } from "@/features/website/components/builder/preview/Microsite";
 import { SECTION_META } from "@/features/website/components/builder/sectionCatalog";
 import { createWebsiteT } from "@/features/website/i18n/translate";
 import { specimenData } from "@/app/_components/web-studio/specimen-data";
@@ -54,6 +54,12 @@ import {
   type Locks,
   type Look,
 } from "./shuffle-model";
+
+const LivePreview = dynamic(() =>
+  import("@/features/website/components/builder/preview/Microsite").then(
+    (module) => module.LivePreview,
+  ),
+);
 
 const LOCK_KEYS: LockKey[] = ["layout", "colour", "type"];
 

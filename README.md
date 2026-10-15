@@ -9,6 +9,8 @@ npm ci
 npm run dev
 ```
 
+Next.js, its ESLint configuration and `@next/third-parties` are pinned to stable 16.4.1. This release includes the upstream [request-driven server HMR change](https://github.com/vercel/next.js/pull/96566) and [persistent HMR state fix](https://github.com/vercel/next.js/pull/97146).
+
 The app runs at http://localhost:3001. Set `NEXT_PUBLIC_API_URL` in `.env.local` for your API; the default is http://localhost:3000. See `src/lib/env.ts` for optional map, Google OAuth and business-dashboard configuration. `REVALIDATE_SECRET` is server-only and must match the backend's cache-invalidation integration. Never put it in a `NEXT_PUBLIC_` variable.
 
 ```bash
@@ -46,10 +48,12 @@ Private state must not enter server module caches. Public discovery may continue
 
 - Completely unmatched URLs use `global-not-found.tsx`, a localized full document returning HTTP 404. `experimental.globalNotFound` is enabled because the app has separate locale and Studio root layouts. The proxy supplies the real pathname for that boundary.
 - Matched business, brand and website routes retain their existing HTTP 200 unavailable fallback with `noindex`; their metadata now uses the localized unavailable-page title and description.
-- Route-level `notFound()` status depends on whether Next has started streaming. Do not infer HTTP status from the displayed 404 artwork.
+- Route-level `notFound()` status depends on whether Next has started streaming. Do not infer HTTP status from the displayed 404 artwork. Next 16.4.1 also retains an [upstream SSR defect](https://github.com/vercel/next.js/issues/99287): some matched routes return HTTP 404 with an empty HTML body until JavaScript renders the fallback. This does not affect the complete document returned by the global unmatched-route fallback.
 - Category API outages reach the existing error boundary instead of being rendered as missing categories or empty listings. A successful empty response retains the existing empty/noindex behavior.
 - Public tagged responses must remain independent of authentication. The HTTP layer strips shared cache hints when attaching an access token.
 - `/api/revalidate/business` receives authenticated backend invalidation requests. Publication lifecycle changes expire website data and locale paths; existing browser data still follows its own freshness policy.
+
+The root and locale fallback boundaries load their presentation through `next/dynamic`, with SSR enabled. Web Studio specimens and the demo use the same supported split for the microsite renderer. This keeps their CSS out of unrelated route prefetches while preserving server-rendered previews and normal link prefetching.
 
 ## Local service links
 

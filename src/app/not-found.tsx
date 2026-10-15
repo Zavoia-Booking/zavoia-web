@@ -1,17 +1,16 @@
 import { dictionaries } from "@/i18n/dictionaries";
-import "@/styles/globals.css";
-import { fontVariables } from "@/styles/fonts";
 import { DEFAULT_LOCALE } from "@/i18n/locales";
-import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
+import { RootNotFoundBoundary } from "@/app/_components/not-found/not-found-boundary";
 
-// Last-resort boundary for misses outside a valid locale provider. Do not read
-// headers/cookies here: this boundary can also be reached by cached routes.
-// Unmatched URLs use global-not-found.tsx, which resolves their locale on the
-// server; misses under a locale layout use that segment's contextual boundary.
+// Request-independent fallback for failures outside a valid locale layout.
+// Keep dictionary packs on the server and pass only the copy this page uses.
 export default function NotFound() {
+  const { notFound, nav, language, localeNames } = dictionaries[DEFAULT_LOCALE];
+
   return (
-    <div className={`${fontVariables} antialiased`}>
-      <NotFoundPage dictionary={dictionaries[DEFAULT_LOCALE]} locale={DEFAULT_LOCALE} />
-    </div>
+    <RootNotFoundBoundary
+      dictionary={{ notFound, nav, language, localeNames }}
+      locale={DEFAULT_LOCALE}
+    />
   );
 }
