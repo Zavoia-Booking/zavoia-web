@@ -7,15 +7,19 @@ export interface BreadcrumbItem {
 
 export interface BreadcrumbProps {
   items: BreadcrumbItem[];
+  ariaLabel?: string;
 }
 
 // Mono trail for content/SEO pages. Ported from ZwBreadcrumb
 // (docs/web-marketing.jsx:15-32). Linked items use next/link; the last item
 // (no href) is the current page and renders as muted, non-interactive text.
-export function Breadcrumb({ items }: BreadcrumbProps) {
+export function Breadcrumb({
+  items,
+  ariaLabel = "Breadcrumb",
+}: BreadcrumbProps) {
   return (
     <nav
-      aria-label="Breadcrumb"
+      aria-label={ariaLabel}
       style={{
         display: "flex",
         alignItems: "center",
@@ -48,7 +52,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
               {it.label}
             </Link>
           ) : (
-            <span style={{ color: "var(--c-800)" }}>{it.label}</span>
+            <span aria-current={i === items.length - 1 ? "page" : undefined} style={{ color: "var(--c-800)" }}>{it.label}</span>
           )}
         </span>
       ))}

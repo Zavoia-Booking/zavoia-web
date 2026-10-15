@@ -5,6 +5,7 @@ import {
   findCity,
   findTaxonomy,
   getCategoryAlternates,
+  taxonomyDisplayName,
   type CityView,
   type TaxonomyView,
 } from "@/data/seo";
@@ -59,6 +60,7 @@ async function resolve(
       entry: TaxonomyView;
       industries: Industry[];
       listings: LocationCard[];
+      total: number;
     }
 > {
   const city = findCity(locale, citySlug);
@@ -87,9 +89,9 @@ async function resolve(
       ? { tagIds: [entry.tagId] }
       : { industrySlug: entry.industrySlug }),
   };
-  const { locations: listings } = await searchListings(params);
+  const { locations: listings, total } = await searchListings(params);
 
-  return { kind: "ok", city, entry, industries, listings };
+  return { kind: "ok", city, entry, industries, listings, total };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -101,9 +103,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { city, entry, industries, listings } = resolved;
   const dict = dictionaries[localeParam];
+  const name = taxonomyDisplayName(entry, industries, localeParam, dict);
   const vars = {
-    industry: entry.name,
-    industryLower: entry.name.toLowerCase(),
+    industry: name,
+    industryLower: name.toLocaleLowerCase(localeParam),
     city: city.name,
   };
 
@@ -157,6 +160,7 @@ export default async function CategoryPage({ params }: Props) {
         entry={resolved.entry}
         industries={resolved.industries}
         listings={resolved.listings}
+        total={resolved.total}
       />
     </>
   );

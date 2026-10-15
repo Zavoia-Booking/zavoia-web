@@ -28,6 +28,7 @@ const STATIC_TOP_ROUTES = new Set([
   "business",
   "for-business",
   "help",
+  "industries",
   "login",
   "pricing",
   "register",

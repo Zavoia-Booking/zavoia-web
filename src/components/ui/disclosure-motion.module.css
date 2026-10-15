@@ -1,0 +1,59 @@
+/* Marketplace disclosure rhythm, matching the app's expandable search. */
+.root {
+  --disclosure-duration: 280ms;
+  --disclosure-ease: cubic-bezier(.25, .1, .25, 1);
+  --disclosure-fade-in: 220ms;
+  --disclosure-fade-out: 140ms;
+  --disclosure-chevron: 260ms;
+}
+
+.body {
+  display: flow-root;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.body:focus-within {
+  overflow: visible;
+}
+
+/* Native details remain functional without JavaScript. Browsers without this
+   standard pseudo-element retain their native, immediate expand/collapse. */
+@supports selector(details::details-content) and (transition-behavior: allow-discrete) {
+  .native::details-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows var(--disclosure-duration) var(--disclosure-ease),
+      opacity var(--disclosure-fade-out) var(--disclosure-ease),
+      content-visibility var(--disclosure-duration) allow-discrete;
+  }
+
+  .native[open]::details-content {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition-duration:
+      var(--disclosure-duration),
+      var(--disclosure-fade-in),
+      var(--disclosure-duration);
+  }
+}
+
+/* Keyboard navigation stays immediate; no mount or decorative animation. */
+.root:has(> summary:focus-visible),
+.root:has(> h2 > button:focus-visible) {
+  --disclosure-duration: 0ms;
+  --disclosure-fade-in: 0ms;
+  --disclosure-fade-out: 0ms;
+  --disclosure-chevron: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    --disclosure-duration: 0ms;
+    --disclosure-fade-in: 0ms;
+    --disclosure-fade-out: 0ms;
+    --disclosure-chevron: 0ms;
+  }
+}

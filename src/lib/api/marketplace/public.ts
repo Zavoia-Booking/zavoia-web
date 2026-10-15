@@ -12,6 +12,7 @@
  */
 
 import { apiFetch } from "@/lib/api/http";
+import { otherIndustryLast } from "@/lib/marketplace/industry-order";
 import { buildQuery } from "./query";
 import type {
   BrandCard,
@@ -51,11 +52,13 @@ function cacheInit(opts?: CacheOptions): RequestInit {
 }
 
 /** GET /marketplace/public/industries — RAW Industry[]. */
-export function getIndustries(opts?: CacheOptions): Promise<Industry[]> {
-  return apiFetch<Industry[]>("/marketplace/public/industries", {
+export async function getIndustries(opts?: CacheOptions): Promise<Industry[]> {
+  const industries = await apiFetch<Industry[]>("/marketplace/public/industries", {
     ...cacheInit(opts),
     method: "GET",
   });
+  // All display consumers share this order. Local shuffles/sorts reapply it.
+  return otherIndustryLast(industries, (industry) => industry.slug);
 }
 
 /**

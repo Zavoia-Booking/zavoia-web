@@ -1,6 +1,7 @@
 import { LOCALES, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import type { Industry } from "@/lib/api/marketplace/types";
+import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 
 type LocalizedText = Record<Locale, string>;
 
@@ -192,7 +193,26 @@ export function listTaxonomy(
   return out;
 }
 
-/** Industry-level entries only — the set advertised in the sitemap. */
+/** Match the directory's translated labels without changing canonical slugs. */
+export function taxonomyDisplayName(
+  entry: TaxonomyView,
+  industries: Industry[],
+  locale: Locale,
+  labels: {
+    industries: Readonly<Record<string, string>>;
+    industryTags: Readonly<Record<string, string>>;
+  },
+): string {
+  const industry = industries.find((item) => item.slug === entry.industrySlug);
+  const source = entry.kind === "industry"
+    ? industry
+    : industry?.tags.find((tag) => tag.id === entry.tagId);
+  return source
+    ? taxonomyLabel(source, locale, entry.kind === "industry" ? labels.industries : labels.industryTags)
+    : entry.name;
+}
+
+/** Industry-level entries for navigation that excludes individual services. */
 export function listIndustryTaxonomy(
   industries: Industry[],
   locale: Locale,

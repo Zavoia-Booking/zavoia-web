@@ -1,16 +1,23 @@
 import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import type { CityView, TaxonomyView } from "@/data/seo";
-import { listCities, listTaxonomy } from "@/data/seo";
+import { listCities, listTaxonomy, taxonomyDisplayName } from "@/data/seo";
 import { dictionaries } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
-import { BusinessFeedCard } from "@/components/business";
+import { BusinessCard } from "@/components/business";
+import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
+import { SearchPageContext } from "@/components/search/search-overlay-provider";
+import { SITE_URL } from "@/lib/site";
+import { Icon } from "@/components/ui/icon";
 import { locationCardToData } from "@/lib/marketplace/card-mappers";
+import { buildSlugById, industryVisual } from "@/lib/marketplace/industry-visuals";
+import { otherIndustryLast } from "@/lib/marketplace/industry-order";
 import type { Industry, LocationCard } from "@/lib/api/marketplace/types";
+import styles from "./category-content.module.css";
+import motion from "@/components/ui/disclosure-motion.module.css";
 
-/** Sibling links shown per rail — enough to be useful, short of a link farm. */
-const RELATED_LIMIT = 12;
+const RELATED_SERVICE_LIMIT = 12;
 
 export function CategoryContent({
   locale,
@@ -18,44 +25,94 @@ export function CategoryContent({
   entry,
   industries,
   listings,
+  total,
 }: {
   locale: Locale;
   city: CityView;
   entry: TaxonomyView;
   industries: Industry[];
   listings: LocationCard[];
+  total: number;
 }) {
   const dict = dictionaries[locale];
-  const vars = {
-    industry: entry.name,
-    industryLower: entry.name.toLowerCase(),
-    city: city.name,
-  };
-
-  const otherCities = listCities(locale).filter((c) => c.id !== city.id);
-  // Siblings under the same industry when this page IS a tag, otherwise the
-  // other industries. Either way the reader gets the neighbouring choices at
-  // their own level rather than a flat dump of all 91 taxonomy entries.
+  const t = dict.category;
+  const label = (item: TaxonomyView) => taxonomyDisplayName(item, industries, locale, dict);
+  const name = label(entry);
+  const vars = { industry: name, city: city.name };
   const taxonomy = listTaxonomy(industries, locale);
-  // The sitemap advertises industries. Link their services in server HTML so
-  // service pages remain discoverable without geolocation or client JavaScript.
-  const services = entry.kind === "industry"
-    ? taxonomy.filter((t) => t.kind === "tag" && t.industrySlug === entry.industrySlug)
-    : [];
-  const siblings = (
-    entry.kind === "tag"
-      ? taxonomy.filter(
-          (t) => t.kind === "tag" && t.industrySlug === entry.industrySlug,
-        )
-      : taxonomy.filter((t) => t.kind === "industry")
-  )
-    .filter((t) => t.id !== entry.id)
-    .slice(0, RELATED_LIMIT);
+  const slugById = buildSlugById(industries);
+  const otherCities = listCities(locale).filter((item) => item.id !== city.id);
+  const pathname = localeHref(locale, city.slug, entry.slug);
+  const parentIndustry = entry.kind === "tag"
+    ? taxonomy.find((item) => item.kind === "industry" && item.industrySlug === entry.industrySlug)
+    : undefined;
+  const breadcrumbItems: BreadcrumbItem[] = [
+    { label: dict.breadcrumbHome, href: localeHref(locale) },
+    { label: dict.industryDirectory.heading, href: localeHref(locale, "industries") },
+    ...(parentIndustry ? [{
+      label: format(t.heading, { industry: label(parentIndustry), city: city.name }),
+      href: localeHref(locale, city.slug, parentIndustry.slug),
+    }] : []),
+    { label: parentIndustry ? name : format(t.heading, vars) },
+  ];
+  const pageUrl = `${SITE_URL}${pathname}`;
+  const breadcrumb = {
+    "@type": "BreadcrumbList",
+    "@id": `${pageUrl}#breadcrumb`,
+    itemListElement: breadcrumbItems.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.label,
+      item: item.href ? `${SITE_URL}${item.href}` : pageUrl,
+    })),
+  };
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      breadcrumb,
+      {
+        "@type": "CollectionPage",
+        "@id": pageUrl,
+        url: pageUrl,
+        name: format(t.heading, vars),
+        inLanguage: locale,
+        breadcrumb: { "@id": breadcrumb["@id"] },
+      },
+    ],
+  };
+  const numbers = new Intl.NumberFormat(locale);
+  const plural = new Intl.PluralRules(locale).select(total);
+  const resultHeading = t.resultsHeading[plural === "one" ? "one" : plural === "few" ? "few" : "other"];
+  const sparseResults = listings.length <= 2;
 
-  // "See all" hands the query to /search, which owns the map, the filters and
-  // the pagination — this page is a landing surface, not a second search UI.
-  // A service landing page must keep its tag when opening the map; using
-  // only its parent industry would broaden, for example, Hair Salon to Beauty.
+  // Keep city/service discovery in server HTML independently of the sitemap.
+  const industryLinks = otherIndustryLast(
+    taxonomy.filter((item) => item.kind === "industry" && (
+      entry.kind === "tag" || item.id !== entry.id
+    )),
+    (item) => item.industrySlug,
+  );
+  const services = taxonomy.filter((item) =>
+    item.kind === "tag" && item.industrySlug === entry.industrySlug && (
+      entry.kind === "industry" || item.tagId !== entry.tagId
+    ),
+  );
+  const relatedGroups = [
+    {
+      id: "related",
+      title: entry.kind === "industry" ? t.otherIndustriesHeading : t.exploreIndustriesHeading,
+      items: industryLinks,
+      industries: true,
+    },
+    {
+      id: "services",
+      title: entry.kind === "industry" ? t.servicesHeading : t.relatedServicesHeading,
+      items: entry.kind === "industry" ? services : services.slice(0, RELATED_SERVICE_LIMIT),
+      industries: false,
+    },
+  ].filter((group) => group.items.length > 0);
+
+  // Preserve the exact city and service filter when handing off to map search.
   const searchParams = new URLSearchParams({ city: city.name });
   if (entry.kind === "tag") {
     searchParams.set("tagIds", String(entry.tagId));
@@ -63,116 +120,153 @@ export function CategoryContent({
     searchParams.set("industry", entry.industrySlug);
   }
   const searchHref = `${localeHref(locale, "search")}?${searchParams}`;
+  // Empty-state recovery explicitly broadens to all businesses in this city.
+  const citySearchHref = `${localeHref(locale, "search")}?${new URLSearchParams({ city: city.name })}`;
 
   return (
-    <main className="zw-container py-12">
-      <nav className="text-sm text-zinc-500">
-        <Link href={localeHref(locale)} className="hover:underline">
-          {dict.breadcrumbHome}
-        </Link>
-        <span className="mx-2">/</span>
-        <span>{city.name}</span>
-        <span className="mx-2">/</span>
-        <span>{entry.name}</span>
-      </nav>
+    <main className={styles.page} data-footer-surface="warm">
+      <SearchPageContext
+        pathname={pathname}
+        label={name}
+        initial={{
+          city: city.name,
+          industry: entry.kind === "industry" ? entry.industrySlug : "",
+          tagIds: entry.kind === "tag" ? [entry.tagId] : [],
+        }}
+        industries={industries}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
+      <div className="zw-container">
+        <Breadcrumb
+          ariaLabel={dict.industryDirectory.breadcrumbLabel}
+          items={breadcrumbItems}
+        />
 
-      <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-        {format(dict.category.heading, vars)}
-      </h1>
+        <header className={styles.header}>
+          <div className={styles.introduction}>
+            <h1 className={styles.title}>{format(t.heading, vars)}</h1>
+            {listings.length > 0 && <p className={styles.intro}>{t.intro}</p>}
+          </div>
+        </header>
 
-      <div className="mt-6 max-w-2xl space-y-4 text-zinc-700">
-        <p>{format(dict.category.body1, vars)}</p>
-        <p>{format(dict.category.body2, vars)}</p>
-        <p>{format(dict.category.body3, vars)}</p>
+        {listings.length > 0 ? (
+          <section className={styles.results} aria-labelledby="category-results">
+            <div className={styles.resultsHeader}>
+              <div className={styles.resultsSummary}>
+                <h2 id="category-results" className={styles.sectionTitle}>
+                  {format(resultHeading, { count: numbers.format(total), city: city.name })}
+                </h2>
+                {total > listings.length && (
+                  <p className={styles.count}>
+                    {format(t.resultsShowing, { count: numbers.format(listings.length), total: numbers.format(total) })}
+                  </p>
+                )}
+              </div>
+              <Link href={searchHref} prefetch={false} className={styles.mapLink}>
+                <Icon name="pin" size={18} />
+                {t.seeAll}
+              </Link>
+            </div>
+            <ul className={styles.grid} data-layout={sparseResults ? "rows" : "grid"}>
+              {listings.map((location) => {
+                const card = locationCardToData(location, locale, slugById);
+                return (
+                  <li key={location.id}>
+                    <BusinessCard
+                      variant="result"
+                      resultLayout={sparseResults ? "row" : "stacked"}
+                      b={card}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+            {total > listings.length && (
+              <div className={styles.moreResults}>
+                <Link href={searchHref} prefetch={false} className={styles.mapLink}>
+                  {t.viewAllResults}
+                  <Icon name="arrowR" size={18} />
+                </Link>
+              </div>
+            )}
+          </section>
+        ) : (
+          <section className={styles.empty} aria-labelledby="category-empty">
+            <div className={styles.emptyContent}>
+              <Icon name="search" size={24} className={styles.emptyIcon} />
+              <div className={styles.emptyCopy}>
+                <h2 id="category-empty" className={styles.sectionTitle}>{t.emptyTitle}</h2>
+                <p>{format(t.emptyBody, vars)}</p>
+              </div>
+            </div>
+            <Link href={citySearchHref} prefetch={false} className={styles.primaryLink}>
+              {format(t.exploreCity, vars)}
+              <Icon name="arrowR" size={18} />
+            </Link>
+          </section>
+        )}
       </div>
 
-      <section className="mt-10">
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h2 className="text-xl font-medium">
-            {format(dict.category.listHeading, vars)}
-          </h2>
-          {listings.length > 0 && (
-            <Link
-              href={searchHref}
-              className="text-sm font-medium text-zinc-700 underline underline-offset-2 hover:text-zinc-900"
+      <div className={styles.discovery}>
+        <div className="zw-container">
+          {relatedGroups.map((group) => (
+            <section
+              key={group.id}
+              className={group.industries ? styles.industries : styles.related}
+              aria-labelledby={`category-${group.id}`}
             >
-              {dict.category.seeAll}
-            </Link>
-          )}
-        </div>
-
-        {listings.length === 0 ? (
-          <p className="mt-3 rounded-md border border-zinc-200 p-4 text-sm text-zinc-500">
-            {format(dict.category.comingSoon, vars)}
-          </p>
-        ) : (
-          <ul className="mt-4 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((l) => (
-              <li key={l.id}>
-                <BusinessFeedCard b={locationCardToData(l, locale)} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {services.length > 0 && (
-        <section className="mt-12">
-          <h2 className="text-lg font-medium">
-            {format(dict.category.servicesHeading, vars)}
-          </h2>
-          <ul className="mt-3 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-sm text-zinc-700">
-            {services.map((service) => (
-              <li key={service.id}>
-                <Link
-                  href={localeHref(locale, city.slug, service.slug)}
-                  className="hover:underline"
-                >
-                  {service.name} {dict.preposition} {city.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="mt-12">
-        <h2 className="text-lg font-medium">
-          {format(dict.category.otherCitiesHeading, vars)}
-        </h2>
-        <ul className="mt-3 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-sm text-zinc-700">
-          {otherCities.map((c) => (
-            <li key={c.id}>
-              <Link
-                href={localeHref(locale, c.slug, entry.slug)}
-                className="hover:underline"
-              >
-                {entry.name} {dict.preposition} {c.name}
-              </Link>
-            </li>
+              <h2 id={`category-${group.id}`} className={styles.sectionTitle}>
+                {format(group.title, vars)}
+              </h2>
+              <ul role="list" className={group.industries ? styles.industryGrid : styles.linkGrid}>
+                {group.items.map((item) => {
+                  const visual = group.industries ? industryVisual(item.industrySlug) : null;
+                  return (
+                    <li key={item.id}>
+                      <Link
+                        href={localeHref(locale, city.slug, item.slug)}
+                        prefetch={false}
+                        className={group.industries ? styles.industryLink : styles.relatedLink}
+                      >
+                        {visual && <Icon name={visual.icon} size={24} color={visual.accent} />}
+                        <span>{label(item)}</span>
+                        <Icon name="chevR" size={14} />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           ))}
-        </ul>
-      </section>
 
-      {siblings.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-lg font-medium">
-            {format(dict.category.otherIndustriesHeading, vars)}
-          </h2>
-          <ul className="mt-3 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-sm text-zinc-700">
-            {siblings.map((t) => (
-              <li key={t.id}>
-                <Link
-                  href={localeHref(locale, city.slug, t.slug)}
-                  className="hover:underline"
-                >
-                  {t.name} {dict.preposition} {city.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+          <details className={`${styles.disclosure} ${motion.root} ${motion.native}`}>
+            <summary className={styles.disclosureSummary}>
+              <h2 className={styles.sectionTitle}>{format(t.otherCitiesHeading, vars)}</h2>
+              <Icon name="chevD" size={18} />
+            </summary>
+            <div className={motion.body}>
+              <p className={styles.disclosureIntro}>{format(t.otherCitiesIntro, vars)}</p>
+              <ul className={styles.disclosureGrid}>
+                {otherCities.map((otherCity) => (
+                  <li key={otherCity.id}>
+                    <Link
+                      href={localeHref(locale, otherCity.slug, entry.slug)}
+                      prefetch={false}
+                      className={styles.relatedLink}
+                    >
+                      <span>{otherCity.name}</span>
+                      <Icon name="chevR" size={14} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+        </div>
+      </div>
     </main>
   );
 }

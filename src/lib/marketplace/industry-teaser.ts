@@ -15,6 +15,7 @@
  */
 
 import type { Industry, IndustryTag } from "@/lib/api/marketplace/types";
+import { otherIndustryLast } from "./industry-order";
 
 export interface TeaserChip {
   industry: Industry;
@@ -47,8 +48,8 @@ const DAY_MS = 86_400_000;
 
 /**
  * The current day number: the shuffle seed. Impure by design and kept out of
- * render — read it through an external-store subscription (see `TagRail`) so a
- * component never depends on the clock directly.
+ * client render. Read it on the server and pass a stable order, or through an
+ * external-store subscription (see `TagRail`).
  */
 export function currentDaySeed(): number {
   return Math.floor(Date.now() / DAY_MS);
@@ -73,11 +74,11 @@ export function industryTeaserChips(
       tags.find((x) => x.slug === HERO_TAG_SLUG[industry.slug]) ?? tags[0];
     heroes.push({ industry, tag });
   }
-  return seededShuffle(heroes, daySeed);
+  return otherIndustryLast(seededShuffle(heroes, daySeed), ({ industry }) => industry.slug);
 }
 
 // Fisher–Yates over a mulberry32 stream — deterministic for a given seed.
-function seededShuffle<T>(items: T[], seed: number): T[] {
+export function seededShuffle<T>(items: readonly T[], seed: number): T[] {
   let s = seed >>> 0;
   const rand = () => {
     s = (s + 0x6d2b79f5) | 0;

@@ -8,7 +8,7 @@ import type {
   SearchListingsParams,
   SearchListingsResult,
 } from "@/lib/api/marketplace/types";
-import { SEARCH_LIMIT } from "@/components/search/constants";
+import { SEARCH_LIMIT, SEARCH_RADIUS_KM } from "@/components/search/constants";
 import { SearchContent } from "./_components/search-content";
 
 // Live marketplace data: never statically prerender (the backend may be down
@@ -77,6 +77,8 @@ export default async function SearchPage({ params, searchParams }: Props) {
   if (!isLocale(locale)) notFound();
 
   const sp = await searchParams;
+  const lat = num(sp.lat);
+  const lng = num(sp.lng);
 
   // Initial results from the URL params (build-safe: never throws; a failed
   // fetch resolves to EMPTY_RESULT below, with `initialResultFailed` telling
@@ -87,11 +89,14 @@ export default async function SearchPage({ params, searchParams }: Props) {
     tagIds: csvNums(sp.tagIds),
     city: one(sp.city),
     date: one(sp.date),
-    lat: num(sp.lat),
-    lng: num(sp.lng),
-    radius: num(sp.radius),
+    lat,
+    lng,
+    // Match the client search: never relax the requested city/service, and
+    // only apply the fixed radius when the URL supplies a complete point.
+    radius: lat != null && lng != null ? SEARCH_RADIUS_KM : undefined,
+    strict: true,
     limit: SEARCH_LIMIT,
-    offset: num(sp.offset) ?? 0,
+    offset: 0,
   };
 
   // The filter taxonomy and the result set are independent, so both requests

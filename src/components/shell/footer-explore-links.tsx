@@ -26,28 +26,25 @@ export function FooterExploreLinks({ locale, categories }: {
     ? findCity(locale, params.city) : undefined;
   const city = routeCity ?? findLocationCity(locale, location);
 
-  if (!city || categories.length === 0) {
-    return (
-      <Link href={localeHref(locale, "search")} className={styles.link}>
-        {dict.footer.findBusiness}
-      </Link>
-    );
-  }
+  if (!city || categories.length === 0) return null;
+
+  const cityLabel = format(dict.footer.inCity, { city: city.name });
 
   return (
-    <>
-      <span className={styles.city}>
-        {format(dict.footer.inCity, { city: city.name })}
-      </span>
-      {categories.map((category) => (
-        <Link
-          key={category.id}
-          href={localeHref(locale, city.slug, category.slug)}
-          className={styles.link}
-        >
-          {category.label}
-        </Link>
-      ))}
-    </>
+    <li className={styles.categories}>
+      <p className={styles.city}>{cityLabel}</p>
+      <ul className={styles.linkList} aria-label={cityLabel} role="list">
+        {categories.map((category) => (
+          <li key={category.id}>
+            <Link
+              href={localeHref(locale, city.slug, category.slug)}
+              className={styles.link}
+            >
+              {category.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </li>
   );
 }

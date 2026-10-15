@@ -126,9 +126,9 @@ the newest surface records the commitment: "warm canvas, oklch warm-gray text
 ramp, terracotta primary, Geist Sans, photo-forward cards with hover-lift +
 zoom, stagger rise-in as the one authored motion."
 
-There is no dark mode; the system is one light world. Scrollbars are hidden
-site-wide (surfaces remain scrollable). All copy exists in both English and
-Romanian.
+There is no dark mode; the system is one light world. Pages and vertical
+results panels use native scrollbars. Horizontal carousels can hide their
+internal scrollbars. All copy exists in both English and Romanian.
 
 **Key Characteristics:**
 - Warm paper canvas; white cards; ink pills; terracotta as the only accent
@@ -214,7 +214,7 @@ sentence. It labels, indexes, and counts; the sans speaks.
 A single centered container with **1400px of usable content** (`--content-max`),
 applied via `.zw-container`. Its border-box maximum adds the two `28px` gutters
 (`max-width: calc(var(--content-max) + 2 * var(--gutter))`). The gutter
-compresses responsively (20px ≤920px, 16px ≤600px) and the fixed frosted nav is
+compresses responsively (20px ≤920px, 16px ≤600px) and the sticky opaque nav is
 `68px` tall (`--nav-h`, 60px ≤920px); sticky elements offset against
 `calc(var(--nav-h) + N)`.
 
@@ -261,8 +261,8 @@ Layered but quiet. Surfaces rest on hairlines and *small* ambient shadows
 reserved as a **response** — hover-lift raises a card 3px and swaps in
 `--sh-lg`, buttons lift 1px with their own hover shadow, the pricing receipt
 floats to `--sh-xl`. Depth is also conveyed materially: frosted overlays
-(`.zv-frost` — 82% white + 20px blur + saturate(180%) for the nav and mobile
-booking bar; 92% white + 10px blur for pills floating on photos) and gradient
+(`.zv-frost` — 82% white + 20px blur + saturate(180%) for mobile tabs and
+booking bars; 92% white + 10px blur for pills floating on photos) and gradient
 scrims on photography (top-down 30% black for control legibility, bottom-up to
 88% black under overlay-card text).
 
@@ -344,7 +344,8 @@ with a mono uppercase label.
 - **Switch:** 46×28px pill, `--c-300` off / ink on, white knob springs 18px (`--ease-spring`).
 
 ### Navigation
-- **Top bar:** fixed, `--nav-h` (68px), frosted (`.zv-frost`) with a `.zv-hair` inset hairline. Text links (`.zw-navlink`) are 14px/600 at `--c-600`; hover and active simply darken to `--c-900` — color alone carries the state, no underline or pill. A segmented Airbnb-style search pill (What/Where/When, shade-fill segments on hover, circular terracotta "go") pops into the bar (`.zw-pill-pop`, spring) after scrolling past the home hero.
+- **Top bar:** sticky, `--nav-h` (68px), with an opaque `--c-canvas` background and a subtle bottom hairline. The background stays solid before and after scrolling, on desktop and mobile. Text links (`.zw-navlink`) are 14px/600 at `--c-600`; hover and active simply darken to `--c-900` — color alone carries the state, no underline or pill.
+- **Header search:** a 52px segmented pill at viewport widths of 1100px and above, with a viewport-based width of 400–480px that stays consistent across English, Romanian and active query values. Three equal fields use 10px mono labels, 14px values, visible focus rings and ellipsis for long selections. The terracotta search action is 44px square. At 601–1099px, a compact labelled control (180–220px) opens the same search flow; phones up to 600px use a 44px search icon. On home, the control appears after the hero search scrolls away, with a short 180ms rise/fade when reduced motion is off. Field hover uses a faint inset highlight, without changing the outer shadow or showing native tooltips. Press feedback stays subtle; widths never animate. Styles live in `site-header.module.css`.
 - **Tabs** (Journal `.zw-jtab`, detail pages): 14.5px/600 quiet text (inactive `--c-500`, hover `--c-800`, active `--c-900`) over a 1px hairline rail, with a 2px ink indicator that springs (`0.42s var(--ease-spring)`) between tabs; mono micro-counts sit beside labels and turn terracotta when active. Tab panels enter with `.zv-tab-in` (6px rise + fade, 0.32s).
 - **Pagination:** 42px mono pill buttons; active = ink; hover = shade + stronger hairline.
 
@@ -469,5 +470,5 @@ reduce` via a global clamp.
 - **Don't** use `--c-500` for body-size secondary text — it fails the 4.5:1 contrast floor on the canvas.
 - **Don't** back the page with white or tint content surfaces with status color; the page is `--c-canvas`, cards are white, and status arrives as a 6px dot.
 - **Don't** introduce a second accent, gray-hex borders (hairlines are ink-alpha), pure-black shadows (shadow color is `rgba(28,28,26,…)`), or a dark mode.
-- **Don't** show visible scrollbars, orphan a dot separator at a line end, or let a card grid orphan a lone third card (use the explicit 3→2→1 grid).
+- **Don't** hide native page scrollbars, orphan a dot separator at a line end, or let a card grid orphan a lone third card (use the explicit 3→2→1 grid).
 - **Don't** exceed the one authored motion grammar — no parallax, no continuous ambient animation beyond the sanctioned pulses (live dots, radar rings), nothing that ignores `prefers-reduced-motion`.

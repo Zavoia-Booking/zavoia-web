@@ -1,0 +1,135 @@
+.section {
+  padding-top: 44px;
+  container: industry-rail / inline-size;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid > li {
+  min-width: 0;
+}
+
+/* Keep See all visible while adapting the number of discoveries to the
+   available content width. The server-selected order never changes. */
+.grid > li:nth-child(n + 8):not(:last-child) {
+  display: none;
+}
+
+@container industry-rail (min-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+
+  .grid > li:nth-child(n + 8):nth-child(-n + 9) {
+    display: list-item;
+  }
+}
+
+@container industry-rail (min-width: 1360px) {
+  .grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .grid > li:nth-child(n + 8):not(:last-child) {
+    display: list-item;
+  }
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  padding: 8px 4px;
+  border-radius: 12px;
+  color: var(--c-800);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border: 1px solid oklch(25% .005 70 / .08);
+  border-radius: 50%;
+  background: var(--c-50);
+  box-shadow: var(--sh-sm);
+  transition: transform 180ms cubic-bezier(.22, 1, .36, 1), background-color 180ms ease-out;
+}
+
+.allGlyph {
+  color: var(--c-canvas);
+  background: var(--c-ink);
+  border-color: var(--c-ink);
+}
+
+.label {
+  max-width: 18ch;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--p-500);
+  outline-offset: 4px;
+}
+
+.tile:active .glyph {
+  transform: scale(.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover .glyph {
+    transform: translateY(-2px);
+  }
+}
+
+@container industry-rail (max-width: 920px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .section {
+    padding-top: 32px;
+  }
+}
+
+@container industry-rail (max-width: 560px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 12px;
+  }
+
+  .grid > li:nth-child(n + 6):not(:last-child) {
+    display: none;
+  }
+
+  .label {
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph {
+    transition: none;
+  }
+}

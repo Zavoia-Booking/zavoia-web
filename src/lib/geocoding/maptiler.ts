@@ -133,11 +133,20 @@ function featureToCity(feature: MapTilerFeature): CityResult | null {
 export async function searchCities(
   query: string,
   signal?: AbortSignal,
+  options?: { exact?: boolean; countryCode?: string },
 ): Promise<CityResult[]> {
   if (query.trim().length < 2) return [];
   if (!KEY) return [];
 
-  const url = `${BASE}/${encodeURIComponent(query)}.json?key=${KEY}&autocomplete=true&limit=8&types=${SEARCH_TYPES}`;
+  const params = new URLSearchParams({
+    key: KEY,
+    autocomplete: options?.exact ? "false" : "true",
+    limit: "8",
+    types: options?.exact ? REVERSE_TYPES : SEARCH_TYPES,
+  });
+  if (options?.exact) params.set("fuzzyMatch", "false");
+  if (options?.countryCode) params.set("country", options.countryCode.toLowerCase());
+  const url = `${BASE}/${encodeURIComponent(query)}.json?${params}`;
 
   try {
     const res = await fetch(url, { signal });
@@ -154,6 +163,29 @@ export async function searchCities(
     // Includes AbortError — treated as "no results", never surfaced.
     return [];
   }
+}
+
+/** Resolve a city-only link for the camera, without changing its search scope.
+ * Ambiguous or unavailable matches stay unresolved rather than picking another city.
+ */
+export async function resolveCity(
+  query: string,
+  signal: AbortSignal,
+  options?: { countryCode?: string; aliases?: string[] },
+): Promise<CityResult | null> {
+  const normalize = (name: string) => name.normalize("NFD")
+    .replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  const names = new Set([query, ...(options?.aliases ?? [])].map(normalize));
+  const results = await searchCities(query, signal, {
+    exact: true,
+    countryCode: options?.countryCode,
+  });
+  const matches = results.filter((city) => names.has(normalize(city.city)));
+  // A municipality/locality is more specific than a region with the same name.
+  // Regions remain valid for cities such as Bucharest, which is itself a region.
+  const cities = matches.filter((city) => /^(municipality|locality)\./.test(city.id));
+  const candidates = cities.length ? cities : matches;
+  return candidates.length === 1 ? candidates[0] : null;
 }
 
 // ── Reverse geocoding ──────────────────────────────────────────────────────

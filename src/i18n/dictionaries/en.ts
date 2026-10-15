@@ -95,19 +95,42 @@ export const en: {
     account: string;
     accountAriaLabel: string;
   };
+  industryDirectory: {
+    breadcrumbLabel: string;
+    filterLabel: string;
+    filterPlaceholder: string;
+    clearSearch: string;
+    resultsOne: string;
+    resultsMany: string;
+    noResultsTitle: string;
+    noResultsBody: string;
+    pageTitle: string;
+    pageDescription: string;
+    heading: string;
+    intro: string;
+    indexLabel: string;
+    viewIndustryLabel: string;
+    emptyTitle: string;
+    emptyBody: string;
+  };
   category: {
     titleTemplate: string;
     descriptionTemplate: string;
     heading: string;
-    body1: string;
-    body2: string;
-    body3: string;
-    listHeading: string;
-    comingSoon: string;
+    intro: string;
+    resultsHeading: { one: string; few: string; other: string };
+    resultsShowing: string;
+    viewAllResults: string;
+    emptyTitle: string;
+    emptyBody: string;
+    exploreCity: string;
     seeAll: string;
     servicesHeading: string;
     otherCitiesHeading: string;
+    otherCitiesIntro: string;
     otherIndustriesHeading: string;
+    exploreIndustriesHeading: string;
+    relatedServicesHeading: string;
   };
   blog: {
     listTitle: string;
@@ -791,7 +814,8 @@ export const en: {
     when: string;
     whatSummary: string;
     whatPlaceholder: string;
-    browseByCategory: string;
+    browseByIndustry: string;
+    seeAllIndustries: string;
     allInCategory: string;
     seeMoreTags: string;
     seeLessTags: string;
@@ -908,31 +932,27 @@ export const en: {
   industryTags: Record<string, string>;
   footer: {
     tagline: string;
+    navigationLabel: string;
     explore: string;
     findBusiness: string;
+    browseIndustries: string;
     inCity: string;
-    zavoia: string;
     support: string;
-    about: string;
     journal: string;
     forBusiness: string;
+    businessOverview: string;
+    webStudio: string;
     pricing: string;
-    businessDashboard: string;
+    businessSignIn: string;
     helpCentre: string;
-    myTickets: string;
+    myAppointments: string;
     cancellation: string;
-    offers: string;
     privacy: string;
     terms: string;
     rights: string;
-    langLine: string;
-    catHair: string;
-    catNails: string;
-    catMassage: string;
-    catDental: string;
-    catAuto: string;
-    catCleaning: string;
     cookieSettings: string;
+    consumerProtection: string;
+    alternativeDisputeResolution: string;
   };
   consent: {
     title: string;
@@ -990,7 +1010,7 @@ export const en: {
   mobileTabs: {
     explore: string;
     search: string;
-    bookings: string;
+    appointments: string;
     saved: string;
     help: string;
     offers: string;
@@ -1585,7 +1605,7 @@ export const en: {
     heading: "Zavoia — Booking & Discovery in Romania",
     intro:
       "Browse barbers, nail salons, hair salons, massage and spa services in every major city.",
-    heroTagline: "Local bookings, made simple.",
+    heroTagline: "Local appointments, made simple.",
   },
   homeSections: {
     hero: {
@@ -1661,7 +1681,7 @@ export const en: {
     },
     app: {
       kicker: "The Zavoia app",
-      title: "Your bookings, in your pocket",
+      title: "Your appointments, in your pocket",
       sub: "Live slots, two-tap rebooking and reminders that actually remind — the whole marketplace, wherever you are",
       appStore: "App Store",
       googlePlay: "Google Play",
@@ -1686,24 +1706,47 @@ export const en: {
     account: "My account",
     accountAriaLabel: "Go to my account",
   },
+  industryDirectory: {
+    breadcrumbLabel: "Breadcrumb",
+    filterLabel: "Find an industry or service",
+    filterPlaceholder: "Try hair, massage or car wash",
+    clearSearch: "Clear search",
+    resultsOne: "{count} industry",
+    resultsMany: "{count} industries",
+    noResultsTitle: "No matching industries or services",
+    noResultsBody: "Try a different word, or clear your search to explore all industries.",
+    pageTitle: "Explore all industries",
+    pageDescription: "Browse industries and services on Zavoia. Find local businesses and book your next appointment.",
+    heading: "All industries",
+    intro: "Choose an industry or service for your next appointment.",
+    indexLabel: "Industries",
+    viewIndustryLabel: "Explore {industry}",
+    emptyTitle: "No industries to show yet",
+    emptyBody: "You can still explore businesses on Zavoia.",
+  },
   category: {
     titleTemplate: "{industry} in {city}",
     descriptionTemplate:
-      "Find and book the best {industryLower} in {city}. Compare services, prices and availability on Zavoia.",
+      "Explore {industryLower} in {city}. View businesses, compare services and prices, and book an appointment on Zavoia.",
     heading: "{industry} in {city}",
-    body1:
-      "Looking for {industryLower} in {city}? Zavoia helps you discover and book trusted local spots — compare services, prices and availability, then book online in a few clicks.",
-    body2:
-      "Every business listed in {city} is independently operated. Availability and pricing are kept up to date by the owners themselves, so what you see is what you book.",
-    body3:
-      "Want to shop around? Zavoia also covers {industryLower} in other Romanian cities — see the related links below.",
-    listHeading: "{industry} in {city}",
-    comingSoon:
-      "Businesses coming soon — Zavoia is onboarding {industryLower} in {city} now.",
-    seeAll: "See all on the map",
-    servicesHeading: "{industry} services in {city}",
+    intro: "Check reviews and opening hours, then explore services, prices and appointment options.",
+    resultsHeading: {
+      one: "{count} location in {city}",
+      few: "{count} locations in {city}",
+      other: "{count} locations in {city}",
+    },
+    resultsShowing: "Showing {count} of {total}",
+    viewAllResults: "View all results on the map",
+    emptyTitle: "No matching businesses",
+    emptyBody: "Try another industry or service below, or explore other businesses in {city}.",
+    exploreCity: "Explore {city}",
+    seeAll: "View on map",
+    servicesHeading: "Explore services in {city}",
     otherCitiesHeading: "{industry} in other cities",
-    otherIndustriesHeading: "Other services in {city}",
+    otherCitiesIntro: "Search for {industry} in another city. Results depend on the businesses listed there.",
+    otherIndustriesHeading: "Other industries in {city}",
+    exploreIndustriesHeading: "Explore industries in {city}",
+    relatedServicesHeading: "More to explore in {city}",
   },
   blog: {
     listTitle: "Blog — Zavoia",
@@ -1925,7 +1968,7 @@ export const en: {
       retryIn: "Try again in {seconds}s",
       unverifiedTitle: "Verify your email",
       unverifiedBody:
-        "We sent a link to your inbox. Verifying keeps your bookings and reminders reaching you.",
+        "We sent a link to your inbox. Verify your email to receive appointment updates and reminders.",
     },
     forgotPassword: {
       pageTitle: "Reset your password — Zavoia",
@@ -2238,7 +2281,7 @@ export const en: {
     reviewsCount: "{count} reviews",
     reviewsCountOne: "{count} review",
     onlineBookingUnavailable:
-      "This business doesn’t take online bookings — call them to book or ask about availability",
+      "This business doesn’t accept appointments online. Call them to book or ask about availability.",
     closed: "Closed",
     call: "Call",
     directions: "Directions",
@@ -2315,12 +2358,12 @@ export const en: {
     serviceCountOne: "{count} service · {duration}",
     dateLabel: "Date",
     todayLabel: "Today",
-    confirmBooking: "Confirm booking",
+    confirmBooking: "Confirm appointment",
     booking: "Booking…",
     signInToBook: "Sign in to book",
     successTitle: "You're booked",
     successBody: "{services} at {business}",
-    pendingTitle: "Booking requested",
+    pendingTitle: "Appointment requested",
     pendingBody: "{services} at {business} — awaiting confirmation.",
     viewAppointment: "View appointment",
     done: "Done",
@@ -2443,7 +2486,8 @@ export const en: {
     when: "When?",
     whatSummary: "All services",
     whatPlaceholder: "All services and businesses",
-    browseByCategory: "Browse by category",
+    browseByIndustry: "Browse by industry",
+    seeAllIndustries: "See all industries",
     allInCategory: "All",
     seeMoreTags: "See more",
     seeLessTags: "See less",
@@ -2493,7 +2537,7 @@ export const en: {
     filterOpenNow: "Open now",
     filterAvailableToday: "Available today",
     emptyTitle: "No places match those filters",
-    emptyBody: "Try widening your filters or clearing the category.",
+    emptyBody: "Try changing or clearing your filters.",
     clearFilters: "Clear filters",
     showOnMap: "Map",
     showList: "List",
@@ -2698,33 +2742,28 @@ export const en: {
     "phone-electronics-repair": "Phone & Electronics Repair",
   },
   footer: {
-    tagline:
-      "Book trusted local professionals — beauty, health, home and more — in a couple of clicks.",
+    tagline: "Find local services. Book your next appointment online.",
+    navigationLabel: "Footer",
     explore: "Explore",
     findBusiness: "Find a business",
+    browseIndustries: "Browse all industries",
     inCity: "In {city}",
-    zavoia: "Zavoia",
-    support: "Support",
-    about: "About",
+    support: "Help & support",
     journal: "Journal",
     forBusiness: "For business",
+    businessOverview: "Zavoia for business",
+    webStudio: "Web Studio",
     pricing: "Pricing",
-    businessDashboard: "Business dashboard",
+    businessSignIn: "Business sign in",
     helpCentre: "Help centre",
-    myTickets: "My tickets",
+    myAppointments: "My appointments",
     cancellation: "Cancellation policy",
-    offers: "Offers",
     privacy: "Privacy",
-    terms: "Terms",
+    terms: "Terms & policies",
     rights: "© 2026 ZAVOIA",
-    langLine: "ENGLISH (UK) · GBP £",
-    catHair: "Hair",
-    catNails: "Nails",
-    catMassage: "Massage",
-    catDental: "Dental",
-    catAuto: "Auto",
-    catCleaning: "Cleaning",
-    cookieSettings: "Cookies",
+    cookieSettings: "Cookie settings",
+    consumerProtection: "Consumer protection (ANPC)",
+    alternativeDisputeResolution: "Alternative dispute resolution (SAL) with ANPC",
   },
   consent: {
     title: "Cookie consent",
@@ -2780,12 +2819,12 @@ export const en: {
     errorTitle: "Couldn't load notifications",
     errorBody: "Check your connection and try again.",
     emptyTitle: "You're all caught up",
-    emptyBody: "New bookings, reminders and updates will show up here.",
+    emptyBody: "New appointments, reminders and updates will show up here.",
   },
   mobileTabs: {
     explore: "Explore",
     search: "Search",
-    bookings: "Bookings",
+    appointments: "Appointments",
     saved: "Saved",
     help: "Help",
     offers: "Offers",
@@ -2844,7 +2883,7 @@ export const en: {
     wired: {
       kicker: "The unfair part",
       title: "Every other builder starts with an empty page. Yours starts with your business.",
-      sub: "You already keep your prices, hours, team and photos in Zavoia, because that is what takes your bookings. Web Studio reads them. Nothing to re-type, nothing to keep true in two places.",
+      sub: "You already keep your prices, hours, team and photos in Zavoia to manage your appointments. Web Studio reads them. Nothing to re-type, nothing to keep true in two places.",
       ledgerTitle: "Already in your Zavoia",
       rows: {
         services: "Services & prices",
@@ -2992,7 +3031,7 @@ export const en: {
     dashboardToast: "Opening the Zavoia Business dashboard…",
     hero: {
       kicker: "Zavoia for business",
-      titleLead: "Your bookings.",
+      titleLead: "Your appointments.",
       titleMid: "Your clients.",
       titleMuted: "Your revenue.",
       subcopy:
@@ -3034,7 +3073,7 @@ export const en: {
       kicker: "One workspace",
       title: "Run your whole business from one dashboard",
       subcopy:
-        "Manage bookings, calendars, team members, locations, reviews, and new client requests — all in one place.",
+        "Manage appointments, calendars, team members, locations, reviews, and new client requests — all in one place.",
       tiles: {
         diary: "Today's diary",
         demand: "New-client demand",
@@ -3096,13 +3135,13 @@ export const en: {
       subcopyLead:
         "Big marketplaces can bring new clients, but they often take a cut and control the relationship. Booking software gives you control, but doesn’t help clients find you. Zavoia gives you both: customers discover you ",
       subcopyEm: "and",
-      subcopyTail: " direct bookings, with no commission.",
+      subcopyTail: " book appointments directly, with no commission.",
       colZavoia: "Zavoia",
       colMarket: "Marketplace apps",
       colSoft: "Booking software",
       rows: [
         {
-          label: "Commission on bookings",
+          label: "Commission on appointments",
           zav: "€0 — ever",
           market: "Often 15–30%",
           soft: "€0",
@@ -3137,7 +3176,7 @@ export const en: {
         "Your first 2 weeks are free · Set up in minutes · No commission, ever.",
     },
     setup: {
-      title: "Start taking bookings today",
+      title: "Start taking appointments today",
       trialBadge: "Your first 2 weeks are free",
       steps: [
         {
@@ -3152,8 +3191,8 @@ export const en: {
         },
         {
           n: "03",
-          title: "Start getting bookings",
-          body: "Show up in local search, accept bookings online, and make it easy for clients to come back.",
+          title: "Start getting appointments",
+          body: "Show up in local search, accept appointments online, and make it easy for clients to come back.",
         },
       ],
     },
@@ -3247,20 +3286,20 @@ export const en: {
   pricing: {
     pageTitle: "Pricing — Zavoia",
     pageDescription:
-      "One plan, priced per bookable team member. Every feature included, €{monthly} per member a month, billed monthly. No commission on your bookings, ever.",
+      "One plan, priced per bookable team member. Every feature included, €{monthly} per member a month, billed monthly. No commission on your appointments, ever.",
     head: {
       kicker: "Pricing",
       title: "One plan. Priced by team, not by tier.",
-      sub: "Every feature included, €{monthly} per bookable team member per month, billed monthly. No commission on your bookings, ever.",
+      sub: "Every feature included, €{monthly} per bookable team member per month, billed monthly. No commission on your appointments, ever.",
     },
     plan: {
       trialBadge: "{trial}-day free trial",
       perMember: "per bookable team member",
       perMonth: "per month",
       blurb:
-        "Every feature, for every business — from a one-chair studio to a twenty-bay garage. No commission on bookings. No setup fee. No contract.",
+        "Every feature, for every business — from a one-chair studio to a twenty-bay garage. No commission on appointments. No setup fee. No contract.",
       features: [
-        "Unlimited bookings & clients",
+        "Unlimited appointments & clients",
         "Marketplace listing across your city",
         "Reminders, deposits & no-show protection",
         "Payments with daily payouts",
@@ -3306,7 +3345,7 @@ export const en: {
         },
         {
           q: "Is there really no commission or booking fee?",
-          a: "Really. The subscription is our entire revenue from your business. Bookings, rebookings, and clients who found you through the marketplace all cost the same: nothing extra.",
+          a: "Really. The subscription is our entire revenue from your business. Appointments, rebookings, and clients who found you through the marketplace all cost the same: nothing extra.",
         },
         {
           q: "What happens when my team changes size?",
@@ -3314,7 +3353,7 @@ export const en: {
         },
         {
           q: "How does the free trial work?",
-          a: "Full product, every feature, {trial} days, no card required to start. Take real bookings during the trial — if you leave, your data exports with you.",
+          a: "Full product, every feature, {trial} days, no card required to start. Take real appointments during the trial — if you leave, your data exports with you.",
         },
         {
           q: "Are prices inclusive of VAT?",
@@ -3334,7 +3373,7 @@ export const en: {
     },
   },
   appointments: {
-    kicker: "Your bookings",
+    kicker: "Your appointments",
     title: "Appointments",
     upcomingWord: "UPCOMING",
     pastWord: "PAST",
@@ -3391,7 +3430,7 @@ export const en: {
       cta: "Explore places near you",
     },
     gate: {
-      title: "Keep every booking in one place.",
+      title: "Keep every appointment in one place.",
       body: "Sign in to see your upcoming and past appointments, with reminders, reschedules and directions.",
       secondary: "Explore places",
     },
@@ -3465,7 +3504,7 @@ export const en: {
     },
     signedOutTitle: "Sign in to view this appointment.",
     signedOutBody:
-      "Your bookings are private. Sign in to see the details, reschedule or get directions.",
+      "Your appointments are private. Sign in to see the details, reschedule or get directions.",
     explorePlaces: "Explore places",
     notFound: "Appointment not found",
     backToAppointments: "Back to appointments",
@@ -3489,7 +3528,7 @@ export const en: {
       {
         id: "booking",
         icon: "cal",
-        label: "Booking & appointments",
+        label: "Appointments",
         items: [
           {
             q: "How do I book an appointment?",
@@ -3501,7 +3540,7 @@ export const en: {
           },
           {
             q: "How do recurring appointments work?",
-            a: "Series bookings repeat on a cadence you choose and show progress like \"2 of 4\" so you can track them.",
+            a: "Recurring appointments repeat on a cadence you choose and show progress like \"2 of 4\" so you can track them.",
           },
         ],
       },
@@ -3549,7 +3588,7 @@ export const en: {
         items: [
           {
             q: "What does a verified business mean?",
-            a: "Every business on Zavoia is identity-checked before it can accept bookings.",
+            a: "Every business on Zavoia is identity-checked before it can accept appointments.",
           },
         ],
       },
@@ -3605,7 +3644,7 @@ export const en: {
     cancel: {
       title: "Cancel this appointment?",
       keep: "Keep it",
-      confirm: "Cancel booking",
+      confirm: "Cancel appointment",
       successToast: "Appointment cancelled",
       error: "We couldn't cancel your appointment. Please try again.",
       windowPassed:
@@ -3674,7 +3713,7 @@ export const en: {
       businessTitlePost: " on Zavoia.",
       createAccount: "Create business account",
       offerFirst: "Create your website.",
-      offerSecond: "Take bookings online.",
+      offerSecond: "Take appointments online.",
       businessDescription: "Show your services, prices and team. Manage your appointments and website in one place.",
       trialDetail: "{days} days free on Standard. No card required.",
       websiteDetail: "Website publishing is included with Plus.",

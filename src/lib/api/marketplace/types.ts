@@ -1593,7 +1593,12 @@ export interface SitemapEntry {
  * `brands` → /brand/<slug>, `websites` → /<businessSlug>.
  */
 export interface MarketplaceSitemap {
-  locations: SitemapEntry[];
+  locations: Array<SitemapEntry & {
+    /** Present for searchable locations; shares the public search index.
+     * Optional during API rollout. Never infer eligibility when absent.
+     */
+    category?: { city: string | null; industryId: number | null; tagIds: number[] };
+  }>;
   brands: SitemapEntry[];
   websites: SitemapEntry[];
 }

@@ -1,7 +1,9 @@
 .footer {
   --footer-line: oklch(25% .005 70 / .14);
   padding-block: clamp(72px, 8vw, 128px) 24px;
-  background: var(--c-canvas);
+  background:
+    linear-gradient(var(--c-canvas), transparent) top / 100% clamp(180px, 18vw, 320px) no-repeat,
+    var(--surface-warm);
   color: var(--c-ink);
 }
 
@@ -60,11 +62,11 @@
 .heading {
   margin: 0 0 18px;
   color: var(--c-ink);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.5;
-  letter-spacing: .03em;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -.02em;
 }
 
 .trigger {
@@ -72,10 +74,25 @@
 }
 
 .columnContent {
+  display: block;
+}
+
+.linkList {
   display: flex;
-  align-items: flex-start;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linkList > li {
+  min-width: 0;
+}
+
+.categories {
+  margin-top: 8px;
 }
 
 .link {
@@ -100,18 +117,34 @@
 }
 
 .city {
-  margin-top: 6px;
+  margin: 0 0 6px;
   padding-block: 4px;
   color: var(--c-700);
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 500;
   line-height: 1.5;
 }
 
+.salLink {
+  display: inline-flex;
+  flex: none;
+  width: 250px;
+  height: 50px;
+  cursor: pointer;
+}
+
+/* Ordin 449/2022, amended by Ordin 270/2026: display at 250 × 50px. */
+.salBadge {
+  display: block;
+  width: 250px;
+  height: 50px;
+  object-fit: contain;
+}
+
 .base {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  flex-wrap: wrap;
   gap: 12px 32px;
   min-height: 88px;
   padding-block: 20px;
@@ -152,6 +185,7 @@
 }
 
 .mark:focus-visible,
+.salLink:focus-visible,
 .link:focus-visible,
 .trigger:focus-visible {
   outline: 2px solid var(--p-500);
@@ -206,10 +240,6 @@
 
   .heading {
     margin: 0;
-    font-family: var(--font-sans);
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: -.01em;
   }
 
   .desktopTitle {
@@ -257,20 +287,43 @@
     inset: 0 auto 0 50%;
     width: 1px;
     transform: translateX(-50%);
-    transition: transform 180ms cubic-bezier(.22, 1, .36, 1);
+    transition: transform var(--disclosure-chevron) var(--disclosure-ease);
   }
 
   .trigger[data-state="open"] .plus::after {
     transform: translateX(-50%) scaleY(0);
   }
 
-  .columnContent {
-    gap: 0;
-    padding-bottom: 20px;
+  .columnMotion {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      grid-template-rows var(--disclosure-duration) var(--disclosure-ease),
+      visibility 0s linear var(--disclosure-duration);
   }
 
-  .columnContent[data-state="closed"] {
-    display: none;
+  .columnMotion > div {
+    opacity: 0;
+    transition: opacity var(--disclosure-fade-out) var(--disclosure-ease);
+  }
+
+  .columnContent[data-state="open"] > .columnMotion {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    pointer-events: auto;
+    transition-delay: 0s;
+  }
+
+  .columnContent[data-state="open"] > .columnMotion > div {
+    opacity: 1;
+    transition-duration: var(--disclosure-fade-in);
+  }
+
+  .linkList {
+    gap: 0;
+    padding-bottom: 20px;
   }
 
   .columnContent .link {
@@ -288,7 +341,7 @@
   .legal {
     grid-column: 1 / -1;
     grid-row: 1;
-    gap: 0 24px;
+    gap: 8px 24px;
   }
 
   .rights {
@@ -307,6 +360,12 @@
   .footer {
     padding-block: 64px max(20px, env(safe-area-inset-bottom));
   }
+}
+
+/* City/industry discovery already provides the warm lead-in to the footer. */
+:global(body:has(main[data-footer-surface="warm"])) .footer {
+  padding-top: 24px;
+  background: var(--c-shade);
 }
 
 @media (prefers-reduced-motion: reduce) {

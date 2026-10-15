@@ -29,6 +29,9 @@
   --c-stone:  #6B6862;
   --c-ink:    #1C1C1A;
 
+  /* Shared warm surface for the home hero and marketplace footer. */
+  --surface-warm: radial-gradient(135% 95% at 50% -12%, #FDFCF8 0%, #F4F1E8 48%, var(--c-shade) 100%);
+
   /* Primary terracotta */
   --p-100: oklch(94% 0.05 38);
   --p-200: oklch(88% 0.08 38);
@@ -162,10 +165,6 @@
 * { box-sizing: border-box; }
 
 html, body { margin: 0; }
-
-/* Hidden scrollbars site-wide (still scrollable) */
-html { scrollbar-width: none; -ms-overflow-style: none; }
-html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
 body {
   font-family: var(--font-sans);
@@ -941,9 +940,8 @@ img.zw-img--in { opacity: 1; }
    user-dot pulse (ported additively from docs/web.css)
    ───────────────────────────────────────────── */
 
-/* Vertical scroller that hides its scrollbar (results panel) */
-.zw-scroll-y { overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
-.zw-scroll-y::-webkit-scrollbar { width: 0; height: 0; display: none; }
+/* Vertical results and panels use the browser's native scrollbar. */
+.zw-scroll-y { overflow-y: auto; }
 
 /* "Updating…" count pulse while results refetch */
 @keyframes zv-updating-pulse {

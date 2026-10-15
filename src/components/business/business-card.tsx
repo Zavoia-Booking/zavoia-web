@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { CSSProperties, KeyboardEvent } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Img } from "@/components/ui/image";
+import styles from "./business-card.module.css";
 import { CatDot } from "@/components/ui/cat-dot";
 import { Rating } from "@/components/ui/rating";
 import { HeartButton } from "@/components/ui/heart-button";
@@ -11,6 +12,9 @@ import type { BusinessCardData } from "./types";
 
 export interface BusinessCardProps {
   b: BusinessCardData;
+  /** Results expose location identity and address without changing home cards. */
+  variant?: "default" | "result";
+  resultLayout?: "row" | "stacked";
   onClick?: () => void;
   favorited?: boolean;
   /** Favorite handler — the heart only renders when provided (signed-in). */
@@ -31,10 +35,29 @@ const ROOT_STYLE: CSSProperties = {
 
 // Web grid card — faithful desktop port of the mobile editorial card.
 // Shows business-level data only. Ported from ZwBusinessCard.
-export function BusinessCard({ b, onClick, favorited, onFavorite }: BusinessCardProps) {
+export function BusinessCard({
+  b,
+  onClick,
+  favorited,
+  onFavorite,
+  variant = "default",
+  resultLayout = "row",
+}: BusinessCardProps) {
   const isOpen = b.status === "open" || b.status === "24-7" || b.status === "24/7";
   const is247 = b.status === "24-7" || b.status === "24/7";
   const { dict } = useTranslation();
+
+  if (variant === "result") {
+    return (
+      <BusinessResultCard
+        b={b}
+        onClick={onClick}
+        favorited={favorited}
+        onFavorite={onFavorite}
+        resultLayout={resultLayout}
+      />
+    );
+  }
 
   const inner = (
     <>
@@ -171,5 +194,73 @@ export function BusinessCard({ b, onClick, favorited, onFavorite }: BusinessCard
     >
       {inner}
     </div>
+  );
+}
+
+
+/** A result is a location to visit, with its parent business visible for trust. */
+function BusinessResultCard({
+  b,
+  onClick,
+  favorited,
+  onFavorite,
+  resultLayout,
+}: BusinessCardProps) {
+  const locationName = b.locationName?.trim() || b.name;
+  const businessName = b.businessName?.trim();
+  const showBusinessName = businessName && businessName.toLowerCase() !== locationName.toLowerCase();
+  const imageName = showBusinessName ? `${businessName}, ${locationName}` : locationName;
+
+  const content = (
+    <>
+      <div className={styles.media}>
+        <Img
+          src={b.image}
+          alt={imageName}
+          style={{ width: "100%", height: "100%" }}
+        />
+      </div>
+      <div className={styles.details}>
+        <h3 className={styles.name}>{locationName}</h3>
+        {showBusinessName && <p className={styles.business}>{businessName}</p>}
+        {b.address && <p className={styles.address}>{b.address}</p>}
+        <div className={styles.facts}>
+          {b.rating != null && <Rating rating={b.rating} reviews={b.reviews} size={16} />}
+          {b.distance && <span>{b.distance}</span>}
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <article className={`${styles.result} ${resultLayout === "stacked" ? styles.stacked : ""}`}>
+      {b.href ? (
+        <Link href={b.href} className={styles.resultLink}>
+          {content}
+        </Link>
+      ) : onClick ? (
+        <div
+          role="button"
+          tabIndex={0}
+          className={styles.resultLink}
+          onClick={onClick}
+          onKeyDown={(event: KeyboardEvent) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onClick();
+            }
+          }}
+        >
+          {content}
+        </div>
+      ) : (
+        <div className={styles.resultLink}>{content}</div>
+      )}
+      {onFavorite && (
+        <div className={styles.favorite}>
+          <HeartButton active={favorited} onClick={() => onFavorite(b.id)} size={40} />
+        </div>
+      )}
+    </article>
   );
 }

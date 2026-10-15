@@ -2,21 +2,12 @@ import "server-only";
 
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
+import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { listTaxonomy } from "@/data/seo";
 import { getIndustries } from "@/lib/api/marketplace/public";
 import { LISTING_REVALIDATE_SECONDS, TAXONOMY_TAG } from "@/lib/cache/tags";
+import { currentDaySeed, industryTeaserChips } from "@/lib/marketplace/industry-teaser";
 import { FooterExploreLinks, type FooterCategory } from "./footer-explore-links";
-
-// Preserve the six service intents from the original footer. Resolve their
-// URLs against the same live taxonomy as the landing pages; never guess tag IDs.
-const CATEGORIES = [
-  { id: "hair-salon", kind: "tag", label: "catHair" },
-  { id: "nail-salon", kind: "tag", label: "catNails" },
-  { id: "massage-studio", kind: "tag", label: "catMassage" },
-  { id: "dental-clinic", kind: "tag", label: "catDental" },
-  { id: "automotive", kind: "industry", label: "catAuto" },
-  { id: "cleaning", kind: "tag", label: "catCleaning" },
-] as const;
 
 export async function FooterExplore({ locale }: { locale: Locale }) {
   let categories: FooterCategory[] = [];
@@ -26,18 +17,23 @@ export async function FooterExplore({ locale }: { locale: Locale }) {
       tags: [TAXONOMY_TAG],
     });
     const taxonomy = listTaxonomy(industries, locale);
-    categories = CATEGORIES.flatMap((category) => {
-      const entry = taxonomy.find((item) =>
-        item.id === category.id && item.kind === category.kind,
-      );
-      return entry ? [{
-        id: entry.id, slug: entry.slug,
-        label: dictionaries[locale].footer[category.label],
-      }] : [];
-    });
+    // Use the app/map's representative service per industry and daily order.
+    // Resolve the order on the server, then hydrate those exact links unchanged.
+    categories = industryTeaserChips(industries, currentDaySeed())
+      .slice(0, 5)
+      .flatMap(({ industry, tag }) => {
+        const entry = taxonomy.find((item) =>
+          item.kind === "tag" && item.tagId === tag.id && item.industrySlug === industry.slug,
+        );
+        return entry ? [{
+          id: entry.id,
+          slug: entry.slug,
+          label: taxonomyLabel(tag, locale, dictionaries[locale].industryTags),
+        }] : [];
+      });
   } catch {
     // Optional navigation must not turn a taxonomy outage into an error on
-    // unrelated routes. The regular Explore link remains usable.
+    // unrelated routes. The permanent Find a business link remains usable.
   }
 
   return <FooterExploreLinks locale={locale} categories={categories} />;

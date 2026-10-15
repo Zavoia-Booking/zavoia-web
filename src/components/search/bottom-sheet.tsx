@@ -50,6 +50,8 @@ export interface BottomSheetProps {
   /** Where the sheet rests on mount. */
   initialPosition?: SheetPosition;
   onPositionChange?: (position: SheetPosition) => void;
+  /** Measured overlap at the resting snap, for positioning map content above the sheet. */
+  onVisibleHeightChange?: (height: number, position: SheetPosition) => void;
   /** The always-visible grab area — also the sheet's drag surface. */
   header: ReactNode;
   /** Scrollable body, revealed as the sheet rises. */
@@ -73,6 +75,7 @@ export function BottomSheet({
   topOffset = 12,
   initialPosition = "mid",
   onPositionChange,
+  onVisibleHeightChange,
   header,
   children,
   handleAria,
@@ -117,6 +120,13 @@ export function BottomSheet({
     [containerH, peekH, topOffset],
   );
 
+  // Publish the destination overlap rather than every drag frame. The map
+  // can frame results above the sheet without following its gesture motion.
+  useEffect(() => {
+    if (containerH === 0) return;
+    onVisibleHeightChange?.(Math.max(0, containerH - snapY(position)), position);
+  }, [onVisibleHeightChange, containerH, position, snapY]);
+
   const setAndReport = useCallback(
     (p: SheetPosition) => {
       setPosition((prev) => {
@@ -143,6 +153,11 @@ export function BottomSheet({
   } | null>(null);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    // Filter/sort controls own their taps; capturing them here swallows clicks.
+    if (
+      e.target instanceof Element &&
+      e.target.closest('button, a, input, select, textarea, [role="button"], summary')
+    ) return;
     if (containerH === 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     gesture.current = {
