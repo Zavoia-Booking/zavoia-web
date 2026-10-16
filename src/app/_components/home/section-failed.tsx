@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 
 /**
@@ -33,7 +34,7 @@ export function SectionFailed({
 
   return (
     <section className="zw-container" style={{ paddingTop }}>
-      <p style={{ margin: 0, fontSize: 14, color: "var(--c-600)" }}>
+      <InlineError style={{ margin: 0 }}>
         {e.sectionFailed}{" "}
         <button
           type="button"
@@ -51,7 +52,7 @@ export function SectionFailed({
         >
           {e.reload}
         </button>
-      </p>
+      </InlineError>
     </section>
   );
 }

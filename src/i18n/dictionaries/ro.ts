@@ -240,7 +240,7 @@ export const ro: Dictionary = {
       generic: "Ceva nu a funcționat. Încearcă din nou.",
       invalidCredentials: "Email sau parolă incorecte.",
       googleAccountHint:
-        'Te-ai înregistrat cu Google? Folosește "Continuă cu Google" de mai sus.',
+        'Te-ai înregistrat cu Google? Folosește „Google” de mai jos.',
       emailInvalid: "Introdu o adresă de email validă.",
       emailRequired: "Emailul este obligatoriu.",
       passwordRequired: "Parola este obligatorie.",
@@ -271,6 +271,8 @@ export const ro: Dictionary = {
     },
     passwordStrength: {
       label: "Puterea parolei",
+      met: "Îndeplinită",
+      unmet: "Neîndeplinită",
       ratings: {
         veryWeak: "Foarte slabă",
         weak: "Slabă",
@@ -296,6 +298,7 @@ export const ro: Dictionary = {
       sending: "Se trimite...",
       sentFallback:
         "Dacă emailul este asociat unui cont de business, ți-am trimis un link pentru activarea accesului în marketplace.",
+      error: "Nu am putut trimite linkul. Încearcă din nou.",
       cancel: "Înapoi la autentificare",
     },
     googleLink: {

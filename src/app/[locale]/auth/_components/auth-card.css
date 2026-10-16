@@ -1,9 +1,127 @@
-/* Form-side content enter animation on tab switch. The keyed wrapper in
- * auth-card.tsx remounts when `mode` changes, and its direct children — the
- * heading block and the form content — animate in with a staggered
- * fade + settle. Two separate animation tracks: fade is short and
- * decisive while transform runs longer with an expo-out curve for the
- * gentle settle. Ported from admin-dashboard's auth-card.css. */
+/* Auth uses the marketplace's content width and gutters.
+   Visible error rows add height above the shared minimum; the document scrolls. */
+.auth-page {
+  --auth-page-space: 16px;
+  --auth-bottom-clearance: 0px;
+  padding-block: var(--auth-page-space);
+}
+.auth-shell { inline-size: 100%; margin-inline: auto; }
+.auth-card {
+  --auth-card-min-size: 47rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  min-block-size: calc(var(--auth-card-min-size) + var(--auth-error-space, 0px));
+  overflow: hidden;
+  border: 1px solid rgba(28, 28, 26, 0.08);
+  border-radius: var(--r-2xl);
+  background: white;
+}
+.auth-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: 24px;
+}
+.auth-mode-nav {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: var(--r-full);
+  background: var(--c-shade);
+}
+.auth-mode-thumb {
+  position: absolute;
+  z-index: -1;
+  inset-block: 4px;
+  inset-inline-start: 4px;
+  inline-size: calc(50% - 4px);
+  border-radius: var(--r-full);
+  background: white;
+  box-shadow: var(--sh-sm);
+  transform: translateX(0);
+  transition: transform 500ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.auth-mode-nav[data-mode="register"] .auth-mode-thumb { transform: translateX(100%); }
+.auth-mode-link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 0;
+  min-block-size: 44px;
+  padding: 8px 12px;
+  border-radius: var(--r-full);
+  color: var(--c-600);
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.auth-mode-link[aria-current="page"] { color: var(--c-ink); }
+.auth-mode-link[aria-disabled="true"] { cursor: default; opacity: 0.6; }
+.auth-mode-link:focus-visible { border-radius: var(--r-full); }
+.auth-card-heading { flex-shrink: 0; }
+.auth-card-heading h1 {
+  margin: 0;
+  color: var(--c-ink);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+}
+.auth-card-heading p {
+  margin: 4px 0 0;
+  color: var(--c-600);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.auth-card-body { min-inline-size: 0; }
+.auth-card-content { display: flex; flex-direction: column; gap: 20px; min-inline-size: 0; }
+.auth-card-hero { min-inline-size: 0; min-block-size: 0; }
+@media (min-width: 768px) {
+  .auth-card-heading h1 { line-height: 1.25; }
+}
+/* Keep both modes level as registration text wraps in the narrower column. */
+@media (min-width: 921px) {
+  .auth-card { --auth-card-min-size: 51rem; }
+}
+@media (min-width: 1024px) {
+  .auth-card { --auth-card-min-size: 50rem; }
+}
+@media (min-width: 1400px) {
+  .auth-card { --auth-card-min-size: 46.5rem; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .auth-mode-link:not([aria-disabled="true"]):hover { color: var(--c-ink); }
+}
+@media (max-width: 920px) {
+  .auth-page {
+    --auth-bottom-clearance: calc(66px + env(safe-area-inset-bottom));
+    padding-block-end: calc(var(--auth-page-space) + var(--auth-bottom-clearance));
+  }
+  .auth-shell { max-inline-size: 480px; }
+  .auth-card { grid-template-columns: minmax(0, 1fr); }
+  .auth-card-form { padding: 16px; }
+  .auth-card-hero { display: none; }
+}
+@media (max-width: 600px) {
+  .auth-card-form { gap: 20px; }
+}
+@media (width < 768px) {
+  .auth-card { --auth-card-min-size: 48rem; }
+}
+@media (width < 640px) {
+  .auth-card { --auth-card-min-size: 57rem; }
+}
+@media (max-height: 540px) {
+  .auth-page { --auth-page-space: 12px; }
+  .auth-card-form { gap: 16px; padding-block: 16px; }
+}
+
 @keyframes auth-card-content-fade {
   from {
     opacity: 0;
@@ -30,8 +148,6 @@
   will-change: transform, opacity;
 }
 
-/* Subtle stagger: the form column lags the heading by ~80ms so the
- * landing feels orchestrated rather than monolithic. */
 .auth-card-content-enter > *:nth-child(2) {
   animation-delay: 80ms, 80ms;
 }

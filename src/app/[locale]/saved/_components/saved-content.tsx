@@ -17,6 +17,7 @@ import { localeHref } from "@/i18n/routes";
 import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
+import { InlineError } from "@/components/ui/inline-error";
 import {
   customerErrorMessage,
   isBenignCustomerError,
@@ -806,7 +807,7 @@ export function SavedContent({ locale }: { locale: Locale }) {
             color: "var(--s-error-600)",
           }}
         >
-          {t.sectionError}
+          <InlineError>{t.sectionError}</InlineError>
         </div>
       ) : total === 0 ? (
         <div

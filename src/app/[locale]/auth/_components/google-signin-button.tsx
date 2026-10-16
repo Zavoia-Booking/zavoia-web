@@ -37,6 +37,7 @@ type Props = {
   locale: Locale;
   /** In-app post-auth target; re-validated by the callback page. */
   redirect?: string | null;
+  disabled?: boolean;
   /**
    * Called before the OAuth redirect starts; return false to block it (e.g.
    * required terms checkbox not ticked). Same contract as the
@@ -63,6 +64,7 @@ export function GoogleSignInButton({
   intent,
   locale,
   redirect,
+  disabled = false,
   onBeforeStart,
 }: Props) {
   if (!GOOGLE_CLIENT_ID) return null;
@@ -70,11 +72,12 @@ export function GoogleSignInButton({
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => {
         if (onBeforeStart && !onBeforeStart()) return;
         beginGoogleOAuth({ intent, locale, redirect });
       }}
-      className="flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-[10px] border border-[rgba(28,28,26,0.14)] bg-white text-[15px] font-medium text-ink shadow-[var(--sh-sm)] transition-colors hover:bg-c-50"
+      className="auth-google-button flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-[10px] border border-[rgba(28,28,26,0.5)] bg-white text-[15px] font-medium text-ink shadow-[var(--sh-sm)] transition-colors duration-150 hover:bg-c-50 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
     >
       <GoogleG />
       Google

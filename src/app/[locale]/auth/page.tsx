@@ -50,7 +50,7 @@ export default async function AuthPage({ params }: Props) {
   if (!isLocale(locale)) notFound();
 
   return (
-    <Suspense fallback={<AuthSkeleton />}>
+    <Suspense fallback={<AuthSkeleton showHeading={false} />}>
       <AuthTabs locale={locale} />
     </Suspense>
   );

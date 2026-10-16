@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { localeHref } from "@/i18n/routes";
+import { InlineError } from "@/components/ui/inline-error";
 import {
   Avatar,
   Button,
@@ -1536,15 +1537,9 @@ function ReviewsTab({
             {dict.loadMoreReviews}
           </Button>
           {loadMoreError && (
-            <p
-              style={{
-                margin: "10px 0 0",
-                fontSize: 14,
-                color: "var(--s-error-600)",
-              }}
-            >
+            <InlineError style={{ margin: "10px 0 0" }}>
               {loadMoreError}
-            </p>
+            </InlineError>
           )}
         </div>
       )}

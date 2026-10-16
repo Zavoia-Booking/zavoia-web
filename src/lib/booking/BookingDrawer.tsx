@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Icon, Spinner } from "@/components/ui";
+import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
@@ -966,17 +967,9 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         never shown, since step 3's own error banner is gone
                         the moment we navigate away from it. */}
                     {submitError && (
-                      <p
-                        role="alert"
-                        style={{
-                          margin: 0,
-                          fontSize: 13,
-                          lineHeight: 1.4,
-                          color: "var(--s-error-600)",
-                        }}
-                      >
+                      <InlineError style={{ margin: 0 }}>
                         {submitError}
-                      </p>
+                      </InlineError>
                     )}
                     <DateStep
                       calendar={calendar}
@@ -2103,17 +2096,9 @@ function ReviewStep({
       </div>
 
       {submitError && (
-        <p
-          role="alert"
-          style={{
-            margin: 0,
-            fontSize: 13,
-            lineHeight: 1.4,
-            color: "var(--s-error-600)",
-          }}
-        >
+        <InlineError style={{ margin: 0 }}>
           {submitError}
-        </p>
+        </InlineError>
       )}
     </div>
   );

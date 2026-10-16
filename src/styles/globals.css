@@ -54,6 +54,7 @@
   --s-error-100: oklch(95% 0.05 25);
   --s-error-300: oklch(75% 0.16 25);
   --s-error-600: oklch(58% 0.18 25);
+  --s-error-text: oklch(48% 0.16 25);
 
   /* Category dots — multi-industry (consumed dynamically as var(--cat-${cat})) */
   --cat-hair:     oklch(62% 0.18 38);

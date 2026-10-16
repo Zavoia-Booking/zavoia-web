@@ -1,12 +1,25 @@
-/* Auth text fields opt out of the global :focus-visible terracotta outline
- * (globals.css). That rule is unlayered, so it wins over the input's own
- * `outline-none` utility, and since the field transitions every property the
- * ring animated outward while the corner radius morphed 10px → 6px — reading
- * as a strange growing border on click. The focus affordance here is the
- * border colour change (`focus:border-primary` / the error variant), which is
- * clearly visible on the white field. */
+/* Keep the field radius stable when the global focus rule applies. A clear
+ * border and static halo identify focus without animating control geometry. */
 .zv-auth-input:focus,
 .zv-auth-input:focus-visible {
   outline: none;
   border-radius: 10px;
+  box-shadow: 0 0 0 3px var(--p-100);
+}
+
+.zv-auth-input,
+.zv-auth-eye {
+  transition: border-color 150ms var(--ease-out), background-color 150ms var(--ease-out), color 150ms var(--ease-out);
+}
+
+.zv-auth-eye:focus-visible {
+  border-radius: 8px;
+  outline-offset: -4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zv-auth-input,
+  .zv-auth-eye {
+    transition: none;
+  }
 }

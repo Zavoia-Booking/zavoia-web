@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
+import { InlineError } from "@/components/ui/inline-error";
 import type { Locale } from "@/i18n/locales";
 import {
   AuthMessagesProvider,
@@ -28,6 +29,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { retainedAuthFlow, subscribeAuthFlow } from "@/lib/auth/retained-flow";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 import { AuthCard } from "../../_components/auth-card";
+import { AuthShell } from "../../_components/auth-shell";
 import {
   ConfirmAccessPanel,
   type ConfirmAccessContext,
@@ -198,11 +200,7 @@ export function GoogleCallback({
 
   return (
     <AuthMessagesProvider messages={messages[locale]}>
-      <main
-        className="flex flex-col items-center justify-center px-4 py-10"
-        style={{ minHeight: "calc(100svh - var(--nav-h))" }}
-      >
-        <div className="w-full max-w-sm md:max-w-[62.5rem]">
+      <AuthShell>
           <AuthCard
             mode="login"
             title={dict.loginHeading}
@@ -226,12 +224,11 @@ export function GoogleCallback({
                 <h1 className="text-2xl font-semibold tracking-tight">
                   {t.errorHeading}
                 </h1>
-                <p
-                  role="alert"
-                  className="mt-4 rounded-[10px] border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
+                <InlineError
+                  className="mt-4 rounded-[10px] border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2"
                 >
                   {view.invalid ? t.invalid : authErrorMessage(view.error, dict.errors, messages[locale].errors)}
-                </p>
+                </InlineError>
                 <Link
                   href={view.back === "account" ? localeHref(locale, "account") : retryHref}
                   className="mt-6 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline"
@@ -268,8 +265,7 @@ export function GoogleCallback({
               />
             )}
           </AuthCard>
-        </div>
-      </main>
+      </AuthShell>
     </AuthMessagesProvider>
   );
 }

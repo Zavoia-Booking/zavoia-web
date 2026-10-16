@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button, Icon, Spinner, useToast } from "@/components/ui";
+import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { customerErrorMessage } from "@/lib/api/customer-error-messages";
@@ -159,17 +160,9 @@ export function ReviewModal({
       <ApptMini {...mini} />
 
       {error && (
-        <p
-          role="alert"
-          style={{
-            margin: "14px 0 0",
-            fontSize: 13,
-            lineHeight: 1.4,
-            color: "var(--s-error-600)",
-          }}
-        >
+        <InlineError style={{ margin: "14px 0 0" }}>
           {error}
-        </p>
+        </InlineError>
       )}
 
       <div

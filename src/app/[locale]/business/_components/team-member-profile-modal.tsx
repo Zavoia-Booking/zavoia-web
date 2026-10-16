@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Avatar, Button, HeartButton, Icon, Rating, Stars } from "@/components/ui";
+import { InlineError } from "@/components/ui/inline-error";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { EmptyState } from "./empty-state";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -879,17 +880,21 @@ export function TeamMemberProfileModal({
                     failed): the profile stays useful, booking is just absent. */}
                 {!listing && !servicesPending && venues.length === 0 && (
                   <div>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: 13.5,
-                        color: "var(--c-600)",
-                      }}
-                    >
-                      {contextFailure === "transient"
-                        ? t.memberLoadError
-                        : t.memberNoBooking}
-                    </p>
+                    {contextFailure === "transient" ? (
+                      <InlineError style={{ margin: 0 }}>
+                        {t.memberLoadError}
+                      </InlineError>
+                    ) : (
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 13.5,
+                          color: "var(--c-600)",
+                        }}
+                      >
+                        {t.memberNoBooking}
+                      </p>
+                    )}
                     {contextFailure === "transient" && (
                       <div style={{ marginTop: 10 }}>
                         <Button

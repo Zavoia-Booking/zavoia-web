@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/lib/auth/useAuth";
 import { useRetainedAuthAction } from "@/lib/auth/retained-flow";
 import { AuthField } from "./auth-field";
+import { InlineError } from "@/components/ui/inline-error";
 
 export type GoogleLinkContext = {
   txId: string;
@@ -126,12 +127,11 @@ export function GoogleLinkPanel({
         />
 
         {error && (
-          <p
-            role="alert"
-            className="rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
+          <InlineError
+            className="rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2"
           >
             {error}
-          </p>
+          </InlineError>
         )}
 
         <button

@@ -18,7 +18,11 @@ import motion from "@/components/ui/disclosure-motion.module.css";
 import styles from "./footer.module.css";
 
 /** Signature's ruled wordmark band and sitemap, adapted to marketplace navigation. */
-export function Footer({ locale, explore }: { locale: Locale; explore: ReactNode }) {
+export function Footer({ locale, explore, showWordmark = true }: {
+  locale: Locale;
+  explore: ReactNode;
+  showWordmark?: boolean;
+}) {
   const { dict } = useTranslation();
   const t = dict.footer;
   const { openSettings } = useConsent();
@@ -32,20 +36,22 @@ export function Footer({ locale, explore }: { locale: Locale; explore: ReactNode
   return (
     <footer data-marketplace-chrome className={styles.footer}>
       <div className={`zw-container ${styles.frame}`}>
-        <div className={styles.markBand}>
-          <Link href={localeHref(locale)} className={styles.mark}>
-            <Image
-              src="/brand/zavoia_logo_full_transparent.png"
-              alt="Zavoia"
-              width={957}
-              height={300}
-              sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1456px) calc(100vw - 56px), 1400px"
-              className={styles.logo}
-            />
-          </Link>
-        </div>
+        {showWordmark && (
+          <div className={styles.markBand}>
+            <Link href={localeHref(locale)} className={styles.mark}>
+              <Image
+                src="/brand/zavoia_logo_full_transparent.png"
+                alt="Zavoia"
+                width={957}
+                height={300}
+                sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1456px) calc(100vw - 56px), 1400px"
+                className={styles.logo}
+              />
+            </Link>
+          </div>
+        )}
 
-        <div className={styles.sitemap}>
+        <div className={showWordmark ? styles.sitemap : `${styles.sitemap} ${styles.divider}`}>
           <div className={styles.intro}>
             <p className={`txt-pretty ${styles.tagline}`}>{t.tagline}</p>
           </div>

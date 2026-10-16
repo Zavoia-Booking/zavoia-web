@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button, Icon, Spinner } from "@/components/ui";
+import { InlineError } from "@/components/ui/inline-error";
 import { type Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
@@ -288,17 +289,9 @@ export function ReportIssue({ t, locale }: { t: ReportDict; locale: Locale }) {
                 </label>
 
                 {error && (
-                  <p
-                    role="alert"
-                    style={{
-                      margin: "0 0 14px",
-                      fontSize: 13.5,
-                      lineHeight: 1.5,
-                      color: "var(--err, #B3261E)",
-                    }}
-                  >
+                  <InlineError style={{ margin: "0 0 14px" }}>
                     {error}
-                  </p>
+                  </InlineError>
                 )}
 
                 <div

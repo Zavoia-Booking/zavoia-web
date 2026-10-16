@@ -10,6 +10,7 @@ import { authErrorMessage } from "@/lib/api/auth-error-messages";
 import { resetPassword } from "@/lib/api/customer-auth";
 import { ApiError } from "@/lib/api/http";
 import { AuthField } from "../../_components/auth-field";
+import { InlineError } from "@/components/ui/inline-error";
 import { PASSWORD_REGEX } from "@/lib/validation";
 
 // Same strong-password rule used in register-form.tsx — keep these in sync.
@@ -145,12 +146,11 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
         />
 
         {errors.form && (
-          <p
-            role="alert"
-            className="rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
+          <InlineError
+            className="rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2"
           >
             {errors.form}
-          </p>
+          </InlineError>
         )}
 
         {tokenDead && (

@@ -9,6 +9,7 @@ import {
   type CSSProperties,
 } from "react";
 import { Button, Icon, Spinner, useToast } from "@/components/ui";
+import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { ApiError } from "@/lib/api/http";
@@ -466,17 +467,9 @@ export function RescheduleModal({
           )}
 
           {submitError && (
-            <p
-              role="alert"
-              style={{
-                margin: "16px 0 0",
-                fontSize: 13,
-                lineHeight: 1.4,
-                color: "var(--s-error-600)",
-              }}
-            >
+            <InlineError style={{ margin: "16px 0 0" }}>
               {submitError}
-            </p>
+            </InlineError>
           )}
         </>
       )}

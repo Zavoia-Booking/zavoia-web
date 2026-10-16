@@ -239,6 +239,8 @@ export const en: {
     };
     passwordStrength: {
       label: string;
+      met: string;
+      unmet: string;
       ratings: {
         veryWeak: string;
         weak: string;
@@ -262,6 +264,7 @@ export const en: {
       sendLink: string;
       sending: string;
       sentFallback: string;
+      error: string;
       cancel: string;
     };
     googleLink: {
@@ -1834,7 +1837,7 @@ export const en: {
       generic: "Something went wrong. Please try again.",
       invalidCredentials: "Incorrect email or password.",
       googleAccountHint:
-        'Signed up with Google? Use "Continue with Google" above.',
+        'Signed up with Google? Use "Google" below.',
       emailInvalid: "Enter a valid email address.",
       emailRequired: "Email is required.",
       passwordRequired: "Password is required.",
@@ -1865,6 +1868,8 @@ export const en: {
     },
     passwordStrength: {
       label: "Password strength",
+      met: "Met",
+      unmet: "Not met",
       ratings: {
         veryWeak: "Very weak",
         weak: "Weak",
@@ -1890,6 +1895,7 @@ export const en: {
       sending: "Sending...",
       sentFallback:
         "If the email is associated with a business account, we've sent a link to enable marketplace access.",
+      error: "We couldn't send the link. Please try again.",
       cancel: "Back to sign in",
     },
     googleLink: {

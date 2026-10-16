@@ -70,6 +70,27 @@ export function authEntryHref(
   return `${localeHref(locale, "auth")}?${query.toString()}`;
 }
 
+/** Keep the originating destination and source across the auth/recovery flow.
+ * Only carry navigation context; tokens and unrelated query values stay on
+ * their own route. Redirect validation still happens when the flow finishes.
+ */
+export function authFlowHref(
+  locale: Locale,
+  step: "login" | "register" | "forgot-password",
+  search: Pick<URLSearchParams, "get">,
+): string {
+  const query = new URLSearchParams();
+  query.set("mode", step === "forgot-password" ? "login" : step);
+  if (step === "forgot-password") query.set("forgot", "1");
+  for (const key of ["redirect", ...LOCALES.map((language) => `redirect.${language}`), "src"]) {
+    const value = search.get(key);
+    if (value) query.set(key, value);
+  }
+  const pathname = localeHref(locale, "auth");
+  const suffix = query.toString();
+  return suffix ? `${pathname}?${suffix}` : pathname;
+}
+
 export function defaultPostAuthTarget(locale: Locale): string {
   return localeHref(locale);
 }

@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/api/http";
 import { resendVerificationEmail } from "@/lib/api/customer-auth";
 import { errorMessage } from "@/lib/api/error-messages";
 import { AuthField } from "./auth-field";
+import { InlineError } from "@/components/ui/inline-error";
 
 export interface ResendVerificationProps {
   /**
@@ -123,9 +124,9 @@ export function ResendVerification({ email: knownEmail }: ResendVerificationProp
         {sending ? <Spinner size={16} color="#fff" /> : label}
       </Button>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-700">
+        <InlineError className="mt-2">
           {error}
-        </p>
+        </InlineError>
       )}
     </form>
   );

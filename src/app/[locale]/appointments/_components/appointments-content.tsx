@@ -19,6 +19,7 @@ import {
   Spinner,
 } from "@/components/ui";
 import { listAppointments } from "@/lib/api/marketplace/appointments";
+import { InlineError } from "@/components/ui/inline-error";
 import type {
   AppointmentList,
   AppointmentListItem,
@@ -1373,17 +1374,12 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
                           {loadingMore ? <Spinner size={15} /> : t.loadMore}
                         </button>
                         {loadMoreErrored && (
-                          <p
+                          <InlineError
                             className="txt-pretty"
-                            style={{
-                              margin: "10px 0 0",
-                              fontSize: 13,
-                              lineHeight: 1.5,
-                              color: "var(--s-error-600)",
-                            }}
+                            style={{ margin: "10px 0 0" }}
                           >
                             {t.loadMoreError}
-                          </p>
+                          </InlineError>
                         )}
                       </div>
                     )}

@@ -1,115 +1,127 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { AuthHero } from "./auth-hero";
 import "./auth-card.css";
 
 type Mode = "login" | "register";
-
 type AuthCardProps = {
-  /** Drives which tab in the toggle is shown as active. */
   mode: Mode;
-  title: string;
+  title?: string;
   subtitle?: string;
   loginHref: string;
   registerHref: string;
   tabLoginLabel: string;
   tabRegisterLabel: string;
-  /** aria-label for the tablist. */
+  /** Accessible label for the mode navigation. */
   tablistLabel: string;
-  /** When true, suppress the toggle + heading. Used for sub-flows like
-   *  the enable-access and Google-link panels, which own their headings. */
   hideHeader?: boolean;
-  /** When true, opens up the gap between the heading and the form. Used
-   *  for the forgot-password sub-flow. */
-  isForgotMode?: boolean;
+  navigationDisabled?: boolean;
   children: ReactNode;
 };
 
-const tabBase =
-  "relative z-10 flex flex-1 items-center justify-center rounded-full px-4 py-2.5 text-center text-sm font-medium transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]";
-const tabActive = "text-ink";
-const tabInactive = "text-c-600 hover:text-ink";
-
-/**
- * Two-column auth card ported from admin-dashboard's AuthCard: form column
- * on the left, animated wordmark hero on the right (md+ only). The pill
- * toggle slides a white thumb between Sign in / Create account, and the
- * keyed content wrapper replays the staggered enter animation on each
- * tab switch.
- */
 export function AuthCard({
-  mode,
-  title,
-  subtitle,
-  loginHref,
-  registerHref,
-  tabLoginLabel,
-  tabRegisterLabel,
-  tablistLabel,
-  hideHeader,
-  isForgotMode,
-  children,
+  mode, title, subtitle, loginHref, registerHref, tabLoginLabel,
+  tabRegisterLabel, tablistLabel, hideHeader, navigationDisabled = false, children,
 }: AuthCardProps) {
-  const gapClass = isForgotMode ? "gap-16" : mode === "login" ? "gap-8" : "gap-6";
+  const cardRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const card = cardRef.current;
+    const body = bodyRef.current;
+    if (!card || !body) return;
+
+    function updateErrorSpace() {
+      if (!card || !body) return;
+      const rows = Array.from(body.querySelectorAll<HTMLElement>('[role="alert"]'))
+        .filter((alert) => {
+          if (alert.parentElement?.closest('[role="alert"]')) return false;
+          return alert.getClientRects().length > 0 && getComputedStyle(alert).visibility === "visible";
+        })
+        .map((alert) => {
+          const style = getComputedStyle(alert);
+          const before = parseFloat(style.marginTop) || 0;
+          const after = parseFloat(style.marginBottom) || 0;
+          return {
+            top: alert.getBoundingClientRect().top - before,
+            height: alert.offsetHeight + before + after,
+          };
+        })
+        .sort((a, b) => a.top - b.top);
+
+      // Side-by-side name errors share one row. Count its tallest message
+      // once, including its spacing, rather than summing both columns.
+      let height = 0;
+      let end = -Infinity;
+      for (const row of rows) {
+        const bottom = row.top + row.height;
+        height += Math.max(0, bottom - Math.max(row.top, end));
+        end = Math.max(end, bottom);
+      }
+      card.style.setProperty("--auth-error-space", `${Math.ceil(height)}px`);
+    }
+
+    updateErrorSpace();
+    const resize = new ResizeObserver(updateErrorSpace);
+    resize.observe(body);
+    const mutation = new MutationObserver(updateErrorSpace);
+    mutation.observe(body, { childList: true, subtree: true, characterData: true });
+    return () => {
+      resize.disconnect();
+      mutation.disconnect();
+    };
+  }, [mode, hideHeader]);
+
   return (
-    <div className="w-full overflow-hidden rounded-[var(--r-2xl)] border border-[rgba(28,28,26,0.08)] bg-white shadow-[var(--sh-lg)]">
-      <div className="grid md:grid-cols-2">
-        <div className="p-5 sm:p-6 md:min-h-[45rem] md:p-8">
-          <div className={`flex flex-col ${gapClass}`}>
-            {!hideHeader && (
-              <div
-                role="tablist"
-                aria-label={tablistLabel}
-                className="relative flex h-11 w-full rounded-full bg-shade p-1"
-              >
-                <div
-                  aria-hidden="true"
-                  className="absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-white shadow-sm transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
-                  style={{
-                    transform:
-                      mode === "register" ? "translateX(100%)" : "translateX(0)",
+    <div ref={cardRef} className="auth-card" aria-busy={navigationDisabled}>
+      <div className="auth-card-form">
+        {!hideHeader && (
+          <>
+            <nav
+              aria-label={tablistLabel}
+              className="auth-mode-nav"
+              data-mode={mode}
+            >
+              <span aria-hidden="true" className="auth-mode-thumb" />
+              {([
+                ["login", loginHref, tabLoginLabel],
+                ["register", registerHref, tabRegisterLabel],
+              ] as const).map(([linkMode, href, label]) => (
+                <Link
+                  key={linkMode}
+                  href={href}
+                  replace
+                  scroll={false}
+                  aria-current={mode === linkMode ? "page" : undefined}
+                  aria-disabled={navigationDisabled || undefined}
+                  tabIndex={navigationDisabled ? -1 : undefined}
+                  onClick={(event) => {
+                    if (navigationDisabled) event.preventDefault();
                   }}
-                />
-                <Link
-                  role="tab"
-                  aria-selected={mode === "login"}
-                  href={loginHref}
-                  replace
-                  scroll={false}
-                  className={`${tabBase} ${mode === "login" ? tabActive : tabInactive}`}
+                  className="auth-mode-link"
                 >
-                  {tabLoginLabel}
+                  {label}
                 </Link>
-                <Link
-                  role="tab"
-                  aria-selected={mode === "register"}
-                  href={registerHref}
-                  replace
-                  scroll={false}
-                  className={`${tabBase} ${mode === "register" ? tabActive : tabInactive}`}
-                >
-                  {tabRegisterLabel}
-                </Link>
+              ))}
+            </nav>
+            {title && (
+              <div className="auth-card-heading">
+                <h1>{title}</h1>
+                {subtitle && <p>{subtitle}</p>}
               </div>
             )}
-            <div key={mode} className={`auth-card-content-enter flex flex-col ${gapClass}`}>
-              {!hideHeader && (
-                <div className="space-y-1">
-                  <h1 className="text-[28px] font-bold tracking-[-0.02em] text-ink md:leading-tight">
-                    {title}
-                  </h1>
-                  {subtitle && <p className="text-base text-c-600">{subtitle}</p>}
-                </div>
-              )}
-              {children}
-            </div>
+          </>
+        )}
+        <div ref={bodyRef} className="auth-card-body">
+          <div key={mode} className="auth-card-content auth-card-content-enter">
+            {children}
           </div>
         </div>
-        <div className="relative hidden md:block">
-          <AuthHero />
-        </div>
+      </div>
+      <div className="auth-card-hero" aria-hidden="true">
+        <AuthHero />
       </div>
     </div>
   );

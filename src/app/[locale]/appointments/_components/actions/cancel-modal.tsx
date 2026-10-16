@@ -3,6 +3,7 @@
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useState } from "react";
 import { Button, Spinner, useToast } from "@/components/ui";
+import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { ApiError } from "@/lib/api/http";
 import { cancelAppointment } from "@/lib/api/marketplace/appointments";
@@ -105,17 +106,9 @@ export function CancelModal({
       <ApptMini {...mini} />
 
       {error && (
-        <p
-          role="alert"
-          style={{
-            margin: "14px 0 0",
-            fontSize: 13,
-            lineHeight: 1.4,
-            color: "var(--s-error-600)",
-          }}
-        >
+        <InlineError style={{ margin: "14px 0 0" }}>
           {error}
-        </p>
+        </InlineError>
       )}
     </ActionModal>
   );

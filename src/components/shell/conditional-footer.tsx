@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
+import { localeHref, localizedPathname } from "@/i18n/routes";
 import { Footer } from "@/components/shell/footer";
 import { routeKey, isFullBleedPath } from "@/components/shell/active-route";
 
@@ -16,10 +17,11 @@ import { routeKey, isFullBleedPath } from "@/components/shell/active-route";
 export function ConditionalFooter({ locale, explore }: { locale: Locale; explore: ReactNode }) {
   const pathname = usePathname();
   if (routeKey(pathname) === "search" || isFullBleedPath(pathname)) return null;
+  const isSignInPage = localizedPathname(pathname, locale).replace(/\/$/, "") === localeHref(locale, "auth");
 
   return (
     <>
-      <Footer locale={locale} explore={explore} />
+      <Footer locale={locale} explore={explore} showWordmark={!isSignInPage} />
       {/* Spacer so content clears the fixed mobile tab bar (and, on the
           business page, the fixed booking bar stacked above it — see the
           `.zw-footer-spacer` rule in globals.css). */}

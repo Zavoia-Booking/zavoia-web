@@ -25,7 +25,7 @@ import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
 import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
 import { useTranslation } from "@/i18n/useTranslation";
-import { Button, Icon, Skeleton, Spinner, useToast } from "@/components/ui";
+import { Button, Icon, InlineError, Skeleton, Spinner, useToast } from "@/components/ui";
 import {
   addTicketMessage,
   closeTicket,
@@ -580,9 +580,7 @@ function TicketDetailView({
     return (
       <div>
         {backButton}
-        <div role="alert" style={{ fontSize: 13.5, color: "var(--s-error-600)" }}>
-          {t.loadError}
-        </div>
+        <InlineError>{t.loadError}</InlineError>
       </div>
     );
   }
@@ -1067,9 +1065,7 @@ export function SupportSection({
   if (tickets === null) {
     if (loadError) {
       return (
-        <div role="alert" style={{ fontSize: 13.5, color: "var(--s-error-600)" }}>
-          {st.loadError}
-        </div>
+        <InlineError>{st.loadError}</InlineError>
       );
     }
     return (
@@ -1112,9 +1108,7 @@ export function SupportSection({
         </div>
       )}
       {loadError && (
-        <div role="alert" style={{ fontSize: 12.5, color: "var(--s-error-600)" }}>
-          {st.loadError}
-        </div>
+        <InlineError>{st.loadError}</InlineError>
       )}
     </div>
   );

@@ -342,6 +342,7 @@ with a mono uppercase label.
 - **Style:** white, 12%-ink hairline, 14px radius, sh-sm; icon leading inside `6px 6px 6px 16px` padding (help search).
 - **Focus:** container `:focus-within` — border warms to `--p-400`, glow `0 0 0 4px var(--p-100)`. Range sliders: 6px `--c-200` track, 26px ink circular thumb.
 - **Switch:** 46×28px pill, `--c-300` off / ink on, white knob springs 18px (`--ease-spring`).
+- **Inline errors:** use the shared `InlineError` component for validation, action and request failures shown within content. It uses a 14px `AlertCircle`, 12px/16px error text (`--s-error-text`), centered icon alignment and a 6px gap. Sign-in credential fields use its explicit `showIcon={false}` option to match the admin sign-in treatment. Field messages sit below the input with a 4px top margin; preserve their IDs and input associations. Render messages only when present so they grow the surrounding content; do not reserve an empty error row. Keep existing callout containers, retry actions and error copy. Loading labels, status badges, toasts and full-page/structured failure states have their own presentations.
 
 ### Navigation
 - **Top bar:** sticky, `--nav-h` (68px), with an opaque `--c-canvas` background and a subtle bottom hairline. The background stays solid before and after scrolling, on desktop and mobile. Text links (`.zw-navlink`) are 14px/600 at `--c-600`; hover and active simply darken to `--c-900` — color alone carries the state, no underline or pill.

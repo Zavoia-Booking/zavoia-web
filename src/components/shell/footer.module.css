@@ -33,6 +33,10 @@
   grid-template-columns: minmax(0, .9fr) minmax(0, 3fr);
 }
 
+.divider {
+  border-top: 1px solid var(--footer-line);
+}
+
 .intro {
   padding-block: clamp(32px, 4cqw, 52px);
   padding-right: clamp(24px, 3cqw, 40px);

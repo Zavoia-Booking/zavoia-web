@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import { InlineError } from "@/components/ui/inline-error";
 import "./auth-field.css";
 
 /* Inline eye / eye-off glyphs for the password visibility toggle — the
@@ -45,11 +46,13 @@ export function AuthField({
   onBlur,
   onFocus,
   error,
+  showErrorIcon = true,
   autoComplete,
+  disabled = false,
+  required = false,
+  describedBy,
   showPasswordLabel = "Show password",
   hidePasswordLabel = "Hide password",
-  reserveErrorSpace = false,
-  suppressErrorText = false,
 }: {
   id: string;
   type?: string;
@@ -59,34 +62,31 @@ export function AuthField({
   onBlur?: () => void;
   onFocus?: () => void;
   error?: string;
+  showErrorIcon?: boolean;
   autoComplete?: string;
+  disabled?: boolean;
+  required?: boolean;
+  describedBy?: string;
   showPasswordLabel?: string;
   hidePasswordLabel?: string;
-  /** Keep a fixed-height error slot so messages don't shift the layout. */
-  reserveErrorSpace?: boolean;
-  /**
-   * Red border only, no message — for fields whose error is conveyed by a
-   * companion UI (e.g. the password strength meter).
-   */
-  suppressErrorText?: boolean;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
   const isEmail = type === "email";
   const inputType = isPassword && showPassword ? "text" : type;
   const hasAdornment = isPassword || isEmail;
-  const showErrorText = Boolean(error) && !suppressErrorText;
+  const description = [describedBy, error ? `${id}-error` : undefined]
+    .filter(Boolean)
+    .join(" ") || undefined;
 
-  const errorNode = showErrorText ? (
-    <p
+  const errorNode = error ? (
+    <InlineError
       id={`${id}-error`}
-      role="alert"
-      aria-live="polite"
-      className="flex items-center gap-1.5 text-xs text-[var(--s-error-600)]"
+      showIcon={showErrorIcon}
+      className="mt-1"
     >
-      <Icon name="warn" size={13} />
-      <span>{error}</span>
-    </p>
+      {error}
+    </InlineError>
   ) : null;
 
   return (
@@ -97,20 +97,23 @@ export function AuthField({
       <div className="relative">
         <input
           id={id}
+          name={id}
           type={inputType}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
           onFocus={onFocus}
           autoComplete={autoComplete}
+          disabled={disabled}
+          required={required}
           aria-invalid={Boolean(error)}
-          aria-describedby={showErrorText ? `${id}-error` : undefined}
-          className={`zv-auth-input h-12 w-full rounded-[10px] border bg-white px-3 text-[15px] text-ink shadow-[var(--sh-sm)] outline-none transition-all md:h-11 ${
+          aria-describedby={description}
+          className={`zv-auth-input h-12 w-full rounded-[10px] border px-3 text-[15px] text-ink shadow-[var(--sh-sm)] outline-none disabled:cursor-not-allowed disabled:bg-c-100 disabled:text-c-600 md:h-11 ${
             hasAdornment ? "pr-11" : ""
           } ${
             error
-              ? "border-[var(--s-error-300)] bg-[var(--s-error-100)] focus:border-[var(--s-error-600)]"
-              : "border-[rgba(28,28,26,0.14)] hover:border-[rgba(28,28,26,0.26)] focus:border-primary"
+              ? "border-[var(--s-error-600)] bg-[var(--s-error-100)] focus:border-[var(--s-error-600)]"
+              : "border-c-500 bg-white enabled:hover:border-c-600 focus:border-primary"
           }`}
         />
         {isEmail && (
@@ -125,15 +128,17 @@ export function AuthField({
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            tabIndex={-1}
+            disabled={disabled}
             aria-label={showPassword ? hidePasswordLabel : showPasswordLabel}
-            className="absolute top-1/2 right-1 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-primary transition-colors hover:text-p-600"
+            aria-pressed={showPassword}
+            aria-controls={id}
+            className="zv-auth-eye absolute top-1/2 right-0 flex min-h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[10px] text-primary hover:text-p-600 disabled:cursor-not-allowed disabled:text-c-600"
           >
             <EyeGlyph off={showPassword} />
           </button>
         )}
       </div>
-      {reserveErrorSpace ? <div className="h-5">{errorNode}</div> : errorNode}
+      {errorNode}
     </div>
   );
 }

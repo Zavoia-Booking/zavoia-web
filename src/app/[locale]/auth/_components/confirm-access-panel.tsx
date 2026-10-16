@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth/redirects";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useRetainedAuthAction } from "@/lib/auth/retained-flow";
+import { InlineError } from "@/components/ui/inline-error";
 
 export type ConfirmAccessContext = {
   /** Single-use tx (10 min TTL) from the 409, consumed by confirm-access. */
@@ -82,12 +83,11 @@ export function ConfirmAccessPanel({
       </p>
 
       {action.status === "error" && (
-        <p
-          role="alert"
-          className="mt-4 rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2 text-sm text-[var(--s-error-600)]"
+        <InlineError
+          className="mt-4 rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2"
         >
           {t.error}
-        </p>
+        </InlineError>
       )}
 
       <button

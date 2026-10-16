@@ -3,8 +3,10 @@
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useId } from "react";
 import type { Locale } from "@/i18n/locales";
+import { errorMessage } from "@/lib/api/error-messages";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useRetainedAuthAction } from "@/lib/auth/retained-flow";
+import { InlineError } from "@/components/ui/inline-error";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 
 /**
@@ -46,19 +48,23 @@ export function EnableAccessPanel({
 
   function handleSendLink() {
     void action.run(async () => {
-      try {
-        await sendAccountLink(details.email, locale);
-      } catch {
-        // Preserve the enumeration-safe neutral outcome, in the UI language.
-      }
-    });
+      // The API returns a neutral success for unknown/existing accounts. A
+      // rejected request is a real failure and must remain retryable.
+      await sendAccountLink(details.email, locale);
+    }).catch(() => {}); // The retained action exposes the failure below.
   }
 
   return (
-    <div>
+    <div aria-busy={sending}>
       <h1 className="text-2xl font-semibold tracking-tight">{t.heading}</h1>
       <p className="mt-4 text-sm text-zinc-800">{greeting}</p>
       <p className="mt-2 text-sm text-zinc-600">{t.explanation}</p>
+
+      {action.status === "error" && (
+        <InlineError className="mt-4">
+          {errorMessage(action.error, dictionary.errors, t.error)}
+        </InlineError>
+      )}
 
       {sent ? (
         <p
@@ -81,7 +87,8 @@ export function EnableAccessPanel({
       <button
         type="button"
         onClick={onCancel}
-        className="mt-6 w-full text-center text-sm text-zinc-500 underline-offset-2 transition hover:text-zinc-900 hover:underline"
+        disabled={sending}
+        className="mt-6 w-full text-center text-sm text-zinc-500 underline-offset-2 transition hover:text-zinc-900 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
       >
         {t.cancel}
       </button>

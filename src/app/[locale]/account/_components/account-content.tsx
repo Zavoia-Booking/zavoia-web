@@ -27,6 +27,7 @@ import {
   Button,
   DatePicker,
   Icon,
+  InlineError,
   SignedOutGate,
   Skeleton,
   Spinner,
@@ -119,16 +120,9 @@ function SectionLabel({ children, sub }: { children: ReactNode; sub?: string }) 
 
 function SectionError({ message }: { message: string }) {
   return (
-    <div
-      role="alert"
-      style={{
-        padding: "14px 16px",
-        fontSize: 13.5,
-        color: "var(--s-error-600)",
-      }}
-    >
+    <InlineError style={{ padding: "14px 16px" }}>
       {message}
-    </div>
+    </InlineError>
   );
 }
 
@@ -287,18 +281,15 @@ function EditableRow({
                   }}
                 />
                 {error && (
-                  <div
+                  <InlineError
                     id={errorId}
-                    role="alert"
                     style={{
-                      fontSize: 12.5,
-                      color: "var(--s-error-600)",
-                      marginTop: 5,
+                      marginTop: 4,
                       maxWidth: 340,
                     }}
                   >
                     {error}
-                  </div>
+                  </InlineError>
                 )}
               </>
             )
@@ -532,8 +523,6 @@ function AddressRow({
     marginBottom: 4,
   };
   const errorTextStyle: CSSProperties = {
-    fontSize: 11.5,
-    color: "var(--s-error-600)",
     marginTop: 4,
   };
   const onKeys = (e: React.KeyboardEvent) => {
@@ -573,9 +562,9 @@ function AddressRow({
           }
         />
         {fieldError && (
-          <div id={errorId} role="alert" style={errorTextStyle}>
+          <InlineError id={errorId} style={errorTextStyle}>
             {fieldError}
-          </div>
+          </InlineError>
         )}
       </label>
     );
@@ -1229,13 +1218,12 @@ function PasswordForm({
         {t.password.rules}
       </div>
       {error && (
-        <div
+        <InlineError
           id={ERROR_ID}
-          role="alert"
-          style={{ fontSize: 13, color: "var(--s-error-600)" }}
+          style={{ marginTop: 4 }}
         >
           {error}
-        </div>
+        </InlineError>
       )}
       <div>
         <Button
@@ -1460,13 +1448,12 @@ function GoogleConnectionRow({
             />
           </label>
           {error && (
-            <div
+            <InlineError
               id="google-disconnect-error"
-              role="alert"
-              style={{ fontSize: 13, color: "var(--s-error-600)" }}
+              style={{ marginTop: 4 }}
             >
               {error}
-            </div>
+            </InlineError>
           )}
           <div style={{ display: "flex", gap: 8 }}>
             <Button
@@ -1630,9 +1617,7 @@ function ChangeEmailRow({
     color: "var(--c-900)",
   };
   const errorStyle: CSSProperties = {
-    fontSize: 12.5,
-    color: "var(--s-error-600)",
-    marginTop: 5,
+    marginTop: 4,
     maxWidth: 340,
   };
 
@@ -1796,13 +1781,12 @@ function ChangeEmailRow({
               }
             />
             {errors.current && (
-              <div
+              <InlineError
                 id="change-email-current-error"
-                role="alert"
                 style={errorStyle}
               >
                 {errors.current}
-              </div>
+              </InlineError>
             )}
           </label>
           <label htmlFor="change-email-next" style={{ display: "block" }}>
@@ -1831,9 +1815,9 @@ function ChangeEmailRow({
               }
             />
             {errors.next && (
-              <div id="change-email-next-error" role="alert" style={errorStyle}>
+              <InlineError id="change-email-next-error" style={errorStyle}>
                 {errors.next}
-              </div>
+              </InlineError>
             )}
           </label>
           <div style={{ display: "flex", gap: 8 }}>
@@ -2165,7 +2149,20 @@ function SectionBody({
     if (!prefs) {
       return (
         <Card>
-          <SectionError message={prefsError ? t.sectionError : t.loading} />
+          {prefsError ? (
+            <SectionError message={t.sectionError} />
+          ) : (
+            <div
+              role="status"
+              style={{
+                padding: "14px 16px",
+                fontSize: 13.5,
+                color: "var(--c-600)",
+              }}
+            >
+              {t.loading}
+            </div>
+          )}
         </Card>
       );
     }
