@@ -17,13 +17,15 @@ type AuthCardProps = {
   /** Accessible label for the mode navigation. */
   tablistLabel: string;
   hideHeader?: boolean;
+  /** Short, standalone auth steps keep their content-sized presentation. */
+  compact?: boolean;
   navigationDisabled?: boolean;
   children: ReactNode;
 };
 
 export function AuthCard({
   mode, title, subtitle, loginHref, registerHref, tabLoginLabel,
-  tabRegisterLabel, tablistLabel, hideHeader, navigationDisabled = false, children,
+  tabRegisterLabel, tablistLabel, hideHeader, compact = false, navigationDisabled = false, children,
 }: AuthCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -72,10 +74,10 @@ export function AuthCard({
       resize.disconnect();
       mutation.disconnect();
     };
-  }, [mode, hideHeader]);
+  }, [mode, hideHeader, compact]);
 
   return (
-    <div ref={cardRef} className="auth-card" aria-busy={navigationDisabled}>
+    <div ref={cardRef} className="auth-card" data-compact={compact || undefined} aria-busy={navigationDisabled}>
       <div className="auth-card-form">
         {!hideHeader && (
           <>

@@ -211,6 +211,7 @@ export function GoogleCallback({
             tabRegisterLabel={dict.tabRegister}
             tablistLabel={dict.pageTitle}
             hideHeader
+            compact={view.kind === "enableAccess"}
           >
             {view.kind === "working" && (
               <div className="flex flex-col items-center gap-4 py-16">
@@ -261,7 +262,7 @@ export function GoogleCallback({
                 locale={locale}
                 details={view.details}
                 flowKey={flowKey}
-                onCancel={() => router.replace(retryHref)}
+                onCancel={() => router.replace(loginHref)}
               />
             )}
           </AuthCard>

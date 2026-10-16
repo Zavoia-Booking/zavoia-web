@@ -77,7 +77,8 @@ export function GoogleSignInButton({
         if (onBeforeStart && !onBeforeStart()) return;
         beginGoogleOAuth({ intent, locale, redirect });
       }}
-      className="auth-google-button flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-[10px] border border-[rgba(28,28,26,0.5)] bg-white text-[15px] font-medium text-ink shadow-[var(--sh-sm)] transition-colors duration-150 hover:bg-c-50 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
+      className="auth-google-button flex h-12 w-full cursor-pointer items-center justify-center gap-3 border border-[rgba(28,28,26,0.5)] bg-white text-[15px] font-medium text-ink shadow-[var(--sh-sm)] transition-colors duration-150 hover:bg-c-50 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
+      style={{ borderRadius: "var(--r-full)" }}
     >
       <GoogleG />
       Google

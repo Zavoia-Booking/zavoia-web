@@ -188,8 +188,11 @@ export const en: {
     haveAccountPrompt: string;
     goToLogin: string;
     googleDivider: string;
-    businessOwnerPrompt: string;
-    businessOwnerCta: string;
+    businessSignIn: {
+      title: string;
+      description: string;
+      cta: string;
+    };
     terms: {
       agreementPrefix: string;
       termsLink: string;
@@ -259,11 +262,16 @@ export const en: {
     };
     enableAccess: {
       heading: string;
-      greeting: string;
+      emailLabel: string;
       explanation: string;
+      nextStep: string;
       sendLink: string;
       sending: string;
-      sentFallback: string;
+      sentHeading: string;
+      sentBody: string;
+      spamHint: string;
+      alreadyRequestedHeading: string;
+      alreadyRequestedBody: string;
       error: string;
       cancel: string;
     };
@@ -775,6 +783,11 @@ export const en: {
     pageTitle: string;
     pageBody: string;
     backHome: string;
+    pageRecovery: {
+      body: string;
+      retrying: string;
+      home: string;
+    };
     sectionFailed: string;
     reload: string;
     dismiss: string;
@@ -1812,8 +1825,11 @@ export const en: {
     haveAccountPrompt: "Already have an account?",
     goToLogin: "Sign in",
     googleDivider: "or",
-    businessOwnerPrompt: "Business owner?",
-    businessOwnerCta: "Sign in to your dashboard",
+    businessSignIn: {
+      title: "Zavoia Business",
+      description: "Manage your appointments, clients and team.",
+      cta: "Business sign in",
+    },
     terms: {
       agreementPrefix: "I agree to the",
       termsLink: "Terms and Conditions",
@@ -1887,16 +1903,23 @@ export const en: {
       },
     },
     enableAccess: {
-      heading: "Enable marketplace access",
-      greeting: "Hi {name},",
+      heading: "Use your existing Zavoia account",
+      emailLabel: "Account email",
       explanation:
-        "You already have a Zavoia business account with this email. To keep your account safe, we'll email you a secure link — open it and confirm your password to enable marketplace access. No new account needed.",
-      sendLink: "Email me the secure link",
-      sending: "Sending...",
-      sentFallback:
-        "If the email is associated with a business account, we've sent a link to enable marketplace access.",
+        "Book services with the Zavoia account you already use for business.",
+      nextStep:
+        "Request a confirmation link by email, then open it to confirm it’s you.",
+      sendLink: "Send confirmation link",
+      sending: "Sending link…",
+      sentHeading: "Check your email",
+      sentBody:
+        "If this email belongs to a business account that needs confirmation, look for a link in your inbox. Open it to confirm it’s you and start booking.",
+      spamHint: "Check your spam folder too.",
+      alreadyRequestedHeading: "A link was already requested",
+      alreadyRequestedBody:
+        "A confirmation link is still active for this account. Check your inbox. You can request another after it expires.",
       error: "We couldn't send the link. Please try again.",
-      cancel: "Back to sign in",
+      cancel: "Return to sign in",
     },
     googleLink: {
       heading: "Link your Google account",
@@ -2448,6 +2471,11 @@ export const en: {
     pageBody:
       "It's a problem on our side, not something you did. Try again — it usually clears right up.",
     backHome: "Back home",
+    pageRecovery: {
+      body: "Try loading it again, or return to the home page.",
+      retrying: "Loading…",
+      home: "Go to homepage",
+    },
     sectionFailed: "This section didn't load.",
     reload: "Reload",
     dismiss: "Dismiss",

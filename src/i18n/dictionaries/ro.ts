@@ -215,8 +215,11 @@ export const ro: Dictionary = {
     haveAccountPrompt: "Ai deja cont?",
     goToLogin: "Autentificare",
     googleDivider: "sau",
-    businessOwnerPrompt: "Ai un business?",
-    businessOwnerCta: "Autentifică-te în dashboardul tău",
+    businessSignIn: {
+      title: "Zavoia Business",
+      description: "Gestionează programările, clienții și echipa.",
+      cta: "Autentificare business",
+    },
     terms: {
       agreementPrefix: "Sunt de acord cu",
       termsLink: "Termenii și condițiile",
@@ -290,16 +293,23 @@ export const ro: Dictionary = {
       },
     },
     enableAccess: {
-      heading: "Activează accesul în marketplace",
-      greeting: "Salut, {name},",
+      heading: "Folosește contul tău Zavoia",
+      emailLabel: "Emailul contului",
       explanation:
-        "Ai deja un cont de business Zavoia cu acest email. Pentru siguranța contului, îți trimitem un link securizat pe email — deschide-l și confirmă-ți parola pentru a activa accesul în marketplace. Fără un cont nou.",
-      sendLink: "Trimite-mi linkul securizat pe email",
-      sending: "Se trimite...",
-      sentFallback:
-        "Dacă emailul este asociat unui cont de business, ți-am trimis un link pentru activarea accesului în marketplace.",
+        "Fă programări cu același cont Zavoia pe care îl folosești pentru business.",
+      nextStep:
+        "Solicită un link de confirmare pe email, apoi deschide-l ca să confirmi că ești tu.",
+      sendLink: "Trimite linkul de confirmare",
+      sending: "Se trimite linkul…",
+      sentHeading: "Verifică emailul",
+      sentBody:
+        "Dacă această adresă aparține unui cont de business care are nevoie de confirmare, caută linkul în email. Deschide-l ca să confirmi că ești tu și să faci programări.",
+      spamHint: "Verifică și folderul Spam.",
+      alreadyRequestedHeading: "Există deja un link de confirmare",
+      alreadyRequestedBody:
+        "Un link de confirmare este încă activ pentru acest cont. Caută-l în email. Poți solicita altul după ce expiră.",
       error: "Nu am putut trimite linkul. Încearcă din nou.",
-      cancel: "Înapoi la autentificare",
+      cancel: "Revino la autentificare",
     },
     googleLink: {
       heading: "Conectează contul tău Google",
@@ -858,6 +868,11 @@ export const ro: Dictionary = {
     pageBody:
       "E o problemă de partea noastră, nu ceva ce ai greșit tu. Încearcă din nou — de obicei se rezolvă imediat.",
     backHome: "Înapoi acasă",
+    pageRecovery: {
+      body: "Încearcă să o încarci din nou sau revino la pagina principală.",
+      retrying: "Se încarcă…",
+      home: "Pagina principală",
+    },
     sectionFailed: "Secțiunea aceasta nu s-a încărcat.",
     reload: "Reîncarcă",
     dismiss: "Închide",

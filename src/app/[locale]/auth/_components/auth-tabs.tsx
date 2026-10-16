@@ -2,10 +2,12 @@
 
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
-import type { Locale } from "@/i18n/locales";
+import { useId, useLayoutEffect, useState } from "react";
+import { ArrowRight } from "lucide-react";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
 import { authFlowHref, authRedirectTarget } from "@/lib/auth/redirects";
-import { localeHref } from "@/i18n/routes";
+import { useRetainedAuthState } from "@/lib/auth/retained-flow";
+import { localeHref, localizedPathname } from "@/i18n/routes";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 import { BUSINESS_APP_URL, GOOGLE_CLIENT_ID } from "@/lib/env";
 import { AuthCard } from "./auth-card";
@@ -17,19 +19,51 @@ import { RegisterForm } from "./register-form";
 import { ForgotPasswordForm } from "../forgot-password/_components/forgot-password-form";
 
 type Mode = "login" | "register";
+type AccessFlow = { id: string; details: AccountLinkNeededDetails };
+
+// Use the same navigation context as the auth links, without a locale prefix.
+function authEntryKey(search: Pick<URLSearchParams, "get">): string {
+  const view = search.get("mode") === "register"
+    ? "register"
+    : search.get("forgot") === "1" ? "forgot-password" : "login";
+  return JSON.stringify(["auth-entry", authFlowHref(DEFAULT_LOCALE, view, search)]);
+}
+
+function isCurrentEntry(key: string): boolean {
+  return localizedPathname(window.location.pathname, DEFAULT_LOCALE) === localeHref(DEFAULT_LOCALE, "auth")
+    && authEntryKey(new URLSearchParams(window.location.search)) === key;
+}
 
 export function AuthTabs({ locale }: { locale: Locale }) {
   const dictionary = useAuthMessages();
   const dict = dictionary.auth;
+  const businessHeadingId = useId();
   const searchParams = useSearchParams();
   const redirect = authRedirectTarget(searchParams, locale);
   const mode: Mode = searchParams.get("mode") === "register" ? "register" : "login";
   const isForgotPassword = mode === "login" && searchParams.get("forgot") === "1";
   const view = isForgotPassword ? "forgot-password" : mode;
 
-  const [linkDetails, setLinkDetails] =
-    useState<AccountLinkNeededDetails | null>(null);
+  const entryKey = authEntryKey(searchParams);
+  const [linkFlow, setLinkFlow] = useRetainedAuthState<AccessFlow>(entryKey);
   const [submitting, setSubmitting] = useState(false);
+
+  useLayoutEffect(() => () => {
+    // A locale remount keeps the entry. A committed exit or a different auth
+    // view/context abandons it, including when a request finishes afterwards.
+    queueMicrotask(() => {
+      if (linkFlow && !isCurrentEntry(entryKey)) {
+        setLinkFlow((current) => current === linkFlow ? null : current);
+      }
+    });
+  }, [entryKey, linkFlow, setLinkFlow]);
+
+  function handleAccountLinkNeeded(details: AccountLinkNeededDetails) {
+    // A same-mode form can stay mounted while its return destination changes.
+    // A late response from that previous entry must not reopen its panel.
+    if (!isCurrentEntry(entryKey)) return;
+    setLinkFlow({ id: crypto.randomUUID(), details });
+  }
 
   // Terms consent for register mode. Lives here (not in RegisterForm) because
   // the Google button below the form must gate on the same checkbox — users
@@ -45,20 +79,20 @@ export function AuthTabs({ locale }: { locale: Locale }) {
     setTermsAccepted(false);
     setTermsError(false);
     setSubmitting(false);
-    setLinkDetails(null);
   }
 
   // Sub-flow (business-account link) replaces the tabbed forms inside the same
   // card shell, with the toggle + heading suppressed — it owns its heading.
   // The Google collision panels live on /auth/callback now: the Google button
   // is a full-page redirect, so its outcomes land there, not here.
-  const panel = linkDetails ? (
+  const panel = linkFlow ? (
     <EnableAccessPanel
       locale={locale}
-      details={linkDetails}
+      details={linkFlow.details}
+      flowKey={linkFlow.id}
       onCancel={() => {
+        setLinkFlow(null);
         window.history.replaceState(null, "", authFlowHref(locale, "login", searchParams));
-        setLinkDetails(null);
       }}
     />
   ) : null;
@@ -73,6 +107,7 @@ export function AuthTabs({ locale }: { locale: Locale }) {
         tabRegisterLabel={dict.tabRegister}
         tablistLabel={dict.pageTitle}
         hideHeader={panel !== null}
+        compact={panel !== null}
         navigationDisabled={submitting}
       >
         {panel ?? (isForgotPassword ? (
@@ -86,14 +121,14 @@ export function AuthTabs({ locale }: { locale: Locale }) {
             {mode === "login" ? (
               <LoginForm
                 locale={locale}
-                onAccountLinkNeeded={setLinkDetails}
+                onAccountLinkNeeded={handleAccountLinkNeeded}
                 disabled={submitting}
                 onSubmittingChange={setSubmitting}
               />
             ) : (
               <RegisterForm
                 locale={locale}
-                onAccountLinkNeeded={setLinkDetails}
+                onAccountLinkNeeded={handleAccountLinkNeeded}
                 disabled={submitting}
                 onSubmittingChange={setSubmitting}
                 termsAccepted={termsAccepted}
@@ -169,15 +204,19 @@ export function AuthTabs({ locale }: { locale: Locale }) {
             )}
 
             {mode === "login" && (
-              <p className="text-center text-sm text-c-600">
-                {dict.businessOwnerPrompt}{" "}
+              <section className="auth-business" aria-labelledby={businessHeadingId}>
+                <div className="auth-business-copy">
+                  <h2 id={businessHeadingId}>{dict.businessSignIn.title}</h2>
+                  <p>{dict.businessSignIn.description}</p>
+                </div>
                 <a
                   href={`${BUSINESS_APP_URL}/login`}
-                  className="font-medium text-primary underline-offset-4 hover:underline"
+                  className="tap auth-business-link"
                 >
-                  {dict.businessOwnerCta}
+                  <span>{dict.businessSignIn.cta}</span>
+                  <ArrowRight size={16} aria-hidden="true" className="shrink-0" />
                 </a>
-              </p>
+              </section>
             )}
           </>
         ))}

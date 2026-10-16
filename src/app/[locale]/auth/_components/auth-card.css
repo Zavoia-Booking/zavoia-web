@@ -82,6 +82,42 @@
 .auth-card-body { min-inline-size: 0; }
 .auth-card-content { display: flex; flex-direction: column; gap: 20px; min-inline-size: 0; }
 .auth-card-hero { min-inline-size: 0; min-block-size: 0; }
+.auth-business {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-inline-size: 0;
+  padding-block-start: 24px;
+  border-block-start: 1px solid rgba(28, 28, 26, 0.10);
+}
+.auth-business-copy { display: flex; flex-direction: column; gap: 8px; }
+.auth-business-copy h2 {
+  margin: 0;
+  color: var(--c-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.auth-business-copy p { margin: 0; color: var(--c-600); font-size: 14px; line-height: 1.6; }
+.auth-business-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: 10px 16px;
+  border: 1px solid rgba(28, 28, 26, 0.14);
+  border-radius: var(--r-full);
+  color: var(--c-900);
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.auth-business-link:focus-visible { border-radius: var(--r-full); }
 @media (min-width: 768px) {
   .auth-card-heading h1 { line-height: 1.25; }
 }
@@ -97,6 +133,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .auth-mode-link:not([aria-disabled="true"]):hover { color: var(--c-ink); }
+  .auth-business-link:hover { background: var(--c-canvas); border-color: rgba(28, 28, 26, 0.26); }
 }
 @media (max-width: 920px) {
   .auth-page {
@@ -107,6 +144,7 @@
   .auth-card { grid-template-columns: minmax(0, 1fr); }
   .auth-card-form { padding: 16px; }
   .auth-card-hero { display: none; }
+  .auth-business-link { min-block-size: 48px; }
 }
 @media (max-width: 600px) {
   .auth-card-form { gap: 20px; }
@@ -120,6 +158,89 @@
 @media (max-height: 540px) {
   .auth-page { --auth-page-space: 12px; }
   .auth-card-form { gap: 16px; padding-block: 16px; }
+}
+
+/* Email confirmation is a short step, independent of the shared form minimum. */
+.auth-card[data-compact="true"] { --auth-card-min-size: 36rem; }
+.auth-card[data-compact="true"] .auth-card-form {
+  justify-content: flex-start;
+  padding-block: 32px;
+}
+.auth-card[data-compact="true"] .auth-card-content-enter > * {
+  animation: none;
+  will-change: auto;
+}
+.auth-access-panel { min-inline-size: 0; }
+.auth-access-state {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-inline-size: 0;
+}
+.auth-access-header { display: flex; flex-direction: column; gap: 12px; }
+.auth-access-heading {
+  margin: 0;
+  color: var(--c-ink);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+/* Programmatic heading focus announces the step, without an input-like ring. */
+.auth-access-heading:focus { outline: none; }
+.auth-access-intro {
+  margin: 0;
+  color: var(--c-700);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.auth-access-details { display: flex; flex-direction: column; gap: 20px; min-inline-size: 0; }
+.auth-access-identity { display: flex; flex-direction: column; gap: 4px; }
+.auth-access-label { margin: 0; color: var(--c-600); font-size: 13px; line-height: 1.5; }
+.auth-access-email {
+  margin: 0;
+  color: var(--c-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.auth-access-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--c-700);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.auth-access-copy p { margin: 0; }
+.auth-access-hint { margin: 0; color: var(--c-600); font-size: 13px; line-height: 1.6; }
+.auth-access-footer { display: flex; flex-direction: column; gap: 16px; }
+.auth-access-actions { display: flex; flex-direction: column; gap: 12px; }
+.auth-access-button { inline-size: 100%; min-block-size: 44px; }
+.auth-access-actions .auth-access-button:not(:disabled):hover {
+  transform: none;
+  box-shadow: none;
+}
+.auth-access-actions .auth-access-button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 920px) {
+  .auth-card[data-compact="true"] .auth-card-form { padding: 24px 20px; }
+  .auth-access-state { gap: 24px; }
+  .auth-access-button { min-block-size: 48px; }
+}
+
+@keyframes auth-access-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .auth-card[data-compact="true"] .auth-access-state {
+    animation: auth-access-enter 180ms var(--ease-out) both;
+  }
 }
 
 @keyframes auth-card-content-fade {

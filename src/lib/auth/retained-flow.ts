@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore, type SetStateAction } from "react";
 
 // One-time tokens/transactions must survive a locale segment remount, but must
 // never enter server state or persistent browser storage. Keep only recent tab
@@ -57,6 +57,30 @@ export function retainedAuthFlow<T>(key: string, create: () => T): T {
   const entry = entryFor(key);
   if (entry.value === undefined) entry.value = create();
   return entry.value as T;
+}
+
+/** Small UI context that shares the bounded lifetime of retained auth actions. */
+export function useRetainedAuthState<T>(key: string) {
+  const subscribe = useCallback(
+    (listener: () => void) => subscribeAuthFlow(key, listener),
+    [key],
+  );
+  const getSnapshot = useCallback(
+    () => (entries.get(key)?.value as T | undefined) ?? null,
+    [key],
+  );
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  const setSnapshot = useCallback((value: SetStateAction<T | null>) => {
+    const entry = entryFor(key);
+    const previous = (entry.value as T | undefined) ?? null;
+    const next = typeof value === "function"
+      ? (value as (current: T | null) => T | null)(previous)
+      : value;
+    if (Object.is(previous, next)) return;
+    entry.value = next;
+    entry.listeners.forEach((listener) => listener());
+  }, [key]);
+  return [snapshot, setSnapshot] as const;
 }
 
 type ActionSnapshot =
