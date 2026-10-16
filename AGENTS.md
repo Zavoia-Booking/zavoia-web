@@ -7,3 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Inline error messages
+
+Use `src/components/ui/inline-error.tsx` for inline validation, action and request errors throughout the web app. Follow the inline-error rule in `DESIGN.md` under **Inputs / Fields**, including the explicit text-only sign-in exception and error messages that grow the layout without reserved blank rows.
