@@ -46,6 +46,7 @@ import { Kicker } from "@/components/ui/kicker";
 import { Icon } from "@/components/ui/icon";
 import { FaqList } from "@/components/ui/faq-list";
 import { SpecimenPlate } from "./specimen-plate";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   SECTION_META,
   SECTION_TYPES,
@@ -289,10 +290,12 @@ export function WebStudioContent({
   locale,
   showcase,
   showcaseName,
+  pending = false,
 }: {
   locale: Locale;
   showcase: PreviewData | null;
   showcaseName: string | null;
+  pending?: boolean;
 }) {
   const { dict } = useTranslation();
   const w = dict.webStudio;
@@ -342,9 +345,10 @@ export function WebStudioContent({
         live={live}
         registerHref={registerHref}
         trialLabel={trialLabel}
+        pending={pending}
       />
-      <Wired w={w} specimen={specimen} />
-      <Stage w={w} locale={locale} specimen={specimen} specimenName={specimenName} live={live} />
+      <Wired w={w} specimen={specimen} pending={pending} />
+      <Stage w={w} locale={locale} specimen={specimen} specimenName={specimenName} live={live} pending={pending} />
       <TypePlate
         w={w}
         accent={accent}
@@ -378,6 +382,7 @@ function Cover({
   live,
   registerHref,
   trialLabel,
+  pending = false,
 }: {
   w: W;
   specimen: PreviewData;
@@ -385,6 +390,7 @@ function Cover({
   live: boolean;
   registerHref: string;
   trialLabel: string;
+  pending?: boolean;
 }) {
   const heroVariant = "cinematic";
   return (
@@ -476,6 +482,7 @@ function Cover({
             }}
           >
             <SpecimenPlate
+              pending={pending}
               layout={[
                 { type: "nav", variant: "default", visible: true },
                 { type: "hero", variant: heroVariant, visible: true },
@@ -491,6 +498,7 @@ function Cover({
             />
           </div>
           <PlateCaption tone="ink">
+            {pending ? <Skeleton w={240} h={16} /> : <>
             <span
               aria-hidden="true"
               style={{
@@ -503,6 +511,7 @@ function Cover({
             <span>{live ? w.cover.liveBadge : w.cover.demoBadge}</span>
             <CapSeg tone="ink">{specimenName}</CapSeg>
             <CapSeg tone="ink">{w.cover.plateCaption}</CapSeg>
+            </>}
           </PlateCaption>
         </div>
       </div>
@@ -534,7 +543,7 @@ function Cover({
 
 // ── PLATE 01 · Wired to the data you already keep ─────────────────────────────
 
-function Wired({ w, specimen }: { w: W; specimen: PreviewData }) {
+function Wired({ w, specimen, pending = false }: { w: W; specimen: PreviewData; pending?: boolean }) {
   const serviceCount = new Set(
     specimen.locations.flatMap((l) => l.services.map((s) => s.id)),
   ).size;
@@ -684,6 +693,7 @@ function Wired({ w, specimen }: { w: W; specimen: PreviewData }) {
             }}
           >
             <SpecimenPlate
+              pending={pending}
               layout={[{ type: "services", variant: "feature", visible: true }]}
               data={specimen}
               virtualWidth={1180}
@@ -758,12 +768,14 @@ function Stage({
   specimen,
   specimenName,
   live,
+  pending = false,
 }: {
   w: W;
   locale: Locale;
   specimen: PreviewData;
   specimenName: string;
   live: boolean;
+  pending?: boolean;
 }) {
   const t = useMemo(() => createWebsiteT(locale), [locale]);
   const [type, setType] = useState<SectionType>("hero");
@@ -962,6 +974,7 @@ function Stage({
               }}
             >
               <SpecimenPlate
+                pending={pending}
                 key={`${type}-${variant}`}
                 layout={[
                   {
@@ -988,7 +1001,7 @@ function Stage({
                   total: String(meta.variants.length),
                 })}
               </CapSeg>
-              <CapSeg>{live ? specimenName : w.stage.demoNote}</CapSeg>
+              <CapSeg>{pending ? <Skeleton w={160} h={16} /> : live ? specimenName : w.stage.demoNote}</CapSeg>
             </PlateCaption>
 
             <p

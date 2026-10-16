@@ -81,7 +81,7 @@ export function EnableAccessPanel({
       aria-busy={sending}
     >
       <span role="status" className="sr-only">
-        {showConfirmation ? `${confirmationBody} ${t.spamHint}` : ""}
+        {sending ? t.sending : showConfirmation ? `${confirmationBody} ${t.spamHint}` : ""}
       </span>
       <div key={view} className="auth-access-state">
         <header className="auth-access-header">
@@ -128,15 +128,19 @@ export function EnableAccessPanel({
               <Button
                 onClick={handleSendLink}
                 disabled={sending}
-                className="auth-access-button"
+                aria-label={t.sendLink}
+                aria-busy={sending}
+                className="auth-access-button relative"
                 style={{ whiteSpace: "normal", paddingBlock: 10, lineHeight: 1.4 }}
               >
+                <span className={sending ? "invisible" : undefined} aria-hidden={sending || undefined}>
+                  {t.sendLink}
+                </span>
                 {sending && (
-                  <span aria-hidden="true">
+                  <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
                     <Spinner size={16} color="currentColor" />
                   </span>
                 )}
-                {sending ? t.sending : t.sendLink}
               </Button>
             )}
 

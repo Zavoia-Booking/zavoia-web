@@ -85,7 +85,7 @@ async function load(key: string, entry: FeedEntry, target: number, refresh: bool
   entry.request = request;
   entry.attemptedAt = Date.now();
   entry.retryTarget = target;
-  publish(entry, { ...entry.state, loading: true, failed: false });
+  publish(entry, { ...entry.state, loading: true });
   // A refresh replaces the whole previously loaded range atomically. Never mix
   // freshly reordered first-page rows with old offset pages or discard cards on failure.
   let offset = refresh ? 0 : entry.offset;

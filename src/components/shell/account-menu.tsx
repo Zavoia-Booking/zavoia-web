@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useLocaleAlternates } from "@/i18n/locale-navigation";
 import { authEntryHref } from "@/lib/auth/redirects";
-import { Avatar, Icon, type IconName, useToast } from "@/components/ui";
+import { Avatar, Button, Icon, InlineError, Skeleton, Spinner, type IconName, useToast } from "@/components/ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
@@ -60,7 +60,8 @@ const getHash = () => window.location.hash;
 const getServerHash = () => "";
 
 export function AccountMenu({ locale, onClose }: Props) {
-  const { status, user, logout } = useAuth();
+  const { status, user, logout, initializing, optimisticUser, refresh } = useAuth();
+  const [retryingSession, setRetryingSession] = useState(false);
   const { dict } = useTranslation();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -71,6 +72,8 @@ export function AccountMenu({ locale, onClose }: Props) {
 
   const isAuthed = status === "authenticated" && !!user;
   const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
+  const pendingSession = initializing && !isAuthed;
+  const cachedName = optimisticUser ? `${optimisticUser.firstName} ${optimisticUser.lastName}`.trim() : "";
 
   // Signed-out "Sign in" → the dedicated /auth route (login tab), returning to
   // the current page afterwards via ?redirect=.
@@ -122,9 +125,39 @@ export function AccountMenu({ locale, onClose }: Props) {
     }
   };
 
+  const retrySession = async () => {
+    if (retryingSession) return;
+    setRetryingSession(true);
+    try { await refresh(); }
+    finally { setRetryingSession(false); }
+  };
+
   return (
     <Popover onClose={onClose} label={dict.nav.account} width={300}>
-      {isAuthed ? (
+      <span role="status" className="sr-only">
+        {pendingSession || retryingSession ? dict.account.loading : ""}
+      </span>
+      {status === "error" ? (
+        <div style={{ display: "grid", gap: 12, padding: "16px 18px" }}>
+          <InlineError>{t.sessionError}</InlineError>
+          <Button kind="secondary" size="sm" onClick={retrySession} disabled={retryingSession} aria-busy={retryingSession} aria-label={dict.errors.retry} style={{ justifySelf: "start", position: "relative" }}>
+            <span aria-hidden={retryingSession || undefined} style={{ visibility: retryingSession ? "hidden" : "visible" }}>{dict.errors.retry}</span>
+            {retryingSession && <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}><Spinner size={14} /></span>}
+          </Button>
+        </div>
+      ) : pendingSession ? (
+        <div style={identityStyle} aria-busy="true">
+          {cachedName || optimisticUser?.profileImage ? (
+            <Avatar name={cachedName} src={optimisticUser?.profileImage ?? undefined} size={44} />
+          ) : (
+            <span aria-hidden="true" style={{ flexShrink: 0 }}><Skeleton w={44} h={44} r="50%" /></span>
+          )}
+          <div style={{ display: "grid", gap: 7, minWidth: 0 }}>
+            {cachedName ? <span style={{ fontSize: 15, fontWeight: 600 }}>{cachedName}</span> : <span aria-hidden="true"><Skeleton w={120} h={17} /></span>}
+            <span aria-hidden="true"><Skeleton w={160} h={13} /></span>
+          </div>
+        </div>
+      ) : isAuthed ? (
         <Link
           href={localeHref(locale, "account")}
           className="tap zw-hover-row"
@@ -209,13 +242,23 @@ export function AccountMenu({ locale, onClose }: Props) {
         </Link>
       )}
 
-      {isAuthed && (
+      {(isAuthed || pendingSession) && (
         <>
           <div className="zv-hair" style={{ height: 1 }} />
           <div style={{ padding: "8px 0" }}>
-            {linkRow("cal", t.appointments, "appointments")}
-            {linkRow("heartO", t.saved, "saved")}
-            {linkRow("user", t.profileSettings, "account")}
+            {pendingSession ? (
+              ([ ["cal", t.appointments], ["heartO", t.saved], ["user", t.profileSettings] ] as const).map(([icon, label]) => (
+                <span key={icon} role="link" aria-disabled="true" style={{ ...rowStyle, cursor: "default", opacity: 0.5 }}>
+                  <Icon name={icon} size={16} color="var(--c-600)" />{label}
+                </span>
+              ))
+            ) : (
+              <>
+                {linkRow("cal", t.appointments, "appointments")}
+                {linkRow("heartO", t.saved, "saved")}
+                {linkRow("user", t.profileSettings, "account")}
+              </>
+            )}
           </div>
         </>
       )}
@@ -233,9 +276,14 @@ export function AccountMenu({ locale, onClose }: Props) {
         {linkRow("wallet", t.pricing, "pricing")}
       </div>
 
+      {status !== "error" && <>
       <div className="zv-hair" style={{ height: 1 }} />
       <div style={{ padding: "8px 0" }}>
-        {isAuthed ? (
+        {pendingSession ? (
+          <span style={{ ...rowStyle, cursor: "default", opacity: 0.5 }} aria-disabled="true" role="button">
+            <Icon name="logout" size={16} color="var(--c-600)" />{t.logout}
+          </span>
+        ) : isAuthed ? (
           <button
             type="button"
             className="tap zw-hover-row"
@@ -257,6 +305,7 @@ export function AccountMenu({ locale, onClose }: Props) {
           </Link>
         )}
       </div>
+      </>}
     </Popover>
   );
 }

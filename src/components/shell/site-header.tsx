@@ -419,54 +419,99 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             <Icon name="search" size={18} color="var(--c-800)" />
           </button>
 
-          {showAuthedCorner ? (
-            <>
-              <button
-                type="button"
-                className="tap zw-hover-row zw-only-desktop"
-                aria-label={
-                  unreadCount > 0
-                    ? format(dict.notifications.unreadAria, {
-                        count: String(unreadCount),
-                      })
-                    : dict.nav.notifications
-                }
-                onClick={() => {
-                  setAcctOpen(false);
-                  setNotifOpen((o) => !o);
-                }}
+          <div className={styles.accountControls}>
+            {showAuthedCorner ? (
+              <>
+                <button
+                  type="button"
+                  className="tap zw-hover-row zw-only-desktop"
+                  aria-label={
+                    unreadCount !== null && unreadCount > 0
+                      ? format(dict.notifications.unreadAria, {
+                          count: String(unreadCount),
+                        })
+                      : dict.nav.notifications
+                  }
+                  onClick={() => {
+                    setAcctOpen(false);
+                    setNotifOpen((o) => !o);
+                  }}
+                  style={{
+                    ...iconBtn,
+                    background: notifOpen ? "var(--c-100)" : "transparent",
+                    position: "relative",
+                  }}
+                >
+                  <Icon name="bell" size={18} color="var(--c-700)" />
+                  {unreadCount !== null && unreadCount > 0 && (
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        minWidth: 15,
+                        height: 15,
+                        padding: "0 4px",
+                        borderRadius: 999,
+                        background: "var(--p-600)",
+                        color: "#fff",
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        lineHeight: "15px",
+                        textAlign: "center",
+                        fontVariantNumeric: "tabular-nums",
+                        boxShadow: "0 0 0 2px var(--c-canvas)",
+                      }}
+                    >
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="tap"
+                  aria-label={dict.nav.account}
+                  onClick={() => {
+                    setNotifOpen(false);
+                    setAcctOpen((o) => !o);
+                  }}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: "50%",
+                    border: 0,
+                    padding: 0,
+                    marginLeft: 6,
+                    cursor: "pointer",
+                    overflow: "hidden",
+                    background: "var(--c-300)",
+                    boxShadow: acctOpen
+                      ? "0 0 0 2px var(--c-canvas), 0 0 0 4px var(--c-ink)"
+                      : "0 0 0 1px rgba(28,28,26,0.08)",
+                  }}
+                >
+                  {/* Cold optimistic cache has no name/photo: keep the circle
+                      empty rather than showing a "?" initial. */}
+                  {fullName || avatarSrc ? (
+                    <Avatar name={fullName} src={avatarSrc} size={34} />
+                  ) : null}
+                </button>
+              </>
+            ) : showNeutralCorner ? (
+              <span
+                aria-hidden="true"
                 style={{
-                  ...iconBtn,
-                  background: notifOpen ? "var(--c-100)" : "transparent",
-                  position: "relative",
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  marginLeft: 6,
+                  flexShrink: 0,
+                  background: "var(--c-300)",
+                  boxShadow: "0 0 0 1px rgba(28,28,26,0.08)",
                 }}
-              >
-                <Icon name="bell" size={18} color="var(--c-700)" />
-                {unreadCount > 0 && (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: "absolute",
-                      top: 4,
-                      right: 4,
-                      minWidth: 15,
-                      height: 15,
-                      padding: "0 4px",
-                      borderRadius: 999,
-                      background: "var(--p-600)",
-                      color: "#fff",
-                      fontSize: 9.5,
-                      fontWeight: 700,
-                      lineHeight: "15px",
-                      textAlign: "center",
-                      fontVariantNumeric: "tabular-nums",
-                      boxShadow: "0 0 0 2px var(--c-canvas)",
-                    }}
-                  >
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
+              />
+            ) : (
               <button
                 type="button"
                 className="tap"
@@ -484,66 +529,23 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                   marginLeft: 6,
                   cursor: "pointer",
                   overflow: "hidden",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   background: "var(--c-300)",
                   boxShadow: acctOpen
                     ? "0 0 0 2px var(--c-canvas), 0 0 0 4px var(--c-ink)"
                     : "0 0 0 1px rgba(28,28,26,0.08)",
                 }}
               >
-                {/* Cold optimistic cache has no name/photo: keep the circle
-                    empty rather than showing a "?" initial. */}
-                {fullName || avatarSrc ? (
-                  <Avatar name={fullName} src={avatarSrc} size={34} />
-                ) : null}
+                <Icon name="user" size={18} color="var(--c-700)" />
               </button>
-            </>
-          ) : showNeutralCorner ? (
-            <span
-              aria-hidden="true"
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: "50%",
-                marginLeft: 6,
-                flexShrink: 0,
-                background: "var(--c-300)",
-                boxShadow: "0 0 0 1px rgba(28,28,26,0.08)",
-              }}
-            />
-          ) : (
-            <button
-              type="button"
-              className="tap"
-              aria-label={dict.nav.account}
-              onClick={() => {
-                setNotifOpen(false);
-                setAcctOpen((o) => !o);
-              }}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: "50%",
-                border: 0,
-                padding: 0,
-                marginLeft: 6,
-                cursor: "pointer",
-                overflow: "hidden",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "var(--c-300)",
-                boxShadow: acctOpen
-                  ? "0 0 0 2px var(--c-canvas), 0 0 0 4px var(--c-ink)"
-                  : "0 0 0 1px rgba(28,28,26,0.08)",
-              }}
-            >
-              <Icon name="user" size={18} color="var(--c-700)" />
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      {notifOpen && <NotifPanel onClose={() => setNotifOpen(false)} />}
+      {notifOpen && showAuthedCorner && <NotifPanel onClose={() => setNotifOpen(false)} />}
       {acctOpen && (
         <AccountMenu locale={locale} onClose={() => setAcctOpen(false)} />
       )}

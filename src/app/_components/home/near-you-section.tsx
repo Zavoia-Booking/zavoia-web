@@ -6,6 +6,7 @@ import { SectionTitle } from "@/components/ui/section-title";
 import { SectionFailed } from "./section-failed";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BusinessFeedCard } from "@/components/business";
 import { locationCardToData } from "@/lib/marketplace/card-mappers";
 import { useHomeCoords } from "./use-home-coords";
@@ -25,8 +26,8 @@ export function NearYouSection() {
   const cards = items.map((item) => locationCardToData(item, locale));
   const busy = resolving || (coords != null && (loading || (!loaded && !failed)));
 
-  if (!busy && failed && cards.length === 0) {
-    return <SectionFailed paddingTop={60} onRetry={retry} />;
+  if (failed && cards.length === 0) {
+    return <SectionFailed paddingTop={60} onRetry={retry} loading={busy} />;
   }
 
   // Nothing in range, or nowhere to anchor → hide the section entirely.
@@ -34,7 +35,7 @@ export function NearYouSection() {
 
   return (
     <>
-      <section className="zw-container" style={{ paddingTop: 60 }}>
+      <section className="zw-container" style={{ paddingTop: 60 }} aria-busy={busy}>
         <SectionTitle
           kicker={s.kicker}
           title={s.title}
@@ -43,21 +44,21 @@ export function NearYouSection() {
         />
         {busy && cards.length === 0 ? (
           <div
+            aria-hidden="true"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              color: "var(--c-600)",
-              fontSize: 14,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(min(360px, 100%), 1fr))",
+              gap: 16,
             }}
           >
-            <Spinner size={18} />
-            {s.locating}
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} h={168} r={18} />
+            ))}
           </div>
         ) : (
           <>
             <div
-              className="zw-stagger"
+
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fill, minmax(min(360px, 100%), 1fr))",
@@ -77,15 +78,26 @@ export function NearYouSection() {
                   size="lg"
                   onClick={showMore}
                   disabled={busy}
+                  aria-label={s.showMore}
+                  aria-busy={busy}
+                  style={{ position: "relative" }}
                 >
-                  {s.showMore}
+                  <span aria-hidden={busy || undefined} style={{ visibility: busy ? "hidden" : undefined }}>
+                    {s.showMore}
+                  </span>
+                  {busy && (
+                    <span aria-hidden="true" style={{ position: "absolute" }}>
+                      <Spinner size={18} color="var(--c-900)" />
+                    </span>
+                  )}
                 </Button>
               </div>
             )}
           </>
         )}
+        <p role="status" className="sr-only">{busy ? s.locating : ""}</p>
       </section>
-      {failed && <SectionFailed paddingTop={24} onRetry={retry} />}
+      {failed && <SectionFailed paddingTop={24} onRetry={retry} loading={busy} />}
     </>
   );
 }

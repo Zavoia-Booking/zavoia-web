@@ -2,7 +2,7 @@
 
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useState } from "react";
-import { Button, Spinner, useToast } from "@/components/ui";
+import { Button, useToast } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { ApiError } from "@/lib/api/http";
@@ -88,7 +88,8 @@ export function CancelModal({
             {t.keep}
           </Button>
           <Button
-            kind="accent"
+            loading={submitting}
+          kind="accent"
             size="lg"
             onClick={() => void confirm()}
             disabled={submitting}
@@ -98,7 +99,7 @@ export function CancelModal({
               border: "1px solid var(--s-error-600)",
             }}
           >
-            {submitting ? <Spinner size={16} /> : t.confirm}
+            {t.confirm}
           </Button>
         </>
       }

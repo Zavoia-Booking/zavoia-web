@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { AuthStandaloneSkeleton } from "../_components/auth-skeleton";
 import {
   DEFAULT_LOCALE,
   LOCALES,
@@ -49,7 +50,7 @@ export default async function ResetPasswordPage({ params }: Props) {
   if (!isLocale(locale)) notFound();
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<AuthStandaloneSkeleton reset />}>
       <ResetPasswordForm locale={locale} />
     </Suspense>
   );

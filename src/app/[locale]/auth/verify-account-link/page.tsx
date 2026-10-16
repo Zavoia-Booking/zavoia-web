@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { AuthStandaloneSkeleton } from "../_components/auth-skeleton";
 import {
   DEFAULT_LOCALE,
   LOCALES,
@@ -53,7 +54,7 @@ export default async function VerifyAccountLinkPage({ params }: Props) {
   if (!isLocale(locale)) notFound();
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<AuthStandaloneSkeleton password />}>
       <VerifyAccountLink locale={locale} />
     </Suspense>
   );

@@ -25,7 +25,7 @@ import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
 import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
 import { useTranslation } from "@/i18n/useTranslation";
-import { Button, Icon, InlineError, Skeleton, Spinner, useToast } from "@/components/ui";
+import { Button, Icon, InlineError, Skeleton, useToast } from "@/components/ui";
 import {
   addTicketMessage,
   closeTicket,
@@ -421,12 +421,13 @@ function NewTicketForm({
           {t.new.cancel}
         </Button>
         <Button
+          loading={submitting}
           kind="primary"
           size="md"
           onClick={submit}
           disabled={submitting || !message.trim()}
         >
-          {submitting ? <Spinner size={16} color="#fff" /> : t.new.submit}
+          {t.new.submit}
         </Button>
       </div>
     </div>
@@ -455,6 +456,8 @@ function TicketDetailView({
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [confirmingClose, setConfirmingClose] = useState(false);
@@ -475,6 +478,7 @@ function TicketDetailView({
     getTicket(ticketId)
       .then((res) => {
         if (!alive) return;
+        setLoadError(false);
         setTicket(res);
       })
       .catch(() => {
@@ -484,11 +488,12 @@ function TicketDetailView({
       .finally(() => {
         if (!alive) return;
         setLoading(false);
+        setRetrying(false);
       });
     return () => {
       alive = false;
     };
-  }, [ticketId]);
+  }, [ticketId, attempt]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -571,7 +576,14 @@ function TicketDetailView({
     return (
       <div>
         {backButton}
-        <Skeleton w="100%" h={220} r={16} />
+        <div aria-busy="true" style={{ border: "1px solid rgba(28,28,26,0.08)", borderRadius: 20, overflow: "hidden" }}>
+          <div aria-hidden="true" style={{ padding: "16px 18px", borderBottom: "1px solid rgba(28,28,26,0.07)", display: "flex", gap: 10 }}><Skeleton w={86} h={25} r={999} /><Skeleton w={70} h={25} /></div>
+          <div aria-hidden="true" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14, background: "var(--c-50, var(--c-canvas))" }}>
+            <Skeleton w="72%" h={76} r={14} /><Skeleton w="65%" h={96} r={14} style={{ alignSelf: "flex-end" }} /><Skeleton w="58%" h={56} r={14} />
+          </div>
+          <div aria-hidden="true" style={{ padding: "14px 16px", borderTop: "1px solid rgba(28,28,26,0.07)", display: "flex", gap: 10, alignItems: "flex-end" }}><Skeleton h={64} r={14} /><Skeleton w={88} h={46} r={999} style={{ flexShrink: 0 }} /></div>
+          <span role="status" className="sr-only">{dict.account.loading}</span>
+        </div>
       </div>
     );
   }
@@ -581,6 +593,8 @@ function TicketDetailView({
       <div>
         {backButton}
         <InlineError>{t.loadError}</InlineError>
+        <Button kind="secondary" size="sm" loading={retrying} onClick={() => { setRetrying(true); setAttempt((n) => n + 1); }} style={{ marginTop: 16 }}>{dict.errors.retry}</Button>
+        <span role="status" className="sr-only">{retrying ? dict.account.loading : ""}</span>
       </div>
     );
   }
@@ -720,16 +734,13 @@ function TicketDetailView({
                 }}
               />
               <Button
+                loading={sending}
                 kind="accent"
                 size="md"
                 onClick={send}
                 disabled={sending || !draft.trim()}
               >
-                {sending ? (
-                  <Spinner size={16} color="#fff" />
-                ) : (
-                  t.composer.send
-                )}
+                {t.composer.send}
               </Button>
             </div>
           ) : (
@@ -811,8 +822,8 @@ function TicketDetailView({
               >
                 {t.close.cancel}
               </Button>
-              <Button kind="primary" size="md" onClick={doClose} disabled={closing}>
-                {closing ? <Spinner size={16} color="#fff" /> : t.close.confirm}
+              <Button loading={closing} kind="primary" size="md" onClick={doClose} disabled={closing}>
+                {t.close.confirm}
               </Button>
             </div>
           </div>
@@ -834,17 +845,21 @@ function ReportIssueCard({
   t,
   locale,
   tickets,
+  failed = false,
+  loading = false,
   onOpenTicket,
   onNew,
 }: {
   t: SupportDict;
   locale: Locale;
-  tickets: TicketListItem[];
+  tickets: TicketListItem[] | null;
+  failed?: boolean;
+  loading?: boolean;
   onOpenTicket: (id: number) => void;
   onNew: () => void;
 }) {
-  const open = tickets.filter((tk) => ACTIVE_STATUSES.includes(tk.status));
-  const hasHistory = tickets.length > 0;
+  const open = (tickets ?? []).filter((tk) => ACTIVE_STATUSES.includes(tk.status));
+  const hasHistory = (tickets?.length ?? 0) > 0;
   const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
 
   return (
@@ -871,7 +886,7 @@ function ReportIssueCard({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: open.length ? 2 : 8,
+            marginBottom: tickets === null && !failed || open.length ? 2 : 8,
           }}
         >
           <span
@@ -901,7 +916,7 @@ function ReportIssueCard({
             </span>
           )}
         </div>
-        {open.length > 0 ? (
+        {tickets === null ? failed ? null : <div aria-hidden="true" style={{ padding: "11px 0", borderTop: "1px solid rgba(28,28,26,0.07)", display: "flex", flexDirection: "column", gap: 1 }}><Skeleton w="70%" h={20.25} r={4} /><Skeleton w="45%" h={17.25} r={4} /></div> : open.length > 0 ? (
           open.slice(0, 3).map((tk) => (
             <button
               key={tk.id}
@@ -968,6 +983,7 @@ function ReportIssueCard({
           kind="primary"
           size="md"
           onClick={onNew}
+          disabled={loading}
           style={{ flex: 1, justifyContent: "center" }}
         >
           {t.newTicket}
@@ -991,29 +1007,34 @@ export function SupportSection({
   profile: CustomerProfile;
 }) {
   const st = t.support;
+  const { dict } = useTranslation();
   const [tickets, setTickets] = useState<TicketListItem[] | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
 
-  // `tickets`/`loadError` start at their "not yet loaded" values, so no
-  // synchronous setState reset is needed at the top of this effect — it
-  // only runs once on mount (empty dep array).
+  // Keep the current state visible during an explicit retry. Cleanup prevents
+  // a superseded request from updating this account section.
   useEffect(() => {
     let alive = true;
     listTickets()
       .then((res) => {
         if (!alive) return;
+        setLoadError(false);
+        setRetrying(false);
         setTickets([...res].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)));
       })
       .catch(() => {
         if (!alive) return;
+        setRetrying(false);
         setLoadError(true);
       });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [attempt]);
 
   const handleUpdated = useCallback((ticket: Ticket) => {
     setTickets((prev) =>
@@ -1062,31 +1083,25 @@ export function SupportSection({
     );
   }
 
-  if (tickets === null) {
-    if (loadError) {
-      return (
-        <InlineError>{st.loadError}</InlineError>
-      );
-    }
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <Skeleton w="100%" h={90} r={16} />
-        <Skeleton w="100%" h={90} r={16} />
-        <Skeleton w="100%" h={90} r={16} />
-      </div>
-    );
-  }
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div aria-busy={(tickets === null && !loadError) || retrying} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <ReportIssueCard
         t={st}
         locale={locale}
         tickets={tickets}
+        failed={loadError}
+        loading={(tickets === null && !loadError) || retrying}
         onOpenTicket={openTicket}
         onNew={() => setCreating(true)}
       />
-      {tickets.length > 0 && (
+      {tickets === null && !loadError && <div aria-hidden="true" style={{ background: "#fff", border: "1px solid rgba(28,28,26,0.08)", borderRadius: 16, overflow: "hidden" }}>
+        {[0, 1, 2].map((i) => <div key={i} style={{ padding: "15px 18px", display: "flex", flexDirection: "column", gap: 8, borderBottom: "1px solid rgba(28,28,26,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}><span style={{ display: "inline-flex", padding: "3px 9px 3px 7px", border: "1.5px solid transparent" }}><Skeleton w={44} h={10} r={4} /></span><Skeleton w={92} h={15.75} r={4} /></div>
+          <Skeleton w="75%" h={19.575} r={4} />
+          <Skeleton w="35%" h={15} r={4} />
+        </div>)}
+      </div>}
+      {tickets && tickets.length > 0 && (
         <div
           style={{
             background: "#fff",
@@ -1107,9 +1122,11 @@ export function SupportSection({
           ))}
         </div>
       )}
-      {loadError && (
+      {loadError && <div>
         <InlineError>{st.loadError}</InlineError>
-      )}
+        <Button kind="secondary" size="sm" loading={retrying} onClick={() => { setRetrying(true); setAttempt((n) => n + 1); }} style={{ marginTop: 16 }}>{dict.errors.retry}</Button>
+      </div>}
+      <span role="status" className="sr-only">{(tickets === null && !loadError) || retrying ? t.loading : ""}</span>
     </div>
   );
 }

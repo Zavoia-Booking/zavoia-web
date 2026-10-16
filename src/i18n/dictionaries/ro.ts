@@ -55,6 +55,7 @@ export const ro: Dictionary = {
       locating: "Căutăm locuri lângă tine…",
     },
     recentlyViewed: {
+      loading: "Se încarcă locurile vizualizate recent…",
       kicker: "Continuă de unde ai rămas",
       title: "Vizualizate recent",
     },
@@ -486,6 +487,8 @@ export const ro: Dictionary = {
       deleteAccount: "Șterge contul",
     },
     stats: {
+      unavailable: "Indisponibil",
+      loadError: "Nu am putut încărca statisticile contului.",
       appointments: "Programări",
       reviews: "Recenzii",
       saved: "Salvate",
@@ -569,7 +572,16 @@ export const ro: Dictionary = {
       body: "Conectează-te pentru a-ți gestiona datele, notificările și securitatea.",
       secondary: "Explorează locații",
     },
-    sectionError: "Secțiunea nu a putut fi încărcată. Încearcă din nou.",
+    loadError: {
+      profile: {
+        title: "Nu am putut încărca datele tale",
+        body: "Încearcă din nou să încarci datele contului sau alege o altă secțiune.",
+      },
+      preferences: {
+        title: "Nu am putut încărca preferințele",
+        body: "Încearcă din nou ca să vezi și să actualizezi preferințele pentru notificări.",
+      },
+    },
     support: {
       intro:
         "Probleme pe care le-ai raportat echipei noastre. Urmărește răspunsurile și răspunde direct de aici.",
@@ -843,6 +855,10 @@ export const ro: Dictionary = {
     },
   },
   common: {
+    save: "Salvează",
+    removeSaved: "Elimină din salvate",
+    savedStatusLoading: "Se verifică dacă este salvat",
+    savedStatusUnavailable: "Starea salvării nu este disponibilă",
     signIn: "Autentificare",
     reviews: "recenzii",
     open: "Deschis",
@@ -913,6 +929,9 @@ export const ro: Dictionary = {
     searchAria: "Caută",
   },
   searchOverlay: {
+    previewError: "Nu am putut încărca sugestiile.",
+    industriesError: "Nu am putut încărca domeniile de servicii.",
+    citySearchError: "Nu am putut căuta orașe. Încearcă din nou.",
     overlayTitle: "Cu ce te putem ajuta?",
     what: "Ce?",
     where: "Unde?",
@@ -993,6 +1012,7 @@ export const ro: Dictionary = {
     browseMore: "Mai multe",
     sheetHandleAria: "Trage pentru a redimensiona panoul cu rezultate",
     filters: {
+      loadError: "Nu am putut încărca opțiunile disponibile.",
       title: "Filtre",
       activeLabel: "Filtre, {count} active",
       close: "Închide",
@@ -1227,6 +1247,7 @@ export const ro: Dictionary = {
     relatedTitle: "Documente conexe",
   },
   accountMenu: {
+    sessionError: "Nu am putut verifica sesiunea. Încearcă din nou.",
     appointments: "Programări",
     saved: "Salvate",
     profileSettings: "Profil și setări",
@@ -1242,6 +1263,9 @@ export const ro: Dictionary = {
     loginOrSignUp: "Autentifică-te sau înregistrează-te",
   },
   notifications: {
+    loading: "Se încarcă notificările",
+    refreshError: "Nu am putut actualiza notificările. Notificările anterioare sunt afișate în continuare.",
+    loadMoreError: "Nu am putut încărca mai multe notificări. Încearcă din nou.",
     title: "Notificări",
     markAllRead: "Marchează toate ca citite",
     loadMore: "Încarcă mai multe",

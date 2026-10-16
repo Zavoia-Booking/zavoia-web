@@ -338,6 +338,25 @@ Skeleton states use `.zv-skel` (shimmering `--c-200`→`--c-300` gradient sweep,
 1.4s); missing images fall back to `.zv-stripe` (45° ink-alpha stripes on mist)
 with a mono uppercase label.
 
+**Loading feedback:** reuse the existing `Skeleton` for initial page or section
+content and the existing `Spinner` for pending actions. Pending buttons replace
+their visible label with `Spinner` and remain disabled until the request settles.
+Never use visible loading text such as "Loading...", "Loading details…", or
+"Se încarcă…" as loading UI. Preserve loaded content and navigation during retries.
+Keep accessible action names, `aria-busy`, and screen-reader-only status messages;
+these do not replace the visual skeleton or spinner. Reuse the shared components
+and their existing motion rules rather than introducing custom loaders.
+Use the shared `Button` loading prop for pending actions; it keeps the normal
+action name and its dimensions while showing the existing spinner.
+Render resolved content directly in its reserved position: do not replay
+entrance fades or stagger animations when it replaces a skeleton.
+Keep known localized copy visible and share its layout with pending content.
+Availability belongs to its selected date: pending or superseded results must
+never remain selectable.
+Reserve the final control footprint and match skeletons to the content's actual
+responsive geometry. Keep unresolved data distinct from a successful empty or
+zero result; a failed request must offer recovery instead of claiming either.
+
 ### Inputs / Fields
 - **Style:** white, 12%-ink hairline, 14px radius, sh-sm; icon leading inside `6px 6px 6px 16px` padding (help search).
 - **Focus:** container `:focus-within` — border warms to `--p-400`, glow `0 0 0 4px var(--p-100)`. Range sliders: 6px `--c-200` track, 26px ink circular thumb.
@@ -387,10 +406,11 @@ by `/web-studio` and reusable anywhere the product can be exhibited.
   width is keyed to the **viewport, not the plate**: a ~560px-wide desktop plate
   still shows the desktop arrangement, while ≤600px viewports switch to
   `max(plateWidth, 430)` so a phone renders near 1:1 and shows the true phone
-  arrangement (hamburger nav and all). The box **hugs its specimen** — height
-  follows the scaled content, clamped between `minHeight` (140) and `maxHeight`
-  (620), so a short nav and a tall locations section each get a plate that fits.
-  Only a specimen taller than the clamp is cropped, and only then does an 84px
+  arrangement (hamburger nav and all). The box keeps a **stable frame** from
+  first render: 16:10 for normal specimens and 8:1 for compact specimens,
+  bounded by the caller’s minimum and maximum heights. Measuring the renderer
+  updates its scale and crop treatment without resizing the frame.
+  Only a specimen taller than its frame is cropped, and only then does an 84px
   bottom fade (transparent → 92% canvas) appear, so the crop reads as a
   deliberate catalogue detail rather than an accident. The plate rests on
   `--c-shade` (the specimen paints its own paper over it, keeping the first

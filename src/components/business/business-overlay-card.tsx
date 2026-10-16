@@ -11,7 +11,7 @@ import type { BusinessCardData } from "./types";
 export interface BusinessOverlayCardProps {
   b: BusinessCardData;
   onClick?: () => void;
-  favorited?: boolean;
+  favorited?: boolean | null;
   /** Favorite handler — the heart only renders when provided (signed-in). */
   onFavorite?: (id: BusinessCardData["id"]) => void;
 }

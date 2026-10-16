@@ -9,7 +9,7 @@ import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
-import { Button, Icon, SignedOutGate, Skeleton, Spinner } from "@/components/ui";
+import { Button, Icon, SignedOutGate, Skeleton } from "@/components/ui";
 import { ApiError } from "@/lib/api/http";
 import { getAppointment } from "@/lib/api/marketplace/appointments";
 import { useRebook } from "@/lib/booking";
@@ -77,21 +77,35 @@ function relativeLabel(
 // ── Loading skeleton ────────────────────────────────────────────────────────
 
 export function DetailLoadingState({ loadingLabel }: { loadingLabel: string }) {
+  const { dict, locale } = useTranslation();
+  const t = dict.appointmentDetail;
   return (
-    <div
-      className="zw-container"
-      style={{ paddingTop: 40, paddingBottom: 40, width: "100%" }}
-      aria-busy="true"
-    >
-      <Skeleton w={180} h={24} r={8} />
-      <div style={{ marginTop: 24 }}>
-        <Skeleton w="70%" h={48} r={12} />
+    <div className="zw-container" style={{ paddingTop: 22, width: "100%" }} aria-busy="true">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 22 }}><a href={localeHref(locale, "appointments")} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13.5, fontWeight: 600, color: "var(--c-600)", padding: "4px 0" }}><Icon name="back" size={14} color="var(--c-600)" />{t.back}</a></div>
+      <div aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}><span style={{ display: "inline-flex", padding: "5px 11px 5px 9px", border: "1.5px solid transparent" }}><Skeleton w={78} h={10.5} r={4} /></span><Skeleton w={80} h={18} r={4} /></div>
+      <div aria-hidden="true" style={{ fontSize: "clamp(28px, 3.4vw, 44px)", lineHeight: 1.04, height: "1.04em", display: "flex", alignItems: "center" }}><Skeleton w="min(520px, 80%)" h="1em" /></div>
+      <div aria-hidden="true" style={{ marginTop: 16, height: 22.5, display: "flex", alignItems: "center", gap: 12 }}><Skeleton w="min(280px, 70%)" h={15} r={4} /><Skeleton w={60} h={18} r={4} /></div>
+      <div style={{ height: 28 }} /><div style={{ height: 1, background: "rgba(28,28,26,0.08)" }} />
+      <div data-biz-cols="1" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: "clamp(28px, 4vw, 56px)", alignItems: "start", marginTop: 4 }}>
+        <div style={{ minWidth: 0 }}>
+          <Section label={t.sections.where}><div aria-hidden="true" style={{ display: "flex", minHeight: 150, border: "1px solid rgba(28,28,26,0.07)", borderRadius: 18, overflow: "hidden", background: "#fff" }}><Skeleton w={150} h="auto" r={0} style={{ flexShrink: 0 }} /><div style={{ flex: 1, minWidth: 0, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}><Skeleton w="80%" h={22} /><Skeleton h={18} /><Skeleton w="65%" h={18} /></div></div></Section>
+          <Section label={t.sections.service}><div aria-hidden="true" style={{ border: "1px solid rgba(28,28,26,0.07)", borderRadius: 18, background: "#fff", padding: "21px 20px 18px", display: "flex", flexDirection: "column", gap: 14 }}><Skeleton w="75%" h={22} /><Skeleton w="35%" h={18} /><div style={{ paddingTop: 16, borderTop: "1px solid rgba(28,28,26,0.07)" }}><Skeleton w="40%" h={24} style={{ marginLeft: "auto" }} /></div></div></Section>
+          <div aria-hidden="true" style={{ marginTop: 36, paddingTop: 22, borderTop: "1px solid rgba(28,28,26,0.08)", display: "flex", justifyContent: "center" }}><Skeleton w="min(280px, 80%)" h={15.75} r={4} /></div>
+        </div>
+        <div className="zw-only-desktop" aria-hidden="true" style={{ position: "sticky", top: "calc(var(--nav-h) + 18px)" }}>
+          <div style={{ background: "#fff", border: "1px solid rgba(28,28,26,0.09)", borderRadius: 20, overflow: "hidden" }}>
+            <div style={{ padding: "18px 18px 16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}><Skeleton w={40} h={40} r={11} style={{ flexShrink: 0 }} /><div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 1 }}><Skeleton w="70%" h={22.5} r={4} /><Skeleton w="50%" h={18} r={4} /></div></div>
+              <Skeleton h={56} r={999} />
+            </div>
+            <div style={{ borderTop: "1px solid rgba(28,28,26,0.08)", padding: 6 }}>
+              {[0, 1].map((i) => <div key={i} style={{ padding: "12px 14px", display: "flex", gap: 12, alignItems: "center" }}><Skeleton w={16} h={16} r={4} style={{ flexShrink: 0 }} /><Skeleton w="60%" h={21} r={4} /></div>)}
+            </div>
+          </div>
+        </div>
       </div>
-      <div style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 24 }}>
-        <Skeleton w="100%" h={150} r={18} />
-        <Skeleton w="100%" h={200} r={18} />
-      </div>
-      <p className="sr-only">{loadingLabel}</p>
+      <div className="zw-only-mobile" style={{ height: 64 }} />
+      <p role="status" className="sr-only">{loadingLabel}</p>
     </div>
   );
 }
@@ -139,8 +153,9 @@ function ErrorState({
       >
         {t.errorLoading}
       </p>
-      <Button kind="primary" size="lg" onClick={onRetry} disabled={retrying}>
-        {retrying ? <Spinner size={16} color="#fff" /> : errorsT.retry}
+      <Button loading={retrying}
+          kind="primary" size="lg" onClick={onRetry} disabled={retrying}>
+        {errorsT.retry}
       </Button>
     </div>
   );
@@ -177,6 +192,7 @@ function RailButton({
   href,
   onClick,
   disabled,
+  loading = false,
 }: {
   kind: "primary" | "secondary" | "accent";
   icon: Parameters<typeof Icon>[0]["name"];
@@ -184,6 +200,7 @@ function RailButton({
   href?: string;
   onClick?: () => void;
   disabled?: boolean;
+  loading?: boolean;
 }) {
   const color = kind === "secondary" ? "var(--c-800)" : "#fff";
   const content = (
@@ -231,6 +248,7 @@ function RailButton({
       size="lg"
       onClick={onClick}
       disabled={disabled}
+      loading={loading}
       style={{ width: "100%" }}
     >
       {content}
@@ -434,6 +452,7 @@ function ActionRail({
                   icon="rebook"
                   onClick={onBookAgain}
                   disabled={bookingAgain}
+                  loading={bookingAgain}
                 >
                   {t.bookAgain}
                 </RailButton>
@@ -446,6 +465,7 @@ function ActionRail({
               icon="rebook"
               onClick={onBookAgain}
               disabled={bookingAgain}
+              loading={bookingAgain}
             >
               {t.bookAgain}
             </RailButton>

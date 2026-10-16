@@ -120,8 +120,18 @@ export function ResendVerification({ email: knownEmail }: ResendVerificationProp
         size="md"
         type="submit"
         disabled={disabled || (knownEmail == null && email.trim() === "")}
+        aria-label={label}
+        aria-busy={sending}
+        className="relative"
       >
-        {sending ? <Spinner size={16} color="#fff" /> : label}
+        <span className={sending ? "invisible" : undefined} aria-hidden={sending || undefined}>
+          {label}
+        </span>
+        {sending && (
+          <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+            <Spinner size={16} color="currentColor" />
+          </span>
+        )}
       </Button>
       {error && (
         <InlineError className="mt-2">

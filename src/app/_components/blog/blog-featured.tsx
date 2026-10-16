@@ -17,6 +17,7 @@ export interface BlogFeaturedProps {
   locale: Locale;
   post: BlogCardVM;
   categoryLabel: string;
+  animate?: boolean;
 }
 
 // Lead feature card. Ported from ZwBlogFeatured (docs/web-blog.jsx:154-216).
@@ -26,7 +27,7 @@ export interface BlogFeaturedProps {
 //  - The footer omits the author avatar/name (no author data). The byline slot
 //    now holds the BlogMeta (date · read); the "Read story" affordance with the
 //    dual-arrow go button is unchanged on the right.
-export function BlogFeatured({ locale, post, categoryLabel }: BlogFeaturedProps) {
+export function BlogFeatured({ locale, post, categoryLabel, animate = false }: BlogFeaturedProps) {
   const { dict } = useTranslation();
   const accent = categoryAccent(post.category);
   const mediaRef = useRef<HTMLSpanElement>(null);
@@ -54,6 +55,7 @@ export function BlogFeatured({ locale, post, categoryLabel }: BlogFeaturedProps)
       href={localeHref(locale, "blog", post.slug)}
       className="zw-feat zw-hover-lift zw-zoom-parent"
       style={{
+        animation: animate ? undefined : "none",
         display: "grid",
         gridTemplateColumns: "minmax(0, 1.18fr) minmax(0, 1fr)",
         background: "#fff",

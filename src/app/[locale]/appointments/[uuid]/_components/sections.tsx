@@ -18,7 +18,7 @@ import type { Locale } from "@/i18n/locales";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
-import { Avatar, Icon, Img, Rating, Stars } from "@/components/ui";
+import { Avatar, Button, Icon, Img, Rating, Stars } from "@/components/ui";
 import { formatDuration, formatMoney } from "@/lib/format/money-time";
 import {
   apptTime,
@@ -1330,8 +1330,9 @@ export function MobileBar({
         canBookAgain ? (
           // Same action as the desktop rail — open the booking drawer pre-filled
           // from this appointment, NOT a bare link to the venue's menu.
-          <button
-            type="button"
+          <Button
+            kind="accent"
+            loading={bookingAgain}
             onClick={onBookAgain}
             disabled={bookingAgain}
             className="tap zw-btn"
@@ -1349,7 +1350,7 @@ export function MobileBar({
             }}
           >
             {t.bookAgain}
-          </button>
+          </Button>
         ) : null
       ) : (
         <a

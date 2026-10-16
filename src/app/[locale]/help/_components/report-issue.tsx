@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Icon, Spinner } from "@/components/ui";
+import { Button, Icon } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
 import { type Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
@@ -310,12 +310,9 @@ export function ReportIssue({ t, locale }: { t: ReportDict; locale: Locale }) {
                     size="md"
                     onClick={submit}
                     disabled={!canSubmit}
+                    loading={submitting}
                   >
-                    {submitting ? (
-                      <Spinner size={16} color="#fff" />
-                    ) : (
-                      t.modal.submit
-                    )}
+                    {t.modal.submit}
                   </Button>
                 </div>
               </>

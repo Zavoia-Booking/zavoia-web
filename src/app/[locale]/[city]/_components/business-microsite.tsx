@@ -30,6 +30,7 @@ export function BusinessMicrosite({ site, locale }: { site: PublicWebsite; local
   const toast = useToast();
   const { dict } = useTranslation();
   const [pending, setPending] = useState(false);
+  const [pendingIntent, setPendingIntent] = useState<WebsiteBookIntent | null>(null);
   const requestRef = useRef(false);
   const generationRef = useRef(0);
   const mainRef = useRef<HTMLElement>(null);
@@ -79,6 +80,7 @@ export function BusinessMicrosite({ site, locale }: { site: PublicWebsite; local
 
     requestRef.current = true;
     setPending(true);
+    setPendingIntent(intent);
     const generation = generationRef.current;
     try {
       // Use the existing location catalog, including its current staff pricing,
@@ -157,11 +159,12 @@ export function BusinessMicrosite({ site, locale }: { site: PublicWebsite; local
       if (generation === generationRef.current) {
         requestRef.current = false;
         setPending(false);
+        setPendingIntent(null);
       }
     }
   }, [data.locations, selectedLocation, site.slug, openBooking, showContact, toast, dict]);
 
-  const actions = useMemo(() => ({ book: (intent?: WebsiteBookIntent) => { void book(intent); }, pending }), [book, pending]);
+  const actions = useMemo(() => ({ book: (intent?: WebsiteBookIntent) => { void book(intent); }, pending, pendingIntent }), [book, pending, pendingIntent]);
   const fontHref = fontStylesheetFor(data.fontKey);
 
   return (

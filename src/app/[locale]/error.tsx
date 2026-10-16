@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui";
+import { Button, Spinner } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import styles from "./error.module.css";
@@ -54,6 +54,7 @@ export default function RouteError({
             onClick={() => startTransition(retry)}
             disabled={isPending}
             aria-busy={isPending}
+            aria-label={t.retry}
             style={{
               minHeight: 48,
               padding: "13px 24px",
@@ -63,7 +64,11 @@ export default function RouteError({
               cursor: isPending ? "wait" : "pointer",
             }}
           >
-            {isPending ? t.pageRecovery.retrying : t.retry}
+            {isPending ? (
+              <span aria-hidden="true">
+                <Spinner size={16} color="#fff" />
+              </span>
+            ) : t.retry}
           </Button>
           <Link
             href={localeHref(locale)}

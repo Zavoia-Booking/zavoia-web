@@ -17,6 +17,7 @@ import { BlogFeatured } from "./blog-featured";
 import { BlogCard } from "./blog-card";
 import { Pagination } from "./pagination";
 import type { BlogCardVM } from "./types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 6;
 
@@ -34,14 +35,17 @@ function tabLabel(blog: BlogDict, id: BlogTab): string {
 export function BlogList({
   locale,
   posts,
+  pending = false,
 }: {
   locale: Locale;
   posts: BlogCardVM[];
+  pending?: boolean;
 }) {
   const dictionary = useTranslation().dict;
   const dict = dictionary;
   const [cat, setCat] = useState<BlogTab>("all");
   const [page, setPage] = useState(0);
+  const [filterChanged, setFilterChanged] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   // Reset paging whenever the active filter changes. Done by adjusting state
@@ -101,7 +105,7 @@ export function BlogList({
     vm.category ? tabLabel(dict.blog, vm.category) : tabLabel(dict.blog, "all");
 
   return (
-    <div data-screen-label="Blog — list">
+    <div data-screen-label="Blog — list" aria-busy={pending || undefined}>
       <header
         className="zw-container"
         style={{ paddingTop: "clamp(36px, 5vw, 64px)" }}
@@ -166,7 +170,7 @@ export function BlogList({
           >
             <div>{dict.blog.updatedWeekly}</div>
             <div style={{ color: "var(--c-400)" }}>
-              {posts.length} {dict.blog.storiesLabel}
+              {pending ? <Skeleton w={80} h={21} style={{ marginLeft: "auto" }} /> : <>{posts.length} {dict.blog.storiesLabel}</>}
             </div>
           </div>
         </div>
@@ -176,7 +180,8 @@ export function BlogList({
             cats={cats}
             counts={counts}
             active={cat}
-            onChange={setCat}
+            onChange={(next) => { setFilterChanged(true); setCat(next); }}
+            pending={pending}
           />
         </div>
       </header>
@@ -186,15 +191,17 @@ export function BlogList({
         ref={resultsRef}
         style={{ paddingTop: "clamp(28px, 3.4vw, 44px)" }}
       >
+        {pending && <BlogResultsSkeleton />}
         {showFeatured && featured && (
           <BlogFeatured
             key={`f-${cat}`}
             locale={locale}
             post={featured}
             categoryLabel={labelFor(featured)}
+            animate={filterChanged}
           />
         )}
-        {!featured && (
+        {!pending && !featured && (
           <p
             style={{
               textAlign: "center",
@@ -238,6 +245,38 @@ export function BlogList({
             />
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Uses the feature and card grids' real breakpoints and media proportions. */
+function BlogResultsSkeleton() {
+  return (
+    <div aria-hidden="true">
+      <div data-feature-grid="" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.18fr) minmax(0, 1fr)", border: "1px solid rgba(28,28,26,0.06)", borderRadius: "var(--r-2xl)", overflow: "hidden", background: "#fff" }}>
+        <Skeleton h="100%" r={0} style={{ minHeight: 360 }} />
+        <div style={{ padding: "clamp(28px, 3.6vw, 52px)", display: "flex", flexDirection: "column" }}>
+          <Skeleton w={90} h={25} r={999} />
+          <Skeleton w="95%" h="calc(clamp(25px, 2.9vw, 37px) * 2.16)" style={{ marginTop: 20 }} />
+          <Skeleton h={50} style={{ marginTop: 16 }} />
+          <div style={{ marginTop: "auto", paddingTop: 28, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Skeleton w="42%" h={19} /><Skeleton w={36} h={36} r={999} />
+          </div>
+        </div>
+      </div>
+      <div className="zw-mgrid" data-cols="3" style={{ marginTop: "clamp(20px, 2.4vw, 32px)" }}>
+        {Array.from({ length: PAGE_SIZE }, (_, i) => (
+          <div key={i} style={{ border: "1px solid rgba(28,28,26,0.06)", borderRadius: "var(--card-r, 18px)", overflow: "hidden", background: "#fff" }}>
+            <Skeleton h="auto" r={0} style={{ aspectRatio: "16 / 9" }} />
+            <div style={{ padding: "17px 20px 18px", display: "flex", flexDirection: "column", gap: 9 }}>
+              <Skeleton h={45} /><Skeleton h={42} />
+              <div style={{ paddingTop: 15, marginTop: 9, borderTop: "1px solid rgba(28,28,26,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Skeleton w={84} h={19} /><Skeleton w={30} h={30} r={999} />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

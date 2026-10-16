@@ -85,7 +85,7 @@ export default async function LocaleRootLayout({ children, params }: Props) {
                 {/* Footer + mobile spacer are suppressed on the full-bleed
                     /search route (a nested layout can't remove parent chrome). */}
                 <ConditionalFooter locale={locale} explore={
-                  <Suspense fallback={<FooterExploreLinks locale={locale} categories={[]} />}>
+                  <Suspense fallback={<FooterExploreLinks locale={locale} categories={[]} pending />}>
                     <FooterExplore locale={locale} />
                   </Suspense>
                 } />

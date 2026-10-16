@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@/components/ui/spinner";
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -346,10 +347,22 @@ export function RegisterForm({
         <button
           type="submit"
           disabled={busy || !formValid}
-          className="mt-2 h-12 w-full cursor-pointer rounded-full bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-p-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
+          aria-label={dict.registerSubmit}
+          aria-busy={submitting}
+          className="relative mt-2 h-12 w-full cursor-pointer rounded-full bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-p-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
         >
-          {submitting ? dict.registerSubmitting : dict.registerSubmit}
+          <span className={submitting ? "invisible" : undefined} aria-hidden={submitting || undefined}>
+            {dict.registerSubmit}
+          </span>
+          {submitting && (
+            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+              <Spinner size={16} color="currentColor" />
+            </span>
+          )}
         </button>
+        <span role="status" className="sr-only">
+          {submitting ? dict.registerSubmitting : ""}
+        </span>
       </form>
     </div>
   );

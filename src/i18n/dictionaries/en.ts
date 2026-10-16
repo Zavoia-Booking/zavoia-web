@@ -48,6 +48,7 @@ export const en: {
       locating: string;
     };
     recentlyViewed: {
+      loading: string;
       kicker: string;
       title: string;
     };
@@ -432,6 +433,8 @@ export const en: {
       deleteAccount: string;
     };
     stats: {
+      unavailable: string;
+      loadError: string;
       appointments: string;
       reviews: string;
       saved: string;
@@ -510,7 +513,10 @@ export const en: {
       body: string;
       secondary: string;
     };
-    sectionError: string;
+    loadError: {
+      profile: { title: string; body: string };
+      preferences: { title: string; body: string };
+    };
     support: {
       intro: string;
       report: {
@@ -760,6 +766,10 @@ export const en: {
     };
   };
   common: {
+    save: string;
+    removeSaved: string;
+    savedStatusLoading: string;
+    savedStatusUnavailable: string;
     signIn: string;
     reviews: string;
     open: string;
@@ -824,6 +834,9 @@ export const en: {
     searchAria: string;
   };
   searchOverlay: {
+    previewError: string;
+    industriesError: string;
+    citySearchError: string;
     overlayTitle: string;
     what: string;
     where: string;
@@ -903,6 +916,7 @@ export const en: {
     browseMore: string;
     sheetHandleAria: string;
     filters: {
+      loadError: string;
       title: string;
       activeLabel: string;
       close: string;
@@ -998,6 +1012,7 @@ export const en: {
     relatedTitle: string;
   };
   accountMenu: {
+    sessionError: string;
     appointments: string;
     saved: string;
     profileSettings: string;
@@ -1013,6 +1028,9 @@ export const en: {
     loginOrSignUp: string;
   };
   notifications: {
+    loading: string;
+    refreshError: string;
+    loadMoreError: string;
     title: string;
     markAllRead: string;
     loadMore: string;
@@ -1665,6 +1683,7 @@ export const en: {
       locating: "Finding places near you…",
     },
     recentlyViewed: {
+      loading: "Loading recently viewed places…",
       kicker: "Pick up where you left off",
       title: "Recently viewed",
     },
@@ -2092,6 +2111,8 @@ export const en: {
       deleteAccount: "Delete account",
     },
     stats: {
+      unavailable: "Unavailable",
+      loadError: "We couldn’t load your account statistics.",
       appointments: "Appointments",
       reviews: "Reviews",
       saved: "Saved",
@@ -2175,7 +2196,16 @@ export const en: {
       body: "Sign in to manage your details, notifications and security.",
       secondary: "Explore places",
     },
-    sectionError: "Couldn't load this section. Please try again.",
+    loadError: {
+      profile: {
+        title: "We couldn't load your details",
+        body: "Try again to load your account information, or choose another account section.",
+      },
+      preferences: {
+        title: "We couldn't load your preferences",
+        body: "Try again to view and update your notification preferences.",
+      },
+    },
     support: {
       intro:
         "Issues you've reported to our team. Track replies and reply back here.",
@@ -2446,6 +2476,10 @@ export const en: {
     },
   },
   common: {
+    save: "Save",
+    removeSaved: "Remove from saved",
+    savedStatusLoading: "Checking saved status",
+    savedStatusUnavailable: "Saved status unavailable",
     signIn: "Sign in",
     reviews: "reviews",
     open: "Open",
@@ -2514,6 +2548,9 @@ export const en: {
     searchAria: "Search",
   },
   searchOverlay: {
+    previewError: "We couldn’t load suggestions.",
+    industriesError: "We couldn’t load service categories.",
+    citySearchError: "We couldn’t search for cities. Try again.",
     overlayTitle: "What can we help you find?",
     what: "What?",
     where: "Where?",
@@ -2594,6 +2631,7 @@ export const en: {
     browseMore: "More",
     sheetHandleAria: "Drag to resize the results panel",
     filters: {
+      loadError: "We couldn’t load the available features.",
       title: "Filters",
       activeLabel: "Filters, {count} active",
       close: "Close",
@@ -2830,6 +2868,7 @@ export const en: {
     relatedTitle: "Related documents",
   },
   accountMenu: {
+    sessionError: "We couldn’t verify your session. Try again.",
     appointments: "Appointments",
     saved: "Saved",
     profileSettings: "Profile & settings",
@@ -2845,6 +2884,9 @@ export const en: {
     loginOrSignUp: "Log in or sign up",
   },
   notifications: {
+    loading: "Loading notifications",
+    refreshError: "We couldn’t update your notifications. Your previous notifications are still shown.",
+    loadMoreError: "We couldn’t load more notifications. Try again.",
     title: "Notifications",
     markAllRead: "Mark all read",
     loadMore: "Load more",

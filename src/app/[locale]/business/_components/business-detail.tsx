@@ -38,6 +38,7 @@ import { errorMessage } from "@/lib/api/error-messages";
 import { SEARCH_RADIUS_KM } from "@/components/search/constants";
 import { TeamMemberProfileModal } from "./team-member-profile-modal";
 import { EmptyState } from "./empty-state";
+import styles from "./business-detail.module.css";
 import type {
   IndustryRef,
   ListingDetail,
@@ -102,6 +103,7 @@ export function BusinessDetail({ listing, locale }: Props) {
     const t = searchParams.get("tab");
     return t === "team" || t === "reviews" || t === "about" ? t : "services";
   });
+  const [tabChanged, setTabChanged] = useState(false);
   const [initialMemberId] = useState<number | null>(() => {
     const raw = searchParams.get("member");
     const n = raw ? Number(raw) : NaN;
@@ -317,7 +319,7 @@ export function BusinessDetail({ listing, locale }: Props) {
         }}
       >
         {/* Left column */}
-        <div style={{ minWidth: 0 }}>
+        <div className={tabChanged ? undefined : styles.initialContent} style={{ minWidth: 0 }}>
           <div
             style={{
               display: "flex",
@@ -422,12 +424,11 @@ export function BusinessDetail({ listing, locale }: Props) {
               </button>
               <FavoriteHeart
                 locationId={locationId}
-                seeded={listing.isFavorited === true}
               />
             </div>
           </div>
 
-          <Tabs tab={tab} setTab={setTab} dict={t} />
+          <Tabs tab={tab} setTab={(next) => { setTabChanged(true); setTab(next); }} dict={t} />
 
           {tab === "services" && (
             <ServicesTab
@@ -541,29 +542,23 @@ export function BusinessDetail({ listing, locale }: Props) {
 }
 
 // ─────────────────────────────────────────────
-// Favorite heart — reuses useFavoriteToggle("location"), seeded from
-// listing.isFavorited. The hook owns the endpoint/toast/revert logic; we
-// blend the seed with the hook's post-interaction state for the visual.
+// Favorite heart — the shared session-owned list supplies both its initial
+// status and subsequent changes. The public listing is not an auth snapshot.
 // Hidden entirely for signed-out visitors (same rule as the home/search cards).
 // ─────────────────────────────────────────────
 function FavoriteHeart({
   locationId,
-  seeded,
 }: {
   locationId: number;
-  seeded: boolean;
 }) {
   const { canFavorite, isFavorited, toggle } = useFavoriteToggle("location");
-  const [touched, setTouched] = useState(false);
-  const active = touched ? isFavorited(locationId) : seeded;
   if (!canFavorite) return null;
   return (
     <HeartButton
-      active={active}
+      active={isFavorited(locationId)}
       floating={false}
       size={40}
       onClick={() => {
-        setTouched(true);
         toggle(locationId);
       }}
     />
@@ -1532,7 +1527,7 @@ function ReviewsTab({
           <Button
             kind="secondary"
             onClick={loadMore}
-            disabled={loading}
+            loading={loading}
           >
             {dict.loadMoreReviews}
           </Button>

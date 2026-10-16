@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@/components/ui/spinner";
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -88,7 +89,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
   // A missing token is a render-time fact — show the error state with no form.
   if (!token) {
     return (
-      <main className="mx-auto max-w-md px-6 py-16">
+      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
         <h1 className="text-2xl font-semibold tracking-tight">
           {t.missingTokenHeading}
         </h1>
@@ -105,7 +106,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
 
   if (success) {
     return (
-      <main className="mx-auto max-w-md px-6 py-16">
+      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
         <h1 className="text-2xl font-semibold tracking-tight">
           {t.successHeading}
         </h1>
@@ -121,7 +122,7 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
+    <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
       <h1 className="text-2xl font-semibold tracking-tight">{t.heading}</h1>
       <p className="mt-2 text-sm text-zinc-600">{t.subtitle}</p>
 
@@ -165,10 +166,22 @@ export function ResetPasswordForm({ locale }: { locale: Locale }) {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label={t.submit}
+          aria-busy={submitting}
+          className="relative w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitting ? t.submitting : t.submit}
+          <span className={submitting ? "invisible" : undefined} aria-hidden={submitting || undefined}>
+            {t.submit}
+          </span>
+          {submitting && (
+            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+              <Spinner size={16} color="currentColor" />
+            </span>
+          )}
         </button>
+        <span role="status" className="sr-only">
+          {submitting ? t.submitting : ""}
+        </span>
       </form>
     </main>
   );

@@ -7,7 +7,9 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight } from "lucide-react";
-import { useMicrositeActions } from "../../../shared/actions";
+import { isPendingBooking, useMicrositeActions } from "../../../shared/actions";
+import { Spinner } from "@/components/ui/spinner";
+import actionStyles from "../../../shared/actions.module.css";
 import { TeamCard } from "../parts/TeamCard";
 import type { TeamVariantProps } from "../types";
 import "./carousel.css";
@@ -171,13 +173,15 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
             return (
               <figure
                 key={`${locId}-${m.id}`}
-                className="mc-tmr-slide mc-portrait"
+                className={`mc-tmr-slide mc-portrait ${actionStyles.action}`}
                 data-tmi={index}
                 data-active={index === active ? "1" : "0"}
                 role="button"
                 tabIndex={index === active ? 0 : -1}
                 aria-label={nameOf(m)}
                 aria-busy={actions?.pending || undefined}
+                aria-disabled={actions?.pending || undefined}
+                data-pending={isPendingBooking(actions, { locationId: locId, teamMemberId: m.id }) || undefined}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter" && event.key !== " ") return;
                   event.preventDefault();
@@ -186,6 +190,7 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
                 }}
               >
                 <TeamCard name={nameOf(m)} initials={initialsOf(m)} image={m.profileImage ?? null} rating={r && r.count > 0 ? r.rating : null} tint={tintOf(m)} />
+                {isPendingBooking(actions, { locationId: locId, teamMemberId: m.id }) && <span className={actionStyles.spinner} aria-hidden="true"><Spinner size={24} color="var(--mc-ink)" /></span>}
               </figure>
             );
           })}

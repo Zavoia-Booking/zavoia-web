@@ -62,9 +62,8 @@ export function RecentlyViewedCard({ b }: { b: RecentlyViewedCardData }) {
         >
           {b.name}
         </div>
-        {(b.rating != null || meta) && (
           <div
-            style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}
+            style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, minHeight: 18, whiteSpace: "nowrap", overflow: "hidden" }}
           >
             {b.rating != null && (
               <Rating rating={b.rating} reviews={b.reviews} size={12} />
@@ -73,10 +72,9 @@ export function RecentlyViewedCard({ b }: { b: RecentlyViewedCardData }) {
               <span style={{ color: "var(--c-400)", fontSize: 12 }}>·</span>
             )}
             {meta && (
-              <span style={{ fontSize: 12, color: "var(--c-600)" }}>{meta}</span>
+              <span title={meta} style={{ fontSize: 12, color: "var(--c-600)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{meta}</span>
             )}
           </div>
-        )}
       </div>
     </Link>
   );

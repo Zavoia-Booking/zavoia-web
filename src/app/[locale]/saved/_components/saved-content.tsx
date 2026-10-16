@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
@@ -228,27 +227,31 @@ function savedAgo(locale: Locale, createdAt: string, now: number): string {
 // Local skeleton loading state (mirrors account-content's LoadingState).
 // ─────────────────────────────────────────────
 
-function LoadingState({ loadingLabel }: { loadingLabel: string }) {
+function SavedHeader({ t, total, loading = false }: { t: SavedDict; total: number | null; loading?: boolean }) {
+  return <>
+    <Kicker style={{ marginBottom: 10 }}>{t.kicker}</Kicker>
+    <h1 style={{ margin: 0, fontSize: "clamp(28px, 3.4vw, 40px)", fontWeight: 600, letterSpacing: "-0.035em", color: "var(--c-900)" }}>{t.heading}</h1>
+    <div style={{ marginTop: 9, fontSize: 13.5, color: "var(--c-600)", display: "flex", alignItems: "center", gap: 4 }}>
+      <span style={{ minWidth: "2ch", fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--c-800)", fontVariantNumeric: "tabular-nums" }}>
+        {total !== null ? total : loading ? <span aria-hidden="true"><Skeleton w="2ch" h={13.5} r={4} /></span> : "—"}
+      </span> {t.countSuffix}
+    </div>
+  </>;
+}
+
+function LoadingState({ t }: { t: SavedDict }) {
   return (
-    <div
-      className="zw-container"
-      style={{ paddingTop: 44, paddingBottom: 56, width: "100%" }}
-      aria-busy="true"
-    >
-      <Skeleton w="40%" h={40} r={12} />
-      <div
-        style={{
-          marginTop: 28,
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-        }}
-      >
-        <Skeleton w="100%" h={88} r={16} />
-        <Skeleton w="100%" h={88} r={16} />
-        <Skeleton w="100%" h={88} r={16} />
+    <div className="zw-container" style={{ paddingTop: 44, paddingBottom: 56, width: "100%" }} aria-busy="true">
+      <SavedHeader t={t} total={null} loading />
+      <div style={{ marginTop: 26, marginBottom: 18 }}><Filters value="all" onChange={() => {}} counts={null} t={t} /></div>
+      <div aria-hidden="true" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(400px, 100%), 1fr))", columnGap: 40, rowGap: 0, paddingBottom: 10 }}>
+        {[0, 1, 2].map((i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 15, padding: "17px 8px", borderBottom: "1px solid rgba(28,28,26,0.08)" }}>
+          <Skeleton w={64} h={64} r={15} style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}><Skeleton w={80} h={14.25} r={4} /><Skeleton w="min(260px, 80%)" h={19.04} r={4} /><Skeleton w="min(200px, 65%)" h={18.75} r={4} /></div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 9, flexShrink: 0 }}><Skeleton w={18} h={18} r={4} /><Skeleton w={72} h={15} r={4} /></div>
+        </div>)}
       </div>
-      <p className="sr-only">{loadingLabel}</p>
+      <p role="status" className="sr-only">{t.loading}</p>
     </div>
   );
 }
@@ -265,7 +268,7 @@ function Filters({
 }: {
   value: FilterKind;
   onChange: (k: FilterKind) => void;
-  counts: Record<FilterKind, number>;
+  counts: Record<FilterKind, number> | null;
   t: SavedDict;
 }) {
   const allTabs: { id: FilterKind; label: string }[] = [
@@ -274,9 +277,7 @@ function Filters({
     { id: "location", label: t.tabs.locations },
     { id: "person", label: t.tabs.people },
   ];
-  const tabs = allTabs.filter(
-    (tab) => tab.id === "all" || counts[tab.id] > 0,
-  );
+  const tabs = allTabs;
 
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -288,6 +289,7 @@ function Filters({
             type="button"
             className="tap"
             onClick={() => onChange(tab.id)}
+            disabled={!counts || (tab.id !== "all" && counts[tab.id] === 0)}
             aria-pressed={active}
             style={{
               display: "inline-flex",
@@ -296,7 +298,8 @@ function Filters({
               height: 36,
               padding: "0 15px",
               borderRadius: 999,
-              cursor: "pointer",
+              cursor: !counts || (tab.id !== "all" && counts[tab.id] === 0) ? "default" : "pointer",
+              opacity: counts && tab.id !== "all" && counts[tab.id] === 0 ? 0.6 : 1,
               background: active ? "var(--c-ink)" : "#fff",
               color: active ? "#fff" : "var(--c-700)",
               border:
@@ -316,9 +319,10 @@ function Filters({
                 fontWeight: 600,
                 color: active ? "rgba(255,255,255,0.6)" : "var(--c-500)",
                 fontVariantNumeric: "tabular-nums",
+                minWidth: "2ch",
               }}
             >
-              {counts[tab.id]}
+              {counts ? counts[tab.id] : <span aria-hidden="true"><Skeleton w="2ch" h={11} r={3} /></span>}
             </span>
           </button>
         );
@@ -568,6 +572,11 @@ function Row({
 // ─────────────────────────────────────────────
 
 export function SavedContent({ locale }: { locale: Locale }) {
+  const { user } = useAuth();
+  return <SavedSessionContent key={user?.uuid ?? "anonymous"} locale={locale} />;
+}
+
+function SavedSessionContent({ locale }: { locale: Locale }) {
   const dictionary = useTranslation().dict;
   const t = dictionary.saved;
   const errorsDict = dictionary.errors;
@@ -579,6 +588,8 @@ export function SavedContent({ locale }: { locale: Locale }) {
   const [favorites, setFavorites] = useState<AllFavorites | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
 
   // Live working list — derived from `favorites`, then mutated by remove/undo.
   const [rows, setRows] = useState<SavedRow[]>([]);
@@ -619,19 +630,22 @@ export function SavedContent({ locale }: { locale: Locale }) {
     getFavorites()
       .then((fav) => {
         if (!alive) return;
+        setError(false);
+        setRetrying(false);
         setFavorites(fav);
         setRows(buildRows(fav, locale));
         setLoading(false);
       })
       .catch(() => {
         if (!alive) return;
+        setRetrying(false);
         setError(true);
         setLoading(false);
       });
     return () => {
       alive = false;
     };
-  }, [authed, locale]);
+  }, [authed, locale, attempt]);
 
   const counts = useMemo<Record<FilterKind, number>>(() => {
     const c: Record<FilterKind, number> = {
@@ -744,7 +758,7 @@ export function SavedContent({ locale }: { locale: Locale }) {
 
   // ── Auth gating ──
   if (status === "idle" || status === "loading") {
-    return <LoadingState loadingLabel={t.loading} />;
+    return <LoadingState t={t} />;
   }
 
   if (status === "unauthenticated" || status === "error") {
@@ -761,39 +775,23 @@ export function SavedContent({ locale }: { locale: Locale }) {
   }
 
   if (loading) {
-    return <LoadingState loadingLabel={t.loading} />;
+    return <LoadingState t={t} />;
   }
 
   const total = rows.length;
 
-  const monoNum: CSSProperties = {
-    fontFamily: "var(--font-mono)",
-    fontWeight: 600,
-    color: "var(--c-800)",
-    fontVariantNumeric: "tabular-nums",
-  };
-
   return (
     <div
-      className="zw-container zw-acct-in"
+      className="zw-container"
       style={{ paddingTop: 44, paddingBottom: 56, width: "100%" }}
     >
-      <Kicker style={{ marginBottom: 10 }}>{t.kicker}</Kicker>
-      <h1
-        style={{
-          margin: 0,
-          fontSize: "clamp(28px, 3.4vw, 40px)",
-          fontWeight: 600,
-          letterSpacing: "-0.035em",
-          color: "var(--c-900)",
-        }}
-      >
-        {t.heading}
-      </h1>
-      <div style={{ marginTop: 9, fontSize: 13.5, color: "var(--c-600)" }}>
-        <b style={monoNum}>{total}</b> {t.countSuffix}
-      </div>
+      <SavedHeader t={t} total={favorites === null ? null : total} />
 
+      {error && favorites !== null && <div style={{ marginTop: 18 }}>
+        <InlineError>{t.sectionError}</InlineError>
+        <Button kind="secondary" size="sm" loading={retrying} onClick={() => { setRetrying(true); setAttempt((n) => n + 1); }} style={{ marginTop: 16 }}>{errorsDict.retry}</Button>
+        <span role="status" className="sr-only">{retrying ? t.loading : ""}</span>
+      </div>}
       {favorites === null && error ? (
         <div
           style={{
@@ -808,6 +806,8 @@ export function SavedContent({ locale }: { locale: Locale }) {
           }}
         >
           <InlineError>{t.sectionError}</InlineError>
+          <Button kind="secondary" size="sm" loading={retrying} onClick={() => { setRetrying(true); setAttempt((n) => n + 1); }} style={{ marginTop: 16 }}>{errorsDict.retry}</Button>
+          <span role="status" className="sr-only">{retrying ? t.loading : ""}</span>
         </div>
       ) : total === 0 ? (
         <div
@@ -901,7 +901,6 @@ export function SavedContent({ locale }: { locale: Locale }) {
           ) : (
             <div
               key={kind}
-              className="zv-tab-in"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fill, minmax(min(400px, 100%), 1fr))",

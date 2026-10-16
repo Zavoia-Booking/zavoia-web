@@ -16,7 +16,7 @@ export interface BusinessCardProps {
   variant?: "default" | "result";
   resultLayout?: "row" | "stacked";
   onClick?: () => void;
-  favorited?: boolean;
+  favorited?: boolean | null;
   /** Favorite handler — the heart only renders when provided (signed-in). */
   onFavorite?: (id: BusinessCardData["id"]) => void;
 }

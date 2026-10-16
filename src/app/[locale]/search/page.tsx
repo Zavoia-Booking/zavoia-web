@@ -109,13 +109,20 @@ export default async function SearchPage({ params, searchParams }: Props) {
     () => ({ result: EMPTY_RESULT, failed: true as const }),
   );
 
-  const [industries, { result: initialResult, failed: initialResultFailed }] =
-    await Promise.all([getIndustries().catch((): Industry[] => []), initialSearch]);
+  const [{ industries, failed: initialIndustriesFailed }, { result: initialResult, failed: initialResultFailed }] =
+    await Promise.all([
+      getIndustries().then(
+        industries => ({ industries, failed: false }),
+        () => ({ industries: [] as Industry[], failed: true }),
+      ),
+      initialSearch,
+    ]);
 
   return (
     <SearchContent
       locale={locale}
       industries={industries}
+      initialIndustriesFailed={initialIndustriesFailed}
       initialResult={initialResult}
       initialResultFailed={initialResultFailed}
     />

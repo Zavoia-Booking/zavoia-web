@@ -6,6 +6,7 @@
    to CSS via the --font-geist-* CSS variables on <body>.
    ───────────────────────────────────────────── */
 :root {
+  --mobile-tabs-h: calc(66px + env(safe-area-inset-bottom));
   /* Type */
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -325,9 +326,9 @@ img { display: block; }
     var(--c-mist);
 }
 
-/* Images fade in once loaded (zoom transition preserved) */
-img.zw-img { opacity: 0; transition: opacity .45s var(--ease-out), transform .6s var(--ease-out); }
-img.zw-img--in { opacity: 1; }
+/* Keep media visible in its reserved frame; only hover zoom needs a transition. */
+img.zw-img { transition: transform .6s var(--ease-out); }
+img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 
 /* Heart pop (favorite toggle) */
 @keyframes zv-heart-pop {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button, Icon, Spinner } from "@/components/ui";
+import { Button, Icon, InlineError, Skeleton } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import type { CustomerNotification } from "@/lib/api/marketplace/types";
@@ -72,9 +72,10 @@ export function NotifPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const timeAgo = useTimeAgo();
 
-  const { items, unreadCount, loading, loadingMore, hasMore, failed, loaded } =
+  const { items, unreadCount, loading, loadingMore, moreFailed, hasMore, failed, loaded } =
     useNotifications();
   const reload = useInboxLoader(true);
+  const initialPending = !loaded && !failed;
 
   const onRowClick = (n: CustomerNotification) => {
     void markRead(n.id);
@@ -106,38 +107,48 @@ export function NotifPanel({ onClose }: { onClose: () => void }) {
         >
           {t.title}
         </span>
-        {unreadCount > 0 && (
           <button
             type="button"
             className="tap"
+            disabled={!loaded || loading || unreadCount === 0}
             onClick={() => void markAllRead()}
             style={{
               background: "transparent",
               border: 0,
               padding: 0,
-              cursor: "pointer",
+              cursor: !loaded || loading ? "default" : "pointer",
+              opacity: !loaded || loading ? 0.45 : 1,
               fontSize: 13,
               fontWeight: 600,
               color: "var(--p-700)",
               fontFamily: "inherit",
+              visibility: unreadCount > 0 ? "visible" : "hidden",
             }}
           >
             {t.markAllRead}
           </button>
-        )}
       </div>
 
-      {/* Loading — only before anything has ever been shown, so a refresh
-          doesn't blank out rows the user is already reading. */}
-      {loading && !loaded ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            padding: "34px 0 40px",
-          }}
-        >
-          <Spinner size={20} />
+      <span role="status" className="sr-only">
+        {initialPending || loading || loadingMore ? t.loading : ""}
+      </span>
+      {/* Session verification and the first inbox request are both unresolved
+          content. Keep known rows in place on subsequent requests. */}
+      <div className="zw-scroll-y" style={{ height: "min(420px, calc(100dvh - 180px))", padding: "0 6px 8px" }}>
+      {initialPending ? (
+        <div aria-busy="true">
+          <div aria-hidden="true">
+            {[0, 1, 2].map((row) => (
+              <div key={row} style={{ display: "flex", gap: 11, padding: "11px 12px" }}>
+                <span style={{ width: 7, flexShrink: 0 }} />
+                <div style={{ display: "grid", gap: 3, flex: 1 }}>
+                  <Skeleton w={row === 1 ? "65%" : "78%"} h={21} />
+                  <Skeleton h={37.7} />
+                  <Skeleton w={72} h={16.5} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : failed && items.length === 0 ? (
         <EmptyBlock
@@ -145,7 +156,7 @@ export function NotifPanel({ onClose }: { onClose: () => void }) {
           title={t.errorTitle}
           body={t.errorBody}
           action={
-            <Button kind="secondary" size="sm" onClick={reload}>
+            <Button kind="secondary" size="sm" onClick={reload} loading={loading} spinnerSize={14}>
               {dict.errors.retry}
             </Button>
           }
@@ -154,9 +165,16 @@ export function NotifPanel({ onClose }: { onClose: () => void }) {
         <EmptyBlock icon="bell" title={t.emptyTitle} body={t.emptyBody} />
       ) : (
         <div
-          className="zw-scroll-y"
-          style={{ maxHeight: 420, padding: "0 6px 8px" }}
+          aria-busy={loading || loadingMore}
         >
+          {failed && (
+            <div style={{ display: "grid", gap: 10, padding: "8px 12px 12px" }}>
+              <InlineError>{t.refreshError}</InlineError>
+              <Button kind="secondary" size="sm" onClick={reload} loading={loading} spinnerSize={14} style={{ justifySelf: "start" }}>
+                {dict.errors.retry}
+              </Button>
+            </div>
+          )}
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {items.map((n) => {
               const href = notificationHref(n, locale);
@@ -233,19 +251,23 @@ export function NotifPanel({ onClose }: { onClose: () => void }) {
 
           {hasMore && (
             <div style={{ padding: "6px 12px 4px" }}>
+              {moreFailed && <InlineError style={{ marginBottom: 10 }}>{t.loadMoreError}</InlineError>}
               <Button
                 kind="ghost"
                 size="sm"
                 onClick={() => void loadNextPage()}
-                disabled={loadingMore}
+                disabled={loading}
+                loading={loadingMore}
+                spinnerSize={14}
                 style={{ width: "100%" }}
               >
-                {loadingMore ? <Spinner size={14} /> : t.loadMore}
+                {moreFailed ? dict.errors.retry : t.loadMore}
               </Button>
             </div>
           )}
         </div>
       )}
+      </div>
     </Popover>
   );
 }
@@ -274,14 +296,10 @@ function EmptyBlock({
     >
       <span
         style={{
-          width: 48,
-          height: 48,
-          borderRadius: 16,
-          background: "var(--c-100)",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 6,
+          marginBottom: 12,
         }}
       >
         <Icon name={icon} size={22} color="var(--c-500)" />

@@ -11,3 +11,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Inline error messages
 
 Use `src/components/ui/inline-error.tsx` for inline validation, action and request errors throughout the web app. Follow the inline-error rule in `DESIGN.md` under **Inputs / Fields**, including the explicit text-only sign-in exception and error messages that grow the layout without reserved blank rows.
+
+## Loading feedback
+
+Before changing loading UI, inspect the shared `Skeleton` and `Spinner` components and their existing consumers. Follow the loading-feedback rule in `DESIGN.md`: use skeletons for initial content and spinners for pending actions. Never show visible loading text. Preserve accessible action names and screen-reader-only status announcements, and reuse the existing motion rules.

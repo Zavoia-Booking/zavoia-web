@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 export interface LocationPermissionModalProps {
   open: boolean;
@@ -95,9 +96,18 @@ export function LocationPermissionModal({
             size="md"
             onClick={onAllow}
             disabled={busy}
-            style={{ width: "100%" }}
+            aria-label={allowLabel}
+            aria-busy={busy}
+            style={{ width: "100%", position: "relative" }}
           >
-            {busy ? "…" : allowLabel}
+            <span aria-hidden={busy || undefined} style={{ visibility: busy ? "hidden" : undefined }}>
+              {allowLabel}
+            </span>
+            {busy && (
+              <span aria-hidden="true" style={{ position: "absolute" }}>
+                <Spinner size={16} color="#fff" />
+              </span>
+            )}
           </Button>
           <Button
             kind="ghost"

@@ -1,5 +1,8 @@
 "use client";
 
+import { Spinner } from "@/components/ui/spinner";
+import { AuthStepSkeleton } from "../../_components/auth-skeleton";
+
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -128,17 +131,16 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
 
   if (state.kind === "checking") {
     return (
-      <main className="mx-auto max-w-md px-6 py-16">
-        <p role="status" className="text-sm text-zinc-600">
-          {t.verifying}
-        </p>
+      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16" aria-busy="true">
+        <AuthStepSkeleton password />
+        <p role="status" className="sr-only">{t.verifying}</p>
       </main>
     );
   }
 
   if (state.kind === "success") {
     return (
-      <main className="mx-auto max-w-md px-6 py-16">
+      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
         <h1 className="text-2xl font-semibold tracking-tight">
           {t.successHeading}
         </h1>
@@ -155,7 +157,7 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
 
   if (state.kind === "error") {
     return (
-      <main className="mx-auto max-w-md px-6 py-16">
+      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
         <h1 className="text-2xl font-semibold tracking-tight">
           {t.errorHeading}
         </h1>
@@ -172,7 +174,7 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
 
   if (state.kind === "transient") {
     return (
-      <main className="mx-auto max-w-md px-6 py-16">
+      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
         <h1 className="text-2xl font-semibold tracking-tight">
           {dict.errors.linkCheckFailedHeading}
         </h1>
@@ -194,7 +196,7 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
   const body = info.hasPassword ? t.confirmBody : t.googleOnlyBody;
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
+    <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
       <h1 className="text-2xl font-semibold tracking-tight">
         {t.confirmHeading}
       </h1>
@@ -219,10 +221,22 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={t.confirm}
+            aria-busy={submitting}
+            className="relative mt-2 w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? t.confirming : t.confirm}
+            <span className={submitting ? "invisible" : undefined} aria-hidden={submitting || undefined}>
+              {t.confirm}
+            </span>
+            {submitting && (
+              <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+                <Spinner size={16} color="currentColor" />
+              </span>
+            )}
           </button>
+          <span role="status" className="sr-only">
+            {submitting ? t.confirming : ""}
+          </span>
 
           {GOOGLE_CLIENT_ID && info.googleLinked && (
             <div>

@@ -2,7 +2,7 @@
 
 import { useTranslation } from "@/i18n/useTranslation";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
@@ -16,12 +16,10 @@ import {
   Kicker,
   SignedOutGate,
   Skeleton,
-  Spinner,
 } from "@/components/ui";
 import { listAppointments } from "@/lib/api/marketplace/appointments";
 import { InlineError } from "@/components/ui/inline-error";
 import type {
-  AppointmentList,
   AppointmentListItem,
   AppointmentStatus,
   ListAppointmentsParams,
@@ -640,7 +638,7 @@ function SchedSection({
   onToggle,
 }: {
   label: string;
-  count: number;
+  count: number | null;
   open: boolean;
   onToggle: () => void;
 }) {
@@ -685,7 +683,7 @@ function SchedSection({
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {count}
+          {count === null ? <span aria-hidden="true"><Skeleton w="2ch" h={12} r={3} /></span> : count}
         </span>
       </span>
       <Icon name={open ? "chevU" : "chevD"} size={16} color="var(--c-600)" />
@@ -702,11 +700,13 @@ function SchedFilters({
   onChange,
   counts,
   t,
+  loading = false,
 }: {
   value: Filter;
   onChange: (f: Filter) => void;
   counts: Partial<Record<Filter, number>>;
   t: ApptDict;
+  loading?: boolean;
 }) {
   const tabs: { id: Filter; label: string }[] = [
     { id: "all", label: t.filters.all },
@@ -735,6 +735,7 @@ function SchedFilters({
             className="tap"
             onClick={() => onChange(tab.id)}
             aria-pressed={active}
+            disabled={loading}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -756,19 +757,18 @@ function SchedFilters({
             }}
           >
             {tab.label}
-            {count != null && (
-              <span
+            <span
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: 11,
                   fontWeight: 600,
                   color: active ? "rgba(255,255,255,0.6)" : "var(--c-500)",
                   fontVariantNumeric: "tabular-nums",
+                  minWidth: "2ch",
                 }}
               >
-                {count}
+                {count ?? (loading ? <span aria-hidden="true"><Skeleton w="2ch" h={11} r={3} /></span> : null)}
               </span>
-            )}
           </button>
         );
       })}
@@ -957,61 +957,51 @@ function SchedEmpty({
 // ─────────────────────────────────────────────
 // Loading skeleton — a few ticket-row placeholders.
 // ─────────────────────────────────────────────
-function LoadingState({ t }: { t: ApptDict }) {
-  return (
-    <div
-      className="zw-container"
-      style={{ paddingTop: 44, paddingBottom: 40, width: "100%" }}
-      aria-busy="true"
-    >
-      <Skeleton w={160} h={14} r={6} />
-      <div style={{ marginTop: 14 }}>
-        <Skeleton w={280} h={40} r={10} />
-      </div>
-      <div
-        style={{
-          marginTop: 28,
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(min(440px, 100%), 1fr))",
-          gap: 18,
-        }}
-      >
-        <Skeleton w="100%" h={220} r={16} />
-        <Skeleton w="100%" h={220} r={16} />
-        <Skeleton w="100%" h={220} r={16} />
-      </div>
-      <p className="sr-only">{t.loading}</p>
+function AppointmentsHeading({ t, locale, now, upcoming, past, loading }: { t: ApptDict; locale: Locale; now: Date; upcoming: number | null; past: number | null; loading: boolean }) {
+  const count = (n: number | null) => <span style={{ display: "inline-flex", alignItems: "center", minWidth: "2ch", height: "1.5em", verticalAlign: "bottom", fontVariantNumeric: "tabular-nums" }}>{n !== null ? n : loading ? <span aria-hidden="true"><Skeleton w="2ch" h={12} r={3} /></span> : "—"}</span>;
+  return <>
+    <Kicker style={{ marginBottom: 10 }}>{t.kicker}</Kicker>
+    <h1 style={{ margin: 0, fontSize: "clamp(28px, 3.4vw, 40px)", fontWeight: 600, letterSpacing: "-0.035em", color: "var(--c-900)" }}>{t.title}</h1>
+    <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", color: "var(--c-500)" }}>
+      {new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(now).toUpperCase()} · {count(upcoming)} {t.upcomingWord} · {count(past)} {t.pastWord}
     </div>
-  );
+  </>;
 }
 
-// ─────────────────────────────────────────────
-// In-region loading — shown inside the list area on a filter REFETCH so the
-// page chrome (kicker, title, filter chips) stays mounted and interactive.
-// ─────────────────────────────────────────────
-function ListLoading({ t }: { t: ApptDict }) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(min(440px, 100%), 1fr))",
-        gap: 18,
-        paddingBottom: 8,
-      }}
-      aria-busy="true"
-    >
-      <Skeleton w="100%" h={220} r={16} />
-      <Skeleton w="100%" h={220} r={16} />
-      <Skeleton w="100%" h={220} r={16} />
-      <p className="sr-only">{t.loading}</p>
+function LoadingState({ t, locale }: { t: ApptDict; locale: Locale }) {
+  return <div className="zw-container" style={{ paddingTop: 44, paddingBottom: 56, width: "100%" }} aria-busy="true">
+    <AppointmentsHeading t={t} locale={locale} now={new Date()} upcoming={null} past={null} loading />
+    <SchedFilters value="all" onChange={() => {}} counts={{}} t={t} loading />
+    <ListLoading t={t} />
+  </div>;
+}
+
+function ListLoading({ t, label = t.sectionUpcoming }: { t: ApptDict; label?: string }) {
+  return <div aria-busy="true">
+    <div aria-hidden="true" inert>
+      <SchedSection label={label} count={null} open onToggle={() => {}} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(440px, 100%), 1fr))", gap: 18, paddingBottom: 8 }}>
+        {[0, 1, 2].map((i) => <div key={i} style={{ display: "flex", alignItems: "stretch", gap: 14, minWidth: 0 }}>
+          <Skeleton w={50} h={64} r={13} style={{ flexShrink: 0, marginTop: 4 }} />
+          <div style={{ flex: 1, minWidth: 0, border: "1px solid rgba(28,28,26,0.07)", borderRadius: 16, background: "#fff" }}>
+            <div style={{ padding: "15px 18px" }}>
+              <div style={{ height: 22, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><Skeleton w="48%" h={20.25} r={4} /><Skeleton w={66} h={22} r={999} /></div>
+              <div style={{ marginTop: 9 }}><Skeleton w="78%" h={21.96} r={4} /></div>
+              <div style={{ marginTop: 7, height: 22, display: "flex", alignItems: "center" }}><Skeleton w="50%" h={18} r={4} /></div>
+            </div>
+            <div style={{ padding: "13px 18px 15px", display: "flex", alignItems: "center", gap: 12 }}><Skeleton w={36} h={36} r={9} style={{ flexShrink: 0 }} /><Skeleton w="60%" h={16.8} r={4} /></div>
+          </div>
+        </div>)}
+      </div>
     </div>
-  );
+    <p role="status" className="sr-only">{t.loading}</p>
+  </div>;
 }
 
 // ─────────────────────────────────────────────
 // Inline fetch-error state.
 // ─────────────────────────────────────────────
-function ErrorState({ t, onRetry }: { t: ApptDict; onRetry: () => void }) {
+function ErrorState({ t, onRetry, retrying }: { t: ApptDict; onRetry: () => void; retrying: boolean }) {
   return (
     <div
       style={{
@@ -1036,7 +1026,7 @@ function ErrorState({ t, onRetry }: { t: ApptDict; onRetry: () => void }) {
       >
         {t.errorLoading}
       </p>
-      <Button kind="primary" size="md" onClick={onRetry}>
+      <Button kind="primary" size="md" onClick={onRetry} loading={retrying}>
         {t.retry}
       </Button>
     </div>
@@ -1047,6 +1037,11 @@ function ErrorState({ t, onRetry }: { t: ApptDict; onRetry: () => void }) {
 // Page
 // ─────────────────────────────────────────────
 export function AppointmentsContent({ locale }: { locale: Locale }) {
+  const { user } = useAuth();
+  return <AppointmentsSessionContent key={user?.uuid ?? "anonymous"} locale={locale} />;
+}
+
+function AppointmentsSessionContent({ locale }: { locale: Locale }) {
   const dictionary = useTranslation().dict;
   const t = dictionary.appointments;
   const router = useRouter();
@@ -1072,67 +1067,53 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [errored, setErrored] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [loadedFilter, setLoadedFilter] = useState<Filter | null>(null);
+  const [counts, setCounts] = useState<Partial<Record<Filter, number>>>({});
+  const requestRef = useRef(0);
+  const moreRequestRef = useRef(0);
   const [loadMoreErrored, setLoadMoreErrored] = useState(false);
 
   const authed = status === "authenticated";
 
-  // Server fetch driven by the active filter. `all` returns both sections;
-  // `upcoming` returns only upcoming; `past`/`cancelled`/`no_show` only finished.
-  // Sets state only AFTER the await, so it is safe to call from an effect.
-  const load = useCallback(async (active: Filter) => {
-    try {
-      const params: ListAppointmentsParams =
-        active === "all" ? {} : { status: active };
-      const res: AppointmentList = await listAppointments(params);
-      setNow(new Date());
-      setUpcoming(res.upcoming ?? []);
-      setPast(res.past);
-      setErrored(false);
-    } catch {
-      setErrored(true);
-      setUpcoming([]);
-      setPast(null);
-    } finally {
-      setLoading(false);
-      setHasLoadedOnce(true);
-    }
-  }, []);
-
-  // Mount + filter changes drive the refetch. `loading`/`errored` are reset in
-  // the `onFilter` handler (not here); the fetch resolves and sets state inside
-  // the promise continuation (post-await), mirroring account-content's pattern.
   useEffect(() => {
     if (!authed) return;
     let alive = true;
+    const request = ++requestRef.current;
+    const pendingPagination = moreRequestRef;
+    ++pendingPagination.current;
     const params: ListAppointmentsParams =
       filter === "all" ? {} : { status: filter };
     listAppointments(params)
       .then((res) => {
-        if (!alive) return;
+        if (!alive || request !== requestRef.current) return;
+        setLoadedFilter(filter);
+        setCounts((known) => filter === "all" ? { ...known, all: (res.upcoming?.length ?? 0) + (res.past?.total ?? 0), upcoming: res.upcoming?.length ?? 0, past: res.past?.total ?? 0 } : { ...known, [filter]: filter === "upcoming" ? res.upcoming?.length ?? 0 : res.past?.total ?? 0 });
         setNow(new Date());
         setUpcoming(res.upcoming ?? []);
         setPast(res.past);
         setErrored(false);
       })
       .catch(() => {
-        if (!alive) return;
+        if (!alive || request !== requestRef.current) return;
         setErrored(true);
-        setUpcoming([]);
-        setPast(null);
       })
       .finally(() => {
-        if (!alive) return;
+        if (!alive || request !== requestRef.current) return;
         setLoading(false);
         setHasLoadedOnce(true);
       });
     return () => {
       alive = false;
+      ++pendingPagination.current;
     };
-  }, [authed, filter]);
+  }, [authed, filter, attempt]);
 
   const onFilter = useCallback(
     (next: Filter) => {
       if (next === filter) return;
+      ++moreRequestRef.current;
+      setLoadingMore(false);
       setLoading(true);
       setErrored(false);
       setLoadMoreErrored(false);
@@ -1143,12 +1124,12 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
 
   const onRetry = useCallback(() => {
     setLoading(true);
-    setErrored(false);
-    void load(filter);
-  }, [filter, load]);
+    setAttempt((n) => n + 1);
+  }, []);
 
   const onLoadMore = useCallback(async () => {
     if (!past || !past.hasMore || loadingMore) return;
+    const request = ++moreRequestRef.current;
     setLoadingMore(true);
     setLoadMoreErrored(false);
     try {
@@ -1158,6 +1139,7 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
         offset: past.offset + (past.limit || PAGE_SIZE),
       };
       const res = await listAppointments(params);
+      if (request !== moreRequestRef.current) return;
       const more = res.past;
       if (more) {
         setPast((prev) =>
@@ -1172,9 +1154,9 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
     } catch {
       // Leave the existing list intact — surface an inline retry instead of
       // failing silently.
-      setLoadMoreErrored(true);
+      if (request === moreRequestRef.current) setLoadMoreErrored(true);
     } finally {
-      setLoadingMore(false);
+      if (request === moreRequestRef.current) setLoadingMore(false);
     }
   }, [past, loadingMore, filter]);
 
@@ -1187,7 +1169,7 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
 
   // ── Auth gating (mirrors account-content) ──
   if (status === "idle" || status === "loading") {
-    return <LoadingState t={t} />;
+    return <LoadingState t={t} locale={locale} />;
   }
 
   if (status === "unauthenticated" || status === "error") {
@@ -1207,12 +1189,13 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
   // full-page skeleton. Once chrome has been shown once, a filter refetch
   // keeps the chrome mounted and shows an in-region indicator instead.
   if (loading && !hasLoadedOnce) {
-    return <LoadingState t={t} />;
+    return <LoadingState t={t} locale={locale} />;
   }
 
   // A filter switch (or post-first-load retry) is refetching: keep header,
   // title, sub-line and filter chips mounted; show loading only in the list.
   const refetching = loading;
+  const hasCurrentData = loadedFilter === filter;
 
   // Section visibility per active filter (web-appointments.jsx:472-473).
   const showUpcoming = filter === "all" || filter === "upcoming";
@@ -1235,27 +1218,6 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
           ? t.finishedLabels.completed
           : t.finishedLabels.past;
 
-  // Mono sub-line month/year from the current date.
-  const monthLabel = new Intl.DateTimeFormat(locale, {
-    month: "long",
-    year: "numeric",
-  })
-    .format(now)
-    .toUpperCase();
-
-  const upcomingCount = upcoming.length;
-  const pastCount = finishedTotal;
-
-  // Chip counts: known up front for all/upcoming/past; cancelled/no_show
-  // counts only after that filter has been loaded.
-  const counts: Partial<Record<Filter, number>> = {
-    all: upcoming.length + (past?.total ?? 0),
-    upcoming: upcoming.length,
-    past: past?.total,
-  };
-  if (filter === "cancelled") counts.cancelled = finishedItems.length;
-  if (filter === "no_show") counts.no_show = finishedItems.length;
-
   // Per-section empty note keyed off the active filter.
   const finishedEmptyNote =
     filter === "cancelled"
@@ -1271,39 +1233,15 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
       className="zw-container"
       style={{ paddingTop: 44, paddingBottom: 56, width: "100%" }}
     >
-      <Kicker style={{ marginBottom: 10 }}>{t.kicker}</Kicker>
-      <h1
-        style={{
-          margin: 0,
-          fontSize: "clamp(28px, 3.4vw, 40px)",
-          fontWeight: 600,
-          letterSpacing: "-0.035em",
-          color: "var(--c-900)",
-        }}
-      >
-        {t.title}
-      </h1>
-      <div
-        style={{
-          marginTop: 10,
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          fontWeight: 600,
-          letterSpacing: "0.06em",
-          color: "var(--c-500)",
-        }}
-      >
-        {monthLabel} · {upcomingCount} {t.upcomingWord} · {pastCount}{" "}
-        {t.pastWord}
-      </div>
+      <AppointmentsHeading t={t} locale={locale} now={now} upcoming={counts.upcoming ?? null} past={counts.past ?? null} loading={loading} />
 
       <SchedFilters value={filter} onChange={onFilter} counts={counts} t={t} />
 
-      {refetching ? (
-        <ListLoading t={t} />
-      ) : errored ? (
-        <ErrorState t={t} onRetry={onRetry} />
-      ) : totallyEmpty ? (
+      <span role="status" className="sr-only">{loading ? t.loading : ""}</span>
+      {errored && <ErrorState t={t} onRetry={onRetry} retrying={loading} />}
+      {refetching && !hasCurrentData && !errored ? (
+        <ListLoading t={t} label={showUpcoming ? t.sectionUpcoming : finishedLabel} />
+      ) : !hasCurrentData ? null : totallyEmpty ? (
         <SchedEmpty
           t={t}
           onExplore={() => router.push(localeHref(locale, "search"))}
@@ -1364,15 +1302,18 @@ export function AppointmentsContent({ locale }: { locale: Locale }) {
                     />
                     {past?.hasMore && (
                       <div style={{ marginTop: 18 }}>
-                        <button
-                          type="button"
+                        <Button
+                          kind="secondary"
+                          size="sm"
+                          loading={loadingMore}
+                          spinnerSize={15}
                           className="zw-pag-btn"
                           onClick={() => void onLoadMore()}
                           disabled={loadingMore}
                           style={{ padding: "0 18px" }}
                         >
-                          {loadingMore ? <Spinner size={15} /> : t.loadMore}
-                        </button>
+                          {t.loadMore}
+                        </Button>
                         {loadMoreErrored && (
                           <InlineError
                             className="txt-pretty"

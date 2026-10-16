@@ -2,15 +2,14 @@
 
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useSearchParams } from "next/navigation";
-import { useId, useLayoutEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { useLayoutEffect, useState } from "react";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
 import { authFlowHref, authRedirectTarget } from "@/lib/auth/redirects";
 import { useRetainedAuthState } from "@/lib/auth/retained-flow";
 import { localeHref, localizedPathname } from "@/i18n/routes";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
-import { BUSINESS_APP_URL, GOOGLE_CLIENT_ID } from "@/lib/env";
-import { AuthCard } from "./auth-card";
+import { GOOGLE_CLIENT_ID } from "@/lib/env";
+import { AuthCard, AuthBusinessSignIn } from "./auth-card";
 import { AuthShell } from "./auth-shell";
 import { EnableAccessPanel } from "./enable-access-panel";
 import { GoogleSignInButton } from "./google-signin-button";
@@ -37,7 +36,6 @@ function isCurrentEntry(key: string): boolean {
 export function AuthTabs({ locale }: { locale: Locale }) {
   const dictionary = useAuthMessages();
   const dict = dictionary.auth;
-  const businessHeadingId = useId();
   const searchParams = useSearchParams();
   const redirect = authRedirectTarget(searchParams, locale);
   const mode: Mode = searchParams.get("mode") === "register" ? "register" : "login";
@@ -204,19 +202,7 @@ export function AuthTabs({ locale }: { locale: Locale }) {
             )}
 
             {mode === "login" && (
-              <section className="auth-business" aria-labelledby={businessHeadingId}>
-                <div className="auth-business-copy">
-                  <h2 id={businessHeadingId}>{dict.businessSignIn.title}</h2>
-                  <p>{dict.businessSignIn.description}</p>
-                </div>
-                <a
-                  href={`${BUSINESS_APP_URL}/login`}
-                  className="tap auth-business-link"
-                >
-                  <span>{dict.businessSignIn.cta}</span>
-                  <ArrowRight size={16} aria-hidden="true" className="shrink-0" />
-                </a>
-              </section>
+              <AuthBusinessSignIn />
             )}
           </>
         ))}

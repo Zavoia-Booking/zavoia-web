@@ -1,12 +1,11 @@
 import { ArrowRight } from "lucide-react";
-import { MicrositeBookAction, useMicrositeActions } from "../../../shared/actions";
+import { MicrositeBookAction } from "../../../shared/actions";
 import { buildServiceCards, money, serviceDuration } from "../model";
 import type { ServicesVariantProps } from "../types";
 import "./cards.css";
 
 /** Premium Cards layout (`grid` persisted key) — organically chunked category cards, never truncated. */
 export function Cards({ location, groups, currency, locale, showDescriptions, showDurations, t }: ServicesVariantProps) {
-  const actions = useMicrositeActions();
   const cards = buildServiceCards(groups);
   return (
     <div className="mc-services-cards">
@@ -19,13 +18,11 @@ export function Cards({ location, groups, currency, locale, showDescriptions, sh
           <h3 className="mc-services-card-title">{card.category}</h3>
           <div className="mc-services-card-rows">
             {card.items.map((item) => (
-              <button
+              <MicrositeBookAction
                 key={item.key}
-                type="button"
+                previewTag="button"
                 className="mc-services-card-item"
-                disabled={actions?.pending}
-                aria-busy={actions?.pending || undefined}
-                onClick={actions ? () => actions.book({ locationId: location.id, ...(item.isBundle ? { bundleId: item.sourceId } : { serviceId: item.sourceId }) }) : undefined}
+                intent={{ locationId: location.id, ...(item.isBundle ? { bundleId: item.sourceId } : { serviceId: item.sourceId }) }}
                 aria-label={t("businessPage.builder.preview.aria.bookService", { name: item.name })}
               >
                 <span className="mc-services-card-item-name" title={item.name}>
@@ -41,7 +38,7 @@ export function Cards({ location, groups, currency, locale, showDescriptions, sh
                 {showDescriptions && item.description ? (
                   <span className="mc-services-card-item-description">{item.description}</span>
                 ) : null}
-              </button>
+              </MicrositeBookAction>
             ))}
           </div>
           <footer className="mc-services-card-footer">

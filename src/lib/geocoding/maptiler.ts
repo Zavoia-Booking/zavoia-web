@@ -3,9 +3,8 @@
 // Mirrors the RN marketplace-app's MapTiler usage: forward city autocomplete
 // and reverse geocoding, mapping MapTiler features → a compact CityResult.
 //
-// Build/runtime safety: with a missing or placeholder key the requests will
-// 403 (or never fire), and EVERYTHING degrades to empty results / null. No
-// function in this module ever throws — fetch/abort/parse errors are swallowed.
+// Optional location resolution degrades to empty results / null on failure.
+// Autocomplete opts into errors so a failed request cannot look like no matches.
 
 const KEY = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
 
@@ -126,17 +125,19 @@ function featureToCity(feature: MapTilerFeature): CityResult | null {
 /**
  * Forward city search (autocomplete).
  *
- * Returns [] when: query is shorter than 2 trimmed chars, the API key is
- * absent, the response is non-ok, or any fetch/abort/parse error occurs.
- * Never throws.
+ * By default, failures return [] for optional location resolution. Interactive
+ * autocomplete uses throwOnError to distinguish failed requests from no matches.
  */
 export async function searchCities(
   query: string,
   signal?: AbortSignal,
-  options?: { exact?: boolean; countryCode?: string },
+  options?: { exact?: boolean; countryCode?: string; throwOnError?: boolean },
 ): Promise<CityResult[]> {
   if (query.trim().length < 2) return [];
-  if (!KEY) return [];
+  if (!KEY) {
+    if (options?.throwOnError) throw new Error("City search is unavailable");
+    return [];
+  }
 
   const params = new URLSearchParams({
     key: KEY,
@@ -150,17 +151,18 @@ export async function searchCities(
 
   try {
     const res = await fetch(url, { signal });
-    if (!res.ok) return [];
+    if (!res.ok) throw new Error("City search request failed");
     const json = (await res.json()) as MapTilerResponse;
-    const features = json.features ?? [];
+    if (!Array.isArray(json.features)) throw new Error("Invalid city search response");
+    const features = json.features;
     const out: CityResult[] = [];
     for (const f of features) {
       const city = featureToCity(f);
       if (city) out.push(city);
     }
     return out;
-  } catch {
-    // Includes AbortError — treated as "no results", never surfaced.
+  } catch (error) {
+    if (options?.throwOnError) throw error;
     return [];
   }
 }

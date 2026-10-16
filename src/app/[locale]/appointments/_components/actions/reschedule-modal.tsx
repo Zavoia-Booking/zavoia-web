@@ -5,10 +5,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
-import { Button, Icon, Spinner, useToast } from "@/components/ui";
+import { Button, Icon, Skeleton, Spinner, useToast } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
@@ -142,15 +143,21 @@ function availabilityErrorLabel(
  *
  * Reschedule window note: API window is in MINUTES → converted to hours.
  */
-export function RescheduleModal({
-  appointment,
-  onClose,
-  onChanged,
-}: {
+type RescheduleModalProps = {
   appointment: AppointmentDetail;
   onClose: () => void;
   onChanged?: () => void | Promise<void>;
-}) {
+};
+
+export function RescheduleModal(props: RescheduleModalProps) {
+  return <RescheduleSession key={props.appointment.uuid} {...props} />;
+}
+
+function RescheduleSession({
+  appointment,
+  onClose,
+  onChanged,
+}: RescheduleModalProps) {
   const { dict, locale } = useTranslation();
   const t = dict.appointmentActions.reschedule;
   const tb = dict.booking;
@@ -189,7 +196,7 @@ export function RescheduleModal({
 
   // ── Flow state ──
   const [calendar, setCalendar] = useState<BookingCalendar | null>(null);
-  const [calLoading, setCalLoading] = useState(false);
+  const [calLoading, setCalLoading] = useState(true);
   // Error copy for the date/slot sections; null = no error.
   const [calError, setCalError] = useState<string | null>(null);
 
@@ -197,6 +204,13 @@ export function RescheduleModal({
   const [daySlots, setDaySlots] = useState<BookingDaySlots | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsError, setSlotsError] = useState<string | null>(null);
+  const calendarRequestId = useRef(0);
+  const slotsRequestId = useRef(0);
+
+  useEffect(() => () => {
+    calendarRequestId.current += 1;
+    slotsRequestId.current += 1;
+  }, []);
 
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
@@ -223,45 +237,53 @@ export function RescheduleModal({
   });
 
   // ── Step 1: fetch calendar. ──
-  const loadCalendar = useCallback(async () => {
+  const loadCalendar = useCallback(async (retry = false) => {
     if (!supported || businessId == null || locationId == null || !services) {
       return;
     }
+    const requestId = ++calendarRequestId.current;
     setCalLoading(true);
-    setCalError(null);
+    if (!retry) setCalError(null);
     try {
       const res = await getRescheduleCalendar({
         uuid: appointment.uuid,
         startDate: todayInTz(requestTimeZone),
         daysToCheck: CAL_DAYS_TO_CHECK,
       });
+      if (requestId !== calendarRequestId.current) return;
       setCalendar(res);
+      setCalError(null);
     } catch (e) {
+      if (requestId !== calendarRequestId.current) return;
       setCalError(availabilityErrorLabel(e, t, tb));
     } finally {
-      setCalLoading(false);
+      if (requestId === calendarRequestId.current) setCalLoading(false);
     }
   }, [supported, businessId, locationId, services, requestTimeZone, appointment.uuid, t, tb]);
 
   // ── Step 2: fetch slots for a chosen date. ──
   const loadSlots = useCallback(
-    async (date: string) => {
+    async (date: string, retry = false) => {
       if (!supported || businessId == null || locationId == null || !services) {
         return;
       }
+      const requestId = ++slotsRequestId.current;
       setSlotsLoading(true);
-      setSlotsError(null);
+      if (!retry) setSlotsError(null);
       setSelectedSlot(null);
       try {
         const res = await getRescheduleSlots({
           uuid: appointment.uuid,
           date,
         });
+        if (requestId !== slotsRequestId.current) return;
         setDaySlots(res);
+        setSlotsError(null);
       } catch (e) {
+        if (requestId !== slotsRequestId.current) return;
         setSlotsError(availabilityErrorLabel(e, t, tb));
       } finally {
-        setSlotsLoading(false);
+        if (requestId === slotsRequestId.current) setSlotsLoading(false);
       }
     },
     [supported, businessId, locationId, services, appointment.uuid, setSelectedSlot, t, tb],
@@ -285,7 +307,7 @@ export function RescheduleModal({
     void loadSlots(date);
   };
 
-  const ready = !!selectedSlot && !!selectedDate;
+  const ready = !!selectedSlot && !!selectedDate && !slotsLoading && !slotsError && daySlots?.date === selectedDate;
 
   const confirm = async () => {
     if (!ready || submitting || !selectedDate || !selectedSlot) return;
@@ -359,9 +381,19 @@ export function RescheduleModal({
         kind="primary"
         size="lg"
         disabled={!ready || submitting}
+        aria-label={t.confirm}
+        aria-busy={submitting}
+        style={{ position: "relative" }}
         onClick={() => void confirm()}
       >
-        {submitting ? <Spinner size={16} /> : t.confirm}
+        <span aria-hidden="true" style={{ visibility: submitting ? "hidden" : "visible" }}>
+          {t.confirm}
+        </span>
+        {submitting && (
+          <span aria-hidden="true" style={{ position: "absolute" }}>
+            <Spinner size={16} color="currentColor" />
+          </span>
+        )}
       </Button>
     </>
   );
@@ -413,14 +445,15 @@ export function RescheduleModal({
           {/* Date section */}
           <div style={{ marginTop: 22 }}>
             <div style={dateSectionLabel}>{t.dateLabel}</div>
-            {calLoading && !calendar ? (
-              <LoadingBlock label={tb.loading} />
-            ) : calError && !calendar ? (
+            {calError && !calendar ? (
               <ErrorBlock
                 label={calError}
                 retry={tb.retry}
-                onRetry={() => void loadCalendar()}
+                onRetry={() => void loadCalendar(true)}
+                loading={calLoading}
               />
+            ) : calLoading && !calendar ? (
+              <LoadingBlock label={tb.loading} kind="dates" />
             ) : calendar ? (
               <DateGrid
                 days={calendar.calendar}
@@ -439,17 +472,18 @@ export function RescheduleModal({
               <div style={dateSectionLabel}>
                 {fmtDateLabel(selectedDate, locale, timeZone)}
               </div>
-              {slotsLoading && !daySlots ? (
-                <LoadingBlock label={tb.loading} />
-              ) : slotsError ? (
+              {slotsError ? (
                 <ErrorBlock
                   label={slotsError}
                   retry={tb.retry}
-                  onRetry={() => void loadSlots(selectedDate)}
+                  onRetry={() => void loadSlots(selectedDate, true)}
+                  loading={slotsLoading}
                 />
+              ) : slotsLoading ? (
+                <LoadingBlock label={tb.loading} kind="slots" />
               ) : (
                 <SlotGrid
-                  daySlots={daySlots}
+                  daySlots={daySlots?.date === selectedDate ? daySlots : null}
                   selectedDate={selectedDate}
                   selectedSlot={selectedSlot}
                   locale={locale}
@@ -460,7 +494,9 @@ export function RescheduleModal({
                     afternoon: tb.afternoon,
                     evening: tb.evening,
                   }}
-                  onPick={setSelectedSlot}
+                  onPick={(slot) => {
+                    if (!slotsLoading && !slotsError && daySlots?.date === selectedDate) setSelectedSlot(slot);
+                  }}
                 />
               )}
             </div>
@@ -547,6 +583,7 @@ function DateGrid({
               alignItems: "center",
               gap: 3,
               padding: "10px 0 9px",
+              height: 62,
               borderRadius: 14,
               cursor: available ? "pointer" : "default",
               opacity: available ? 1 : 0.35,
@@ -651,6 +688,7 @@ function SlotGrid({
                     onClick={() => onPick(s)}
                     style={{
                       padding: "10px 0",
+                      height: 41,
                       borderRadius: 11,
                       cursor: "pointer",
                       fontFamily: "var(--font-mono)",
@@ -678,21 +716,24 @@ function SlotGrid({
 // ─────────────────────────────────────────────
 // Shared small blocks
 // ─────────────────────────────────────────────
-function LoadingBlock({ label }: { label: string }) {
+function LoadingBlock({ label, kind }: { label: string; kind: "dates" | "slots" }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 12,
-        padding: "32px 0",
-        color: "var(--c-600)",
-        fontSize: 13.5,
-      }}
-    >
-      <Spinner size={22} />
-      {label}
+    <div aria-busy="true">
+      <div aria-hidden="true">
+        {kind === "slots" && <Skeleton w={64} h={20.25} r={4} style={{ marginBottom: 10 }} />}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(auto-fill, minmax(${kind === "dates" ? 64 : 86}px, 1fr))`,
+            gap: 8,
+          }}
+        >
+          {Array.from({ length: kind === "dates" ? CAL_DAYS_TO_CHECK : 8 }, (_, index) => (
+            <Skeleton key={index} h={kind === "dates" ? 62 : 41} r={kind === "dates" ? 14 : 11} />
+          ))}
+        </div>
+      </div>
+      <p role="status" className="sr-only">{label}</p>
     </div>
   );
 }
@@ -701,10 +742,12 @@ function ErrorBlock({
   label,
   retry,
   onRetry,
+  loading,
 }: {
   label: string;
   retry: string;
   onRetry: () => void;
+  loading: boolean;
 }) {
   return (
     <div
@@ -729,7 +772,7 @@ function ErrorBlock({
       >
         {label}
       </p>
-      <Button kind="secondary" size="md" onClick={onRetry}>
+      <Button kind="secondary" size="md" onClick={onRetry} loading={loading}>
         {retry}
       </Button>
     </div>

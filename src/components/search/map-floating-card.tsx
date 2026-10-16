@@ -8,7 +8,7 @@ export interface MapFloatingCardProps {
   data: BusinessCardData | null;
   onClose: () => void;
   closeAria: string;
-  favorited?: boolean;
+  favorited?: boolean | null;
   /** Forwarded to the BusinessRow — the heart only renders when provided. */
   onFavorite?: (id: BusinessCardData["id"]) => void;
   /** Distance from the bottom of the map area (kept clear of the mobile toggle). */

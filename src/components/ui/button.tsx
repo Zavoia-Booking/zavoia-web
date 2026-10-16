@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
+import { Spinner } from "./spinner";
 
 export type ButtonKind = "primary" | "accent" | "secondary" | "ghost";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -9,6 +10,9 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   kind?: ButtonKind;
   size?: ButtonSize;
   children?: ReactNode;
+  /** Keep the action's label and geometry while its request is pending. */
+  loading?: boolean;
+  spinnerSize?: number;
 }
 
 const LOOKS: Record<ButtonKind, CSSProperties> = {
@@ -23,6 +27,8 @@ export function Button({
   size = "md",
   children,
   disabled = false,
+  loading,
+  spinnerSize = 16,
   className,
   style,
   type = "button",
@@ -33,7 +39,7 @@ export function Button({
   return (
     <button
       type={type}
-      disabled={disabled}
+      disabled={disabled || loading}
       className={["tap", "zw-btn", className].filter(Boolean).join(" ")}
       style={{
         ...LOOKS[kind],
@@ -41,19 +47,33 @@ export function Button({
         fontSize: fs,
         fontWeight: 600,
         borderRadius: "var(--r-full)",
-        cursor: disabled ? "default" : "pointer",
+        cursor: disabled || loading ? "default" : "pointer",
         letterSpacing: "-0.01em",
         whiteSpace: "nowrap",
-        opacity: disabled ? 0.45 : 1,
+        opacity: disabled || loading ? 0.45 : 1,
         display: "inline-flex",
         alignItems: "center",
         gap: 8,
         justifyContent: "center",
+        position: loading !== undefined ? "relative" : undefined,
         ...style,
       }}
       {...rest}
+      aria-busy={loading || rest["aria-busy"] || undefined}
     >
-      {children}
+      {loading !== undefined ? (
+        <>
+          {/* Opacity preserves the accessible action name as well as its size. */}
+          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "inherit", opacity: loading ? 0 : 1 }}>
+            {children}
+          </span>
+          {loading && (
+            <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
+              <Spinner size={spinnerSize} color="currentColor" />
+            </span>
+          )}
+        </>
+      ) : children}
     </button>
   );
 }

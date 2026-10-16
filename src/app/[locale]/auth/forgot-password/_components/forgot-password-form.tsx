@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@/components/ui/spinner";
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -146,10 +147,22 @@ export function ForgotPasswordForm({
         <button
           type="submit"
           disabled={submitting}
-          className="mt-4 h-12 w-full cursor-pointer rounded-full bg-primary px-4 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-p-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
+          aria-label={t.submit}
+          aria-busy={submitting}
+          className="relative mt-4 h-12 w-full cursor-pointer rounded-full bg-primary px-4 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-p-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
         >
-          {submitting ? t.submitting : t.submit}
+          <span className={submitting ? "invisible" : undefined} aria-hidden={submitting || undefined}>
+            {t.submit}
+          </span>
+          {submitting && (
+            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+              <Spinner size={16} color="currentColor" />
+            </span>
+          )}
         </button>
+        <span role="status" className="sr-only">
+          {submitting ? t.submitting : ""}
+        </span>
       </form>
 
       <Link

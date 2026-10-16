@@ -97,6 +97,8 @@
 
 .categories {
   margin-top: 8px;
+  /* One known city heading and up to five taxonomy links, including pending. */
+  min-height: 225px;
 }
 
 .link {
@@ -333,6 +335,10 @@
   .columnContent .link {
     width: 100%;
     min-height: 44px;
+  }
+
+  .categories {
+    min-height: 281px;
   }
 
   .base {

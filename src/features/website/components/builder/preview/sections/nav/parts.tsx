@@ -4,7 +4,9 @@ import { forwardRef, useRef, type ComponentPropsWithoutRef, type CSSProperties, 
 import { cn } from "../../../../../../../shared/lib/utils";
 import { DISPLAY, MONO } from "../../shared/constants";
 import { BookButton } from "../../shared/primitives";
-import { useMicrositeActions } from "../../shared/actions";
+import { isPendingBooking, useMicrositeActions } from "../../shared/actions";
+import { Spinner } from "@/components/ui/spinner";
+import actionStyles from "../../shared/actions.module.css";
 import type { PreviewData, T } from "../../shared/types";
 
 export type NavStyleKey = "editorial" | "capsule" | "split" | "underlay";
@@ -319,7 +321,8 @@ export function MobileMenuPortal({
         <DialogPrimitive.Close asChild>
           <button
             type="button"
-            className="mc-nav-menu-book"
+            className={cn("mc-nav-menu-book", actionStyles.action)}
+            data-pending={isPendingBooking(actions) || undefined}
             disabled={actions?.pending}
             aria-busy={actions?.pending || undefined}
             onClick={() => { pendingBookingRef.current = !!actions; }}
@@ -327,6 +330,7 @@ export function MobileMenuPortal({
           >
             <span>{t("businessPage.builder.preview.bookNow")}</span>
             <ArrowRight aria-hidden />
+            {isPendingBooking(actions) && <span className={actionStyles.spinner} aria-hidden="true"><Spinner size={20} color="currentColor" /></span>}
           </button>
         </DialogPrimitive.Close>
         <NavMenuFooter data={data} />

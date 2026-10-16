@@ -9,7 +9,11 @@ export interface AvatarProps {
   ring?: boolean;
 }
 
-export function Avatar({ src, name = "?", size = 40, ring = false }: AvatarProps) {
+export function Avatar(props: AvatarProps) {
+  return <AvatarSource key={props.src ?? ""} {...props} />;
+}
+
+function AvatarSource({ src, name = "?", size = 40, ring = false }: AvatarProps) {
   const [err, setErr] = useState(false);
   const initial = (name || "?").trim()[0]?.toUpperCase() || "?";
   const style: CSSProperties = {

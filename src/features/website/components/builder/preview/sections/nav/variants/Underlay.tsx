@@ -4,7 +4,9 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { cn } from "../../../../../../../../shared/lib/utils";
 import { DISPLAY, MONO } from "../../../shared/constants";
 import { prefersReducedMotion } from "../../../shared/util";
-import { useMicrositeActions } from "../../../shared/actions";
+import { isPendingBooking, useMicrositeActions } from "../../../shared/actions";
+import { Spinner } from "@/components/ui/spinner";
+import actionStyles from "../../../shared/actions.module.css";
 import {
   BurgerGlyph,
   NavBrand,
@@ -135,7 +137,8 @@ export function Underlay(props: NavVariantViewProps) {
               <DialogPrimitive.Close asChild>
                 <button
                   type="button"
-                  className="mc-nav-underlay-link mc-nav-underlay-link--book"
+                  className={cn("mc-nav-underlay-link mc-nav-underlay-link--book", actionStyles.action)}
+                  data-pending={isPendingBooking(actions) || undefined}
                   tabIndex={props.menuOpen ? 0 : -1}
                   disabled={actions?.pending}
                   aria-busy={actions?.pending || undefined}
@@ -143,6 +146,7 @@ export function Underlay(props: NavVariantViewProps) {
                 >
                   <span style={DISPLAY}>{props.t("businessPage.builder.preview.book")}</span>
                   <ArrowRight aria-hidden />
+                  {isPendingBooking(actions) && <span className={actionStyles.spinner} aria-hidden="true"><Spinner size={20} color="currentColor" /></span>}
                 </button>
               </DialogPrimitive.Close>
             </div>

@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { SectionEntry } from "@/features/website/types";
 import type { PreviewData } from "@/features/website/components/builder/preview/shared/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const LivePreview = dynamic(() =>
   import("@/features/website/components/builder/preview/Microsite").then(
@@ -18,10 +19,9 @@ const LivePreview = dynamic(() =>
  * mobile-collapsed one a narrow container query would trigger.
  *
  * Unlike the builder's ScaledPreview (which clips to a caller-sized box), this
- * plate *hugs* its specimen: the wrapper's height follows the scaled content,
- * so a short nav and a tall locations section each get a plate that fits. Only
- * a specimen taller than `maxHeight` is cropped, and then it fades so the crop
- * reads as a deliberate catalogue detail.
+ * plate reserves a responsive frame before its renderer, fonts or images load.
+ * Compact sections use a shallow frame; the other specimens share a 16:10
+ * viewport. Content beyond that frame fades at the edge.
  *
  * `inert` makes the subtree fully non-interactive (pointer, focus, assistive
  * tech) — the sections contain real links and buttons that must never be
@@ -34,6 +34,7 @@ export function SpecimenPlate({
   virtualWidth = 1240,
   minHeight = 140,
   maxHeight = 620,
+  pending = false,
 }: {
   layout: SectionEntry[];
   data: PreviewData;
@@ -41,6 +42,7 @@ export function SpecimenPlate({
   virtualWidth?: number;
   minHeight?: number;
   maxHeight?: number;
+  pending?: boolean;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -87,20 +89,21 @@ export function SpecimenPlate({
   const effectiveWidth = phone ? Math.max(width, 430) : virtualWidth;
   const scale = width > 0 ? width / effectiveWidth : 0;
   const natural = contentHeight * scale;
-  const height = natural > 0 ? Math.min(Math.max(natural, minHeight), maxHeight) : minHeight;
+  const compact = layout.every((section) => !section.visible || ["nav", "announcement", "marquee"].includes(section.type));
+  const height = Math.min(Math.max(width / (compact ? 8 : 1.6), minHeight), maxHeight);
   const cropped = natural > height + 1;
+  const ready = !pending && width > 0 && contentHeight > 0;
 
   return (
     <div
       ref={outerRef}
       style={{
         position: "relative",
-        height,
+        width: "100%",
+        aspectRatio: compact ? "8 / 1" : "16 / 10",
+        minHeight,
+        maxHeight,
         overflow: "hidden",
-        // No height transition: each style switch remounts the plate (keyed on
-        // section + variant), so an animated height would never play — it would
-        // only put a layout property on the animation path.
-        // The specimen paints its own paper; this keeps the first frame calm.
         background: "var(--c-shade)",
       }}
     >
@@ -117,12 +120,13 @@ export function SpecimenPlate({
           width: effectiveWidth,
           transform: `scale(${scale || 0.0001})`,
           transformOrigin: "top left",
-          opacity: scale > 0 ? 1 : 0,
+          opacity: ready ? 1 : 0,
         }}
       >
-        <LivePreview layout={layout} data={data} chrome={chrome} />
+        {!pending && <LivePreview layout={layout} data={data} chrome={chrome} />}
       </div>
-      {cropped && (
+      {!ready && <Skeleton h="100%" r={0} style={{ position: "absolute", inset: 0 }} />}
+      {ready && cropped && (
         <div
           aria-hidden="true"
           style={{

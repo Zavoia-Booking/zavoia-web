@@ -41,7 +41,7 @@ export default async function GoogleCallbackPage({ params }: Props) {
   }])) as Record<Locale, AuthMessages>;
 
   return (
-    <Suspense fallback={<AuthSkeleton />}>
+    <Suspense fallback={<AuthSkeleton variant="callback" />}>
       <GoogleCallback locale={locale} messages={messages} />
     </Suspense>
   );

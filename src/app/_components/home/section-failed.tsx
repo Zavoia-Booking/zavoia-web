@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { Button } from "@/components/ui/button";
 import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 
@@ -19,6 +21,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 export function SectionFailed({
   paddingTop,
   onRetry,
+  loading = false,
 }: {
   paddingTop: number;
   /**
@@ -27,19 +30,23 @@ export function SectionFailed({
    * refetch here instead.
    */
   onRetry?: () => void;
+  loading?: boolean;
 }) {
   const router = useRouter();
   const { dict } = useTranslation();
   const e = dict.errors;
+  const [refreshing, startTransition] = useTransition();
+  const busy = loading || refreshing;
 
   return (
     <section className="zw-container" style={{ paddingTop }}>
       <InlineError style={{ margin: 0 }}>
         {e.sectionFailed}{" "}
-        <button
-          type="button"
-          className="tap"
-          onClick={() => (onRetry ? onRetry() : router.refresh())}
+        <Button
+          kind="ghost"
+          size="sm"
+          loading={busy}
+          onClick={() => (onRetry ? onRetry() : startTransition(() => router.refresh()))}
           style={{
             background: "transparent",
             border: 0,
@@ -51,8 +58,9 @@ export function SectionFailed({
           }}
         >
           {e.reload}
-        </button>
+        </Button>
       </InlineError>
+      <span role="status" className="sr-only">{busy ? dict.search.updating : ""}</span>
     </section>
   );
 }

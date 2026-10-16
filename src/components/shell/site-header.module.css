@@ -134,6 +134,16 @@
 
 .phoneSpacer { display: none; }
 
+/* The session check and unread count must not move the surrounding nav. */
+.accountControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 84px;
+  flex: none;
+}
+
 .phoneSearch {
   display: none;
   align-items: center;
@@ -173,6 +183,10 @@
   .searchSlot { display: none; }
   .phoneSpacer { display: block; flex: 1; }
   .phoneSearch { display: inline-flex; }
+}
+
+@media (max-width: 920px) {
+  .accountControls { width: 40px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

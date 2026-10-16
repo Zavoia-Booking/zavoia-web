@@ -34,10 +34,10 @@ export function BrandsSection({ cards }: { cards: BusinessCardData[] }) {
         </p>
       ) : (
         <div
-          className="zw-stagger"
+
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(232px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(232px, 100%), 1fr))",
             gap: 18,
           }}
         >

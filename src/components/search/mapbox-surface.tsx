@@ -158,6 +158,8 @@ export interface MapboxSurfaceProps {
    *  is later than style-load) — the moment the first-load skeleton can lift
    *  without revealing a blank canvas. */
   onFirstPaint?: () => void;
+  /** Keep successful maps pooled; explicit retries need a fresh instance. */
+  reuseMap?: boolean;
   /**
    * Pixels along each edge that a floating overlay covers. The desktop results
    * panel sits ON TOP of the map's left edge, so a camera move aimed at the
@@ -179,7 +181,7 @@ export interface MapboxSurfaceProps {
   /** Wait for an explicit city's camera target instead of showing another city. */
   enabled?: boolean;
   /** Shown when the map cannot be displayed or its city is still resolving. */
-  unavailableLabel: string;
+  unavailableLabel: ReactNode;
   /** Labels the off-screen list that makes the pins keyboard-reachable. */
   pinListLabel: string;
   children?: ReactNode;
@@ -215,6 +217,7 @@ export function MapboxSurface({
   searchAreaLabel,
   onUserMoveStart,
   onFirstPaint,
+  reuseMap = true,
   fitInset,
   topInset = 16,
   controlsBottom = 24,
@@ -774,7 +777,7 @@ export function MapboxSurface({
         ref={mapRef}
         // Pool & reuse the mapbox-gl instance across soft-navigation remounts so
         // returning to /search doesn't re-initialize the map (a billed map load).
-        reuseMaps
+        reuseMaps={reuseMap}
         mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={{
           longitude: anchor?.lng ?? pins[0]?.lng ?? DEFAULT_CENTER_LNG,

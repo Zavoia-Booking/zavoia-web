@@ -11,6 +11,8 @@ import {
 import { createPortal } from "react-dom";
 import { Avatar, Button, HeartButton, Icon, Rating, Stars } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
+import { Skeleton } from "@/components/ui/skeleton";
+import styles from "./team-member-profile-modal.module.css";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { EmptyState } from "./empty-state";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -135,9 +137,11 @@ export function TeamMemberProfileModal({
 
   const [profile, setProfile] = useState<TeamMemberProfile | null>(null);
   const [failed, setFailed] = useState(false);
+  const [requesting, setRequesting] = useState(true);
   const [attempt, setAttempt] = useState(0);
   // Favorites flow only: where the member can be booked (null while loading).
   const [context, setContext] = useState<TeamMemberBookingContext | null>(null);
+  const [contextRequesting, setContextRequesting] = useState(!listing);
   // A failed booking-context load means two very different things. Permanent
   // (CUSTOMER_BOOKING.E16/E17 — the team member is gone, or has no active
   // assignment anywhere) is honestly "can't be booked". Transient (offline,
@@ -176,11 +180,15 @@ export function TeamMemberProfileModal({
       : getTeamMember(member.id);
     req
       .then((p) => {
-        if (alive) setProfile(p);
+        if (alive) {
+          setProfile(p);
+          setFailed(false);
+        }
       })
       .catch(() => {
         if (alive) setFailed(true);
-      });
+      })
+      .finally(() => { if (alive) setRequesting(false); });
     return () => {
       alive = false;
     };
@@ -192,14 +200,18 @@ export function TeamMemberProfileModal({
     let alive = true;
     getTeamMemberBookingContext(member.id)
       .then((ctx) => {
-        if (alive) setContext(ctx);
+        if (alive) {
+          setContext(ctx);
+          setContextFailure(null);
+        }
       })
       .catch((e) => {
         if (!alive) return;
         setContextFailure(
           mapBackendCode(e, MEMBER_GONE_CODES) ? "permanent" : "transient",
         );
-      });
+      })
+      .finally(() => { if (alive) setContextRequesting(false); });
     return () => {
       alive = false;
     };
@@ -374,7 +386,7 @@ export function TeamMemberProfileModal({
     [listing, profile, selectedVenue],
   );
   // The context still loading in the favorites flow ≠ "no services".
-  const servicesPending = !listing && !context && !contextFailure;
+  const servicesPending = listing ? !profile && !failed : !context && !contextFailure;
   // Services grouped by category — same grammar as the Services tab.
   const serviceGroups = useMemo(() => {
     const by = new Map<
@@ -497,7 +509,7 @@ export function TeamMemberProfileModal({
         onClick={onClose}
         style={{ position: "absolute", inset: 0, background: "rgba(28,28,26,0.42)", cursor: "pointer" }}
       />
-      <div ref={cardRef} tabIndex={-1} className="zw-member-card zw-modal-in" style={{ outline: "none" }}>
+      <div ref={cardRef} tabIndex={-1} className={`zw-member-card zw-modal-in ${styles.card}`} style={{ outline: "none" }}>
         {favorites.canFavorite && (
           <div style={{ position: "absolute", top: 14, left: 14, zIndex: 2 }}>
             <HeartButton
@@ -662,7 +674,7 @@ export function TeamMemberProfileModal({
           </aside>
 
           {/* ── Content ───────────────────────────────────── */}
-          <div className="zw-member-main zw-noscrollbar">
+          <div className="zw-member-main zw-noscrollbar" aria-busy={requesting || contextRequesting || undefined}>
             {loading && <ProfileSkeleton />}
 
             {failed && (
@@ -674,8 +686,10 @@ export function TeamMemberProfileModal({
                   <Button
                     kind="secondary"
                     size="sm"
+                    loading={requesting}
                     onClick={() => {
-                      setFailed(false);
+                      setRequesting(true);
+                      if (!listing) setContextRequesting(true);
                       setAttempt((a) => a + 1);
                     }}
                   >
@@ -686,7 +700,7 @@ export function TeamMemberProfileModal({
             )}
 
             {profile && (
-              <div className="zv-tab-in" style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
                 {about?.aboutMe && (
                   <section>
                     <SectionKicker>{t.tabAbout}</SectionKicker>
@@ -857,20 +871,14 @@ export function TeamMemberProfileModal({
                           display: "flex",
                           alignItems: "center",
                           gap: 14,
-                          padding: "13px 0",
+                          padding: "13px 8px",
                         }}
                       >
                         <div style={{ flex: 1 }}>
-                          <div
-                            className="zv-skel"
-                            style={{ height: 13, width: "56%", marginBottom: 7 }}
-                          />
-                          <div className="zv-skel" style={{ height: 10, width: 110 }} />
+                          <Skeleton w="56%" h={21.75} style={{ marginBottom: 4 }} />
+                          <Skeleton w={110} h={18.75} />
                         </div>
-                        <div
-                          className="zv-skel"
-                          style={{ width: 34, height: 34, borderRadius: "50%" }}
-                        />
+                        <Skeleton w={34} h={34} r={999} />
                       </div>
                     ))}
                   </section>
@@ -900,8 +908,10 @@ export function TeamMemberProfileModal({
                         <Button
                           kind="secondary"
                           size="sm"
+                          loading={contextRequesting}
                           onClick={() => {
-                            setContextFailure(null);
+                            setContextRequesting(true);
+                            setRequesting(true);
                             setAttempt((a) => a + 1);
                           }}
                         >
@@ -1173,6 +1183,7 @@ export function TeamMemberProfileModal({
         {/* ── Booking bar ─────────────────────────────────── */}
         {(canBook || servicesPending) && (
           <div
+            aria-busy={servicesPending}
             style={{
               display: "flex",
               alignItems: "center",
@@ -1184,9 +1195,10 @@ export function TeamMemberProfileModal({
             }}
           >
             {servicesPending ? (
-              <span style={{ fontSize: 13, color: "var(--c-600)" }}>
-                {t.memberChecking}
-              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div aria-hidden="true"><Skeleton h={18} r={4} style={{ maxWidth: 160 }} /></div>
+                <span role="status" className="sr-only">{t.memberChecking}</span>
+              </div>
             ) : pickedServices.length > 0 ? (
               <span
                 style={{
@@ -1321,29 +1333,29 @@ function RailKicker({ children }: { children: React.ReactNode }) {
 /** Loading placeholder mirroring the content column's real layout. */
 function ProfileSkeleton() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 28 }} aria-hidden>
+    <div style={{ display: "flex", flexDirection: "column", gap: 30 }} aria-hidden>
       <div>
-        <div className="zv-skel" style={{ height: 11, width: 72, marginBottom: 14 }} />
-        <div className="zv-skel" style={{ height: 13, width: "92%", marginBottom: 8 }} />
-        <div className="zv-skel" style={{ height: 13, width: "78%" }} />
+        <Skeleton h={16.5} w={72} style={{ marginBottom: 14 }} />
+        <Skeleton h={24} w="92%" />
+        <Skeleton h={24} w="78%" />
       </div>
       <div>
-        <div className="zv-skel" style={{ height: 11, width: 88, marginBottom: 14 }} />
+        <Skeleton h={16.5} w={88} style={{ marginBottom: 14 }} />
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0" }}
+            style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 8px" }}
           >
             <div style={{ flex: 1 }}>
-              <div className="zv-skel" style={{ height: 13, width: "56%", marginBottom: 7 }} />
-              <div className="zv-skel" style={{ height: 10, width: 110 }} />
+              <Skeleton h={21.75} w="56%" style={{ marginBottom: 4 }} />
+              <Skeleton h={18.75} w={110} />
             </div>
-            <div className="zv-skel" style={{ width: 34, height: 34, borderRadius: "50%" }} />
+            <Skeleton w={34} h={34} r={999} />
           </div>
         ))}
       </div>
       <div>
-        <div className="zv-skel" style={{ height: 11, width: 80, marginBottom: 14 }} />
+        <Skeleton h={16.5} w={80} style={{ marginBottom: 14 }} />
         <div
           style={{
             display: "grid",
@@ -1352,7 +1364,7 @@ function ProfileSkeleton() {
           }}
         >
           {[0, 1, 2].map((i) => (
-            <div key={i} className="zv-skel" style={{ aspectRatio: "1", borderRadius: 12 }} />
+            <Skeleton key={i} h="auto" r={12} style={{ aspectRatio: "1" }} />
           ))}
         </div>
       </div>

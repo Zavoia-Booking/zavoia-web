@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Spinner } from "@/components/ui/spinner";
 import { InlineError } from "@/components/ui/inline-error";
 import type { Locale } from "@/i18n/locales";
 import {
@@ -28,6 +27,7 @@ import {
 import { useAuth } from "@/lib/auth/useAuth";
 import { retainedAuthFlow, subscribeAuthFlow } from "@/lib/auth/retained-flow";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
+import { AuthStepSkeleton } from "../../_components/auth-skeleton";
 import { AuthCard } from "../../_components/auth-card";
 import { AuthShell } from "../../_components/auth-shell";
 import {
@@ -211,12 +211,12 @@ export function GoogleCallback({
             tabRegisterLabel={dict.tabRegister}
             tablistLabel={dict.pageTitle}
             hideHeader
-            compact={view.kind === "enableAccess"}
+            compact
           >
             {view.kind === "working" && (
-              <div className="flex flex-col items-center gap-4 py-16">
-                <Spinner size={28} />
-                <p className="text-sm text-c-600">{t.completing}</p>
+              <div aria-busy="true">
+                <AuthStepSkeleton />
+                <p role="status" className="sr-only">{t.completing}</p>
               </div>
             )}
 

@@ -32,9 +32,14 @@ const PAGE_SIZE = 20;
 export interface NotificationsState {
   items: CustomerNotification[];
   unreadCount: number;
+  /** A missing or failed first response is not a confirmed zero. */
+  unreadLoaded: boolean;
+  unreadLoading: boolean;
+  unreadFailed: boolean;
   /** First-page load only — "load more" uses `loadingMore`. */
   loading: boolean;
   loadingMore: boolean;
+  moreFailed: boolean;
   hasMore: boolean;
   nextCursor?: string;
   /** Set when the last request failed; the panel offers a retry. */
@@ -46,8 +51,12 @@ export interface NotificationsState {
 const INITIAL: NotificationsState = {
   items: [],
   unreadCount: 0,
+  unreadLoaded: false,
+  unreadLoading: false,
+  unreadFailed: false,
   loading: false,
   loadingMore: false,
+  moreFailed: false,
   hasMore: false,
   failed: false,
   loaded: false,
@@ -137,6 +146,7 @@ export function refreshUnreadCount(): Promise<void> {
   if (!isCurrent) return Promise.resolve();
   if (unreadRequest) return unreadRequest;
   const requestCount = ++countRevision;
+  setState({ unreadLoading: true, unreadFailed: false });
   const request = Promise.resolve().then(async () => {
     try {
       await Promise.all(pendingMutations);
@@ -144,9 +154,13 @@ export function refreshUnreadCount(): Promise<void> {
       const unreadCount = await getUnreadNotificationCount();
       if (!isCurrent() || requestCount !== countRevision) return;
       unreadUpdatedAt = Date.now();
-      setState({ unreadCount });
+      setState({
+        unreadCount, unreadLoaded: true, unreadLoading: false, unreadFailed: false,
+      });
     } catch {
       // Keep the previous count, but never write into another session.
+      if (isCurrent() && requestCount === countRevision)
+        setState({ unreadLoading: false, unreadFailed: true });
     } finally {
       if (unreadRequest === request) unreadRequest = null;
     }
@@ -162,7 +176,10 @@ export function loadFirstPage(): Promise<void> {
   if (firstPageRequest) return firstPageRequest;
   const pageOwner = ++pageGeneration;
   const requestCount = ++countRevision;
-  setState({ loading: true, loadingMore: false, failed: false });
+  setState({
+    loading: true, loadingMore: false, moreFailed: false,
+    unreadLoading: true, unreadFailed: false,
+  });
   const request = Promise.resolve().then(async () => {
     try {
       await Promise.all(pendingMutations);
@@ -173,7 +190,10 @@ export function loadFirstPage(): Promise<void> {
       if (countIsCurrent) unreadUpdatedAt = Date.now();
       setState({
         items: page.notifications,
-        ...(countIsCurrent ? { unreadCount: page.unreadCount } : {}),
+        ...(countIsCurrent ? {
+          unreadCount: page.unreadCount, unreadLoaded: true,
+          unreadLoading: false, unreadFailed: false,
+        } : {}),
         hasMore: page.hasMore,
         nextCursor: page.nextCursor,
         loading: false,
@@ -182,7 +202,10 @@ export function loadFirstPage(): Promise<void> {
       });
     } catch {
       if (isCurrent() && pageOwner === pageGeneration)
-        setState({ loading: false, failed: true });
+        setState({
+          loading: false, failed: true,
+          ...(requestCount === countRevision ? { unreadLoading: false, unreadFailed: true } : {}),
+        });
     } finally {
       if (firstPageRequest === request) firstPageRequest = null;
     }
@@ -193,11 +216,11 @@ export function loadFirstPage(): Promise<void> {
 
 export async function loadNextPage(): Promise<void> {
   const isCurrent = beginRequest();
-  if (!isCurrent || !state.hasMore || state.loadingMore || !state.nextCursor)
+  if (!isCurrent || !state.hasMore || state.loading || state.loadingMore || !state.nextCursor)
     return;
   const pageOwner = pageGeneration;
   const requestCount = ++countRevision;
-  setState({ loadingMore: true });
+  setState({ loadingMore: true, unreadLoading: true, unreadFailed: false });
   try {
     await Promise.all(pendingMutations);
     if (!isCurrent() || pageOwner !== pageGeneration) return;
@@ -214,14 +237,21 @@ export async function loadNextPage(): Promise<void> {
         ...state.items,
         ...page.notifications.filter((n) => !seen.has(n.id)),
       ],
-      ...(countIsCurrent ? { unreadCount: page.unreadCount } : {}),
+      ...(countIsCurrent ? {
+        unreadCount: page.unreadCount, unreadLoaded: true,
+        unreadLoading: false, unreadFailed: false,
+      } : {}),
       hasMore: page.hasMore,
       nextCursor: page.nextCursor,
       loadingMore: false,
+      moreFailed: false,
     });
   } catch {
     if (isCurrent() && pageOwner === pageGeneration)
-      setState({ loadingMore: false });
+      setState({
+        loadingMore: false, moreFailed: true,
+        ...(requestCount === countRevision ? { unreadLoading: false, unreadFailed: true } : {}),
+      });
   }
 }
 
@@ -232,7 +262,7 @@ function invalidateReads(): void {
   unreadRequest = null;
   firstPageRequest = null;
   unreadUpdatedAt = 0;
-  setState({ loading: false, loadingMore: false });
+  setState({ loading: false, loadingMore: false, unreadLoading: false });
 }
 
 /** Optimistic changes and their rollback belong to the initiating session. */
@@ -315,9 +345,9 @@ export function useNotifications(): NotificationsState {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-/** Retains the existing public hook API used by the header. */
-export function useUnreadBadge(isAuthenticated: boolean): number {
-  const { unreadCount } = useNotifications();
+/** Unknown counts stay distinct from a successful zero. */
+export function useUnreadBadge(isAuthenticated: boolean): number | null {
+  const { unreadCount, unreadLoaded } = useNotifications();
   useEffect(() => {
     if (!isAuthenticated) {
       resetNotifications();
@@ -326,7 +356,7 @@ export function useUnreadBadge(isAuthenticated: boolean): number {
     syncOwner();
     void ensureUnreadCount();
   }, [isAuthenticated]);
-  return isAuthenticated ? unreadCount : 0;
+  return isAuthenticated && unreadLoaded ? unreadCount : null;
 }
 
 /** Loads the first page when the panel opens (and on an explicit retry). */

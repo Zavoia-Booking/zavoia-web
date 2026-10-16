@@ -4,6 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useSyncExternalStore } from "react";
 import { Icon } from "@/components/ui/icon";
+import { Spinner } from "@/components/ui/spinner";
 import type { Locale } from "@/i18n/locales";
 import { markLocaleNavigation } from "@/i18n/locale-transition";
 import { localizedPathname } from "@/i18n/routes";
@@ -39,7 +40,12 @@ function NavigationStatus({ label }: { label: string }) {
   const { pending } = useLinkStatus();
   return (
     <span role="status" className={styles.status}>
-      {pending && <><span className={styles.srOnly}>{label}</span><span aria-hidden="true">…</span></>}
+      {pending && (
+        <>
+          <span className={styles.srOnly}>{label}</span>
+          <span aria-hidden="true"><Spinner size={14} color="currentColor" /></span>
+        </>
+      )}
     </span>
   );
 }
@@ -185,7 +191,14 @@ export function LanguageDisclosure({
                   ) : (
                     <span className={styles.option} aria-disabled="true" data-locale={locale}>
                       <span lang={locale} dir="auto">{optionLabel}</span>
-                      <span className={styles.unavailable}>{destinations ? unavailableLabel : loadingLabel}</span>
+                      {destinations ? (
+                        <span className={styles.unavailable}>{unavailableLabel}</span>
+                      ) : (
+                        <span role="status" className={styles.indicator}>
+                          <span className={styles.srOnly}>{loadingLabel}</span>
+                          <span aria-hidden="true"><Spinner size={14} color="currentColor" /></span>
+                        </span>
+                      )}
                     </span>
                   )}
                 </li>

@@ -15,6 +15,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { Skeleton } from "@/components/ui/skeleton";
+import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import type { LocationCard, VenueTagDictionaries } from "@/lib/api/marketplace/types";
@@ -41,6 +43,10 @@ export interface FiltersPanelProps {
   listings: LocationCard[];
   distanceFor: (l: LocationCard) => number | undefined;
   dictionaries: VenueTagDictionaries;
+  dictionariesLoading: boolean;
+  dictionariesFailed: boolean;
+  dictionariesLoaded: boolean;
+  onRetryDictionaries: () => void;
 }
 
 /**
@@ -60,6 +66,10 @@ function FiltersPanelBody({
   listings,
   distanceFor,
   dictionaries,
+  dictionariesLoading,
+  dictionariesFailed,
+  dictionariesLoaded,
+  onRetryDictionaries,
 }: Omit<FiltersPanelProps, "open">) {
   const { dict } = useTranslation();
   const t = dict.search.filters;
@@ -259,6 +269,19 @@ function FiltersPanelBody({
             onChange={(v) => set({ open247: v })}
           />
 
+          {!dictionariesLoaded && <>
+            <GroupLabel>{t.features}</GroupLabel>
+            <span role="status" className="sr-only">{dictionariesLoading ? dict.search.updating : ""}</span>
+            {dictionariesFailed ? <div style={{ display: "grid", gap: 12 }}>
+              <InlineError>{t.loadError}</InlineError>
+              <Button kind="secondary" size="sm" loading={dictionariesLoading} onClick={onRetryDictionaries} style={{ justifySelf: "start" }}>{dict.search.retry}</Button>
+            </div> : <div aria-hidden="true" style={{ height: 176, overflow: "hidden", borderLeft: "1px solid rgba(28,28,26,0.12)", paddingLeft: 16 }}>
+              {TAG_GROUPS.map((group, i) => <div key={group.key} style={{ marginTop: i === 0 ? 2 : 18 }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600, letterSpacing: ".09em", textTransform: "uppercase", marginBottom: 9 }}>{sectionLabel[group.dict]}</div>
+                <div style={{ display: "flex", gap: 8 }}><Skeleton w="34%" h={36} r={999} /><Skeleton w="45%" h={36} r={999} /></div>
+              </div>)}
+            </div>}
+          </>}
           {tagGroups.length > 0 && (
             <>
               <GroupLabel>{t.features}</GroupLabel>
@@ -308,9 +331,13 @@ function FiltersPanelBody({
                   </div>
                 ))}
               </div>
+            </>
+          )}
+          {(tagGroups.length > 0 || (!dictionariesLoaded && !dictionariesFailed)) && (
               <button
                 type="button"
                 className="tap"
+                disabled={!dictionariesLoaded}
                 onClick={() => setFeaturesOpen((o) => !o)}
                 style={{
                   marginTop: 12,
@@ -338,7 +365,6 @@ function FiltersPanelBody({
                   <Icon name="chevD" size={16} color="var(--c-600)" />
                 </span>
               </button>
-            </>
           )}
         </div>
 

@@ -1,0 +1,8 @@
+.status {
+  min-height: 17.25px;
+  margin-top: auto;
+}
+
+@container (max-width: 190px) {
+  .status { min-height: 34.5px; }
+}

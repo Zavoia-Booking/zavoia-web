@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { useMicrositeActions } from "../../../shared/actions";
+import { MicrositeBookAction } from "../../../shared/actions";
 import { buildBentoPages, money, serviceDuration } from "../model";
 import { findScrollParent, prefersReducedMotion } from "../../../shared/util";
 import type { ServicesVariantProps } from "../types";
@@ -18,7 +18,6 @@ export function Bento({
   showDurations,
   t,
 }: ServicesVariantProps) {
-  const actions = useMicrositeActions();
   const pages = useMemo(() => buildBentoPages(groups), [groups]);
   const pageCount = pages.length;
   const [page, setPage] = useState(0);
@@ -175,13 +174,11 @@ export function Bento({
           {current.items.map((item) => {
             const price = money(item.priceMinor, currency, locale);
             return (
-              <button
+              <MicrositeBookAction
                 key={item.key}
-                type="button"
+                previewTag="button"
                 className="mc-services-bento-tile"
-                disabled={actions?.pending}
-                aria-busy={actions?.pending || undefined}
-                onClick={actions ? () => actions.book({ locationId: location.id, ...(item.isBundle ? { bundleId: item.sourceId } : { serviceId: item.sourceId }) }) : undefined}
+                intent={{ locationId: location.id, ...(item.isBundle ? { bundleId: item.sourceId } : { serviceId: item.sourceId }) }}
                 data-hero="0"
                 data-long-price={price.value.length >= 5 ? "1" : "0"}
                 aria-label={t("businessPage.builder.preview.aria.bookService", { name: item.name })}
@@ -208,7 +205,7 @@ export function Bento({
                     <ArrowRight size={18} strokeWidth={1.7} />
                   </span>
                 </span>
-              </button>
+              </MicrositeBookAction>
             );
           })}
         </div>

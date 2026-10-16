@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@/components/ui/spinner";
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -176,10 +177,22 @@ export function LoginForm({
         <button
           type="submit"
           disabled={busy}
-          className="mt-4 h-12 w-full cursor-pointer rounded-full bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-p-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
+          aria-label={dict.loginSubmit}
+          aria-busy={submitting}
+          className="relative mt-4 h-12 w-full cursor-pointer rounded-full bg-primary px-4 text-[15px] font-semibold text-white transition hover:bg-p-600 disabled:cursor-not-allowed disabled:opacity-60 md:h-11"
         >
-          {submitting ? dict.loginSubmitting : dict.loginSubmit}
+          <span className={submitting ? "invisible" : undefined} aria-hidden={submitting || undefined}>
+            {dict.loginSubmit}
+          </span>
+          {submitting && (
+            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+              <Spinner size={16} color="currentColor" />
+            </span>
+          )}
         </button>
+        <span role="status" className="sr-only">
+          {submitting ? dict.loginSubmitting : ""}
+        </span>
       </form>
 
       <div className="mt-4 flex justify-center">

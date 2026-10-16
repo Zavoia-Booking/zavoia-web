@@ -1,56 +1,30 @@
 "use client";
 
-/**
- * The 3 venue-tag dictionaries behind the filter panel's tag sections.
- *
- * Served unauthenticated by GET /marketplace/public/venue-tags. The mobile app
- * caches this with react-query (30 min stale time); the web has no query
- * client, so the equivalent here is a module-level promise: the request is made
- * at most once per page load and every consumer shares it. A failure resolves
- * to empty dictionaries — the filter panel then simply renders no tag sections,
- * which is a degraded panel rather than a broken one.
- */
-
 import { useEffect, useState } from "react";
 import { getVenueTags } from "@/lib/api/marketplace/public";
 import type { VenueTagDictionaries } from "@/lib/api/marketplace/types";
 
-const EMPTY: VenueTagDictionaries = {
-  amenities: [],
-  paymentMethods: [],
-  languages: [],
-};
-
-let cached: Promise<VenueTagDictionaries> | null = null;
-
-function load(): Promise<VenueTagDictionaries> {
-  // A rejected promise must not be memoised, or one blip disables the tag
-  // sections for the rest of the session.
-  cached ??= getVenueTags().catch(() => {
-    cached = null;
-    return EMPTY;
-  });
-  return cached;
+const EMPTY: VenueTagDictionaries = { amenities: [], paymentMethods: [], languages: [] };
+let cached: VenueTagDictionaries | null = null;
+let request: Promise<VenueTagDictionaries> | null = null;
+function load() {
+  if (cached) return Promise.resolve(cached);
+  request ??= getVenueTags().then(data => { cached = data; return data; }).finally(() => { request = null; });
+  return request;
 }
 
-export function useVenueTags(): {
-  dictionaries: VenueTagDictionaries;
-  loading: boolean;
-} {
-  const [dictionaries, setDictionaries] = useState<VenueTagDictionaries>(EMPTY);
-  const [loading, setLoading] = useState(true);
-
+export function useVenueTags() {
+  const [attempt, setAttempt] = useState(0);
+  const [state, setState] = useState({ dictionaries: cached ?? EMPTY, loading: !cached, failed: false, loaded: !!cached });
   useEffect(() => {
-    let cancelled = false;
-    void load().then((d) => {
-      if (cancelled) return;
-      setDictionaries(d);
-      setLoading(false);
+    let alive = true;
+    Promise.resolve().then(() => { if (alive && !cached) setState(previous => ({ ...previous, loading: true })); });
+    void load().then(dictionaries => {
+      if (alive) setState({ dictionaries, loading: false, failed: false, loaded: true });
+    }).catch(() => {
+      if (alive) setState(previous => ({ ...previous, loading: false, failed: true }));
     });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { dictionaries, loading };
+    return () => { alive = false; };
+  }, [attempt]);
+  return { ...state, retry: () => setAttempt(value => value + 1) };
 }

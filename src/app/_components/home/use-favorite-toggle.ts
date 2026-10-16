@@ -20,7 +20,8 @@ const REMOVE = { business: removeFavoriteBusiness, location: removeFavoriteLocat
 
 export interface FavoriteToggle {
   canFavorite: boolean;
-  isFavorited: (id: number) => boolean;
+  /** undefined is pending; null is unavailable; only a boolean is actionable. */
+  isFavorited: (id: number) => boolean | null | undefined;
   toggle: (id: string | number) => void;
 }
 
@@ -52,7 +53,7 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
     };
   }, [kind, status]);
 
-  const isFavorited = useCallback((id: number) => favorited.has(id), [favorited]);
+  const isFavorited = useCallback((id: number) => favorited == null ? favorited : favorited.has(id), [favorited]);
   const toggle = useCallback((rawId: string | number) => {
     const id = typeof rawId === "number" ? rawId : Number(rawId);
     if (!Number.isFinite(id)) return;

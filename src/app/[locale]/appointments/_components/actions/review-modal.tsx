@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Button, Icon, Spinner, useToast } from "@/components/ui";
+import { Button, Icon, useToast } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
@@ -147,12 +147,13 @@ export function ReviewModal({
             {t.publicNote}
           </span>
           <Button
-            kind="accent"
+            loading={submitting}
+          kind="accent"
             size="lg"
             disabled={!ready || submitting}
             onClick={() => void submit()}
           >
-            {submitting ? <Spinner size={16} /> : t.submitNew}
+            {t.submitNew}
           </Button>
         </>
       }

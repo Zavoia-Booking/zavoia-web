@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@/components/ui/spinner";
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -94,10 +95,22 @@ export function ConfirmAccessPanel({
         type="button"
         onClick={handleConfirm}
         disabled={submitting}
-        className="mt-6 w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+        aria-label={t.confirm}
+        aria-busy={submitting}
+        className="relative mt-6 w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? t.confirming : t.confirm}
+        <span className={submitting ? "invisible" : undefined} aria-hidden={submitting || undefined}>
+          {t.confirm}
+        </span>
+        {submitting && (
+          <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+            <Spinner size={16} color="currentColor" />
+          </span>
+        )}
       </button>
+      <span role="status" className="sr-only">
+        {submitting ? t.confirming : ""}
+      </span>
 
       <button
         type="button"

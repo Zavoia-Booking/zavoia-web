@@ -1,16 +1,103 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { SectionTitle } from "@/components/ui/section-title";
 import { getListingsBulk } from "@/lib/api/marketplace/public";
 import type { ListingLightCard } from "@/lib/api/marketplace/types";
 import { getRecentViews, removeRecentViews } from "@/lib/recent-views";
+import { RecentlyViewedSkeleton } from "./section-skeletons";
+import { SectionFailed } from "./section-failed";
 import {
   RecentlyViewedCard,
   type RecentlyViewedCardData,
 } from "./recently-viewed-card";
+
+interface RecentState {
+  ids: number[];
+  items: ListingLightCard[] | null;
+  loading: boolean;
+  failed: boolean;
+}
+interface RecentEntry {
+  key: string;
+  state: RecentState;
+  updatedAt: number;
+  attemptedAt: number;
+  lastUsedAt: number;
+  request: Promise<void> | null;
+}
+const INITIAL: RecentState = { ids: [], items: null, loading: false, failed: false };
+// Match the home feeds' browser-only freshness/retention convention. Only the
+// current trail is retained, never an unbounded collection of history keys.
+const FRESH_MS = 60_000;
+const RETAIN_MS = 5 * 60_000;
+let entry: RecentEntry | null = null;
+const listeners = new Set<() => void>();
+const serverSnapshot = () => INITIAL;
+const snapshot = () => entry?.state ?? INITIAL;
+const notify = () => listeners.forEach((listener) => listener());
+
+function loadRecent(target: RecentEntry): void {
+  if (target.request) return;
+  target.attemptedAt = Date.now();
+  target.state = { ...target.state, loading: true };
+  notify();
+  target.request = getListingsBulk(target.state.ids)
+    .then((cards) => {
+      // Only a successful response can establish that a listing was removed.
+      const returned = new Set(cards.map((card) => card.id));
+      removeRecentViews(target.state.ids.filter((id) => !returned.has(id)));
+      const ids = target.state.ids.filter((id) => returned.has(id));
+      target.key = ids.join(",");
+      target.updatedAt = Date.now();
+      target.state = { ids, items: cards, loading: false, failed: false };
+    })
+    .catch(() => {
+      target.state = { ...target.state, loading: false, failed: true };
+    })
+    .finally(() => {
+      target.request = null;
+      if (entry === target) notify();
+    });
+}
+
+function syncTrail(): void {
+  const ids = getRecentViews();
+  if (ids.length < 2) {
+    entry = null;
+    notify();
+    return;
+  }
+  const key = ids.join(",");
+  if (entry?.key !== key) {
+    const retained = new Map(entry?.state.items?.map((item) => [item.id, item]));
+    const items = ids.flatMap((id) => retained.has(id) ? [retained.get(id)!] : []);
+    entry = {
+      key, state: { ...INITIAL, ids, items: items.length >= 2 ? items : null }, updatedAt: 0, attemptedAt: 0,
+      lastUsedAt: Date.now(), request: null,
+    };
+    notify();
+  }
+  if (entry.state.failed && Date.now() - entry.attemptedAt < FRESH_MS) return;
+  if (entry.state.items === null || Date.now() - entry.updatedAt >= FRESH_MS) loadRecent(entry);
+}
+
+function subscribe(listener: () => void): () => void {
+  if (entry && listeners.size === 0 && Date.now() - entry.lastUsedAt >= RETAIN_MS) entry = null;
+  listeners.add(listener);
+  syncTrail();
+  return () => {
+    listeners.delete(listener);
+    if (entry) entry.lastUsedAt = Date.now();
+    // Keep an in-flight request alive during locale/navigation remounts.
+  };
+}
+
+function retryRecent(): void {
+  if (entry) loadRecent(entry);
+}
 
 // Haversine distance in km between two {lat,lng} points.
 function haversineKm(
@@ -37,34 +124,20 @@ function haversineKm(
 // optional — denial/error falls back to the listing's city.
 export function RecentlyViewed() {
   const { locale, dict } = useTranslation();
-  const [listings, setListings] = useState<ListingLightCard[] | null>(null);
+  const { ids, items: listings, loading, failed } = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
   // null = not yet resolved (asked & pending, denied, or unavailable).
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Fetch the recently-viewed listings.
+  // Revalidate on return without replacing successful cards with skeletons.
   useEffect(() => {
-    // Already capped at 10 (MAX_RECENT) on read; the bulk endpoint accepts 10.
-    const ids = getRecentViews();
-    // Fewer than 2 ids → leave `listings` null so the section stays hidden.
-    if (ids.length < 2) return;
-
-    let cancelled = false;
-    getListingsBulk(ids)
-      .then((cards) => {
-        // Self-heal the trail: ids the backend didn't return are delisted /
-        // hidden / deleted — drop them so future visits stop requesting them
-        // (an all-stale trail then skips the API call entirely). Runs even if
-        // unmounted; only the setState below is unmount-guarded.
-        const returned = new Set(cards.map((c) => c.id));
-        removeRecentViews(ids.filter((id) => !returned.has(id)));
-        if (!cancelled) setListings(cards);
-      })
-      .catch(() => {
-        /* network/server failure → keep the section hidden; do NOT prune —
-           a transient outage must not wipe the trail */
-      });
+    const refresh = () => {
+      if (document.visibilityState === "visible") syncTrail();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
     return () => {
-      cancelled = true;
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
     };
   }, []);
 
@@ -88,11 +161,13 @@ export function RecentlyViewed() {
     };
   }, []);
 
-  // Hide until resolved, and hide if fewer than 2 listings survived fetching.
-  if (!listings || listings.length < 2) return null;
+  // Local history establishes eligibility after hydration. A successful empty
+  // result hides the rail; an initial failure remains recoverable, not "empty".
+  if (ids.length < 2 || (listings && listings.length < 2)) return null;
+  if (!listings && failed) return <SectionFailed paddingTop={60} onRetry={retryRecent} loading={loading} />;
   const s = dict.homeSections.recentlyViewed;
 
-  const cards: RecentlyViewedCardData[] = listings.map((d) => {
+  const cards: RecentlyViewedCardData[] = (listings ?? []).map((d) => {
     const distance =
       coords && d.latitude != null && d.longitude != null
         ? `${haversineKm(coords, { lat: d.latitude, lng: d.longitude }).toFixed(1)} km`
@@ -111,14 +186,16 @@ export function RecentlyViewed() {
     };
   });
 
-  return (
-    <section className="zw-container" style={{ paddingTop: 60 }}>
+  return <>
+    <section className="zw-container" style={{ paddingTop: 60 }} aria-busy={loading}>
       <SectionTitle kicker={s.kicker} title={s.title} />
-      <div className="zw-scroll-x" style={{ gap: 14, paddingBottom: 6 }}>
+      <span className="sr-only" role="status">{loading ? s.loading : ""}</span>
+      {!listings ? <RecentlyViewedSkeleton count={ids.length} /> : <div className="zw-scroll-x" style={{ gap: 14, paddingBottom: 6 }}>
         {cards.map((b) => (
           <RecentlyViewedCard key={b.id} b={b} />
         ))}
-      </div>
+      </div>}
     </section>
-  );
+    {failed && <SectionFailed paddingTop={24} onRetry={retryRecent} loading={loading} />}
+  </>;
 }

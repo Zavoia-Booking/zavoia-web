@@ -1,0 +1,9 @@
+.card {
+  height: min(720px, calc(100dvh - 48px));
+}
+
+@media (max-width: 720px) {
+  .card {
+    height: calc(100dvh - 36px);
+  }
+}

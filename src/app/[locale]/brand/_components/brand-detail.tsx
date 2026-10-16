@@ -231,7 +231,6 @@ export function BrandDetail({ brand, locale }: Props) {
             )}
           </div>
           <div
-            className="zw-stagger"
             style={{
               display: "grid",
               gridTemplateColumns: multiLocation

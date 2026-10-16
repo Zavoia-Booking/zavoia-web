@@ -149,7 +149,8 @@ function EditorsPickCard({
         <div
           style={{
             display: "flex",
-            alignItems: "baseline",
+            alignItems: "center",
+            minHeight: 19.5,
             justifyContent: "space-between",
             gap: 12,
           }}
@@ -194,6 +195,7 @@ function EditorsPickCard({
           )}
         </div>
         <h3
+          title={b.name}
           className="txt-balance"
           style={{
             margin: "6px 0 0",
@@ -202,6 +204,11 @@ function EditorsPickCard({
             color: "var(--c-900)",
             letterSpacing: "-0.028em",
             lineHeight: 1.06,
+            minHeight: "2.12em",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
           }}
         >
           {b.name}
@@ -209,6 +216,7 @@ function EditorsPickCard({
         <div
           style={{
             marginTop: 12,
+            minHeight: 19,
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",

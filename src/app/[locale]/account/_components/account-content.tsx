@@ -51,6 +51,7 @@ import type {
   UpdateProfileBody,
 } from "@/lib/api/marketplace/types";
 import { SupportSection } from "./support-section";
+import styles from "./account-content.module.css";
 import {
   NAME_MAX_LENGTH,
   NAME_MIN_LENGTH,
@@ -118,11 +119,78 @@ function SectionLabel({ children, sub }: { children: ReactNode; sub?: string }) 
   );
 }
 
-function SectionError({ message }: { message: string }) {
+function SectionError({
+  t,
+  kind,
+  retrying,
+  onRetry,
+}: {
+  t: AcctDict;
+  kind: "profile" | "preferences";
+  retrying: boolean;
+  onRetry: () => void;
+}) {
+  const { dict } = useTranslation();
+  const copy = t.loadError[kind];
+  const [hasRetried, setHasRetried] = useState(false);
+
   return (
-    <InlineError style={{ padding: "14px 16px" }}>
-      {message}
-    </InlineError>
+    <div style={{ maxWidth: 544, padding: "12px 0 24px" }}>
+      <div role="alert" aria-atomic="true">
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 18,
+            fontWeight: 600,
+            lineHeight: 1.3,
+            color: "var(--c-900)",
+          }}
+        >
+          {copy.title}
+        </h2>
+        <p
+          className="txt-pretty"
+          style={{
+            margin: "8px 0 0",
+            fontSize: 14.5,
+            lineHeight: 1.6,
+            color: "var(--c-600)",
+          }}
+        >
+          {copy.body}
+        </p>
+      </div>
+      <Button
+        kind="secondary"
+        onClick={() => {
+          setHasRetried(true);
+          onRetry();
+        }}
+        disabled={retrying}
+        aria-busy={retrying}
+        aria-label={dict.errors.retry}
+        style={{
+          marginTop: 16,
+          minWidth: 168,
+          minHeight: 44,
+          lineHeight: "20px",
+          opacity: 1,
+          transform: "none",
+          boxShadow: "none",
+          filter: "none",
+          cursor: retrying ? "wait" : "pointer",
+        }}
+      >
+        {retrying ? (
+          <span aria-hidden="true">
+            <Spinner size={16} color="var(--c-900)" />
+          </span>
+        ) : dict.errors.retry}
+      </Button>
+      <span role="status" aria-atomic="true" className="sr-only">
+        {retrying ? t.loading : hasRetried ? copy.title : ""}
+      </span>
+    </div>
   );
 }
 
@@ -138,6 +206,7 @@ function EditableRow({
   locale = "en",
   emptyLabel,
   saving,
+  loading = false,
   buttons,
   onSave,
   last,
@@ -153,6 +222,7 @@ function EditableRow({
   locale?: string;
   emptyLabel: string;
   saving: boolean;
+  loading?: boolean;
   buttons: AcctDict["buttons"];
   onSave: (next: string) => void;
   last?: boolean;
@@ -241,7 +311,7 @@ function EditableRow({
                 value={draft}
                 onChange={setDraft}
                 locale={locale}
-                disabled={saving}
+                disabled={saving || loading}
                 placeholder={emptyLabel}
               />
             ) : (
@@ -251,7 +321,7 @@ function EditableRow({
                   ref={ref}
                   type={type}
                   value={draft}
-                  disabled={saving}
+                  disabled={saving || loading}
                   onChange={(e) =>
                     setDraft(
                       sanitize ? sanitize(e.target.value) : e.target.value,
@@ -301,13 +371,13 @@ function EditableRow({
                 marginTop: 4,
               }}
             >
-              {displayText || emptyLabel}
+              {loading ? <span aria-hidden="true" style={{ display: "flex", alignItems: "center", height: "1.5em" }}><Skeleton w="min(180px, 70%)" h={14} r={4} /></span> : displayText || emptyLabel}
             </div>
           )}
         </div>
         {editing ? (
           <span style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
-            <button
+            <Button loading={saving} spinnerSize={14}
               type="button"
               className="tap"
               onClick={commit}
@@ -325,13 +395,13 @@ function EditableRow({
                 fontFamily: "inherit",
               }}
             >
-              {saving ? <Spinner size={14} color="#fff" /> : buttons.save}
-            </button>
+              {buttons.save}
+            </Button>
             <button
               type="button"
               className="tap"
               onClick={cancel}
-              disabled={saving}
+              disabled={saving || loading}
               style={{
                 padding: "7px 12px",
                 borderRadius: 999,
@@ -356,12 +426,11 @@ function EditableRow({
               flexShrink: 0,
             }}
           >
-            {saving && <Spinner size={14} />}
-            <button
+            <Button loading={saving} spinnerSize={14}
               type="button"
               className="tap"
               onClick={start}
-              disabled={saving}
+              disabled={saving || loading}
               style={{
                 background: "transparent",
                 border: 0,
@@ -375,7 +444,7 @@ function EditableRow({
               }}
             >
               {buttons.edit}
-            </button>
+            </Button>
           </span>
         )}
       </div>
@@ -635,7 +704,7 @@ function AddressRow({
         </div>
         {editing ? (
           <span style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
-            <button
+            <Button loading={saving} spinnerSize={14}
               type="button"
               className="tap"
               onClick={commit}
@@ -653,8 +722,8 @@ function AddressRow({
                 fontFamily: "inherit",
               }}
             >
-              {saving ? <Spinner size={14} color="#fff" /> : buttons.save}
-            </button>
+              {buttons.save}
+            </Button>
             <button
               type="button"
               className="tap"
@@ -684,8 +753,7 @@ function AddressRow({
               flexShrink: 0,
             }}
           >
-            {saving && <Spinner size={14} />}
-            <button
+            <Button loading={saving} spinnerSize={14}
               type="button"
               className="tap"
               onClick={start}
@@ -703,7 +771,7 @@ function AddressRow({
               }}
             >
               {buttons.edit}
-            </button>
+            </Button>
           </span>
         )}
       </div>
@@ -719,11 +787,15 @@ function StatChip({
   value,
   label,
   nf,
+  loading,
+  unavailableLabel,
   onClick,
 }: {
-  value: number;
+  value: number | null;
   label: string;
   nf: Intl.NumberFormat;
+  loading: boolean;
+  unavailableLabel: string;
   onClick?: () => void;
 }) {
   return (
@@ -752,7 +824,11 @@ function StatChip({
           fontVariantNumeric: "tabular-nums",
         }}
       >
-        {nf.format(value)}
+        {value !== null ? nf.format(value) : loading ? (
+          <span aria-hidden="true" style={{ display: "flex", alignItems: "center", height: "1.5em" }}>
+            <Skeleton w={32} h={20} r={4} />
+          </span>
+        ) : <><span aria-hidden="true">—</span><span className="sr-only">{unavailableLabel}</span></>}
       </div>
       <div style={{ fontSize: 12, color: "var(--c-500)", marginTop: 2 }}>
         {label}
@@ -761,28 +837,67 @@ function StatChip({
   );
 }
 
+function SummaryFeedback({ t, loading, error, onRetry }: {
+  t: AcctDict;
+  loading: boolean;
+  error: boolean;
+  onRetry: () => void;
+}) {
+  const { dict } = useTranslation();
+  return (
+    <>
+      {error && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+          <InlineError>{t.stats.loadError}</InlineError>
+          <Button
+            kind="secondary"
+            size="sm"
+            onClick={onRetry}
+            disabled={loading}
+            aria-label={dict.errors.retry}
+            aria-busy={loading}
+            style={{ position: "relative", minHeight: 44, opacity: 1 }}
+          >
+            <span aria-hidden={loading || undefined} style={{ visibility: loading ? "hidden" : "visible" }}>{dict.errors.retry}</span>
+            {loading && <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}><Spinner size={16} color="var(--c-900)" /></span>}
+          </Button>
+        </div>
+      )}
+      <span role="status" aria-atomic="true" className="sr-only">{loading ? t.loading : ""}</span>
+    </>
+  );
+}
+
 function ProfileBanner({
   t,
   locale,
   profile,
   summary,
+  summaryLoading,
+  summaryError,
+  onRetrySummary,
   uploadingPhoto,
   onPickPhoto,
   onSavedClick,
 }: {
   t: AcctDict;
   locale: Locale;
-  profile: CustomerProfile;
+  profile: CustomerProfile | null;
   summary: CustomerProfileSummary | null;
+  summaryLoading: boolean;
+  summaryError: boolean;
+  onRetrySummary: () => void;
   uploadingPhoto: boolean;
   onPickPhoto: (file: File) => void;
   onSavedClick?: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const { user } = useAuth();
+  const identity = profile ?? user;
   const name =
-    [profile.firstName, profile.lastName].filter(Boolean).join(" ") ||
-    profile.email;
-  const image = profile.profileImage ?? summary?.profileImage ?? undefined;
+    [identity?.firstName, identity?.lastName].filter(Boolean).join(" ") ||
+    identity?.email || "";
+  const image = identity?.profileImage ?? summary?.profileImage ?? undefined;
 
   const memberSince = summary?.memberSince
     ? new Intl.DateTimeFormat(locale, {
@@ -792,11 +907,9 @@ function ProfileBanner({
     : null;
 
   const nf = new Intl.NumberFormat(locale);
-  const reviews =
-    (summary?.totalBusinessReviews ?? 0) +
-    (summary?.totalProfessionalReviews ?? 0);
+  const reviews = summary ? summary.totalBusinessReviews + summary.totalProfessionalReviews : null;
 
-  const verified = profile.email_verified;
+  const verified = profile?.email_verified ?? user?.emailVerified;
 
   return (
     <div
@@ -827,7 +940,7 @@ function ProfileBanner({
         type="button"
         className="zw-avatar-edit"
         aria-label={t.buttons.changePhoto}
-        disabled={uploadingPhoto}
+        disabled={uploadingPhoto || !profile}
         onClick={() => fileRef.current?.click()}
         style={{
           width: 84,
@@ -840,7 +953,7 @@ function ProfileBanner({
           boxShadow: "0 0 0 3px var(--c-canvas), 0 0 0 4px rgba(28,28,26,0.10)",
         }}
       >
-        <Avatar src={image} name={name} size={84} />
+        {identity ? <Avatar src={image} name={name} size={84} /> : <Skeleton w={84} h={84} r="50%" />}
         <span className="zw-avatar-ov">
           {uploadingPhoto ? (
             <Spinner size={20} color="#fff" />
@@ -860,7 +973,7 @@ function ProfileBanner({
             color: "var(--c-900)",
           }}
         >
-          {name}
+          {name ? name : <span aria-hidden="true" style={{ display: "flex", alignItems: "center", height: "1.5em" }}><Skeleton w="min(320px, 100%)" h={32} /></span>}
         </h1>
         <div
           style={{
@@ -871,9 +984,9 @@ function ProfileBanner({
             flexWrap: "wrap",
           }}
         >
-          {memberSince && (
+          {(memberSince || summaryLoading) && (
             <span style={{ fontSize: 13.5, color: "var(--c-600)" }}>
-              {format(t.stats.memberSince, { date: memberSince })}
+              {memberSince ? format(t.stats.memberSince, { date: memberSince }) : <span aria-hidden="true" style={{ display: "flex", alignItems: "center", height: "1.5em" }}><Skeleton w={160} h={13.5} /></span>}
             </span>
           )}
           <span
@@ -894,24 +1007,37 @@ function ProfileBanner({
               size={12}
               color={verified ? "var(--s-success-600)" : "var(--c-600)"}
             />
-            {verified ? t.verifiedPill : t.unverifiedPill}
+            {verified !== undefined ? (verified ? t.verifiedPill : t.unverifiedPill) : <span aria-hidden="true"><Skeleton w={70} h={17.25} /></span>}
           </span>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <StatChip
-          value={summary?.totalAppointments ?? 0}
-          label={t.stats.appointments}
-          nf={nf}
-        />
-        <StatChip value={reviews} label={t.stats.reviews} nf={nf} />
-        <StatChip
-          value={summary?.totalFavorites ?? 0}
-          label={t.stats.saved}
-          nf={nf}
-          onClick={onSavedClick}
-        />
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div aria-busy={summaryLoading} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <StatChip
+            value={summary?.totalAppointments ?? null}
+            label={t.stats.appointments}
+            nf={nf}
+            loading={summaryLoading}
+            unavailableLabel={t.stats.unavailable}
+          />
+          <StatChip
+            value={reviews}
+            label={t.stats.reviews}
+            nf={nf}
+            loading={summaryLoading}
+            unavailableLabel={t.stats.unavailable}
+          />
+          <StatChip
+            value={summary?.totalFavorites ?? null}
+            label={t.stats.saved}
+            nf={nf}
+            loading={summaryLoading}
+            unavailableLabel={t.stats.unavailable}
+            onClick={onSavedClick}
+          />
+        </div>
+        <SummaryFeedback t={t} loading={summaryLoading} error={summaryError} onRetry={onRetrySummary} />
       </div>
     </div>
   );
@@ -960,13 +1086,14 @@ function NotificationsSection({
   setPrefs,
 }: {
   t: AcctDict;
-  prefs: NotificationPreferences;
+  prefs: NotificationPreferences | null;
   setPrefs: (p: NotificationPreferences) => void;
 }) {
   const toast = useToast();
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
   const toggle = async (group: NotifGroup, channel: NotifChannel) => {
+    if (!prefs || busyKey) return;
     const key = `${group}.${channel}`;
     const current = prefs[group][channel];
     const next = !current;
@@ -993,6 +1120,7 @@ function NotificationsSection({
   };
 
   return (
+    <div aria-busy={!prefs || busyKey !== null}>
     <Card>
       <div className="zw-notif-grid zw-notif-head" aria-hidden="true">
         <div />
@@ -1017,24 +1145,26 @@ function NotificationsSection({
             <button
               key={c.id}
               type="button"
-              role="switch"
-              aria-checked={prefs[g][c.id]}
+              role={prefs ? "switch" : undefined}
+              aria-checked={prefs?.[g][c.id]}
               aria-label={`${t.notif[g]} — ${t.notif[c.id]}`}
-              disabled={busyKey === `${g}.${c.id}`}
+              disabled={!prefs || busyKey !== null}
               onClick={() => toggle(g, c.id)}
               className="zw-notif-cell tap"
             >
               <span className="zw-notif-cell-label">{t.notif[c.id]}</span>
-              <span
+              {prefs ? <span
                 className="zw-switch"
                 data-on={prefs[g][c.id] ? "1" : "0"}
                 aria-hidden="true"
-              />
+              /> : <span aria-hidden="true"><Skeleton w={46} h={28} r={999} /></span>}
             </button>
           ))}
         </div>
       ))}
     </Card>
+    <span role="status" className="sr-only">{!prefs || busyKey ? t.loading : ""}</span>
+    </div>
   );
 }
 
@@ -1227,12 +1357,13 @@ function PasswordForm({
       )}
       <div>
         <Button
+          loading={saving}
           kind="primary"
           size="md"
           type="submit"
           disabled={saving || !current || !next || !confirm}
         >
-          {saving ? <Spinner size={16} color="#fff" /> : t.buttons.changePassword}
+          {t.buttons.changePassword}
         </Button>
       </div>
     </form>
@@ -1457,16 +1588,13 @@ function GoogleConnectionRow({
           )}
           <div style={{ display: "flex", gap: 8 }}>
             <Button
-              kind="primary"
+              loading={busy}
+          kind="primary"
               size="md"
               type="submit"
               disabled={busy || !password}
             >
-              {busy ? (
-                <Spinner size={16} color="#fff" />
-              ) : (
-                g.confirmDisconnect
-              )}
+              {g.confirmDisconnect}
             </Button>
             <Button
               kind="secondary"
@@ -1505,6 +1633,7 @@ function ChangeEmailRow({
   authErrors,
   sharedErrors,
   currentEmail,
+  loading = false,
   emailVerified,
   resendCopy,
   onChanged,
@@ -1514,6 +1643,7 @@ function ChangeEmailRow({
   authErrors: AuthErrorsDict;
   sharedErrors: SharedErrorsDict;
   currentEmail: string;
+  loading?: boolean;
   /** From GET /me. `undefined` = not known yet; render neither state. */
   emailVerified?: boolean;
   resendCopy: ResendCopy;
@@ -1656,7 +1786,7 @@ function ChangeEmailRow({
             }}
           >
             <span style={{ color: "var(--c-400)" }}>{c.currentValueLabel}:</span>{" "}
-            {currentEmail}
+            {loading ? <span aria-hidden="true" style={{ display: "inline-flex", verticalAlign: "middle" }}><Skeleton w={160} h={14} r={4} /></span> : currentEmail}
           </div>
           {/* Verification state. `emailVerified` is only guaranteed by /me, so
               `undefined` renders nothing at all — "unknown yet" must never be
@@ -1822,12 +1952,13 @@ function ChangeEmailRow({
           </label>
           <div style={{ display: "flex", gap: 8 }}>
             <Button
-              kind="primary"
+              loading={saving}
+          kind="primary"
               size="md"
               type="submit"
               disabled={saving || !currentInput.trim() || !newInput.trim()}
             >
-              {saving ? <Spinner size={16} color="#fff" /> : c.submit}
+              {c.submit}
             </Button>
             <Button
               kind="secondary"
@@ -1997,12 +2128,13 @@ function DangerZone({
                 {t.danger.cancel}
               </Button>
               <Button
-                kind="primary"
+                loading={deleting}
+          kind="primary"
                 size="md"
                 onClick={doDelete}
                 disabled={deleting}
               >
-                {deleting ? <Spinner size={16} color="#fff" /> : t.danger.confirm}
+                {t.danger.confirm}
               </Button>
             </div>
           </div>
@@ -2022,8 +2154,12 @@ function SectionBody({
   t,
   locale,
   profile,
+  profileRetrying,
+  onRetryProfile,
   prefs,
   prefsError,
+  prefsRetrying,
+  onRetryPreferences,
   setPrefs,
   savingField,
   saveField,
@@ -2035,8 +2171,12 @@ function SectionBody({
   t: AcctDict;
   locale: Locale;
   profile: CustomerProfile | null;
+  profileRetrying: boolean;
+  onRetryProfile: () => void;
   prefs: NotificationPreferences | null;
   prefsError: boolean;
+  prefsRetrying: boolean;
+  onRetryPreferences: () => void;
   setPrefs: (p: NotificationPreferences) => void;
   savingField: string | null;
   saveField: (field: keyof UpdateProfileBody, value: string) => void;
@@ -2052,9 +2192,7 @@ function SectionBody({
   if (id === "personal") {
     if (!profile) {
       return (
-        <Card>
-          <SectionError message={t.sectionError} />
-        </Card>
+        <SectionError t={t} kind="profile" retrying={profileRetrying} onRetry={onRetryProfile} />
       );
     }
     const dobValue = profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "";
@@ -2146,25 +2284,8 @@ function SectionBody({
   }
 
   if (id === "preferences") {
-    if (!prefs) {
-      return (
-        <Card>
-          {prefsError ? (
-            <SectionError message={t.sectionError} />
-          ) : (
-            <div
-              role="status"
-              style={{
-                padding: "14px 16px",
-                fontSize: 13.5,
-                color: "var(--c-600)",
-              }}
-            >
-              {t.loading}
-            </div>
-          )}
-        </Card>
-      );
+    if (!prefs && prefsError) {
+      return <SectionError t={t} kind="preferences" retrying={prefsRetrying} onRetry={onRetryPreferences} />;
     }
     return <NotificationsSection t={t} prefs={prefs} setPrefs={setPrefs} />;
   }
@@ -2172,9 +2293,7 @@ function SectionBody({
   if (id === "support") {
     if (!profile) {
       return (
-        <Card>
-          <SectionError message={t.sectionError} />
-        </Card>
+        <SectionError t={t} kind="profile" retrying={profileRetrying} onRetry={onRetryProfile} />
       );
     }
     return <SupportSection t={t} locale={locale} profile={profile} />;
@@ -2536,11 +2655,15 @@ function HubStat({
   value,
   label,
   nf,
+  loading,
+  unavailableLabel,
   onClick,
 }: {
-  value: number;
+  value: number | null;
   label: string;
   nf: Intl.NumberFormat;
+  loading: boolean;
+  unavailableLabel: string;
   onClick?: () => void;
 }) {
   const inner = (
@@ -2554,7 +2677,11 @@ function HubStat({
           fontVariantNumeric: "tabular-nums",
         }}
       >
-        {nf.format(value)}
+        {value !== null ? nf.format(value) : loading ? (
+          <span aria-hidden="true" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "1.5em" }}>
+            <Skeleton w={32} h={21} r={4} />
+          </span>
+        ) : <><span aria-hidden="true">—</span><span className="sr-only">{unavailableLabel}</span></>}
       </div>
       <div style={{ fontSize: 12.5, color: "var(--c-500)", marginTop: 3 }}>
         {label}
@@ -2641,7 +2768,13 @@ function MobileHub({
   t,
   locale,
   profile,
+  profilePending = false,
+  profileRetrying,
+  onRetryProfile,
   summary,
+  summaryLoading,
+  summaryError,
+  onRetrySummary,
   uploadingPhoto,
   onPickPhoto,
   onSavedClick,
@@ -2651,8 +2784,14 @@ function MobileHub({
 }: {
   t: AcctDict;
   locale: Locale;
-  profile: CustomerProfile;
+  profile: CustomerProfile | null;
+  profilePending?: boolean;
+  profileRetrying: boolean;
+  onRetryProfile: () => void;
   summary: CustomerProfileSummary | null;
+  summaryLoading: boolean;
+  summaryError: boolean;
+  onRetrySummary: () => void;
   uploadingPhoto: boolean;
   onPickPhoto: (file: File) => void;
   onSavedClick?: () => void;
@@ -2661,10 +2800,12 @@ function MobileHub({
   loggingOut: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const { user } = useAuth();
+  const identity = profile ?? user;
   const name =
-    [profile.firstName, profile.lastName].filter(Boolean).join(" ") ||
-    profile.email;
-  const image = profile.profileImage ?? summary?.profileImage ?? undefined;
+    [identity?.firstName, identity?.lastName].filter(Boolean).join(" ") ||
+    identity?.email || "";
+  const image = identity?.profileImage ?? summary?.profileImage ?? undefined;
   const memberSince = summary?.memberSince
     ? new Intl.DateTimeFormat(locale, {
         month: "long",
@@ -2672,125 +2813,156 @@ function MobileHub({
       }).format(new Date(summary.memberSince))
     : null;
   const nf = new Intl.NumberFormat(locale);
-  const reviews =
-    (summary?.totalBusinessReviews ?? 0) +
-    (summary?.totalProfessionalReviews ?? 0);
-  const verified = profile.email_verified;
+  const reviews = summary ? summary.totalBusinessReviews + summary.totalProfessionalReviews : null;
+  const verified = profile?.email_verified ?? user?.emailVerified;
 
   return (
     <div>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        hidden
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onPickPhoto(f);
-          e.target.value = "";
-        }}
-      />
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          textAlign: "center",
-          marginBottom: 30,
-        }}
-      >
-        <button
-          type="button"
-          className="zw-avatar-edit"
-          aria-label={t.buttons.changePhoto}
-          disabled={uploadingPhoto}
-          onClick={() => fileRef.current?.click()}
-          style={{
-            width: 92,
-            height: 92,
-            borderRadius: "50%",
-            border: 0,
-            padding: 0,
-            background: "transparent",
-            flexShrink: 0,
-            boxShadow:
-              "0 0 0 3px var(--c-canvas), 0 0 0 4px rgba(28,28,26,0.10)",
-          }}
-        >
-          <Avatar src={image} name={name} size={92} />
-          <span className="zw-avatar-ov">
-            {uploadingPhoto ? (
-              <Spinner size={20} color="#fff" />
-            ) : (
-              <Icon name="pencil" size={18} color="#fff" />
-            )}
-          </span>
-        </button>
-        <h1
-          style={{
-            margin: "15px 0 0",
-            fontSize: 26,
-            fontWeight: 600,
-            letterSpacing: "-0.03em",
-            color: "var(--c-900)",
-          }}
-        >
-          {name}
-        </h1>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            fontSize: 11.5,
-            fontWeight: 600,
-            color: verified ? "var(--s-success-600)" : "var(--c-600)",
-            background: verified ? "var(--s-success-100)" : "var(--c-100)",
-            padding: "3px 10px",
-            borderRadius: 999,
-            marginTop: 10,
-          }}
-        >
-          <Icon
-            name={verified ? "check" : "email"}
-            size={12}
-            color={verified ? "var(--s-success-600)" : "var(--c-600)"}
+      {profile || profilePending ? (
+        <>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onPickPhoto(f);
+              e.target.value = "";
+            }}
           />
-          {memberSince
-            ? `${verified ? t.verifiedPill : t.unverifiedPill} · ${format(
-                t.stats.memberSince,
-                { date: memberSince },
-              )}`
-            : verified
-              ? t.verifiedPill
-              : t.unverifiedPill}
-        </span>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "stretch",
-            gap: 8,
-            marginTop: 18,
-            width: "100%",
-            maxWidth: 380,
-          }}
-        >
-          <HubStat
-            value={summary?.totalAppointments ?? 0}
-            label={t.stats.appointments}
-            nf={nf}
-          />
-          <span style={{ width: 1, background: "rgba(28,28,26,0.08)" }} />
-          <HubStat value={reviews} label={t.stats.reviews} nf={nf} />
-          <span style={{ width: 1, background: "rgba(28,28,26,0.08)" }} />
-          <HubStat
-            value={summary?.totalFavorites ?? 0}
-            label={t.stats.saved}
-            nf={nf}
-            onClick={onSavedClick}
-          />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+              marginBottom: 30,
+            }}
+          >
+            <button
+              type="button"
+              className="zw-avatar-edit"
+              aria-label={t.buttons.changePhoto}
+              disabled={uploadingPhoto || profilePending}
+              onClick={() => fileRef.current?.click()}
+              style={{
+                width: 92,
+                height: 92,
+                borderRadius: "50%",
+                border: 0,
+                padding: 0,
+                background: "transparent",
+                flexShrink: 0,
+                boxShadow:
+                  "0 0 0 3px var(--c-canvas), 0 0 0 4px rgba(28,28,26,0.10)",
+              }}
+            >
+              {identity ? <Avatar src={image} name={name} size={92} /> : <Skeleton w={92} h={92} r="50%" />}
+              <span className="zw-avatar-ov">
+                {uploadingPhoto ? (
+                  <Spinner size={20} color="#fff" />
+                ) : (
+                  <Icon name="pencil" size={18} color="#fff" />
+                )}
+              </span>
+            </button>
+            <h1
+              style={{
+                margin: "15px 0 0",
+                fontSize: 26,
+                fontWeight: 600,
+                letterSpacing: "-0.03em",
+                color: "var(--c-900)",
+              }}
+            >
+              {name ? name : <span aria-hidden="true" style={{ display: "flex", alignItems: "center", height: "1.5em" }}><Skeleton w={240} h={26} /></span>}
+            </h1>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                fontSize: 11.5,
+                fontWeight: 600,
+                color: verified ? "var(--s-success-600)" : "var(--c-600)",
+                background: verified ? "var(--s-success-100)" : "var(--c-100)",
+                padding: "3px 10px",
+                borderRadius: 999,
+                marginTop: 10,
+              }}
+            >
+              <Icon
+                name={verified ? "check" : "email"}
+                size={12}
+                color={verified ? "var(--s-success-600)" : "var(--c-600)"}
+              />
+              {verified === undefined ? <span aria-hidden="true"><Skeleton w={100} h={17.25} /></span> : memberSince
+                ? `${verified ? t.verifiedPill : t.unverifiedPill} · ${format(
+                    t.stats.memberSince,
+                    { date: memberSince },
+                  )}`
+                : verified
+                  ? t.verifiedPill
+                  : t.unverifiedPill}
+            </span>
+            <div
+              aria-busy={summaryLoading}
+              style={{
+                display: "flex",
+                alignItems: "stretch",
+                gap: 8,
+                marginTop: 18,
+                width: "100%",
+                maxWidth: 380,
+              }}
+            >
+              <HubStat
+                value={summary?.totalAppointments ?? null}
+                label={t.stats.appointments}
+                nf={nf}
+                loading={summaryLoading}
+                unavailableLabel={t.stats.unavailable}
+              />
+              <span style={{ width: 1, background: "rgba(28,28,26,0.08)" }} />
+              <HubStat
+                value={reviews}
+                label={t.stats.reviews}
+                nf={nf}
+                loading={summaryLoading}
+                unavailableLabel={t.stats.unavailable}
+              />
+              <span style={{ width: 1, background: "rgba(28,28,26,0.08)" }} />
+              <HubStat
+                value={summary?.totalFavorites ?? null}
+                label={t.stats.saved}
+                nf={nf}
+                loading={summaryLoading}
+                unavailableLabel={t.stats.unavailable}
+                onClick={onSavedClick}
+              />
+            </div>
+            <div style={{ marginTop: summaryError ? 16 : 0 }}>
+              <SummaryFeedback t={t} loading={summaryLoading} error={summaryError} onRetry={onRetrySummary} />
+            </div>
+          </div>
+        </>
+      ) : (
+        <div style={{ marginBottom: 26 }}>
+          <h1
+            style={{
+              margin: "0 0 16px",
+              fontSize: 28,
+              fontWeight: 600,
+              letterSpacing: "-0.03em",
+              color: "var(--c-900)",
+            }}
+          >
+            {t.heading}
+          </h1>
+          <SectionError t={t} kind="profile" retrying={profileRetrying} onRetry={onRetryProfile} />
         </div>
-      </div>
+      )}
 
       <div style={{ marginBottom: 26 }}>
         <SectionLabel>{t.hubGroupLabel}</SectionLabel>
@@ -2812,7 +2984,10 @@ function MobileHub({
         className="tap"
         onClick={onLogout}
         disabled={loggingOut}
+        aria-label={t.logout}
+        aria-busy={loggingOut}
         style={{
+          position: "relative",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -2833,13 +3008,22 @@ function MobileHub({
             "0 1px 0 rgba(0,0,0,0.04), 0 8px 20px rgba(28,28,26,0.16)",
         }}
       >
-        {loggingOut ? (
-          <Spinner size={17} color="#fff" />
-        ) : (
-          <Icon name="logout" size={17} color="#fff" />
+        <span
+          aria-hidden={loggingOut || undefined}
+          style={{ display: "inline-flex", alignItems: "center", gap: 10, visibility: loggingOut ? "hidden" : undefined }}
+        >
+          <Icon name="logout" size={17} color="currentColor" />
+          {t.logout}
+        </span>
+        {loggingOut && (
+          <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Spinner size={17} color="currentColor" />
+          </span>
         )}
-        {loggingOut ? t.loggingOut : t.logout}
       </button>
+      <span role="status" aria-atomic="true" className="sr-only">
+        {loggingOut ? t.loggingOut : ""}
+      </span>
     </div>
   );
 }
@@ -2848,19 +3032,34 @@ function MobileHub({
 // Loading skeleton
 // ─────────────────────────────────────────────
 
-function LoadingState({ loadingLabel }: { loadingLabel: string }) {
+function LoadingState({ t, locale }: { t: AcctDict; locale: Locale }) {
+  const noop = () => {};
+  const { dict } = useTranslation();
+  const { user } = useAuth();
   return (
-    <div
-      className="zw-container"
-      style={{ paddingTop: 40, paddingBottom: 40, width: "100%" }}
-      aria-busy="true"
-    >
-      <Skeleton w="100%" h={140} r={22} />
-      <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 24 }}>
-        <Skeleton w="100%" h={220} r={16} />
-        <Skeleton w="100%" h={180} r={16} />
+    <div aria-busy="true">
+      <div className={`zw-container ${styles.desktop}`} style={{ paddingTop: 40, paddingBottom: 56, width: "100%" }}>
+        <div inert>
+          <ProfileBanner t={t} locale={locale} profile={null} summary={null} summaryLoading summaryError={false} onRetrySummary={noop} uploadingPhoto={false} onPickPhoto={noop} />
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(200px, 244px) minmax(0, 1fr)", gap: "clamp(32px, 4.5vw, 64px)", alignItems: "start", marginTop: "clamp(28px, 3.5vw, 44px)" }}>
+            <NavRail t={t} active="personal" setActive={noop} onLogout={noop} />
+            <div style={{ minWidth: 0, maxWidth: 760 }}>
+              <SectionHeader t={t} id="personal" />
+              {[t.fields.firstName, t.fields.lastName, t.fields.phone, t.fields.dateOfBirth].map((label, i) => (
+                <EditableRow key={label} id={`pending-profile-${i}`} label={label} value="" emptyLabel="" loading saving={false} buttons={t.buttons} onSave={noop} />
+              ))}
+              <ChangeEmailRow t={t} authErrors={dict.auth.errors} sharedErrors={dict.errors} currentEmail="" loading emailVerified={user?.emailVerified} resendCopy={dict.auth.resendVerification} onChanged={noop} />
+              <EditableRow id="pending-address" label={t.fields.address} value="" emptyLabel="" loading saving={false} buttons={t.buttons} onSave={noop} last />
+            </div>
+          </div>
+        </div>
       </div>
-      <p className="sr-only">{loadingLabel}</p>
+      <div className={`zw-container ${styles.mobile}`} style={{ paddingTop: 32, paddingBottom: 24, width: "100%" }}>
+        <div inert style={{ maxWidth: 560, margin: "0 auto" }}>
+          <MobileHub t={t} locale={locale} profile={null} profilePending profileRetrying={false} onRetryProfile={noop} summary={null} summaryLoading summaryError={false} onRetrySummary={noop} uploadingPhoto={false} onPickPhoto={noop} setActive={noop} onLogout={noop} loggingOut={false} />
+        </div>
+      </div>
+      <p role="status" className="sr-only">{t.loading}</p>
     </div>
   );
 }
@@ -2870,6 +3069,13 @@ function LoadingState({ loadingLabel }: { loadingLabel: string }) {
 // ─────────────────────────────────────────────
 
 export function AccountContent({ locale }: { locale: Locale }) {
+  const { user } = useAuth();
+  // Profile, statistics and preferences belong to this identity. A session
+  // change discards pending requests and successful data from the previous user.
+  return <AccountSessionContent key={user?.uuid ?? "anonymous"} locale={locale} />;
+}
+
+function AccountSessionContent({ locale }: { locale: Locale }) {
   const dictionary = useTranslation().dict;
   const t = dictionary.account;
   const router = useRouter();
@@ -2879,10 +3085,17 @@ export function AccountContent({ locale }: { locale: Locale }) {
 
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [summary, setSummary] = useState<CustomerProfileSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState(false);
+  const [summaryAttempt, setSummaryAttempt] = useState(0);
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
 
   const [prefsError, setPrefsError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [profileRetrying, setProfileRetrying] = useState(false);
+  const [prefsAttempt, setPrefsAttempt] = useState(0);
+  const [prefsRetrying, setPrefsRetrying] = useState(false);
 
   const [savingField, setSavingField] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -2909,41 +3122,82 @@ export function AccountContent({ locale }: { locale: Locale }) {
   useEffect(() => {
     if (!authed) return;
     let alive = true;
-    // `loading` is initialised to true and this effect runs once auth flips to
-    // authenticated, so no synchronous setState(true) is needed here.
+    // Initial loading starts true. Retries retain the layout and use their own
+    // busy state instead of replacing navigation with the page skeleton.
 
-    // Only what first paint needs: profile (editable fields + banner) and
-    // summary (stats, incl. totalFavorites). Notification preferences are
-    // deferred until the Preferences section is opened.
-    Promise.allSettled([getProfile(), getProfileSummary()]).then((results) => {
-      if (!alive) return;
-      const [pRes, sRes] = results;
-
-      if (pRes.status === "fulfilled") setProfile(pRes.value);
-      // profile failure → null → section/banner shows sectionError fallback.
-
-      if (sRes.status === "fulfilled") setSummary(sRes.value);
-      // summary failure degrades silently (stats render as 0).
-
-      setLoading(false);
+    // The editable profile does not wait for optional account statistics.
+    getProfile().then((result) => {
+      if (alive) setProfile(result);
+    }).catch(() => {
+      // A failed profile load gets one recovery state in the active section.
+    }).finally(() => {
+      if (alive) {
+        setLoading(false);
+        setProfileRetrying(false);
+      }
     });
 
     return () => {
       alive = false;
     };
-  }, [authed]);
+  }, [authed, loadAttempt]);
+
+  useEffect(() => {
+    if (!authed) return;
+    let alive = true;
+    getProfileSummary().then((result) => {
+      if (alive) {
+        setSummary(result);
+        setSummaryError(false);
+      }
+    }).catch(() => {
+      if (alive) setSummaryError(true);
+    }).finally(() => {
+      if (alive) setSummaryLoading(false);
+    });
+    return () => { alive = false; };
+  }, [authed, summaryAttempt]);
 
   // Notification preferences are consumed only by the Preferences section, so
-  // they load on its first activation. One-shot: setState after a section
-  // switch (or unmount) is a harmless no-op, so no cancellation is needed.
-  const prefsRequested = useRef(false);
+  // load them lazily and retain successful data. Ignore responses after leaving
+  // the section or session; a failed load can be retried explicitly.
   useEffect(() => {
-    if (!authed || active !== "preferences" || prefsRequested.current) return;
-    prefsRequested.current = true;
+    if (!authed || active !== "preferences" || prefs || (prefsError && !prefsRetrying)) return;
+    let alive = true;
     getNotificationPreferences()
-      .then(setPrefs)
-      .catch(() => setPrefsError(true));
-  }, [authed, active]);
+      .then((result) => {
+        if (alive) {
+          setPrefs(result);
+          setPrefsError(false);
+          setPrefsRetrying(false);
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setPrefsError(true);
+          setPrefsRetrying(false);
+        }
+      });
+    return () => { alive = false; };
+  }, [authed, active, prefs, prefsError, prefsRetrying, prefsAttempt]);
+
+  const retryProfile = () => {
+    if (profileRetrying) return;
+    setProfileRetrying(true);
+    setLoadAttempt((attempt) => attempt + 1);
+  };
+
+  const retryPreferences = () => {
+    if (prefsRetrying) return;
+    setPrefsRetrying(true);
+    setPrefsAttempt((attempt) => attempt + 1);
+  };
+
+  const retrySummary = () => {
+    if (summaryLoading) return;
+    setSummaryLoading(true);
+    setSummaryAttempt((attempt) => attempt + 1);
+  };
 
   const saveField = useCallback(
     async (field: keyof UpdateProfileBody, value: string) => {
@@ -3024,7 +3278,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
 
   // ── Auth gating ──
   if (status === "idle" || status === "loading") {
-    return <LoadingState loadingLabel={t.loading} />;
+    return <LoadingState t={t} locale={locale} />;
   }
 
   if (status === "unauthenticated" || status === "error") {
@@ -3042,36 +3296,35 @@ export function AccountContent({ locale }: { locale: Locale }) {
 
   // authenticated but still loading data
   if (loading) {
-    return <LoadingState loadingLabel={t.loading} />;
+    return <LoadingState t={t} locale={locale} />;
   }
 
   // ── Mobile: phone-style hub → drill-in ──
   if (isNarrow) {
     return (
       <div
-        className="zw-container zw-acct-in"
+        className="zw-container"
         style={{ paddingTop: 32, paddingBottom: 24, width: "100%" }}
       >
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
           {active === null ? (
-            profile ? (
-              <MobileHub
-                t={t}
-                locale={locale}
-                profile={profile}
-                summary={summary}
-                uploadingPhoto={uploadingPhoto}
-                onPickPhoto={handlePhoto}
-                onSavedClick={() => router.push(localeHref(locale, "saved"))}
-                setActive={setActive}
-                onLogout={handleLogout}
-                loggingOut={loggingOut}
-              />
-            ) : (
-              <Card>
-                <SectionError message={t.sectionError} />
-              </Card>
-            )
+            <MobileHub
+              t={t}
+              locale={locale}
+              profile={profile}
+              profileRetrying={profileRetrying}
+              onRetryProfile={retryProfile}
+              summary={summary}
+              summaryLoading={summaryLoading}
+              summaryError={summaryError}
+              onRetrySummary={retrySummary}
+              uploadingPhoto={uploadingPhoto}
+              onPickPhoto={handlePhoto}
+              onSavedClick={() => router.push(localeHref(locale, "saved"))}
+              setActive={setActive}
+              onLogout={handleLogout}
+              loggingOut={loggingOut}
+            />
           ) : (
             <div className="zw-acct-in" key={active}>
               <SectionHeader
@@ -3085,8 +3338,12 @@ export function AccountContent({ locale }: { locale: Locale }) {
                 t={t}
                 locale={locale}
                 profile={profile}
+                profileRetrying={profileRetrying}
+                onRetryProfile={retryProfile}
                 prefs={prefs}
                 prefsError={prefsError}
+                prefsRetrying={prefsRetrying}
+                onRetryPreferences={retryPreferences}
                 setPrefs={setPrefs}
                 savingField={savingField}
                 saveField={saveField}
@@ -3108,20 +3365,19 @@ export function AccountContent({ locale }: { locale: Locale }) {
       className="zw-container"
       style={{ paddingTop: 40, paddingBottom: 56, width: "100%" }}
     >
-      {profile ? (
+      {profile && (
         <ProfileBanner
           t={t}
           locale={locale}
           profile={profile}
           summary={summary}
+          summaryLoading={summaryLoading}
+          summaryError={summaryError}
+          onRetrySummary={retrySummary}
           uploadingPhoto={uploadingPhoto}
           onPickPhoto={handlePhoto}
           onSavedClick={() => router.push(localeHref(locale, "saved"))}
         />
-      ) : (
-        <Card>
-          <SectionError message={t.sectionError} />
-        </Card>
       )}
 
       <div
@@ -3130,7 +3386,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
           gridTemplateColumns: "minmax(200px, 244px) minmax(0, 1fr)",
           gap: "clamp(32px, 4.5vw, 64px)",
           alignItems: "start",
-          marginTop: "clamp(28px, 3.5vw, 44px)",
+          marginTop: profile ? "clamp(28px, 3.5vw, 44px)" : 0,
         }}
       >
         <NavRail
@@ -3140,7 +3396,7 @@ export function AccountContent({ locale }: { locale: Locale }) {
           onLogout={handleLogout}
         />
         <div
-          className="zw-acct-in"
+          className={active ? "zw-acct-in" : undefined}
           key={desktopActive}
           style={{ minWidth: 0, maxWidth: 760 }}
         >
@@ -3150,8 +3406,12 @@ export function AccountContent({ locale }: { locale: Locale }) {
             t={t}
             locale={locale}
             profile={profile}
+            profileRetrying={profileRetrying}
+            onRetryProfile={retryProfile}
             prefs={prefs}
             prefsError={prefsError}
+            prefsRetrying={prefsRetrying}
+            onRetryPreferences={retryPreferences}
             setPrefs={setPrefs}
             savingField={savingField}
             saveField={saveField}

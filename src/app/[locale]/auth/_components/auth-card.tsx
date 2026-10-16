@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
+import { BUSINESS_APP_URL } from "@/lib/env";
+import { useAuthMessages } from "./auth-messages";
+import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { AuthHero } from "./auth-hero";
 import "./auth-card.css";
 
@@ -117,7 +120,7 @@ export function AuthCard({
           </>
         )}
         <div ref={bodyRef} className="auth-card-body">
-          <div key={mode} className="auth-card-content auth-card-content-enter">
+          <div key={mode} className="auth-card-content">
             {children}
           </div>
         </div>
@@ -126,5 +129,23 @@ export function AuthCard({
         <AuthHero />
       </div>
     </div>
+  );
+}
+
+/** Static business navigation is shared with the initial auth shell. */
+export function AuthBusinessSignIn() {
+  const { auth: dict } = useAuthMessages();
+  const businessHeadingId = useId();
+  return (
+    <section className="auth-business" aria-labelledby={businessHeadingId}>
+      <div className="auth-business-copy">
+        <h2 id={businessHeadingId}>{dict.businessSignIn.title}</h2>
+        <p>{dict.businessSignIn.description}</p>
+      </div>
+      <a href={`${BUSINESS_APP_URL}/login`} className="tap auth-business-link">
+        <span>{dict.businessSignIn.cta}</span>
+        <ArrowRight size={16} aria-hidden="true" className="shrink-0" />
+      </a>
+    </section>
   );
 }

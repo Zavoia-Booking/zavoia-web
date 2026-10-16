@@ -8,12 +8,13 @@ import { Rating } from "@/components/ui/rating";
 import { StatusPill } from "@/components/ui/status-pill";
 import { HeartButton } from "@/components/ui/heart-button";
 import type { BusinessCardData } from "./types";
+import styles from "./business-row.module.css";
 
 export interface BusinessRowProps {
   b: BusinessCardData;
   onClick?: () => void;
   selected?: boolean;
-  favorited?: boolean;
+  favorited?: boolean | null;
   /** Favorite handler — the heart only renders when provided (signed-in). */
   onFavorite?: (id: BusinessCardData["id"]) => void;
   onHover?: () => void;
@@ -68,6 +69,7 @@ export function BusinessRow({
           flexDirection: "column",
           gap: 3,
           paddingTop: 2,
+          containerType: "inline-size",
         }}
       >
         <div
@@ -76,9 +78,11 @@ export function BusinessRow({
             alignItems: "center",
             gap: 8,
             justifyContent: "space-between",
+            minHeight: 28,
           }}
         >
           <span
+            title={b.name}
             style={{
               fontSize: 15.5,
               fontWeight: 600,
@@ -106,20 +110,19 @@ export function BusinessRow({
             alignItems: "center",
             gap: 6,
             fontSize: 12.5,
+            minHeight: 18.75,
             color: "var(--c-600)",
           }}
         >
           <CatDot cat={b.cat} size={5} />
-          {b.catLabel && <span>{b.catLabel}</span>}
+          {b.catLabel && <span title={b.catLabel} style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.catLabel}</span>}
           {b.catLabel && b.distance && <span style={{ color: "var(--c-400)" }}>·</span>}
-          {b.distance && <span>{b.distance}</span>}
+          {b.distance && <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}>{b.distance}</span>}
         </div>
-        {b.rating != null && <Rating rating={b.rating} reviews={b.reviews} size={12.5} />}
-        {b.status && (
-          <div style={{ marginTop: "auto" }}>
-            <StatusPill status={b.status} closesAt={b.closesAt} dense />
+        <div style={{ minHeight: 18.75 }}>{b.rating != null && <Rating rating={b.rating} reviews={b.reviews} size={12.5} />}</div>
+          <div className={styles.status}>
+            {b.status && <StatusPill status={b.status} closesAt={b.closesAt} dense />}
           </div>
-        )}
       </div>
     </>
   );

@@ -62,7 +62,7 @@ export function CategoryRail({ locale, industries, featuredIndustryIds }: {
               <span className={styles.glyph}>
                 <Icon name={industryIcon(industry.slug)} size={24} color={industryAccent(industry.slug)} />
               </span>
-              <span className={styles.label}>{taxonomyLabel(industry, locale, dict.industries)}</span>
+              <span className={styles.label} title={taxonomyLabel(industry, locale, dict.industries)}>{taxonomyLabel(industry, locale, dict.industries)}</span>
             </Link>
           </li>
         ))}
@@ -75,7 +75,7 @@ export function CategoryRail({ locale, industries, featuredIndustryIds }: {
             <span className={`${styles.glyph} ${styles.allGlyph}`}>
               <Icon name="grid" size={23} />
             </span>
-            <span className={styles.label}>{t.seeAllIndustries}</span>
+            <span className={styles.label} title={t.seeAllIndustries}>{t.seeAllIndustries}</span>
           </Link>
         </li>
       </ul>

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Locale } from "@/i18n/locales";
+import { dictionaries } from "@/i18n/dictionaries";
 import type {
   BrandCard,
   Industry,
@@ -20,7 +21,8 @@ import { RecentlyViewed } from "@/app/_components/home/recently-viewed";
 import { EditorsPick } from "@/app/_components/home/editors-pick";
 import { SectionFailed } from "@/app/_components/home/section-failed";
 import {
-  CardGridSkeleton,
+  BrandsSkeleton,
+  EditorsPickSkeleton,
   CategoryRailSkeleton,
 } from "@/app/_components/home/section-skeletons";
 import {
@@ -82,13 +84,13 @@ export function HomeContent({
 
       <InYourCity />
 
-      <Suspense fallback={<CardGridSkeleton count={4} />}>
+      <Suspense fallback={<BrandsSkeleton labels={dictionaries[locale].homeSections.brands} />}>
         <BrandsBlock locale={locale} brands={brands} />
       </Suspense>
 
       <RecentlyViewed />
 
-      <Suspense fallback={<CardGridSkeleton />}>
+      <Suspense fallback={<EditorsPickSkeleton labels={dictionaries[locale].homeSections.editorsPick} />}>
         <PicksSection locale={locale} editorsPick={editorsPick} />
       </Suspense>
 

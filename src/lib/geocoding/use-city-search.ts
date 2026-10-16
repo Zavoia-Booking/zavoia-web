@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { searchCities, type CityResult } from "./maptiler";
 
 const DEBOUNCE_MS = 250;
@@ -11,67 +11,71 @@ export interface UseCitySearch {
   setQuery: (q: string) => void;
   results: CityResult[];
   loading: boolean;
+  failed: boolean;
+  retry: () => void;
 }
 
-/**
- * Debounced city autocomplete.
- *
- * - Debounces `query` by 250ms before firing a request.
- * - Only searches when the trimmed query has >= 2 chars; otherwise clears
- *   results and sets loading false.
- * - Cancels the in-flight request (AbortController) whenever the query
- *   changes or the component unmounts.
- * - State is only set inside the timeout / async callback, never synchronously
- *   in the effect body (matches the repo's set-state-in-effect convention).
- */
+/** City autocomplete: pending includes debounce, and only the latest attempt settles. */
 export function useCitySearch(): UseCitySearch {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<CityResult[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState({
+    query: "",
+    attempt: 0,
+    settledAttempt: 0,
+    results: [] as CityResult[],
+    failed: false,
+  });
+  const { query, attempt, settledAttempt, results, failed } = state;
+  const trimmed = query.trim();
+  const loading = trimmed.length >= MIN_LEN && attempt !== settledAttempt;
 
-  // The controller for the request belonging to the latest effect run.
-  const controllerRef = useRef<AbortController | null>(null);
+  const setQuery = useCallback((nextQuery: string) => {
+    setState((previous) => {
+      if (nextQuery === previous.query) return previous;
+      if (nextQuery.trim() === previous.query.trim()) {
+        return { ...previous, query: nextQuery };
+      }
+      return {
+        ...previous,
+        query: nextQuery,
+        attempt: previous.attempt + 1,
+        results: nextQuery.trim().length < MIN_LEN ? [] : previous.results,
+        failed: false,
+      };
+    });
+  }, []);
+
+  const retry = useCallback(() => {
+    setState((previous) => previous.query.trim().length < MIN_LEN
+      ? previous
+      : { ...previous, attempt: previous.attempt + 1 });
+  }, []);
 
   useEffect(() => {
-    const trimmed = query.trim();
+    if (trimmed.length < MIN_LEN) return;
 
-    // Below the minimum length: clear, no request. Defer to a microtask so we
-    // never call setState synchronously in the effect body.
-    if (trimmed.length < MIN_LEN) {
-      Promise.resolve().then(() => {
-        setResults([]);
-        setLoading(false);
-      });
-      return;
-    }
-
+    const controller = new AbortController();
     const timer = setTimeout(() => {
-      // Abort any previous in-flight request before starting a new one.
-      controllerRef.current?.abort();
-      const controller = new AbortController();
-      controllerRef.current = controller;
-
-      setLoading(true);
-      searchCities(query, controller.signal)
+      searchCities(trimmed, controller.signal, { throwOnError: true })
         .then((cities) => {
-          // Ignore results from a superseded request.
           if (controller.signal.aborted) return;
-          setResults(cities);
-          setLoading(false);
+          setState((previous) => previous.attempt === attempt
+            ? { ...previous, results: cities, failed: false, settledAttempt: attempt }
+            : previous);
         })
         .catch(() => {
-          // searchCities never throws, but stay defensive.
           if (controller.signal.aborted) return;
-          setResults([]);
-          setLoading(false);
+          // Keep any successful results visible when a refresh fails.
+          setState((previous) => previous.attempt === attempt
+            ? { ...previous, failed: true, settledAttempt: attempt }
+            : previous);
         });
     }, DEBOUNCE_MS);
 
     return () => {
       clearTimeout(timer);
-      controllerRef.current?.abort();
+      controller.abort();
     };
-  }, [query]);
+  }, [trimmed, attempt]);
 
-  return { query, setQuery, results, loading };
+  return { query, setQuery, results, loading, failed, retry };
 }

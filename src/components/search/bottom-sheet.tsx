@@ -92,7 +92,7 @@ export function BottomSheet({
   // Measured, not assumed: the header carries a live result count whose text
   // can wrap, and a peek that guesses wrong either clips the count or leaves a
   // strip of empty sheet under it.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = rootRef.current;
     const head = headerRef.current;
     if (!root || !head) return;

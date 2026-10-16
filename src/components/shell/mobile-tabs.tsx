@@ -105,6 +105,7 @@ export function MobileTabs({ locale }: { locale: Locale }) {
             <span
               style={{
                 fontSize: 10,
+                lineHeight: 1.5,
                 fontWeight: 600,
                 letterSpacing: "0.01em",
                 color: active ? "var(--p-600)" : "var(--c-600)",

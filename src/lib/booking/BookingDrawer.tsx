@@ -9,7 +9,7 @@ import {
   type CSSProperties,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, Button, Icon, Spinner } from "@/components/ui";
+import { Avatar, Button, Icon, Skeleton, Spinner } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
@@ -287,11 +287,11 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   //    `servicesOverride` lets the staff-pin recovery refetch unpinned in the
   //    same tick it flips `ignorePins` (before the memo above recomputes). ──
   const loadCalendar = useCallback(
-    async (servicesOverride?: BookingSelectionItem[]) => {
+    async (servicesOverride?: BookingSelectionItem[], retry = false) => {
       if (!payload) return;
       const requestId = (calRequestIdRef.current += 1);
       setCalLoading(true);
-      setCalError(null);
+      if (!retry) setCalError(null);
       try {
         const tz = payload.timezone || "UTC";
         const res = await getBookingCalendar({
@@ -303,6 +303,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         });
         if (requestId !== calRequestIdRef.current) return; // superseded
         setCalendar(res);
+        setCalError(null);
       } catch (e) {
         if (requestId !== calRequestIdRef.current) return; // superseded
         const block = classifyBookingBlock(e);
@@ -370,11 +371,11 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
 
   // ── Fetch slots when a date is chosen. ──
   const loadSlots = useCallback(
-    async (date: string, servicesOverride?: BookingSelectionItem[]) => {
+    async (date: string, servicesOverride?: BookingSelectionItem[], retry = false) => {
       if (!payload) return;
       const requestId = (slotsRequestIdRef.current += 1);
       setSlotsLoading(true);
-      setSlotsError(null);
+      if (!retry) setSlotsError(null);
       setSelectedSlot(null);
       setStaffPicks({});
       try {
@@ -386,6 +387,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         });
         if (requestId !== slotsRequestIdRef.current) return; // superseded
         setDaySlots(res);
+        setSlotsError(null);
       } catch (e) {
         if (requestId !== slotsRequestIdRef.current) return; // superseded
         const block = classifyBookingBlock(e);
@@ -543,7 +545,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
 
   // ── Booking submit. ──
   const doBook = useCallback(async () => {
-    if (!payload || !selectedSlot || !selectedDate) return;
+    if (!payload || !selectedSlot || !selectedDate || slotsLoading || slotsError || daySlots?.date !== selectedDate) return;
     if (!idempotencyKeyRef.current) idempotencyKeyRef.current = mintKey();
     setSubmitting(true);
     setSubmitError(null);
@@ -616,6 +618,9 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     payload,
     selectedSlot,
     selectedDate,
+    slotsLoading,
+    slotsError,
+    daySlots,
     timeZone,
     resolveStaffId,
     resolvedServices,
@@ -641,6 +646,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   };
 
   const onPickSlot = (slot: TimeSlot) => {
+    if (slotsLoading || slotsError || daySlots?.date !== selectedDate) return;
     setSelectedSlot(slot);
     setStaffPicks(seedStaffPicks(slot));
     setSubmitError(null);
@@ -712,7 +718,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     staffPicks,
     daySlots?.staffPricing ?? {},
   );
-  const canContinueFromSlot = !!selectedSlot && !awaitingStaffChoice;
+  const canContinueFromSlot = !!selectedSlot && !awaitingStaffChoice && !slotsLoading && !slotsError && daySlots?.date === selectedDate;
   const canContinueFromServices = picked.length > 0;
 
   // ── Styles shared across steps ──
@@ -980,7 +986,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                       sectionLabel={sectionLabel}
                       t={t}
                       selectedDate={selectedDate}
-                      onRetry={() => void loadCalendar()}
+                      onRetry={() => void loadCalendar(undefined, true)}
                       onPickDate={onPickDate}
                     />
                     {selectedDate && (
@@ -997,7 +1003,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         sectionLabel={sectionLabel}
                         t={t}
                         onRetry={() => {
-                          if (selectedDate) void loadSlots(selectedDate);
+                          if (selectedDate) void loadSlots(selectedDate, undefined, true);
                         }}
                         pinnedStaffByKey={pinnedStaffByKey}
                         onPickSlot={onPickSlot}
@@ -1121,14 +1127,19 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                   kind="accent"
                   size="lg"
                   disabled={submitting}
+                  aria-label={isAuthed ? t.confirmBooking : t.signInToBook}
+                  aria-busy={submitting}
                   onClick={onConfirm}
-                  style={{ opacity: submitting ? 0.7 : 1 }}
+                  style={{ position: "relative", opacity: submitting ? 0.7 : 1 }}
                 >
-                  {submitting
-                    ? t.booking
-                    : isAuthed
-                      ? t.confirmBooking
-                      : t.signInToBook}
+                  <span aria-hidden="true" style={{ visibility: submitting ? "hidden" : "visible" }}>
+                    {isAuthed ? t.confirmBooking : t.signInToBook}
+                  </span>
+                  {submitting && (
+                    <span aria-hidden="true" style={{ position: "absolute" }}>
+                      <Spinner size={16} color="currentColor" />
+                    </span>
+                  )}
                 </Button>
               )}
             </div>
@@ -1395,9 +1406,9 @@ function DateStep({
   onRetry: () => void;
   onPickDate: (date: string) => void;
 }) {
-  if (loading && !calendar) return <LoadingBlock label={t.loading} />;
   if (error && !calendar)
-    return <ErrorBlock label={error} retry={t.retry} onRetry={onRetry} />;
+    return <ErrorBlock label={error} retry={t.retry} onRetry={onRetry} loading={loading} />;
+  if (loading && !calendar) return <LoadingBlock label={t.loading} kind="dates" title={t.dateLabel} headingStyle={sectionLabel} />;
   if (!calendar) return null;
 
   const days = calendar.calendar;
@@ -1510,6 +1521,7 @@ function DayCell({
         alignItems: "center",
         gap: 3,
         padding: "10px 0 9px",
+        height: 74,
         borderRadius: 14,
         cursor: available ? "pointer" : "default",
         opacity: available ? 1 : 0.35,
@@ -1595,10 +1607,10 @@ function SlotStep({
   onPickSlot: (slot: TimeSlot) => void;
   onPickStaff: (idx: number, staffId: number | null) => void;
 }) {
-  if (loading && !daySlots) return <LoadingBlock label={t.loading} />;
-  if (error && !daySlots)
-    return <ErrorBlock label={error} retry={t.retry} onRetry={onRetry} />;
-  if (!daySlots || !selectedDate) return null;
+  if (error)
+    return <ErrorBlock label={error} retry={t.retry} onRetry={onRetry} loading={loading} />;
+  if (loading) return <LoadingBlock label={t.loading} kind="slots" title={selectedDate ? fmtDateLabel(selectedDate, locale, timeZone) : undefined} headingStyle={sectionLabel} />;
+  if (!daySlots || !selectedDate || daySlots.date !== selectedDate) return null;
 
   const slots = daySlots.slots ?? [];
   if (slots.length === 0) {
@@ -1661,6 +1673,7 @@ function SlotStep({
                         onClick={() => onPickSlot(s)}
                         style={{
                           padding: "10px 0",
+                          height: 41,
                           borderRadius: 11,
                           cursor: "pointer",
                           fontFamily: "var(--font-mono)",
@@ -2454,21 +2467,25 @@ function SuccessScreen({
 // ─────────────────────────────────────────────
 // Shared small blocks
 // ─────────────────────────────────────────────
-function LoadingBlock({ label }: { label: string }) {
+function LoadingBlock({ label, kind, title, headingStyle }: { label: string; kind: "dates" | "slots"; title?: string; headingStyle?: CSSProperties }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 12,
-        padding: "40px 0",
-        color: "var(--c-600)",
-        fontSize: 13.5,
-      }}
-    >
-      <Spinner size={22} />
-      {label}
+    <div aria-busy="true">
+      {title && <div style={headingStyle}>{title}</div>}
+      <div aria-hidden="true">
+        {kind === "slots" && <Skeleton w={64} h={15.75} r={4} style={{ marginBottom: 9 }} />}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(auto-fill, minmax(${kind === "dates" ? 64 : 86}px, 1fr))`,
+            gap: 8,
+          }}
+        >
+          {Array.from({ length: kind === "dates" ? CAL_DAYS_TO_CHECK : 8 }, (_, index) => (
+            <Skeleton key={index} h={kind === "dates" ? 74 : 41} r={kind === "dates" ? 14 : 11} />
+          ))}
+        </div>
+      </div>
+      <p role="status" className="sr-only">{label}</p>
     </div>
   );
 }
@@ -2477,10 +2494,12 @@ function ErrorBlock({
   label,
   retry,
   onRetry,
+  loading,
 }: {
   label: string;
   retry: string;
   onRetry: () => void;
+  loading: boolean;
 }) {
   return (
     <div
@@ -2505,7 +2524,7 @@ function ErrorBlock({
       >
         {label}
       </p>
-      <Button kind="secondary" size="md" onClick={onRetry}>
+      <Button kind="secondary" size="md" onClick={onRetry} loading={loading}>
         {retry}
       </Button>
     </div>

@@ -15,7 +15,13 @@ import { format } from "@/i18n/format";
 import { Kicker } from "@/components/ui/kicker";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { InlineError } from "@/components/ui/inline-error";
 import { useToast } from "@/components/ui";
+import { MAPBOX_TOKEN } from "@/lib/env";
+import { SearchPageSkeleton } from "@/components/ui/page-skeletons";
+import searchStyles from "@/components/search/search-layout.module.css";
 import {
   BusinessRow,
   RowSkeleton,
@@ -29,7 +35,7 @@ import {
   buildSlugById,
   industrySlugOf,
 } from "@/lib/marketplace/industry-visuals";
-import { searchListings } from "@/lib/api/marketplace/public";
+import { getIndustries, searchListings } from "@/lib/api/marketplace/public";
 import { errorMessage } from "@/lib/api/error-messages";
 import type {
   Industry,
@@ -149,6 +155,7 @@ function cameraRequestKey(params: DerivedParams, filters: MapFilters, focus: num
 export interface SearchContentProps {
   locale: Locale;
   industries: Industry[];
+  initialIndustriesFailed: boolean;
   initialResult: SearchListingsResult;
   // True when the SERVER-side initial fetch failed (page.tsx swallowed the
   // error into EMPTY_RESULT so the page itself stays render-safe). Lets the
@@ -158,7 +165,8 @@ export interface SearchContentProps {
 
 export function SearchContent({
   locale,
-  industries,
+  industries: initialIndustries,
+  initialIndustriesFailed,
   initialResult,
   initialResultFailed,
 }: SearchContentProps) {
@@ -168,6 +176,20 @@ export function SearchContent({
   const sp = useSearchParams();
   const toast = useToast();
   const { openSearch } = useSearchOverlay();
+  const [industries, setIndustries] = useState(initialIndustries);
+  const [industriesFailed, setIndustriesFailed] = useState(initialIndustriesFailed);
+  const [industriesLoading, setIndustriesLoading] = useState(false);
+  const retryIndustries = async () => {
+    setIndustriesLoading(true);
+    try {
+      setIndustries(await getIndustries());
+      setIndustriesFailed(false);
+    } catch {
+      setIndustriesFailed(true);
+    } finally {
+      setIndustriesLoading(false);
+    }
+  };
   // Result rows are location-sourced; the supplementary business rows use the
   // business endpoint family. Hearts hide entirely when signed out.
   const locFav = useFavoriteToggle("location");
@@ -242,11 +264,13 @@ export function SearchContent({
   }
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [viewportReady, setViewportReady] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // The venue-tag vocabulary behind the panel's FEATURES sections. Fetched once
-  // per page load and shared; an empty result just renders no tag sections.
-  const { dictionaries: venueTagDictionaries } = useVenueTags();
+  // per page load and shared; failed requests have a local retry in the panel.
+  const venueTags = useVenueTags();
+  const venueTagDictionaries = venueTags.dictionaries;
 
   // The resolved device/IP position — drives the pulsing user DOT only. Stays
   // null for the Bucharest fallback and for shared-link place searches (no dot).
@@ -307,28 +331,18 @@ export function SearchContent({
     return () => window.clearTimeout(h);
   }, []);
 
-  // The skeleton lifts on the map's first IDLE — tiles actually on screen,
-  // which is later than "the style loaded". A safety net lifts it regardless,
-  // so a missed event can never leave the page covered.
+  // Keep the map covered until its first real paint. A timeout offers recovery
+  // instead of pretending an unresolved canvas has loaded.
   const [mapPainted, setMapPainted] = useState(false);
-  const [skeletonMounted, setSkeletonMounted] = useState(true);
-  const onMapFirstPaint = useCallback(() => setMapPainted(true), []);
-  useEffect(() => {
-    if (mapPainted) return;
-    const h = window.setTimeout(() => setMapPainted(true), 4000);
-    return () => window.clearTimeout(h);
-  }, [mapPainted]);
-  useEffect(() => {
-    if (!mapPainted || !skeletonMounted) return;
-    const h = window.setTimeout(() => setSkeletonMounted(false), 320);
-    return () => window.clearTimeout(h);
-  }, [mapPainted, skeletonMounted]);
+  const [mapFailed, setMapFailed] = useState(false);
+  const [mapAttempt, setMapAttempt] = useState(0);
+  const onMapFirstPaint = useCallback(() => { setMapPainted(true); setMapFailed(false); }, []);
 
   // ── Responsive flag (window.matchMedia) ─────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
     const mq = window.matchMedia(MOBILE_MQ);
-    const apply = () => setIsMobile(mq.matches);
+    const apply = () => { setIsMobile(mq.matches); setViewportReady(true); };
     apply();
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
@@ -552,6 +566,11 @@ export function SearchContent({
   const cityCameraPending = !!cameraCity && cityCamera?.city !== cameraCity;
   const resolvedCityPoint = cityCamera?.city === cameraCity ? cityCamera?.point : null;
   const mapEnabled = !cameraCity || !!resolvedCityPoint;
+  useEffect(() => {
+    if (mapPainted || !mapMounted || !mapEnabled || !MAPBOX_TOKEN) return;
+    const timer = window.setTimeout(() => setMapFailed(true), 15_000);
+    return () => window.clearTimeout(timer);
+  }, [mapPainted, mapMounted, mapEnabled, mapAttempt]);
 
   // Camera and "Search this area" origin, never the user dot. `hasGeo` and
   // distance filters still depend only on actual coordinates in the URL.
@@ -888,14 +907,7 @@ export function SearchContent({
 
   // ── Header ──────────────────────────────────────────────────────────────
   const panelHeader = (
-    <div
-      style={{
-        padding: "18px 18px 10px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
+    <div className={searchStyles.header}>
       <div
         style={{
           display: "flex",
@@ -904,28 +916,43 @@ export function SearchContent({
           gap: 10,
         }}
       >
-        <div>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <Kicker style={{ marginBottom: 5 }}>{t.inThisArea}</Kicker>
-          <span
-            className={loading ? "zv-updating-pulse" : undefined}
+          <div style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+          <div
+            aria-busy={loading}
             style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
               fontSize: 21,
+              minWidth: 166,
+              flexShrink: 0,
               fontWeight: 600,
               letterSpacing: "-0.025em",
               color: "var(--c-900)",
             }}
           >
-            {loading
-              ? t.updating
-              : format(resultCount === 1 ? t.resultCountOne : t.resultCount, {
-                  count: String(resultCount),
-                })}
+            {loading && locations.length === 0 && businesses.length === 0 ? (
+              <div aria-hidden="true" style={{ height: "1.5em", display: "flex", alignItems: "center" }}><Skeleton w={144} h={21} /></div>
+            ) : (
+              format(resultCount === 1 ? t.resultCountOne : t.resultCount, {
+                count: String(resultCount),
+              })
+            )}
+            <span aria-hidden="true" style={{ width: 14, height: 14 }}>
+              {loading && <Spinner size={14} color="var(--c-600)" />}
+            </span>
+          </div>
+          <span role="status" aria-atomic="true" className="sr-only">
+            {loading ? t.updating : ""}
           </span>
           <button
             type="button"
             className="tap"
             onClick={editSearch}
-            aria-label={t.editSearch}
+            aria-label={`${t.editSearch}: ${queryLabel}`}
+            title={queryLabel}
             style={{
               marginLeft: 8,
               background: "transparent",
@@ -937,11 +964,13 @@ export function SearchContent({
               display: "inline-flex",
               alignItems: "center",
               gap: 4,
+              minWidth: 0,
             }}
           >
-            {queryLabel}
-            <Icon name="pencil" size={12} color="var(--c-500)" />
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{queryLabel}</span>
+            <Icon name="pencil" size={12} color="var(--c-500)" style={{ flexShrink: 0 }} />
           </button>
+          </div>
         </div>
         <SortMenu
           sort={filters.sort}
@@ -966,6 +995,10 @@ export function SearchContent({
         activeFilterCount={activeFilterCount}
         onOpenFilters={() => setFiltersOpen(true)}
       />
+      {industriesFailed && <div style={{ display: "grid", gap: 8 }}>
+        <InlineError>{dict.searchOverlay.industriesError}</InlineError>
+        <Button kind="secondary" size="sm" loading={industriesLoading} onClick={() => void retryIndustries()} style={{ justifySelf: "start" }}>{t.retry}</Button>
+      </div>}
     </div>
   );
 
@@ -977,8 +1010,8 @@ export function SearchContent({
       className="zw-scroll-y"
       style={{ flex: 1, padding: "4px 10px 16px", position: "relative" }}
     >
-      {loading && locations.length === 0 ? (
-        <div className="zv-fade" aria-label={t.updating}>
+      {loading && locations.length === 0 && businesses.length === 0 && !resultsFailed ? (
+        <div aria-label={t.updating}>
           {[0, 1, 2, 3, 4].map((i) => (
             <RowSkeleton key={i} />
           ))}
@@ -1007,7 +1040,7 @@ export function SearchContent({
             </div>
           )}
           {resultsFailed ? (
-            <Button kind="secondary" size="sm" onClick={() => void runFetch()}>
+            <Button kind="secondary" size="sm" loading={loading} onClick={() => void runFetch()}>
               {t.retry}
             </Button>
           ) : (
@@ -1081,6 +1114,8 @@ export function SearchContent({
 
   const mapSurfaceInner = (
     <MapboxSurface
+      key={mapAttempt}
+      reuseMap={mapAttempt === 0}
       ref={mapHandleRef}
       pins={pins}
       selectedId={selectedId}
@@ -1102,7 +1137,12 @@ export function SearchContent({
       onFirstPaint={onMapFirstPaint}
       chromeHidden={isMobile && sheetPosition === "top"}
       enabled={mapEnabled}
-      unavailableLabel={cityCameraPending ? t.updating : t.mapUnavailable}
+      unavailableLabel={cityCameraPending ? (
+        <>
+          <MapSkeleton railInsetLeft={isMobile ? 0 : panelInsetPx + 16} controlsBottom={isMobile ? 200 : selectedCardData ? 128 : 24} showRail={industries.length > 0 && !searchActive && !(isMobile && sheetPosition === "top")} showControls={!(isMobile && sheetPosition === "top")} />
+          <span role="status" className="sr-only">{t.updating}</span>
+        </>
+      ) : t.mapUnavailable}
       fitInset={{
         left: panelInsetPx,
         top: searchActive ? 16 : 64,
@@ -1154,6 +1194,10 @@ export function SearchContent({
         listings={locations}
         distanceFor={distanceFor}
         dictionaries={venueTagDictionaries}
+        dictionariesLoading={venueTags.loading}
+        dictionariesFailed={venueTags.failed}
+        dictionariesLoaded={venueTags.loaded}
+        onRetryDictionaries={venueTags.retry}
       />
       {selectedCardData ? (
         // On mobile the card and the sheet compete for the same strip of
@@ -1187,7 +1231,11 @@ export function SearchContent({
   const mapSurface = (
     <>
       {mapMounted && mapSurfaceInner}
-      {skeletonMounted && (
+      {mapFailed && <div style={{ position: "absolute", inset: 0, left: isMobile ? 0 : panelInsetPx + 16, zIndex: 41, background: "#EEEAE0", display: "grid", alignContent: "start", justifyItems: "center", gap: 12, padding: "80px 24px" }}>
+        <p style={{ margin: 0, color: "var(--c-700)" }}>{t.mapUnavailable}</p>
+        <Button kind="secondary" size="sm" onClick={() => { setMapFailed(false); setMapPainted(false); setMapAttempt(value => value + 1); }}>{t.retry}</Button>
+      </div>}
+      {!mapPainted && !mapFailed && !!MAPBOX_TOKEN && mapEnabled && (
         <div
           style={{
             position: "absolute",
@@ -1196,27 +1244,23 @@ export function SearchContent({
             // below the results surfaces (sheet 42, card 45, panel 47), which
             // already have real rows to show while the tiles arrive.
             zIndex: 41,
-            opacity: mapPainted ? 0 : 1,
-            transition: "opacity .3s var(--ease-out)",
             pointerEvents: "none",
           }}
         >
-          <MapSkeleton railInsetLeft={isMobile ? 0 : panelInsetPx} />
+          <MapSkeleton railInsetLeft={isMobile ? 0 : panelInsetPx + 16} controlsBottom={isMobile ? 200 : selectedCardData ? 128 : 24} showRail={industries.length > 0 && !searchActive && !(isMobile && sheetPosition === "top")} showControls={!(isMobile && sheetPosition === "top")} />
         </div>
       )}
     </>
   );
 
+  // Use the same CSS-responsive shell during hydration; never flash the
+  // desktop layout before matchMedia resolves on a phone.
+  if (!viewportReady || (isMobile && tabBarH === 0)) return <SearchPageSkeleton showRail={industries.length > 0 && !searchActive} desktopControlsBottom={selectedCardData ? 128 : 24} />;
+
   // ── Mobile: the map, with the results on a sheet over it ────────────────
   if (isMobile) {
     return (
-      <main
-        style={{
-          position: "relative",
-          height: `calc(100dvh - var(--nav-h) - ${tabBarH}px)`,
-          overflow: "hidden",
-        }}
-      >
+      <main className={searchStyles.shell} style={{ height: `calc(100dvh - var(--nav-h) - ${tabBarH}px)` }}>
         {mapSurface}
         <BottomSheet
           ref={sheetRef}
@@ -1234,31 +1278,9 @@ export function SearchContent({
 
   // ── Desktop: full-bleed map + floating panel ─────────────────────────────
   return (
-    <main
-      style={{
-        position: "relative",
-        height: "calc(100dvh - var(--nav-h))",
-        overflow: "hidden",
-      }}
-    >
+    <main className={searchStyles.shell}>
       {mapSurface}
-      <div
-        style={{
-          position: "absolute",
-          top: 16,
-          left: 16,
-          bottom: 16,
-          zIndex: 47,
-          width: "min(424px, 36vw)",
-          background: "rgba(255,255,255,0.97)",
-          borderRadius: 22,
-          boxShadow: "var(--sh-xl)",
-          border: "1px solid rgba(28,28,26,0.07)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <div className={searchStyles.panel}>
         {panelHeader}
         {resultList}
       </div>

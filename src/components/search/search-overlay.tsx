@@ -14,6 +14,8 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { InlineError } from "@/components/ui/inline-error";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
@@ -255,12 +257,15 @@ function SearchPreviewBlock({
     businesses: BusinessCard[];
     locations: LocationCard[];
     loading: boolean;
+    failed: boolean;
+    retry: () => void;
   };
   locale: Locale;
   t: Dictionary["searchOverlay"];
   onSelectResult: (href: string) => void;
 }) {
-  const { businesses, locations, loading } = preview;
+  const { businesses, locations, loading, failed, retry } = preview;
+  const { dict } = useTranslation();
   const empty = businesses.length === 0 && locations.length === 0;
 
   const subtle: CSSProperties = {
@@ -272,23 +277,23 @@ function SearchPreviewBlock({
   };
 
   return (
-    <div style={{ marginTop: 18 }}>
-      {loading && empty ? (
-        <div
-          role="status"
-          aria-label={t.searching}
-          style={{
-            ...subtle,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Spinner size={18} />
+    <div style={{ marginTop: 18 }} aria-busy={loading}>
+      <span role="status" className="sr-only">{loading ? t.searching : ""}</span>
+      {failed && <div style={{ display: "grid", gap: 10, padding: "12px 4px" }}>
+        <InlineError>{t.previewError}</InlineError>
+        <Button kind="secondary" size="sm" loading={loading} onClick={retry} style={{ justifySelf: "start" }}>{dict.search.retry}</Button>
+      </div>}
+      {loading && empty && !failed ? (
+        <div aria-hidden="true">
+          <span style={eyebrow}>{t.resultsPlaces}</span>
+          {[0, 1, 2].map(row => <div key={row} style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", minHeight: 64, marginBottom: 2 }}>
+            <Skeleton w={44} h={44} r={12} style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1, display: "grid", gap: 4 }}><Skeleton w="65%" h={16.8} /><Skeleton w="40%" h={15} /></div>
+          </div>)}
         </div>
-      ) : empty ? (
+      ) : empty && !failed ? (
         <div style={subtle}>{t.noResults}</div>
-      ) : (
+      ) : !empty ? (
         <>
           {businesses.length > 0 && (
             <div>
@@ -333,7 +338,7 @@ function SearchPreviewBlock({
             </div>
           )}
         </>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -697,6 +702,9 @@ function WhatSection({
   setWhat,
   tagIds,
   industries,
+  industriesLoading,
+  industriesFailed,
+  retryIndustries,
   recentSearches,
   onSelectRecentSearch,
   onClearRecentSearches,
@@ -711,6 +719,9 @@ function WhatSection({
   setWhat: (v: string) => void;
   tagIds: number[];
   industries: Industry[];
+  industriesLoading: boolean;
+  industriesFailed: boolean;
+  retryIndustries: () => void;
   recentSearches: RecentSearch[];
   onSelectRecentSearch: (entry: RecentSearch) => void;
   onClearRecentSearches: () => void;
@@ -937,9 +948,19 @@ function WhatSection({
           </div>
         )}
 
-      {what.trim().length === 0 && browsable.length > 0 && (
+      {what.trim().length === 0 && (browsable.length > 0 || industriesLoading || industriesFailed) && (
         <div style={{ marginTop: 18 }}>
           <span style={eyebrow}>{t.browseByIndustry}</span>
+          <span role="status" className="sr-only">{industriesLoading ? t.searching : ""}</span>
+          {industriesFailed && <div style={{ display: "grid", gap: 10, paddingBlock: 12 }}>
+            <InlineError>{t.industriesError}</InlineError>
+            <Button kind="secondary" size="sm" loading={industriesLoading} onClick={retryIndustries} style={{ justifySelf: "start" }}>{dict.search.retry}</Button>
+          </div>}
+          {industriesLoading && !industriesFailed && browsable.length === 0 && <div aria-hidden="true" style={{ display: "grid", gap: 20 }}>
+            <div style={{ display: "flex", gap: 8, overflow: "hidden" }}>{[80, 112, 96].map(w => <Skeleton key={w} w={w} h={44} r={999} style={{ flexShrink: 0 }} />)}</div>
+            {[0, 1, 2].map(row => <div key={row} style={{ display: "grid", gap: 12 }}><Skeleton w="45%" h={21} /><div style={{ display: "flex", gap: 8 }}><Skeleton w="36%" h={40} r={999} /><Skeleton w="42%" h={40} r={999} /></div></div>)}
+          </div>}
+          {browsable.length > 0 &&
           <CategoryBrowse
             industries={browsable}
             initialIndustry={initialBrowseIndustry}
@@ -948,6 +969,7 @@ function WhatSection({
             tagIds={tagIds}
             onSelectTag={onSelectTag}
           />
+          }
         </div>
       )}
     </div>
@@ -972,10 +994,10 @@ function WhereSection({
 }) {
   const { dict } = useTranslation();
   const t = dict.searchOverlay;
-  const { query, setQuery, results, loading } = useCitySearch();
+  const { query, setQuery, results, loading, failed, retry } = useCitySearch();
   const trimmed = query.trim();
   const showStatic = trimmed.length === 0;
-  const showNoMatch = trimmed.length >= 2 && !loading && results.length === 0;
+  const showNoMatch = trimmed.length >= 2 && !loading && !failed && results.length === 0;
 
   const rowBtn: CSSProperties = {
     width: "100%",
@@ -997,14 +1019,18 @@ function WhereSection({
         onClick={onUseLocation}
         className="tap"
         aria-pressed={hasGeo}
+        aria-label={t.useCurrentLocation}
+        aria-busy={resolvingLocation}
+        disabled={resolvingLocation}
         style={{
+          position: "relative",
           width: "100%",
           padding: "11px 13px",
           background: "transparent",
           border:
             "1px dashed color-mix(in oklch, var(--p-500) 35%, transparent)",
           borderRadius: 14,
-          cursor: "pointer",
+          cursor: resolvingLocation ? "wait" : "pointer",
           display: "flex",
           alignItems: "center",
           gap: 12,
@@ -1012,83 +1038,101 @@ function WhereSection({
         }}
       >
         <span
+          aria-hidden={resolvingLocation || undefined}
           style={{
-            width: 34,
-            height: 34,
-            borderRadius: "50%",
-            background: "transparent",
-            color: "var(--p-700)",
-            display: "inline-flex",
+            width: "100%",
+            display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-            flexShrink: 0,
+            gap: 12,
+            visibility: resolvingLocation ? "hidden" : undefined,
           }}
         >
-          {hasGeo && (
-            <span
-              aria-hidden="true"
-              style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-            >
-              <span className="zv-radar-ring" data-i={1} />
-              <span className="zv-radar-ring" data-i={2} />
-              <span className="zv-radar-ring" data-i={3} />
-            </span>
-          )}
-          <span style={{ position: "relative", display: "inline-flex" }}>
-            <Icon name="nav" size={15} color="var(--p-700)" />
-          </span>
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
           <span
             style={{
-              display: "block",
-              fontSize: 14,
-              fontWeight: 600,
-              color: "var(--c-900)",
-              letterSpacing: "-0.012em",
-              lineHeight: 1.2,
-            }}
-          >
-            {t.useCurrentLocation}
-          </span>
-          <span
-            style={{
-              display: "block",
-              marginTop: 2,
-              fontSize: 12,
-              color: "var(--c-600)",
-              letterSpacing: "-0.005em",
-              lineHeight: 1.3,
-            }}
-          >
-            {resolvingLocation
-              ? t.resolvingLocation
-              : hasGeo
-                ? t.locationEnabled
-                : t.locationHint}
-          </span>
-        </span>
-        {hasGeo ? (
-          <span
-            style={{
-              width: 22,
-              height: 22,
+              width: 34,
+              height: 34,
               borderRadius: "50%",
-              background: "var(--c-ink)",
-              color: "#fff",
+              background: "transparent",
+              color: "var(--p-700)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
+              position: "relative",
               flexShrink: 0,
             }}
           >
-            <Icon name="check" size={12} />
+            {hasGeo && (
+              <span
+                aria-hidden="true"
+                style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+              >
+                <span className="zv-radar-ring" data-i={1} />
+                <span className="zv-radar-ring" data-i={2} />
+                <span className="zv-radar-ring" data-i={3} />
+              </span>
+            )}
+            <span style={{ position: "relative", display: "inline-flex" }}>
+              <Icon name="nav" size={15} color="var(--p-700)" />
+            </span>
           </span>
-        ) : (
-          <Icon name="chevR" size={14} color="var(--c-500)" />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span
+              style={{
+                display: "block",
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--c-900)",
+                letterSpacing: "-0.012em",
+                lineHeight: 1.2,
+              }}
+            >
+              {t.useCurrentLocation}
+            </span>
+            <span
+              style={{
+                display: "block",
+                marginTop: 2,
+                fontSize: 12,
+                color: "var(--c-600)",
+                letterSpacing: "-0.005em",
+                lineHeight: 1.3,
+              }}
+            >
+              {hasGeo ? t.locationEnabled : t.locationHint}
+            </span>
+          </span>
+          {hasGeo ? (
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: "var(--c-ink)",
+                color: "#fff",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Icon name="check" size={12} />
+            </span>
+          ) : (
+            <Icon name="chevR" size={14} color="var(--c-500)" />
+          )}
+        </span>
+        {resolvingLocation && (
+          <span
+            aria-hidden="true"
+            style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <Spinner size={18} />
+          </span>
         )}
       </button>
+      <span role="status" aria-atomic="true" className="sr-only">
+        {resolvingLocation ? t.resolvingLocation : ""}
+      </span>
 
       <div
         style={{
@@ -1102,11 +1146,15 @@ function WhereSection({
           gap: 9,
         }}
       >
-        <Icon name="search" size={14} color="var(--c-700)" />
+        <span aria-hidden="true" style={{ width: 14, height: 14, flexShrink: 0 }}>
+          {loading ? <Spinner size={14} color="var(--c-700)" /> : <Icon name="search" size={14} color="var(--c-700)" />}
+        </span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t.searchCityPlaceholder}
+          aria-label={t.searchCityPlaceholder}
+          aria-busy={loading}
           style={{
             flex: 1,
             minWidth: 0,
@@ -1145,21 +1193,46 @@ function WhereSection({
         )}
       </div>
 
-      {/* Loading indicator (subtle, i18n) while a search is in flight. */}
-      {loading && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "0 4px",
-            fontSize: 12.5,
-            color: "var(--c-600)",
-            letterSpacing: "-0.005em",
-          }}
-        >
-          <Icon name="search" size={13} color="var(--c-500)" />
-          {t.searchingCities}
+      <span role="status" aria-atomic="true" className="sr-only">
+        {loading ? t.searchingCities : ""}
+      </span>
+      {loading && !failed && results.length === 0 && (
+        <div aria-busy="true">
+          <div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {[0, 1, 2].map((row) => (
+              <div key={row} style={{ ...rowBtn, cursor: "default" }}>
+                <Skeleton w={30} h={30} r="50%" style={{ flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 5 }}>
+                  <Skeleton w="55%" h={16} />
+                  <Skeleton w="75%" h={12} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {failed && (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, padding: "0 4px" }}>
+          <InlineError style={{ flex: "1 1 200px" }}>{t.citySearchError}</InlineError>
+          <Button
+            kind="secondary"
+            size="sm"
+            onClick={retry}
+            disabled={loading}
+            aria-label={dict.search.retry}
+            aria-busy={loading}
+            style={{ position: "relative", minHeight: 40 }}
+          >
+            <span aria-hidden={loading || undefined} style={{ visibility: loading ? "hidden" : undefined }}>
+              {dict.search.retry}
+            </span>
+            {loading && (
+              <span aria-hidden="true" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Spinner size={16} color="var(--c-700)" />
+              </span>
+            )}
+          </Button>
         </div>
       )}
 
@@ -1623,6 +1696,9 @@ function whenSummary(
 }
 
 // ── Overlay modal ────────────────────────────────────────────────────────────
+let cachedIndustries: Industry[] | null = null;
+let industriesRequest: Promise<Industry[]> | null = null;
+
 export function SearchOverlay({
   open,
   initialStep,
@@ -1644,8 +1720,11 @@ export function SearchOverlay({
   const [step, setStep] = useState<SearchStep>(initialStep);
   const [q, setQ] = useState<QueryModel>(() => fromInitial(initial));
   const [industries, setIndustries] = useState<Industry[]>(
-    () => otherIndustryLast(initialIndustries ?? [], (industry) => industry.slug),
+    () => otherIndustryLast(initialIndustries ?? cachedIndustries ?? [], (industry) => industry.slug),
   );
+  const [industriesLoading, setIndustriesLoading] = useState(initialIndustries === undefined && cachedIndustries === null);
+  const [industriesFailed, setIndustriesFailed] = useState(false);
+  const [industriesAttempt, setIndustriesAttempt] = useState(0);
   const [browseIndustries, setBrowseIndustries] = useState<string[]>(() =>
     browseIndustry ? [browseIndustry] : [],
   );
@@ -1670,26 +1749,24 @@ export function SearchOverlay({
     };
   }, []);
 
-  // Lazy-load industries when the overlay opens. Build-safe: failure → empty
-  // list. No ref guard: under React StrictMode the mount→cleanup→mount cycle
-  // would otherwise leave the first (and only) fetch's result discarded by its
-  // own cleanup while the guard blocks the second run. The provider remounts
-  // this component per open. Home catalogue entries reuse their loaded taxonomy;
-  // other entry points fetch once per open in production.
+  // Reuse successful taxonomy on subsequent openings. Failures stay distinct
+  // from an empty catalogue and can be retried inside the existing section.
   useEffect(() => {
     if (!open || initialIndustries !== undefined) return;
     let alive = true;
-    getIndustries()
+    Promise.resolve().then(() => { if (alive && !cachedIndustries) setIndustriesLoading(true); });
+    industriesRequest ??= cachedIndustries ? Promise.resolve(cachedIndustries) : getIndustries().then(list => { cachedIndustries = list; return list; }).finally(() => { industriesRequest = null; });
+    industriesRequest
       .then((list) => {
-        if (alive) setIndustries(list);
+        if (alive) { setIndustries(list); setIndustriesFailed(false); }
       })
       .catch(() => {
-        if (alive) setIndustries([]);
-      });
+        if (alive) setIndustriesFailed(true);
+      }).finally(() => { if (alive) setIndustriesLoading(false); });
     return () => {
       alive = false;
     };
-  }, [open, initialIndustries]);
+  }, [open, initialIndustries, industriesAttempt]);
 
   const hasGeo = q.where.lat != null && q.where.lng != null;
 
@@ -2068,6 +2145,9 @@ export function SearchOverlay({
                   }
                   tagIds={q.tagIds}
                   industries={industries}
+                industriesLoading={industriesLoading}
+                industriesFailed={industriesFailed}
+                retryIndustries={() => setIndustriesAttempt(value => value + 1)}
                   recentSearches={recentSearches}
                   onSelectRecentSearch={onSelectRecentSearch}
                   onClearRecentSearches={onClearRecentSearches}

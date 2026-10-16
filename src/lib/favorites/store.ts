@@ -18,6 +18,7 @@ type Entry = {
   ids: ReadonlySet<number>;
   updatedAt: number;
   attemptedAt: number;
+  failed: boolean;
   request: Promise<void> | null;
   pending: Set<number>;
   // Changes made while a list is loading take precedence over that response.
@@ -31,7 +32,7 @@ let unsubscribeSession: (() => void) | null = null;
 function entryFor(kind: FavoriteKind): Entry {
   let entry = entries.get(kind);
   if (!entry) {
-    entry = { ids: EMPTY, updatedAt: 0, attemptedAt: 0, request: null, pending: new Set(), changes: new Map() };
+    entry = { ids: EMPTY, updatedAt: 0, attemptedAt: 0, failed: false, request: null, pending: new Set(), changes: new Map() };
     entries.set(kind, entry);
   }
   return entry;
@@ -52,10 +53,14 @@ function owns(entry: Entry, kind: FavoriteKind, session: number): boolean {
 }
 
 /** Freshness and ownership apply to raw IDs; labels are translated by each view. */
-export function getFavoriteIds(kind: FavoriteKind): ReadonlySet<number> {
-  return owner !== null && owner === getAuthenticatedSessionId() ? entries.get(kind)?.ids ?? EMPTY : EMPTY;
+// undefined means unresolved; null means the first request failed. Neither is
+// an empty saved list. Successful IDs remain usable during background refresh.
+export function getFavoriteIds(kind: FavoriteKind): ReadonlySet<number> | null | undefined {
+  if (owner === null || owner !== getAuthenticatedSessionId()) return undefined;
+  const entry = entries.get(kind);
+  return entry?.updatedAt ? entry.ids : entry?.failed ? null : undefined;
 }
-export const getServerFavoriteIds = () => EMPTY;
+export const getServerFavoriteIds = () => undefined;
 
 export function ensureFavoriteIds(kind: FavoriteKind): Promise<void> {
   syncOwner();
@@ -65,6 +70,7 @@ export function ensureFavoriteIds(kind: FavoriteKind): Promise<void> {
   if (entry.request) return entry.request;
   if (Date.now() - Math.max(entry.updatedAt, entry.attemptedAt) < FRESH_MS) return Promise.resolve();
   entry.attemptedAt = Date.now();
+  entry.failed = false;
   entry.changes.clear();
   const request = fetchIds[kind]().then((ids) => {
     if (!owns(entry, kind, session)) return;
@@ -81,10 +87,15 @@ export function ensureFavoriteIds(kind: FavoriteKind): Promise<void> {
     emit(kind);
   }).catch(() => {
     // Keep known hearts during a transient failure; entry/focus retries later.
+    if (owns(entry, kind, session)) {
+      entry.failed = true;
+      emit(kind);
+    }
   }).finally(() => {
     if (owns(entry, kind, session)) { entry.request = null; entry.changes.clear(); }
   });
   entry.request = request;
+  emit(kind);
   return request;
 }
 
@@ -109,6 +120,7 @@ export function beginFavoriteChange(kind: FavoriteKind, id: number, present?: bo
   const session = owner;
   if (session === null) return null;
   const entry = entryFor(kind);
+  if (!entry.updatedAt) return null;
   if (entry.pending.has(id)) return null;
   const previous = entry.ids.has(id);
   entry.pending.add(id);

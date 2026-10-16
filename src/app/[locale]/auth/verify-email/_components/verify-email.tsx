@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
+import { AuthStepSkeleton } from "../../_components/auth-skeleton";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -54,11 +55,12 @@ export function VerifyEmail({ locale }: { locale: Locale }) {
   const loginHref = `${localeHref(locale, "auth")}?mode=login`;
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
+    <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
       {state === "verifying" && (
-        <p role="status" className="text-sm text-zinc-600">
-          {t.verifying}
-        </p>
+        <div aria-busy="true">
+          <AuthStepSkeleton />
+          <p role="status" className="sr-only">{t.verifying}</p>
+        </div>
       )}
 
       {state === "success" && (
