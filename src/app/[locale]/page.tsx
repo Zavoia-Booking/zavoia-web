@@ -8,6 +8,7 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
+import { SITE_URL } from "@/lib/site";
 import { HomeContent, type FeedResult } from "@/app/_components/home-content";
 import {
   getBrands,
@@ -40,19 +41,54 @@ export async function generateStaticParams() {
 
 type Props = { params: Promise<{ locale: string }> };
 
+const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
+  en: "en_US",
+  ro: "ro_RO",
+};
+
+// Both locale homepages describe the same site and organization. Stable IDs
+// keep these entities connected without inventing country coverage or contacts.
+const homeStructuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "Zavoia",
+      url: `${SITE_URL}/`,
+      logo: `${SITE_URL}/brand/wordmark-cropped.png`,
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: "Zavoia",
+      url: `${SITE_URL}/`,
+      inLanguage: [...LOCALES],
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
+};
+
 export async function generateMetadata({
   params,
 }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const dict = dictionaries[locale];
+  // Share one English brand image across locales; surrounding metadata stays localized.
+  const socialImage = {
+    url: `${SITE_URL}/brand/home-social.png`,
+    width: 1200,
+    height: 630,
+    alt: "Zavoia. Local services. On your schedule.",
+  };
 
   const languages = Object.fromEntries(
     LOCALES.map((l) => [l, localeHref(l)]),
   ) as Record<Locale, string>;
 
   return {
-    title: dict.home.title,
+    title: { absolute: dict.home.title },
     description: dict.home.description,
     alternates: {
       canonical: localeHref(locale),
@@ -63,7 +99,18 @@ export async function generateMetadata({
       description: dict.home.description,
       url: localeHref(locale),
       type: "website",
-      locale,
+      siteName: "Zavoia",
+      locale: OPEN_GRAPH_LOCALES[locale],
+      alternateLocale: LOCALES.filter((l) => l !== locale).map(
+        (l) => OPEN_GRAPH_LOCALES[l],
+      ),
+      images: [socialImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: dict.home.title,
+      description: dict.home.description,
+      images: [socialImage],
     },
   };
 }
@@ -100,11 +147,19 @@ export default async function Home({ params }: Props) {
   const brands = settle(getBrands({ limit: 10 }, discoveryCache).then((res) => res.data));
 
   return (
-    <HomeContent
-      locale={localeParam}
-      industries={industries}
-      websites={websites}
-      brands={brands}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(homeStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+      <HomeContent
+        locale={localeParam}
+        industries={industries}
+        websites={websites}
+        brands={brands}
+      />
+    </>
   );
 }

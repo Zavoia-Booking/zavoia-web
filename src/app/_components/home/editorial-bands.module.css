@@ -13,10 +13,17 @@
 .theme *, .theme *::before, .theme *::after { box-sizing: border-box; }
 
 .theme a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
-.app-shell { width: min(100% - 64px, 1400px); margin-inline: auto; padding-top: 76px; }
+.app-shell {
+  width: 100%;
+  margin-top: 76px;
+  background: linear-gradient(125deg, oklch(98.2% .005 80) 0%, oklch(97.5% .007 80) 48%, oklch(94.6% .012 75) 100%);
+  overflow: clip;
+}
 .store-symbol { display: inline-block; flex: none; background: currentColor; mask: var(--store-icon) center / contain no-repeat; }
 .closing-pricing { color: inherit; }
 .app-band {
+  width: min(100% - 64px, 1400px);
+  margin-inline: auto;
   display: grid;
   grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
   gap: 18px;
@@ -24,11 +31,8 @@
   isolation: isolate;
   min-height: 700px;
   padding-inline: 64px 40px;
-  background: linear-gradient(125deg, oklch(98.2% .005 80) 0%, oklch(97.5% .007 80) 48%, oklch(94.6% .012 75) 100%);
-  border: 1px solid rgb(28 28 26 / .035);
-  border-radius: 28px;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .6);
-  overflow: hidden;
+  /* Let the phone shadows fade into the benefits on the shared background. */
+  overflow: visible;
 }
 .copy { align-self: center; position: relative; z-index: 2; padding-block: 60px; }
 .app-title { margin: 0; font-size: clamp(38px, 3.55vw, 54px); font-weight: 500; line-height: 1.085; letter-spacing: -.045em; }
@@ -269,7 +273,7 @@
   .store-label strong { font-size: 15px; }
 }
 @media (max-width: 900px) {
-  .app-band { padding: 0; grid-template-columns: 1fr; gap: 0; min-height: 0; border-radius: 23px; }
+  .app-band { padding: 0; grid-template-columns: 1fr; gap: 0; min-height: 0; overflow: hidden; }
   .copy { padding: 40px 28px 0; width: min(100%, 490px); justify-self: center; }
   .app-title { font-size: clamp(33px, 7.65vw, 44px); line-height: 1.1; letter-spacing: -.055em; }
   .intro { max-width: 35ch; margin: 19px 0 24px; font-size: 14px; line-height: 1.65; }
@@ -278,7 +282,7 @@
   .store-symbol { width: 20px; height: 25px; }
   .store-label small { font-size: 8px; }
   .store-label strong { font-size: 15px; }
-  .device-stage { height: 490px; width: min(100%, 500px); margin-top: 28px; perspective-origin: 50% 40%; }
+  .device-stage { height: 490px; width: min(100%, 500px); margin-top: 28px; perspective-origin: 50% 40%; mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%); }
   .device-mount { transform: translateX(-50%); }
   .device-primary { --shadow-contact: .10; --shadow-cast: .13; --shadow-ambient: .12; width: 224px; left: 62%; top: 18px; z-index: 1; }
   .device-primary .phone { transform: rotateX(3deg) rotateY(-9deg) rotateZ(5deg) translateZ(-30px); }
@@ -302,10 +306,10 @@
   .studio-cta:hover, .studio-cta:active { transform: none; }
 }
 @media print {
-  .app-band, .studio-option { print-color-adjust: exact; }
+  .app-shell, .studio-option { print-color-adjust: exact; }
 }
-@media (max-width: 900px) { .app-shell { width: calc(100% - 32px); } }
-@media (max-width: 374px) { .app-shell { width: calc(100% - 24px); } }
+@media (max-width: 900px) { .app-band { width: calc(100% - 32px); } }
+@media (max-width: 374px) { .app-band { width: calc(100% - 24px); } }
 @media (prefers-reduced-motion: reduce) {
   .theme *, .theme *::before, .theme *::after { transition: none; animation: none; }
   .theme .studio-cta:hover, .theme .studio-cta:active, .theme .closing-primary:active { transform: none; }

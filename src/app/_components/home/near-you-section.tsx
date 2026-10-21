@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useTranslation } from "@/i18n/useTranslation";
 import { SectionTitle } from "@/components/ui/section-title";
 import { SectionFailed } from "./section-failed";
@@ -17,7 +16,6 @@ import { mapHref } from "./map-href";
 // offset pages (6 rows), rather than downloading the whole rail on every click.
 export function NearYouSection() {
   const { locale, dict } = useTranslation();
-  const router = useRouter();
   const s = dict.homeSections.nearYou;
 
   const { coords, city, resolving } = useHomeCoords();
@@ -39,7 +37,7 @@ export function NearYouSection() {
         <SectionTitle
           title={s.title}
           action={s.action}
-          onAction={() => router.push(mapHref(locale, city))}
+          href={mapHref(locale, city)}
         />
         {busy && cards.length === 0 ? (
           <div

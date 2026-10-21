@@ -14,9 +14,9 @@ export interface HeartButtonProps {
 }
 
 // Shared favorite affordance. Ported from ZwHeartBtn. Pulses (.zv-heart-pop)
-// on click; floating adds a frosted white background. Cards render inside a
-// <Link>, so the click must also preventDefault — stopPropagation alone does
-// not cancel the anchor's navigation.
+// on click; floating adds a frosted white background. Cancel enclosing card
+// handlers and default navigation so selecting a favourite only performs that
+// action, including when a consumer places the control inside a link.
 export function HeartButton({ active, onClick, size = 34, floating = true }: HeartButtonProps) {
   const [pop, setPop] = useState(false);
   const { dict } = useTranslation();

@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useTranslation } from "@/i18n/useTranslation";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,6 @@ import { useFavoriteToggle } from "./use-favorite-toggle";
 // name-scoped. Its tab-local seed and pagination survive language navigation.
 export function InYourCity() {
   const { locale, dict } = useTranslation();
-  const router = useRouter();
   const fav = useFavoriteToggle("location");
   const s = dict.homeSections.inCity;
 
@@ -43,7 +41,7 @@ export function InYourCity() {
         <SectionTitle
           title={s.title}
           action={s.action}
-          onAction={() => router.push(mapHref(locale, city))}
+          href={mapHref(locale, city)}
         />
         {busy && visible.length === 0 ? (
           <div

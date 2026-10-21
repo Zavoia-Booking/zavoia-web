@@ -11,6 +11,7 @@ import type { ListingDetail } from "@/lib/api/marketplace/types";
 import { BusinessDetail } from "../_components/business-detail";
 import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
 import { notFoundMetadata } from "@/app/_components/not-found/metadata";
+import { getLocationCategoryHref } from "@/lib/seo/location-category.server";
 
 // ISR. The route param is a LOCATION slug (non-enumerable — the backend
 // resolves it, or a numeric id, to a listing), so nothing is prerendered at
@@ -113,5 +114,6 @@ export default async function BusinessDetailPage({ params }: Props) {
     throw error;
   }
 
-  return <BusinessDetail listing={listing} locale={locale} />;
+  const categoryHref = await getLocationCategoryHref(listing, locale);
+  return <BusinessDetail listing={listing} locale={locale} categoryHref={categoryHref} />;
 }

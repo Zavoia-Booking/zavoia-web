@@ -131,6 +131,7 @@ export function BusinessRow({
     return (
       <Link
         href={b.href}
+        title={b.name}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
         className="zw-zoom-parent"

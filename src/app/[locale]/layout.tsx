@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import "@/styles/globals.css";
+// Error boundaries are conditional; load their small stylesheet with the shell
+// so React's preload is consumed even when the route renders successfully.
+import "./error.module.css";
 import { fontVariables } from "@/styles/fonts";
 import { SITE_URL } from "@/lib/site";
 import { LOCALES, isLocale } from "@/i18n/locales";
@@ -12,8 +14,6 @@ import { ToastProvider, ToastHost } from "@/components/ui";
 import { SearchOverlayProvider } from "@/components/search/search-overlay-provider";
 import { ConditionalHeader } from "@/components/shell/conditional-header";
 import { ConditionalFooter } from "@/components/shell/conditional-footer";
-import { FooterExplore } from "@/components/shell/footer-explore";
-import { FooterExploreLinks } from "@/components/shell/footer-explore-links";
 import { MobileTabs } from "@/components/shell/mobile-tabs";
 import { AuthProvider, SessionExpiredToast } from "@/lib/auth/AuthProvider";
 import { AuthModalProvider } from "@/components/shell/auth-modal-provider";
@@ -46,6 +46,9 @@ export async function generateMetadata({
       template: "%s | Zavoia",
     },
     description: dict.home.description,
+    icons: {
+      icon: { url: "/favicon.ico", type: "image/x-icon" },
+    },
   };
 }
 
@@ -84,11 +87,7 @@ export default async function LocaleRootLayout({ children, params }: Props) {
                 <PageEntrance>{children}</PageEntrance>
                 {/* Footer + mobile spacer are suppressed on the full-bleed
                     /search route (a nested layout can't remove parent chrome). */}
-                <ConditionalFooter locale={locale} explore={
-                  <Suspense fallback={<FooterExploreLinks locale={locale} categories={[]} pending />}>
-                    <FooterExplore locale={locale} />
-                  </Suspense>
-                } />
+                <ConditionalFooter locale={locale} />
                 <MobileTabs locale={locale} />
                 <ToastHost />
                 {/* GDPR consent: banner asks on first visit; GA mounts only

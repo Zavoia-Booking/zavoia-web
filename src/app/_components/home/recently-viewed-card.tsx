@@ -28,10 +28,11 @@ export function RecentlyViewedCard({ b }: { b: RecentlyViewedCardData }) {
   return (
     <Link
       href={b.href}
+      title={b.name}
       className={`${styles.card} ${styles.link}`}
     >
       <div className={styles.media}>
-        <Img src={b.image} alt={b.name} style={{ width: "100%", height: "100%" }} />
+        <Img src={b.image} alt={b.name} sizes="(max-width: 471px) calc(100vw - 32px), (max-width: 719px) 50vw, (max-width: 1255px) 33vw, 224px" style={{ width: "100%", height: "100%" }} />
       </div>
       <div className={styles.body}>
         <div className={styles.name}>{b.name}</div>

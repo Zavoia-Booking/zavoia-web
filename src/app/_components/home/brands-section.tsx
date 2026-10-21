@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { SectionTitle } from "@/components/ui/section-title";
@@ -13,7 +12,6 @@ import { useFavoriteToggle } from "./use-favorite-toggle";
 // Styling mirrors the "Fresh on Zavoia" section.
 export function BrandsSection({ cards }: { cards: BusinessCardData[] }) {
   const { locale, dict } = useTranslation();
-  const router = useRouter();
   const fav = useFavoriteToggle("business");
   const s = dict.homeSections.brands;
 
@@ -22,7 +20,7 @@ export function BrandsSection({ cards }: { cards: BusinessCardData[] }) {
       <SectionTitle
         title={s.title}
         action={s.action}
-        onAction={() => router.push(localeHref(locale, "search"))}
+        href={localeHref(locale, "search")}
       />
       {cards.length === 0 ? (
         <p

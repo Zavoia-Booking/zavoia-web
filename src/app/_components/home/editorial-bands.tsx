@@ -1,7 +1,8 @@
-/* eslint-disable @next/next/no-img-element -- Pre-sized WebP captures use native srcSet, including inside the scaled SVG device scene. */
-import type { CSSProperties } from "react";
+/* eslint-disable @next/next/no-img-element -- App captures use getImageProps; the scaled SVG scene uses pre-sized native srcSet. */
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import localFont from "next/font/local";
+import { getImageProps } from "next/image";
 import clsx from "clsx";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
@@ -31,6 +32,17 @@ function Arrow() {
 
 function AppPhone({ variant, alt }: { variant: "schedule" | "map"; alt: string }) {
   const map = variant === "map";
+  const image = getImageProps({
+    src: `${assets}/${map ? "native-map-en" : "aligned-schedule-en"}.webp`,
+    width: 1080,
+    height: 2424,
+    alt,
+    sizes: map
+      ? "(max-width: 374px) 220px, (max-width: 900px) 248px, (max-width: 1060px) 212px, (max-width: 1250px) 232px, 246px"
+      : "(max-width: 374px) 198px, (max-width: 900px) 212px, (max-width: 1060px) 248px, (max-width: 1250px) 268px, 284px",
+    loading: "lazy",
+    decoding: "async",
+  }).props;
   return (
     <div className={clsx(styles["device-mount"], styles[map ? "device-secondary" : "device-primary"])}>
       <div className={styles.phone}>
@@ -40,14 +52,9 @@ function AppPhone({ variant, alt }: { variant: "schedule" | "map"; alt: string }
         <div className={styles["phone-face"]}>
           <div className={styles.screen}>
             <img
-              src={`${assets}/${map ? "native-map-en" : "aligned-schedule-en"}.webp`}
-              srcSet={map ? `${assets}/native-map-en-540.webp 540w, ${assets}/native-map-en-810.webp 810w, ${assets}/native-map-en.webp 1080w` : undefined}
-              sizes={map ? "(max-width: 374px) 220px, (max-width: 900px) 248px, (max-width: 1060px) 212px, (max-width: 1250px) 232px, 246px" : undefined}
-              width={1080}
-              height={2424}
+              {...image}
               alt={alt}
-              loading="lazy"
-              decoding="async"
+              title={alt}
             />
             <span className={styles["dynamic-island"]} aria-hidden="true" />
           </div>
@@ -57,14 +64,14 @@ function AppPhone({ variant, alt }: { variant: "schedule" | "map"; alt: string }
   );
 }
 
-export function AppBand({ locale }: { locale: Locale }) {
+export function AppBand({ locale, children }: { locale: Locale; children?: ReactNode }) {
   const s = dictionaries[locale].homeSections.app;
   return (
     <div className={clsx(theme, styles["app-shell"])}>
       <section className={styles["app-band"]} id="zavoia-app" aria-labelledby="app-heading">
         <div className={styles.copy}>
           <h2 className={styles["app-title"]} id="app-heading">
-            <span className={styles["headline-line"]}>{s.titleFirst}</span>
+            <span className={styles["headline-line"]}>{s.titleFirst}</span>{" "}
             <span className={styles["headline-line"]}>{s.titleSecond}<em className={styles.signature}>{s.titleAccent}</em></span>
           </h2>
           <p className={styles.intro}>{s.sub}</p>
@@ -87,6 +94,7 @@ export function AppBand({ locale }: { locale: Locale }) {
           <AppPhone variant="schedule" alt={s.scheduleAlt} />
         </div>
       </section>
+      {children}
     </div>
   );
 }
@@ -125,7 +133,7 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
               <foreignObject width="1536" height="1240">
                 <div className={styles["sa-browser"]} style={{ transform: "matrix(0.81887622,0.04291548,-0.04291548,0.81887622,310,30)" }}>
                   <div className={styles["sa-browser-bar"]} aria-hidden="true"><span className={styles["sa-browser-dots"]}><i /><i /><i /></span>zavoia.com/lumi-beauty</div>
-                  <img src={`${assets}/beauty-desktop.webp`} srcSet={`${assets}/beauty-desktop-560.webp 560w, ${assets}/beauty-desktop-1120.webp 1120w, ${assets}/beauty-desktop.webp 1440w`} sizes="(max-width: 600px) 80vw, (max-width: 900px) 600px, 700px" width={1440} height={960} alt={s.desktopAlt} loading="lazy" decoding="async" />
+                  <img src={`${assets}/beauty-desktop.webp`} srcSet={`${assets}/beauty-desktop-560.webp 560w, ${assets}/beauty-desktop-1120.webp 1120w, ${assets}/beauty-desktop.webp 1440w`} sizes="(max-width: 600px) 80vw, (max-width: 900px) 600px, 700px" width={1440} height={960} alt={s.desktopAlt} title={s.desktopAlt} loading="lazy" decoding="async" />
                 </div>
               </foreignObject>
               <foreignObject width="1536" height="1240">
@@ -139,7 +147,7 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
                       </span>
                     </div>
                     <span className={styles["dynamic-island"]} />
-                    <img className={styles["sa-screen"]} src={`${assets}/pet-phone.webp`} srcSet={`${assets}/pet-phone-390.webp 390w, ${assets}/pet-phone.webp 780w`} sizes="(max-width: 600px) 150px, 280px" width={780} height={1520} alt="" loading="lazy" decoding="async" />
+                    <img className={styles["sa-screen"]} src={`${assets}/pet-phone.webp`} srcSet={`${assets}/pet-phone-390.webp 390w, ${assets}/pet-phone.webp 780w`} sizes="(max-width: 600px) 150px, 280px" width={780} height={1520} alt="" title={s.phoneAlt} loading="lazy" decoding="async" />
                     <span className={styles["sa-home"]} />
                   </div>
                 </div>
@@ -148,9 +156,9 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
           </div>
         </div>
         <div className={styles["studio-copy"]}>
-          <h2 className={styles["studio-title"]} id="web-studio-heading">{s.titleFirst}<br />{s.titleSecond}<em className={styles.signature}>{s.titleAccent}</em></h2>
+          <h2 className={styles["studio-title"]} id="web-studio-heading">{s.titleFirst}{" "}<br />{s.titleSecond}<em className={styles.signature}>{s.titleAccent}</em></h2>
           <p className={styles["studio-intro"]}>{s.sub}</p>
-          <Link className={styles["studio-cta"]} href={localeHref(locale, "web-studio")}>{s.cta}<Arrow /></Link>
+          <Link className={styles["studio-cta"]} href={localeHref(locale, "web-studio")} title={s.cta}>{s.cta}<Arrow /></Link>
         </div>
       </div>
     </section>
@@ -161,12 +169,12 @@ export function BizStrip({ locale }: { locale: Locale }) {
   const s = dictionaries[locale].homeSections.bizStrip;
   return (
     <section className={clsx(theme, styles["homepage-close"], styles["closing-business"])} id="homepage-close" aria-labelledby="closing-title">
-      <h2 className={styles["closing-title"]} id="closing-title">{s.titleFirst}<br />{s.titleSecond}{" "}<em className={styles.signature}>{s.titleAccent}</em></h2>
+      <h2 className={styles["closing-title"]} id="closing-title">{s.titleFirst}{" "}<br />{s.titleSecond}{" "}<em className={styles.signature}>{s.titleAccent}</em></h2>
       <div className={styles["closing-details"]}>
         <p className={styles["closing-intro"]}>{s.sub}{" "}<strong>{s.commission}</strong></p>
         <div className={styles["closing-actions"]}>
-          <Link className={styles["closing-primary"]} href={localeHref(locale, "for-business")}>{s.cta}<Arrow /></Link>
-          <Link className={styles["closing-pricing"]} href={localeHref(locale, "pricing")}>{s.pricing}</Link>
+          <Link className={styles["closing-primary"]} href={localeHref(locale, "for-business")} title={s.cta}>{s.cta}<Arrow /></Link>
+          <Link className={styles["closing-pricing"]} href={localeHref(locale, "pricing")} title={s.pricing}>{s.pricing}</Link>
         </div>
       </div>
     </section>

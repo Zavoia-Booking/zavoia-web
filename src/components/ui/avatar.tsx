@@ -41,6 +41,6 @@ function AvatarSource({ src, name = "?", size = 40, ring = false }: AvatarProps)
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={name} onError={() => setErr(true)} style={{ ...style, objectFit: "cover" }} />
+    <img src={src} alt={name} title={name} onError={() => setErr(true)} style={{ ...style, objectFit: "cover" }} />
   );
 }

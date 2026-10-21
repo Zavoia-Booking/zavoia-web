@@ -1,0 +1,37 @@
+.searchCircle {
+  overflow: hidden;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  button.searchTrigger {
+    transition: transform 260ms var(--ease-out), opacity 150ms var(--ease-out);
+  }
+
+  .searchTrigger:hover:not(:active) {
+    transform: scale(1.02);
+  }
+
+  button.searchTrigger:active {
+    transition-duration: 150ms;
+  }
+
+  .searchTrigger:hover .searchArrow {
+    animation: arrowPass 400ms var(--ease-out);
+  }
+}
+
+@keyframes arrowPass {
+  0% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(44px);
+  }
+  /* Reset only after the arrow has fully cleared the circle's clipping edge. */
+  45.001% {
+    transform: translateX(-44px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}

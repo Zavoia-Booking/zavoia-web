@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { CITY_ENTRIES, listTaxonomy, slugifyRo } from "@/data/seo";
+import { getCategoryAlternates } from "@/data/seo";
+import { getCategoryDiscoveryGroups } from "@/lib/seo/category-discovery";
 import { listPostsForSitemap } from "@/sanity/queries";
 import { getPostAlternates } from "@/lib/blog/alternates";
 import { LEGAL_DOCUMENTS } from "@/data/legal";
@@ -68,42 +69,12 @@ async function loadIndustries(): Promise<Industry[]> {
  * Reuses the existing sitemap feed and taxonomy request; no per-city searches.
  */
 function categoryEntries(marketplace: MarketplaceSitemap, industries: Industry[]): MetadataRoute.Sitemap {
-  const taxonomy = listTaxonomy(industries, DEFAULT_LOCALE);
-  const industryById = new Map(industries.map((industry) => [industry.id, industry.slug]));
-  const tagById = new Map(taxonomy.flatMap((entry) => entry.kind === "tag" ? [[entry.tagId, entry.id] as const] : []));
-  const eligible = new Map<string, Set<string>>();
-
-  for (const location of marketplace.locations) {
-    const category = location.category;
-    if (!category?.city) continue;
-    // Match actual indexed city names against configured aliases. Visitor
-    // geolocation/country fallbacks must never invent inventory for a city.
-    const cityKey = slugifyRo(category.city);
-    const city = CITY_ENTRIES.find((candidate) =>
-      [candidate.id, ...Object.values(candidate.name), ...Object.values(candidate.slug)]
-        .some((alias) => slugifyRo(alias) === cityKey),
-    );
-    if (!city) continue;
-    const entries = eligible.get(city.id) ?? new Set<string>();
-    const industry = category.industryId == null ? undefined : industryById.get(category.industryId);
-    if (industry) entries.add(industry);
-    for (const tagId of category.tagIds) {
-      const tag = tagById.get(tagId);
-      if (tag) entries.add(tag);
-    }
-    eligible.set(city.id, entries);
-  }
-
-  const taxonomyByLocale = Object.fromEntries(
-    LOCALES.map((locale) => [locale, new Map(listTaxonomy(industries, locale).map((entry) => [entry.id, entry]))]),
-  ) as Record<Locale, Map<string, (typeof taxonomy)[number]>>;
-
-  return CITY_ENTRIES.flatMap((city) =>
-    [...(eligible.get(city.id) ?? [])].sort().flatMap((id) => {
-      const languages = Object.fromEntries(LOCALES.flatMap((locale) => {
-        const entry = taxonomyByLocale[locale].get(id);
-        return entry ? [[locale, abs(localeHref(locale, city.slug[locale], entry.slug))]] : [];
-      }));
+  const groups = getCategoryDiscoveryGroups(marketplace.locations, industries, DEFAULT_LOCALE);
+  return groups.flatMap((city) =>
+    city.entries.flatMap((entry) => {
+      const languages = Object.fromEntries(Object.entries(
+        getCategoryAlternates(industries, city.id, entry.id),
+      ).map(([locale, path]) => [locale, abs(path)]));
       return LOCALES.flatMap((locale) => languages[locale] ? [{
         url: languages[locale],
         // The feed cannot establish the category's last significant change.

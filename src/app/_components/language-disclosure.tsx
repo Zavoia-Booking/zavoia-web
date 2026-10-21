@@ -160,6 +160,7 @@ export function LanguageDisclosure({
                 <li key={locale}>
                   {target ? (
                     <Link
+                      title={optionLabel}
                       href={`${target}${browserUrl?.search ?? ""}${browserUrl?.hash ?? ""}`}
                       prefetch={false}
                       replace

@@ -33,6 +33,10 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
   const industry = industryVisual(b.cat);
   const is247 = b.status === "24-7" || b.status === "24/7";
   const isOpen = b.status === "open" || is247;
+  const businessName = b.businessName?.trim();
+  const showBusinessName = businessName && businessName.toLowerCase() !== b.name.trim().toLowerCase();
+  const imageName = showBusinessName ? `${businessName}, ${b.name}` : b.name;
+  const cardName = [b.name, showBusinessName ? businessName : null, b.city].filter(Boolean).join(", ");
 
   const inner = (
     <>
@@ -42,8 +46,9 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
       >
         <Img
           src={b.image}
-          alt={b.name}
+          alt={imageName}
           label={b.cat}
+          sizes="150px"
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
         />
         <div
@@ -86,6 +91,11 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
           }}
         >
           {b.name}
+          {showBusinessName && (
+            <span style={{ display: "block", marginTop: 4, fontSize: 12, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>
+              {businessName}
+            </span>
+          )}
         </div>
       </div>
       <div
@@ -152,7 +162,7 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
             <Icon name="star" size={11} color="var(--p-500)" />
             {b.rating.toFixed(1)}
             {b.reviews != null && (
-              <span style={{ color: "var(--c-500)", fontWeight: 500 }}>({b.reviews})</span>
+              <span style={{ color: "var(--c-600)", fontWeight: 500 }}>({b.reviews})</span>
             )}
           </div>
         )}
@@ -194,7 +204,7 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
               {(is247 ? dict.common.open247 : dict.common.open).toUpperCase()}
             </span>
           ) : (
-            <span style={{ color: "var(--c-500)" }}>{dict.common.closed.toUpperCase()}</span>
+            <span style={{ color: "var(--c-600)" }}>{dict.common.closed.toUpperCase()}</span>
           )}
         </div>
       </div>
@@ -203,7 +213,7 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
 
   if (b.href) {
     return (
-      <Link href={b.href} className="zw-hover-lift zw-zoom-parent" style={ROOT_STYLE}>
+      <Link href={b.href} title={cardName} aria-label={cardName} className="zw-hover-lift zw-zoom-parent" style={ROOT_STYLE}>
         {inner}
       </Link>
     );

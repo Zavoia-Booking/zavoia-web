@@ -62,9 +62,10 @@ const WEEKDAY_KEYS = [
 interface Props {
   listing: ListingDetail;
   locale: Locale;
+  categoryHref?: string | null;
 }
 
-export function BusinessDetail({ listing, locale }: Props) {
+export function BusinessDetail({ listing, locale, categoryHref }: Props) {
   const { dict } = useTranslation();
   const toast = useToast();
   const t = dict.business;
@@ -361,7 +362,16 @@ export function BusinessDetail({ listing, locale }: Props) {
                         size={14}
                       />
                     ),
-                    industryLabel && (
+                    categoryHref && industryLabel && listing.location.city ? (
+                      <Link href={categoryHref} prefetch={false} className={styles.categoryLink}>
+                        <CatDot cat={cat} size={8} />
+                        <span>
+                          {industryLabel}{" "}
+                          <span className={styles.categorySeparator} aria-hidden="true">·</span>{" "}
+                          {listing.location.city}
+                        </span>
+                      </Link>
+                    ) : industryLabel && (
                       <span
                         style={{
                           display: "inline-flex",
@@ -373,7 +383,7 @@ export function BusinessDetail({ listing, locale }: Props) {
                         {industryLabel}
                       </span>
                     ),
-                    listing.location.city && (
+                    (!categoryHref || !industryLabel) && listing.location.city && (
                       <span>{listing.location.city}</span>
                     ),
                     distanceStr && <span>{distanceStr}</span>,
@@ -1988,16 +1998,12 @@ function bookLabel(
  * so no dangling separators appear regardless of which segments are present.
  */
 function joinDot(nodes: React.ReactNode[]): React.ReactNode[] {
-  return nodes.flatMap((node, i) =>
-    i === 0
-      ? [<span key={`seg-${i}`}>{node}</span>]
-      : [
-          <span key={`dot-${i}`} style={{ color: "var(--c-400)" }}>
-            ·
-          </span>,
-          <span key={`seg-${i}`}>{node}</span>,
-        ],
-  );
+  return nodes.map((node, i) => (
+    <span key={`seg-${i}`} className={styles.metaSegment}>
+      {i > 0 && <span className={styles.categorySeparator} aria-hidden="true">·</span>}
+      {node}
+    </span>
+  ));
 }
 
 /** Haversine distance in km between two {lat,lng} points. */

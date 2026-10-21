@@ -98,8 +98,9 @@ export function HomeContent({
 
       <NearYouSection />
 
-      <AppBand locale={locale} />
-      <TrustBand locale={locale} />
+      <AppBand locale={locale}>
+        <TrustBand locale={locale} />
+      </AppBand>
       <WebStudioBand locale={locale} />
       <BizStrip locale={locale} />
     </main>

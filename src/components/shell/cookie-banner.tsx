@@ -68,6 +68,7 @@ export function CookieBanner({ locale }: { locale: Locale }) {
         {t.body}{" "}
         <Link
           href={localeHref(locale, "terms", "cookie-policy")}
+          title={t.policyLink}
           className="zw-link"
           style={{ color: "var(--c-800)", fontWeight: 600, textDecoration: "underline" }}
         >

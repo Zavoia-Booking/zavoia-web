@@ -28,15 +28,36 @@ const ROOT_STYLE: CSSProperties = {
   textDecoration: "none",
 };
 
+const ACTION_STYLE: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  display: "block",
+  borderRadius: "inherit",
+  color: "inherit",
+  textDecoration: "none",
+  outlineOffset: -3,
+};
+
 // Photo-forward card: full-bleed image, dual gradient scrims, magazine-bold
 // name, and a confident rating block (big number + fractional stars).
 // Ported from ZwBusinessOverlayCard.
 export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: BusinessOverlayCardProps) {
   const { dict } = useTranslation();
+  const locationName = b.locationName?.trim() || b.name;
+  const businessName = b.businessName?.trim();
+  const showBusinessName = businessName && businessName.toLowerCase() !== locationName.toLowerCase();
+  const imageName = showBusinessName ? `${businessName}, ${locationName}` : locationName;
+  const cardName = [locationName, showBusinessName ? businessName : null, b.city].filter(Boolean).join(", ");
   const inner = (
     <>
       <div className="zw-zoom-wrap" style={{ position: "absolute", inset: 0 }}>
-        <Img src={b.image} alt={b.name} label={b.cat} style={{ width: "100%", height: "100%" }} />
+        <Img
+          src={b.image}
+          alt={imageName}
+          label={b.cat}
+          sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) 50vw, 320px"
+          style={{ width: "100%", height: "100%" }}
+        />
       </div>
       <div
         aria-hidden="true"
@@ -61,12 +82,6 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
         }}
       />
 
-      {onFavorite && (
-        <span style={{ position: "absolute", top: 12, right: 12 }}>
-          <HeartButton active={favorited} onClick={() => onFavorite(b.id)} size={34} />
-        </span>
-      )}
-
       <div
         style={{ position: "absolute", left: 18, right: 18, bottom: 18, color: "#fff", textAlign: "left" }}
       >
@@ -80,8 +95,22 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
             textShadow: "0 2px 14px rgba(0,0,0,0.42)",
           }}
         >
-          {b.name}
+          {locationName}
         </div>
+        {showBusinessName && (
+          <div
+            style={{
+              marginTop: 7,
+              fontSize: 13,
+              fontWeight: 600,
+              lineHeight: 1.3,
+              color: "rgba(255,255,255,0.90)",
+              textShadow: "0 1px 6px rgba(0,0,0,0.40)",
+            }}
+          >
+            {businessName}
+          </div>
+        )}
         <div
           style={{
             marginTop: 8,
@@ -158,25 +187,39 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
     </>
   );
 
-  if (b.href) {
-    return (
-      <Link href={b.href} className="zw-hover-lift zw-zoom-parent" style={ROOT_STYLE}>
-        {inner}
-      </Link>
-    );
-  }
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e: KeyboardEvent) => {
-        if (e.key === "Enter") onClick?.();
-      }}
       className="zw-hover-lift zw-zoom-parent"
-      style={ROOT_STYLE}
+      style={{ ...ROOT_STYLE, cursor: b.href || onClick ? "pointer" : "default" }}
     >
-      {inner}
+      {b.href ? (
+        <Link href={b.href} title={cardName} aria-label={cardName} style={ACTION_STYLE}>
+          {inner}
+        </Link>
+      ) : onClick ? (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={cardName}
+          onClick={onClick}
+          onKeyDown={(event: KeyboardEvent) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onClick();
+            }
+          }}
+          style={ACTION_STYLE}
+        >
+          {inner}
+        </div>
+      ) : (
+        <div style={ACTION_STYLE}>{inner}</div>
+      )}
+      {onFavorite && (
+        <span style={{ position: "absolute", top: 12, right: 12 }}>
+          <HeartButton active={favorited} onClick={() => onFavorite(b.id)} size={34} />
+        </span>
+      )}
     </div>
   );
 }

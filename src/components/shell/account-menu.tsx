@@ -103,6 +103,7 @@ export function AccountMenu({ locale, onClose }: Props) {
   ) => (
     <Link
       href={localeHref(locale, ...segments)}
+      title={label}
       className="tap zw-hover-row"
       onClick={onClose}
       style={{ ...rowStyle, color: "var(--c-800)" }}
@@ -122,6 +123,7 @@ export function AccountMenu({ locale, onClose }: Props) {
   ) => (
     <Link
       href={localeHref(locale, ...segments)}
+      title={label}
       className="tap zw-hover-row"
       onClick={onClose}
       style={{ ...rowStyle, color: "var(--p-700)", fontWeight: 600 }}
@@ -175,6 +177,7 @@ export function AccountMenu({ locale, onClose }: Props) {
       ) : isAuthed ? (
         <Link
           href={localeHref(locale, "account")}
+          title={dict.nav.account}
           className="tap zw-hover-row"
           onClick={onClose}
           style={{ ...identityStyle, color: "inherit" }}
@@ -212,6 +215,7 @@ export function AccountMenu({ locale, onClose }: Props) {
       ) : (
         <Link
           href={loginHref}
+          title={t.login}
           className="tap zw-hover-row"
           onClick={onClose}
           style={{ ...identityStyle, color: "inherit" }}
@@ -311,6 +315,7 @@ export function AccountMenu({ locale, onClose }: Props) {
         ) : (
           <Link
             href={loginHref}
+            title={t.login}
             className="tap zw-hover-row"
             onClick={onClose}
             style={{ ...rowStyle, color: "var(--p-600)" }}

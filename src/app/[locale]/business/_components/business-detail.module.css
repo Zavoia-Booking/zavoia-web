@@ -1,3 +1,29 @@
 .initialContent :global(.zv-tab-in) {
   animation: none;
 }
+
+.metaSegment {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 100%;
+}
+
+.categoryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--c-400);
+  text-underline-offset: 3px;
+}
+
+.categoryLink:hover {
+  color: var(--c-900);
+  text-decoration-color: currentColor;
+}
+
+.categorySeparator {
+  color: var(--c-400);
+}

@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Icon } from "@/components/ui/icon";
-import { listTaxonomy } from "@/data/seo";
 import { dictionaries } from "@/i18n/dictionaries";
 import { DEFAULT_LOCALE, LOCALES, isLocale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
@@ -67,27 +66,16 @@ export default async function IndustriesPage({ params }: Props) {
   });
   const collator = new Intl.Collator(locale, { sensitivity: "base" });
   const searchPath = localeHref(locale, "search");
-  const taxonomy = listTaxonomy(industries, locale);
   const directory = otherIndustryLast(
     industries
       .map((industry) => ({
         slug: industry.slug,
-        landingSlug: taxonomy.find(
-          (entry) =>
-            entry.kind === "industry" && entry.industrySlug === industry.slug,
-        )?.slug,
         label: taxonomyLabel(industry, locale, dict.industries),
         searchText: [industry.name, industry.nameRo].filter(Boolean).join(" "),
         href: `${searchPath}?${new URLSearchParams({ industry: industry.slug })}`,
         tags: industry.tags
           .map((tag) => ({
             id: tag.id,
-            landingSlug: taxonomy.find(
-              (entry) =>
-                entry.kind === "tag" &&
-                entry.industrySlug === industry.slug &&
-                entry.tagId === tag.id,
-            )?.slug,
             label: taxonomyLabel(tag, locale, dict.industryTags),
             searchText: [tag.name, tag.nameRo].filter(Boolean).join(" "),
             href: `${searchPath}?${new URLSearchParams({ industry: industry.slug, tagIds: String(tag.id) })}`,
@@ -150,7 +138,7 @@ export default async function IndustriesPage({ params }: Props) {
       </header>
 
       {directory.length > 0 ? (
-        <IndustryBrowser locale={locale} industries={directory} labels={t} />
+        <IndustryBrowser industries={directory} labels={t} />
       ) : (
         <section className={styles.empty}>
           <h2>{t.emptyTitle}</h2>

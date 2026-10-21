@@ -151,6 +151,8 @@ export function listingToCardData(
     slug: d.slug,
     // The card stands in for the LOCATION it links to — lead with its name.
     name: d.location?.name || d.name,
+    locationName: d.location?.name || undefined,
+    businessName: d.name,
     cat: toCat(industry),
     catLabel: industry ? taxonomyLabel(industry, locale) : undefined,
     rating: d.averageRating ?? undefined,

@@ -37,6 +37,7 @@ export function CoverPlate({ data, t, parallax, name, eyebrow, eyebrowDot, monog
           <img
             src={data.heroImageUrl ?? undefined}
             alt=""
+            title={name}
             loading={parallax ? "eager" : "lazy"}
             decoding="async"
             fetchPriority={parallax ? "high" : "auto"}

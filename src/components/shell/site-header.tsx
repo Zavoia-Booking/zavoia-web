@@ -312,12 +312,16 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         <Link
           href={localeHref(locale)}
           aria-label={dict.nav.homeAria}
+          title={dict.nav.homeAria}
           style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/brand/wordmark-cropped.png"
             alt="Zavoia"
+            title="Zavoia"
+            width={440}
+            height={145}
             style={{ height: 34, width: "auto" }}
           />
         </Link>
@@ -334,6 +338,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         >
           <Link
             href={localeHref(locale, "search")}
+            title={dict.nav.explore}
             className={"zw-navlink" + (exploreActive ? " zw-navlink--on" : "")}
           >
             {dict.nav.explore}
@@ -391,6 +396,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
               them. Desktop only; mobile reaches it through the account menu. */}
           <Link
             href={localeHref(locale, "web-studio")}
+            title={dict.nav.webStudio}
             className={
               `zw-only-desktop zw-navlink ${styles.webStudioLink}` +
               (webStudioActive ? " zw-navlink--on" : "")
@@ -403,6 +409,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 
           <Link
             href={localeHref(locale, "for-business")}
+            title={dict.nav.forBusiness}
             className={
               "zw-only-desktop zw-navlink" +
               (forBusinessActive ? " zw-navlink--on" : "")

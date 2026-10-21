@@ -17,9 +17,8 @@ import motion from "@/components/ui/disclosure-motion.module.css";
 import styles from "./footer.module.css";
 
 /** Signature's ruled wordmark band and sitemap, adapted to marketplace navigation. */
-export function Footer({ locale, explore, showWordmark = true }: {
+export function Footer({ locale, showWordmark = true }: {
   locale: Locale;
-  explore: ReactNode;
   showWordmark?: boolean;
 }) {
   const { dict } = useTranslation();
@@ -27,7 +26,7 @@ export function Footer({ locale, explore, showWordmark = true }: {
   const { openSettings } = useConsent();
 
   const fLink = (label: string, ...segments: string[]) => (
-    <Link href={localeHref(locale, ...segments)} className={styles.link}>
+    <Link href={localeHref(locale, ...segments)} title={label} className={styles.link}>
       {label}
     </Link>
   );
@@ -37,10 +36,11 @@ export function Footer({ locale, explore, showWordmark = true }: {
       <div className={`zw-container ${styles.frame}`}>
         {showWordmark && (
           <div className={styles.markBand}>
-            <Link href={localeHref(locale)} className={styles.mark}>
+            <Link href={localeHref(locale)} title={dict.nav.homeAria} className={styles.mark}>
               <Image
                 src="/brand/zavoia_logo_full_transparent.png"
                 alt="Zavoia"
+                title="Zavoia"
                 width={957}
                 height={300}
                 sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1456px) calc(100vw - 56px), 1400px"
@@ -59,10 +59,10 @@ export function Footer({ locale, explore, showWordmark = true }: {
             <FooterColumn title={t.explore}>
               <li>{fLink(t.findBusiness, "search")}</li>
               <li>{fLink(t.journal, "blog")}</li>
-              {explore}
               <li>
                 <Link
                   href={localeHref(locale, "industries")}
+                  title={t.browseIndustries}
                   prefetch={false}
                   className={styles.link}
                 >
@@ -76,7 +76,7 @@ export function Footer({ locale, explore, showWordmark = true }: {
               <li>{fLink(t.webStudio, "web-studio")}</li>
               <li>{fLink(t.pricing, "pricing")}</li>
               <li>
-                <a href={`${BUSINESS_APP_URL}/login`} className={styles.link}>
+                <a href={`${BUSINESS_APP_URL}/login`} title={t.businessSignIn} className={styles.link}>
                   {t.businessSignIn}
                 </a>
               </li>
@@ -98,15 +98,16 @@ export function Footer({ locale, explore, showWordmark = true }: {
             <button type="button" className={styles.link} onClick={openSettings}>
               {t.cookieSettings}
             </button>
-            <a href="https://anpc.ro/" className={styles.link}>
+            <a href="https://anpc.ro/" title={t.consumerProtection} className={styles.link}>
               {t.consumerProtection}
             </a>
           </div>
           {/* Official artwork: https://anpc.ro/download/sal/SAL-PICTOGRAMA.png */}
-          <a href="https://reclamatiisal.anpc.ro/" className={styles.salLink}>
+          <a href="https://reclamatiisal.anpc.ro/" title={t.alternativeDisputeResolution} className={styles.salLink}>
             <Image
               src="/legal/anpc-sal.png"
               alt={t.alternativeDisputeResolution}
+              title={t.alternativeDisputeResolution}
               width={250}
               height={50}
               className={styles.salBadge}
@@ -117,7 +118,7 @@ export function Footer({ locale, explore, showWordmark = true }: {
 
         {/* All navigation remains rendered when JavaScript is unavailable. */}
         <noscript>
-          <style>{`.${styles.columnMotion}{display:grid!important;grid-template-rows:1fr!important;visibility:visible!important;pointer-events:auto!important}.${styles.columnMotion}>div{opacity:1!important}.${styles.trigger}{display:none!important}.${styles.desktopTitle}{display:block!important}`}</style>
+          <style>{`.${styles.columnMotion}{display:grid!important;grid-template-rows:1fr!important;visibility:visible!important;pointer-events:auto!important}.${styles.columnMotion}>div{opacity:1!important}.${styles.trigger}{display:none!important}`}</style>
         </noscript>
       </div>
     </footer>
@@ -126,13 +127,13 @@ export function Footer({ locale, explore, showWordmark = true }: {
 
 function FooterColumn({ title, children }: { title: string; children: ReactNode }) {
   const headingId = useId();
+  const titleId = `${headingId}-title`;
 
   return (
     <Collapsible className={`${styles.column} ${motion.root}`}>
-      <h2 id={headingId} className={styles.heading}>
-        <span className={styles.desktopTitle}>{title}</span>
-        <CollapsibleTrigger className={styles.trigger}>
-          <span>{title}</span>
+      <h2 id={headingId} aria-labelledby={titleId} className={styles.heading}>
+        <span id={titleId} className={styles.columnTitle}>{title}</span>
+        <CollapsibleTrigger className={styles.trigger} aria-labelledby={titleId}>
           <span className={styles.plus} aria-hidden="true" />
         </CollapsibleTrigger>
       </h2>

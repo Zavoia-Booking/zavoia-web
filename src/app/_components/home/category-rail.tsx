@@ -49,6 +49,7 @@ export function CategoryRail({ locale, industries, featuredIndustryIds }: {
             <Link
               href={`${localeHref(locale, "search")}?industry=${encodeURIComponent(industry.slug)}`}
               prefetch={false}
+              title={taxonomyLabel(industry, locale, dict.industries)}
               className={styles.tile}
               aria-haspopup={industry.tags.length > 0 ? "dialog" : undefined}
               onNavigate={(event) => {
@@ -70,6 +71,7 @@ export function CategoryRail({ locale, industries, featuredIndustryIds }: {
           <Link
             href={localeHref(locale, "industries")}
             prefetch={false}
+            title={t.seeAllIndustries}
             className={styles.tile}
           >
             <span className={`${styles.glyph} ${styles.allGlyph}`}>

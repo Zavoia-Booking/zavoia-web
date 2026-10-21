@@ -1,3 +1,5 @@
+import { useContext } from "react";
+import { StaticPreviewContext } from "../../../shared/hooks";
 import { BookButton } from "../../../shared/primitives";
 import { HERO_DELAY } from "../constants";
 import { WordRise } from "../parts/WordRise";
@@ -10,6 +12,8 @@ import "./poster.css";
  *  the foot of the frame, raked into fine vertical rays under a deep vignette + film grain. Odd lines are
  *  drawn as an accent-outline ghost. (Design source: HeroPoster.) */
 export function Poster(props: HeroVariantProps) {
+  const staticPreview = useContext(StaticPreviewContext);
+  const HeadingTag = staticPreview ? "div" : "h1";
   const { t } = props;
   const { name, tagline, rating, count, showRating, ctaLabel } = deriveHeroContent(props);
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -22,7 +26,7 @@ export function Poster(props: HeroVariantProps) {
       <div className="mc-heropo-vignette" aria-hidden />
       <div className="mc-heropo-grain" aria-hidden />
       <div className="mc-heropo-in">
-        <h1 className="mc-heropo-title" aria-label={name}>
+        <HeadingTag className="mc-heropo-title" aria-label={name}>
           {lines.map((ln, i) => (
             <WordRise
               key={i}
@@ -33,7 +37,7 @@ export function Poster(props: HeroVariantProps) {
               className={"mc-heropo-line" + (i % 2 === 1 ? " is-ghost" : "")}
             />
           ))}
-        </h1>
+        </HeadingTag>
         {tagline && (
           <p className="mc-heropo-tag mc-rev-up" style={{ animationDelay: `${HERO_DELAY.tagline}ms` }}>
             {tagline}

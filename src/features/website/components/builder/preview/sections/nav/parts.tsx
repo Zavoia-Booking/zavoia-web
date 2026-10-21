@@ -127,7 +127,7 @@ export function NavBrand({
   return (
     <span className={cn("mc-nav-brand", className)}>
       {data.logo ? (
-        <img className="mc-nav-brand-logo" src={data.logo} alt="" loading={staticPreview ? "eager" : "lazy"} decoding="async" />
+        <img className="mc-nav-brand-logo" src={data.logo} alt="" title={name} loading={staticPreview ? "eager" : "lazy"} decoding="async" />
       ) : (
         <span className="mc-nav-brand-mark" aria-hidden style={DISPLAY}>{mark}</span>
       )}

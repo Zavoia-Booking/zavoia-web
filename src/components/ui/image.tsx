@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type CSSProperties, type ImgHTMLAttributes } from "react";
+import { getImageProps } from "next/image";
 import { useTranslation } from "@/i18n/useTranslation";
+import { canOptimizePublicImage } from "@/lib/image-sources";
 
 export interface ImgProps
   extends Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt"> {
@@ -19,10 +21,11 @@ export function Img(props: ImgProps) {
   return <ImageSource key={props.src ?? ""} {...props} />;
 }
 
-function ImageSource({ src, alt = "", label, className, style, onLoad, onError, ...rest }: ImgProps) {
+function ImageSource({ src, alt = "", title, label, className, style, onLoad, onError, sizes, ...rest }: ImgProps) {
   const { dict } = useTranslation();
   const [err, setErr] = useState(false);
   const [ok, setOk] = useState(false);
+  const [useOriginal, setUseOriginal] = useState(false);
   const placeholderLabel = label ?? dict.common.photo;
 
   if (err || !src) {
@@ -45,20 +48,43 @@ function ImageSource({ src, alt = "", label, className, style, onLoad, onError, 
       </div>
     );
   }
+  // Card containers already reserve their aspect ratio. Opt in with their actual
+  // display sizes and keep the shared skeleton/error treatment around the img.
+  const optimized = !useOriginal && sizes && !rest.srcSet && canOptimizePublicImage(src)
+    ? getImageProps({ src, alt, fill: true, sizes }).props
+    : null;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={optimized?.src ?? src}
+      srcSet={optimized?.srcSet}
+      sizes={sizes}
       alt={alt}
-      onError={(event) => { setErr(true); onError?.(event); }}
+      title={title ?? (alt || undefined)}
+      onError={(event) => {
+        if (optimized) {
+          setOk(false);
+          setUseOriginal(true);
+          return;
+        }
+        setErr(true);
+        onError?.(event);
+      }}
       onLoad={(event) => { setOk(true); onLoad?.(event); }}
       ref={(el) => {
-        if (el && el.complete && el.naturalWidth > 0) setOk(true);
+        if (!el?.complete) return;
+        if (el.naturalWidth > 0) {
+          setOk(true);
+        } else if (el.currentSrc) {
+          // A server-rendered image can fail before hydration attaches onError.
+          if (optimized) setUseOriginal(true);
+          else setErr(true);
+        }
       }}
       className={["zw-img", ok ? "zw-img--in" : "zv-skel", className].filter(Boolean).join(" ")}
       loading="lazy"
       decoding="async"
-      style={{ display: "block", objectFit: "cover", ...style }}
+      style={{ ...optimized?.style, display: "block", objectFit: "cover", ...style }}
       {...rest}
     />
   );

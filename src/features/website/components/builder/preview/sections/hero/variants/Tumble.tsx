@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BookButton } from "../../../shared/primitives";
-import { useReducedMotion } from "../../../shared/hooks";
+import { StaticPreviewContext, useReducedMotion } from "../../../shared/hooks";
 import { HeroRate } from "../parts/HeroRate";
 import { deriveHeroContent } from "../parts/content";
 import type { HeroVariantProps } from "../types";
@@ -58,6 +58,8 @@ function computeTumble(name: string, w: number) {
  *  bounces once and settles scattered. Tap/flick a letter to toss it. At rest (reduced motion) the glyphs
  *  render settled. (Design source: HeroTumble.) */
 export function Tumble(props: HeroVariantProps) {
+  const staticPreview = useContext(StaticPreviewContext);
+  const HeadingTag = staticPreview ? "div" : "h1";
   const { t } = props;
   const { name, tagline, rating, count, showRating, ctaLabel } = deriveHeroContent(props);
   const hasTagline = !!tagline?.trim();
@@ -75,7 +77,7 @@ export function Tumble(props: HeroVariantProps) {
 
   const { lines, fontSize, N, scatterK } = useMemo(() => computeTumble(name, w), [name, w]);
 
-  const stageRef = useRef<HTMLHeadingElement>(null);
+  const stageRef = useRef<HTMLHeadingElement | HTMLDivElement>(null);
   const els = useRef<(HTMLElement | null)[]>([]);
   const simRef = useRef<{ kick: (i: number) => void } | null>(null);
   const reducedMotion = useReducedMotion();
@@ -194,7 +196,7 @@ export function Tumble(props: HeroVariantProps) {
       <div className="mc-herotb-underlay" aria-hidden />
       <div className="mc-herotb-grain" aria-hidden />
       <div className="mc-herotb-vign" aria-hidden />
-      <h1 className="mc-herotb-stage" ref={stageRef} style={{ fontSize }} aria-label={name}>
+      <HeadingTag className="mc-herotb-stage" ref={stageRef} style={{ fontSize }} aria-label={name}>
         {lines.map((ln, li) => (
           <span className="mc-herotb-line" key={li}>
             {Array.from(ln).map((ch, ci) => {
@@ -217,7 +219,7 @@ export function Tumble(props: HeroVariantProps) {
             })}
           </span>
         ))}
-      </h1>
+      </HeadingTag>
       <div className="mc-herotb-side mc-rev-fade" style={{ animationDelay: "200ms" }}>
         {hasTagline && <p className="mc-herotb-tag">— {tagline}</p>}
         <span className="mc-herotb-reg" aria-hidden>®</span>

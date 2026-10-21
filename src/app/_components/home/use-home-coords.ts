@@ -46,7 +46,8 @@ async function withTimeout<T>(request: (signal: AbortSignal) => Promise<T>): Pro
 
 /**
  * One geolocation → IP lookup per document, shared by both home feeds. Publish
- * coordinates before reverse-geocoding; city/country also inform footer links.
+ * coordinates before reverse-geocoding; the directory can reuse the same
+ * location for searches without assigning a different city.
  * The store is populated in an effect, never during SSR, and immediately gives
  * locale remounts the same resolved location instead of restarting their spinner.
  */

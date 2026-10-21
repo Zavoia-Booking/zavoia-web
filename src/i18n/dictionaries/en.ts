@@ -980,7 +980,6 @@ export const en: {
     explore: string;
     findBusiness: string;
     browseIndustries: string;
-    inCity: string;
     support: string;
     journal: string;
     forBusiness: string;
@@ -1061,7 +1060,6 @@ export const en: {
     appointments: string;
     saved: string;
     help: string;
-    offers: string;
   };
   toast: {
     signedOut: string;
@@ -1647,12 +1645,12 @@ export const en: {
 } = {
   preposition: "in",
   home: {
-    title: "Zavoia — Booking & Discovery in Romania",
+    title: "Zavoia — Discover Local Services & Book Online",
     description:
-      "Find and book barbers, nail salons, hair salons, massage and spa services across Romania.",
-    heading: "Zavoia — Booking & Discovery in Romania",
+      "Discover local businesses across beauty, wellness, automotive and more. Compare services, see available times and book your next appointment online with Zavoia.",
+    heading: "Zavoia — Discover Local Services & Book Online",
     intro:
-      "Browse barbers, nail salons, hair salons, massage and spa services in every major city.",
+      "Discover local businesses across industries, compare services and book your next appointment online.",
     heroTagline: "Local appointments, made simple.",
   },
   homeSections: {
@@ -1660,7 +1658,7 @@ export const en: {
       headlineLead: "Local services.",
       headlineAccent: "On your schedule.",
       subcopy:
-        "From haircuts to car inspections, see available times and book online.",
+        "Zavoia brings local businesses and online booking together. From haircuts to car inspections, find a service and choose your time.",
       searchTryPrefix: "Try",
       searchAria: "Search",
       prompts: [
@@ -2847,7 +2845,6 @@ export const en: {
     explore: "Explore",
     findBusiness: "Find a business",
     browseIndustries: "Browse all industries",
-    inCity: "In {city}",
     support: "Help & support",
     journal: "Journal",
     forBusiness: "For business",
@@ -2931,7 +2928,6 @@ export const en: {
     appointments: "Appointments",
     saved: "Saved",
     help: "Help",
-    offers: "Offers",
   },
   toast: {
     signedOut: "Signed out",

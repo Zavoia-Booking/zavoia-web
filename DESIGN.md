@@ -155,7 +155,7 @@ brand and a small status quartet that whispers through 6px dots.
 - **Text Strong** (`--c-900`, {colors.text-strong}): headings, card names, active nav links.
 - **Text Body** (`--c-700`, {colors.text-body}): long-form prose, card blurbs, secondary buttons' quieter sibling.
 - **Text Secondary** (`--c-600`, {colors.text-secondary}): meta rows, captions, back links — the *floor* for body-size secondary text (see rule below).
-- **Text Faint** (`--c-500`, {colors.text-faint}) and lighter (`--c-400`): decorative/non-essential only — dot separators, inactive tab labels at 600 weight, mono micro-counts, the hero's ghosted second line at display size.
+- **Text Faint** (`--c-500`, {colors.text-faint}) and lighter (`--c-400`): decorative/non-essential only, such as dot separators. Meaningful hero copy, search prompts, review counts and status labels use `--c-600` or darker.
 - **Hairline** ({colors.hairline}): dividers and quiet borders, always as ink at 6–14% alpha (`rgba(28,28,26,0.06)` card borders → `0.14` input strokes), never a gray hex.
 
 ### Status
@@ -170,8 +170,8 @@ palette (`--cat-hair` … `--cat-trades`) consumed dynamically as
 ### Named Rules
 **The c-600 Floor Rule.** Secondary text on the canvas must be `var(--c-600)`
 or darker. `--c-500` fails the 4.5:1 contrast floor at body sizes — it is
-reserved for decorative, large, or redundant text (dot separators, ghosted
-display lines, counts that repeat information available elsewhere).
+reserved for decoration. Large meaningful text must still meet 3:1 contrast
+against its actual background, including gradients; body text must meet 4.5:1.
 
 **The One Voice Rule.** Terracotta is the only brand accent and it stays
 scarce. Structure and state are carried by ink; terracotta marks *the* action
@@ -196,7 +196,7 @@ indices, counts, and reading-time tags. Fonts load via `next/font` in
 `src/styles/fonts.ts` — the single place fonts are declared.
 
 ### Hierarchy
-- **Display** (600, clamp(48px, 6.6vw, 88px), lh 0.93, ls −0.052em): the home hero only. Its second line ghosts to `--c-400`.
+- **Display** (600, clamp(48px, 6.6vw, 88px), lh 0.93, ls −0.052em): the home hero only. Its second line uses `--c-600` to retain contrast against the hero gradient.
 - **Headline** (700, clamp(22px, 2.4vw, 30px), lh 1.06, ls −0.03em): SectionTitle's `h2`, always `txt-balance`, always `--c-900`, usually preceded by a Kicker with 8px gap.
 - **Title** (600, 16–18px, lh 1.15–1.35, ls −0.016 to −0.022em): card names, row titles, question titles. Card titles truncate with ellipsis on one line.
 - **Body** (400, 13.5–15.5px, lh 1.4–1.75, ls −0.003 to −0.005em, `--c-700`): prose at 15.5/1.75 in reading columns (58ch measure), card blurbs at 13.5/1.4. Reading columns cap at ~58ch/720px.
@@ -502,7 +502,7 @@ reduce` via a global clamp.
 
 ### Do:
 - **Do** put every user-facing string in both dictionaries (`src/i18n/dictionaries/en.ts` and `ro.ts`); the `Dictionary` type enforces key parity — English first, then mirror in Romanian.
-- **Do** keep secondary text at `var(--c-600)` or darker on the canvas (the c-600 Floor Rule); reserve `--c-500`/`--c-400` for decorative or large text.
+- **Do** keep secondary text at `var(--c-600)` or darker on the canvas (the c-600 Floor Rule); reserve `--c-500`/`--c-400` for decoration and verify large meaningful text meets 3:1 against its background.
 - **Do** join meta segments with `--c-400` "·" separators, interleaving only the segments that exist (use the `joinDot` pattern), and keep each separator fused in a `nowrap` span with the item that follows it.
 - **Do** use ink for structure and state (active chips/tabs/pagination invert to ink + white) and terracotta only for the accent action, ratings, focus, and live signals.
 - **Do** give every card `var(--card-r, 18px)`, `.zw-hover-lift`, and a `.zw-zoom-wrap` around its image so hover = 3px rise + sh-lg + 1.045× zoom, together.

@@ -1,20 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Icon } from "@/components/ui/icon";
 import { useSearchOverlay } from "@/components/search/search-overlay-provider";
+import styles from "./hero.module.css";
 
-// Live typewriter placeholder — cycles the i18n prompts, typing then
-// deleting. Pauses at the end of each phrase. Cleans up on unmount.
+const motionQuery = "(prefers-reduced-motion: reduce)";
+const getReducedMotion = () => window.matchMedia(motionQuery).matches;
+const getServerReducedMotion = () => false;
+
+function subscribeReducedMotion(onChange: () => void) {
+  const media = window.matchMedia(motionQuery);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+// Live typewriter placeholder. Reduced motion keeps the first complete prompt;
+// the media-query subscription also responds to preference changes while open.
 function useTypewriter(prompts: string[]): string {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(prompts[0] ?? "");
+  const reducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    getReducedMotion,
+    getServerReducedMotion,
+  );
 
   useEffect(() => {
-    if (!prompts.length) return;
+    if (!prompts.length || reducedMotion) return;
     let pi = 0;
-    let ci = 0;
-    let dir = 1;
+    let ci = prompts[0].length;
+    let dir = -1;
     let timer: ReturnType<typeof setTimeout>;
 
     const tick = () => {
@@ -35,11 +51,11 @@ function useTypewriter(prompts: string[]): string {
       timer = setTimeout(tick, dir > 0 ? 52 : 26);
     };
 
-    timer = setTimeout(tick, 500);
+    timer = setTimeout(tick, 1700);
     return () => clearTimeout(timer);
-  }, [prompts]);
+  }, [prompts, reducedMotion]);
 
-  return text;
+  return reducedMotion ? (prompts[0] ?? "") : text;
 }
 
 // Editorial hero — radial gradient band, giant faded ZAVOIA backdrop word,
@@ -130,9 +146,9 @@ export function Hero() {
             maxWidth: 1000,
           }}
         >
-          {h.headlineLead}
+          {h.headlineLead}{" "}
           <br />
-          <span style={{ color: "var(--c-400)" }}>{h.headlineAccent}</span>
+          <span style={{ color: "var(--c-600)" }}>{h.headlineAccent}</span>
         </h1>
         <p
           className="txt-pretty zw-rise"
@@ -152,17 +168,11 @@ export function Hero() {
           data-d="2"
           style={{ width: "100%", display: "flex", justifyContent: "center" }}
         >
-          <div
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
+            aria-label={h.searchAria}
             onClick={go}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                go();
-              }
-            }}
-            className="zw-hover-lift"
+            className={`tap ${styles.searchTrigger}`}
             style={{
               display: "flex",
               alignItems: "center",
@@ -171,21 +181,21 @@ export function Hero() {
               cursor: "pointer",
               background: "#fff",
               borderRadius: 999,
-              border: "1px solid rgba(28,28,26,0.07)",
-              boxShadow:
-                "0 1px 2px rgba(28,28,26,0.04), 0 8px 24px rgba(28,28,26,0.07), 0 24px 56px rgba(28,28,26,0.09)",
+              border: "1px solid rgba(28,28,26,0.12)",
+              boxShadow: "var(--sh-sm)",
               padding: "9px 9px 9px 22px",
             }}
           >
-            <Icon name="search" size={20} color="var(--c-500)" />
+            <Icon name="search" size={20} color="var(--c-600)" />
             <span
+              aria-hidden="true"
               style={{
                 flex: 1,
                 minWidth: 0,
                 marginLeft: 14,
                 fontSize: 17,
                 fontWeight: 500,
-                color: "var(--c-500)",
+                color: "var(--c-600)",
                 letterSpacing: "-0.015em",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
@@ -205,14 +215,9 @@ export function Hero() {
                 }}
               />
             </span>
-            <button
-              type="button"
-              className="tap"
-              aria-label={h.searchAria}
-              onClick={(e) => {
-                e.stopPropagation();
-                go();
-              }}
+            <span
+              aria-hidden="true"
+              className={styles.searchCircle}
               style={{
                 width: 54,
                 height: 54,
@@ -220,18 +225,20 @@ export function Hero() {
                 border: 0,
                 cursor: "pointer",
                 flexShrink: 0,
-                background:
-                  "radial-gradient(125% 125% at 32% 24%, color-mix(in oklch, var(--p-400) 55%, var(--p-500)) 0%, var(--p-600) 100%)",
-                boxShadow:
-                  "inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 2px rgba(28,28,26,0.10), 0 8px 22px color-mix(in oklch, var(--p-500) 42%, transparent)",
+                background: "var(--p-500)",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Icon name="search" size={20} color="#fff" />
-            </button>
-          </div>
+              <Icon
+                name="arrowR"
+                size={26}
+                color="#fff"
+                className={styles.searchArrow}
+              />
+            </span>
+          </button>
         </div>
       </div>
     </section>

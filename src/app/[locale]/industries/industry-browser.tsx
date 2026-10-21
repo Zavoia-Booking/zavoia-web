@@ -4,9 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useHomeCoords } from "@/app/_components/home/use-home-coords";
 import { SEARCH_RADIUS_KM } from "@/components/search/constants";
-import { findLocationCity } from "@/data/seo";
-import type { Locale } from "@/i18n/locales";
-import { localeHref } from "@/i18n/routes";
 import { Icon } from "@/components/ui/icon";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
@@ -18,13 +15,11 @@ type DirectoryIndustry = {
   label: string;
   searchText: string;
   href: string;
-  landingSlug?: string;
   tags: {
     id: number;
     label: string;
     searchText: string;
     href: string;
-    landingSlug?: string;
   }[];
 };
 
@@ -37,18 +32,15 @@ function normalize(value: string) {
 }
 
 export function IndustryBrowser({
-  locale,
   industries,
   labels: t,
 }: {
-  locale: Locale;
   industries: DirectoryIndustry[];
   labels: Dictionary["industryDirectory"];
 }) {
-  // Reuse the homepage's once-per-document location lookup, including direct
-  // directory visits. Country-aware landing-page matching is shared with footer.
+  // Preserve the visitor's actual location for searches without substituting
+  // a different city when no geographic landing page matches it.
   const location = useHomeCoords();
-  const city = findLocationCity(locale, location);
   const locationQuery = new URLSearchParams();
   if (location.coords) {
     locationQuery.set("lat", String(location.coords.lat));
@@ -57,11 +49,9 @@ export function IndustryBrowser({
   }
   if (location.city) locationQuery.set("city", location.city);
 
-  function destination(item: { href: string; landingSlug?: string }) {
-    if (city && item.landingSlug)
-      return localeHref(locale, city.slug, item.landingSlug);
-    // Server-rendered search hrefs already contain the industry/tag query.
-    // Keep the available location when there is no supported city landing page.
+  function destination(item: { href: string }) {
+    // Unknown locations keep the neutral industry/tag search destination;
+    // neither the UI language nor the country supplies a substitute city.
     return locationQuery.size ? `${item.href}&${locationQuery}` : item.href;
   }
 

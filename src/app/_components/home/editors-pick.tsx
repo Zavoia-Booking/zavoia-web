@@ -91,6 +91,7 @@ function WebsiteCard({
       href={localeHref(locale, site.slug)}
       prefetch={false}
       aria-label={`${viewWebsiteLabel}: ${site.name}`}
+      title={`${viewWebsiteLabel}: ${site.name}`}
       className={`${cardStyles.card} zw-hover-lift zw-zoom-parent`}
     >
       <WebsiteHeroPreview site={site} locale={locale} />
@@ -395,6 +396,7 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
               src={b.heroImageUrl}
               loading="lazy"
               alt=""
+              title={`${s.viewWebsite}: ${b.name}`}
               ref={(el) => {
                 backdropRefs.current[i] = el;
               }}
@@ -501,6 +503,7 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
               </p>
               <Link
                 href={localeHref(locale, "web-studio")}
+                title={s.cta}
                 className="tap zw-btn"
                 style={{
                   display: "inline-flex",

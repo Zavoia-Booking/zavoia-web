@@ -22,6 +22,7 @@ export interface BusinessCardProps {
 }
 
 const ROOT_STYLE: CSSProperties = {
+  position: "relative",
   background: "#fff",
   border: "1px solid rgba(28,28,26,0.06)",
   borderRadius: "var(--card-r, 18px)",
@@ -31,6 +32,17 @@ const ROOT_STYLE: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   textDecoration: "none",
+};
+
+const ACTION_STYLE: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  flex: 1,
+  minWidth: 0,
+  borderRadius: "inherit",
+  color: "inherit",
+  textDecoration: "none",
+  outlineOffset: -3,
 };
 
 // Web grid card — faithful desktop port of the mobile editorial card.
@@ -65,7 +77,13 @@ export function BusinessCard({
         className="zw-zoom-wrap"
         style={{ position: "relative", aspectRatio: "16 / 10", background: "var(--c-300)" }}
       >
-        <Img src={b.image} alt={b.name} label={b.cat} style={{ width: "100%", height: "100%" }} />
+        <Img
+          src={b.image}
+          alt={b.name}
+          label={b.cat}
+          sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) 50vw, 320px"
+          style={{ width: "100%", height: "100%" }}
+        />
         <span
           style={{
             position: "absolute",
@@ -88,11 +106,6 @@ export function BusinessCard({
           <CatDot cat={b.cat} />
           {b.catLabel}
         </span>
-        {onFavorite && (
-          <span style={{ position: "absolute", top: 10, right: 10 }}>
-            <HeartButton active={favorited} onClick={() => onFavorite(b.id)} size={36} />
-          </span>
-        )}
       </div>
       <div style={{ padding: "15px 17px 17px", display: "flex", flexDirection: "column" }}>
         <div
@@ -174,25 +187,39 @@ export function BusinessCard({
     </>
   );
 
-  if (b.href) {
-    return (
-      <Link href={b.href} className="zw-hover-lift" style={ROOT_STYLE}>
-        {inner}
-      </Link>
-    );
-  }
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e: KeyboardEvent) => {
-        if (e.key === "Enter") onClick?.();
-      }}
       className="zw-hover-lift"
-      style={ROOT_STYLE}
+      style={{ ...ROOT_STYLE, cursor: b.href || onClick ? "pointer" : "default" }}
     >
-      {inner}
+      {b.href ? (
+        <Link href={b.href} title={b.name} aria-label={b.name} style={ACTION_STYLE}>
+          {inner}
+        </Link>
+      ) : onClick ? (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={b.name}
+          onClick={onClick}
+          onKeyDown={(event: KeyboardEvent) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onClick();
+            }
+          }}
+          style={ACTION_STYLE}
+        >
+          {inner}
+        </div>
+      ) : (
+        <div style={ACTION_STYLE}>{inner}</div>
+      )}
+      {onFavorite && (
+        <span style={{ position: "absolute", top: 10, right: 10 }}>
+          <HeartButton active={favorited} onClick={() => onFavorite(b.id)} size={36} />
+        </span>
+      )}
     </div>
   );
 }
@@ -217,6 +244,9 @@ function BusinessResultCard({
         <Img
           src={b.image}
           alt={imageName}
+          sizes={resultLayout === "stacked"
+            ? "(max-width: 700px) calc(100vw - 32px), (max-width: 1000px) 50vw, 400px"
+            : "(max-width: 700px) calc(100vw - 32px), (max-width: 1000px) 240px, 280px"}
           style={{ width: "100%", height: "100%" }}
         />
       </div>
@@ -235,13 +265,14 @@ function BusinessResultCard({
   return (
     <article className={`${styles.result} ${resultLayout === "stacked" ? styles.stacked : ""}`}>
       {b.href ? (
-        <Link href={b.href} className={styles.resultLink}>
+        <Link href={b.href} title={imageName} aria-label={imageName} className={styles.resultLink}>
           {content}
         </Link>
       ) : onClick ? (
         <div
           role="button"
           tabIndex={0}
+          aria-label={imageName}
           className={styles.resultLink}
           onClick={onClick}
           onKeyDown={(event: KeyboardEvent) => {

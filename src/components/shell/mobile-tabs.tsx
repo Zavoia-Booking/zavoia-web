@@ -26,7 +26,7 @@ export function MobileTabs({ locale }: { locale: Locale }) {
   const { dict } = useTranslation();
   // optimisticUser: session hint present while the initial check is in
   // flight — show the authenticated tab set immediately instead of flashing
-  // Offers → Bookings/Saved ~1s after every refresh.
+  // the additional Bookings/Saved tabs ~1s after every refresh.
   const isAuthed = (status === "authenticated" && !!user) || optimisticUser !== null;
   const t = dict.mobileTabs;
 
@@ -43,7 +43,6 @@ export function MobileTabs({ locale }: { locale: Locale }) {
     : [
         { segment: "", icon: "home", activeIcon: "homeF", label: t.explore },
         { segment: "search", icon: "search", label: t.search },
-        { segment: "offers", icon: "sparkle", label: t.offers },
         { segment: "help", icon: "info", label: t.help },
       ];
 
@@ -85,6 +84,8 @@ export function MobileTabs({ locale }: { locale: Locale }) {
           <Link
             key={tab.segment || "home"}
             href={href}
+            title={tab.label}
+            aria-current={pathname === href ? "page" : undefined}
             className="tap"
             style={{
               display: "flex",

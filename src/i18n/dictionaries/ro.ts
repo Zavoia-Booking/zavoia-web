@@ -5,12 +5,12 @@ import type { Dictionary } from "../dictionaries";
 export const ro: Dictionary = {
   preposition: "în",
   home: {
-    title: "Zavoia — Programări și descoperire în România",
+    title: "Zavoia — Descoperă servicii și programează-te online",
     description:
-      "Găsește și rezervă frizerii, saloane de unghii, coafor, masaj și spa în toate orașele mari din România.",
-    heading: "Zavoia — Programări și descoperire în România",
+      "Descoperă afaceri locale din frumusețe, wellness, auto și alte domenii. Compară servicii, vezi orele disponibile și programează-te online cu Zavoia.",
+    heading: "Zavoia — Descoperă servicii și programează-te online",
     intro:
-      "Răsfoiește frizerii, saloane de unghii, coafor, masaj și spa în fiecare oraș mare din țară.",
+      "Descoperă afaceri locale din diverse domenii, compară servicii și fă următoarea programare online.",
     heroTagline: "Programări locale, simplu.",
   },
   homeSections: {
@@ -18,7 +18,7 @@ export const ro: Dictionary = {
       headlineLead: "Servicii locale.",
       headlineAccent: "Tu alegi când.",
       subcopy:
-        "De la tuns la ITP, vezi orele disponibile și programează-te online.",
+        "Zavoia aduce afacerile locale și programările online în același loc. De la tuns la ITP, găsește un serviciu și alege ora potrivită.",
       searchTryPrefix: "Încearcă",
       searchAria: "Caută",
       prompts: [
@@ -1212,7 +1212,6 @@ export const ro: Dictionary = {
     explore: "Explorează",
     findBusiness: "Caută o afacere",
     browseIndustries: "Explorează toate domeniile",
-    inCity: "În {city}",
     support: "Ajutor și asistență",
     journal: "Jurnal",
     forBusiness: "Pentru business",
@@ -1296,7 +1295,6 @@ export const ro: Dictionary = {
     appointments: "Programări",
     saved: "Salvate",
     help: "Ajutor",
-    offers: "Oferte",
   },
   toast: {
     signedOut: "Te-ai deconectat",

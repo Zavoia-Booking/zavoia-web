@@ -25,6 +25,7 @@ export function Cinematic(props: HeroVariantProps) {
             <img
               src={data.heroImageUrl}
               alt=""
+              title={name}
               loading={parallax ? "eager" : "lazy"}
               decoding="async"
               fetchPriority={parallax ? "high" : "auto"}

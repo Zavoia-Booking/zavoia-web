@@ -132,7 +132,7 @@ export function Portal(props: HeroVariantProps) {
         <div ref={mediaRef} className="mc-heropt-media">
           <div ref={imgRef} className="mc-heropt-imgmove">
             {data.heroImageUrl ? (
-              <img src={data.heroImageUrl} alt="" loading={parallax ? "eager" : "lazy"} decoding="async" />
+              <img src={data.heroImageUrl} alt="" title={name} loading={parallax ? "eager" : "lazy"} decoding="async" />
             ) : (
               <div className="mc-hero-cover-empty" style={{ position: "absolute", inset: 0 }} />
             )}

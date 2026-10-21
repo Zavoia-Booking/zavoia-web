@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { publicImagePatterns } from "./src/lib/image-sources";
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
@@ -7,6 +8,7 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
+      ...publicImagePatterns,
       {
         protocol: "https",
         hostname: "cdn.sanity.io",

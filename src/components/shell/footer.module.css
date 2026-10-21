@@ -95,12 +95,6 @@
   min-width: 0;
 }
 
-.categories {
-  margin-top: 8px;
-  /* One known city heading and up to five taxonomy links, including pending. */
-  min-height: 225px;
-}
-
 .link {
   display: inline-flex;
   align-items: center;
@@ -120,15 +114,6 @@
   overflow-wrap: anywhere;
   cursor: pointer;
   transition: color 180ms cubic-bezier(.22, 1, .36, 1);
-}
-
-.city {
-  margin: 0 0 6px;
-  padding-block: 4px;
-  color: var(--c-700);
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.5;
 }
 
 .salLink {
@@ -242,18 +227,22 @@
   }
 
   .heading {
+    position: relative;
     margin: 0;
   }
 
-  .desktopTitle {
-    display: none;
-    padding-block: 18px;
+  .columnTitle {
+    display: block;
+    min-height: 60px;
+    padding: 18px 30px 18px 0;
   }
 
   .trigger {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 16px;
     width: 100%;
     min-height: 60px;
@@ -332,10 +321,6 @@
   .columnContent .link {
     width: 100%;
     min-height: 44px;
-  }
-
-  .categories {
-    min-height: 281px;
   }
 
   .base {
