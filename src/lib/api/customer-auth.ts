@@ -148,6 +148,18 @@ export async function resendVerificationEmail(
 }
 
 /**
+ * Signed-in variant: re-sends the verification email for the current session's
+ * account. Shares the 2-per-24h resend budget with the business dashboard; an
+ * exhausted budget arrives as a 429 ApiError with code `AUTH.E39`.
+ */
+export async function resendAccountVerificationEmail(): Promise<ResendVerificationResponse> {
+  return apiFetch<ResendVerificationResponse>(
+    "/marketplace/auth/resend-verification-email",
+    { method: "POST" },
+  );
+}
+
+/**
  * Requests a password-reset email. The backend always responds with the same
  * neutral message regardless of whether the email exists, to avoid account
  * enumeration — callers must surface that single neutral message.
@@ -233,16 +245,19 @@ export async function confirmMarketplaceAccess(
 /**
  * Step 1 of verify-then-link: verifies the user owns the existing email account
  * by password and returns a short-lived `proof` token to complete linking.
+ * Sending the 409 `tx_id` lets the backend refuse re-auth for any account other
+ * than the one that collided with the Google sign-in.
  */
 export async function reauthForGoogleLink(
   email: string,
   password: string,
+  txId: string,
 ): Promise<ReauthForGoogleLinkResponse> {
   return apiFetch<ReauthForGoogleLinkResponse>(
     "/marketplace/auth/link/google/re-auth",
     {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, tx_id: txId }),
     },
   );
 }

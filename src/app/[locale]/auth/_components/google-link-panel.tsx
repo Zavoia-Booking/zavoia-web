@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Locale } from "@/i18n/locales";
 import { authErrorMessage } from "@/lib/api/auth-error-messages";
+import { backendCode } from "@/lib/api/error-messages";
 import { reauthForGoogleLink } from "@/lib/api/customer-auth";
 import { ApiError } from "@/lib/api/http";
 import {
@@ -54,6 +55,10 @@ export function GoogleLinkPanel({
   const [validation, setValidation] = useState<"password" | "email" | null>(null);
   const action = useRetainedAuthAction(`google-link:${context.txId}`);
   const submitting = action.status === "pending" || action.status === "success";
+  // An expired Google tx can't be revived by retrying the password; only
+  // going back and signing in with Google again mints a new one.
+  const txExpired =
+    action.status === "error" && backendCode(action.error) === "CUSTOMER_AUTH.E49";
   const error = validation === "password"
     ? dict.errors.passwordRequired
     : validation === "email"
@@ -82,7 +87,7 @@ export function GoogleLinkPanel({
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || txExpired) return;
     if (!password) {
       setValidation("password");
       return;
@@ -93,7 +98,7 @@ export function GoogleLinkPanel({
     }
     setValidation(null);
     void action.run(async () => {
-      const { proof } = await reauthForGoogleLink(context.email, password);
+      const { proof } = await reauthForGoogleLink(context.email, password, context.txId);
       await linkGoogleAccount(context.txId, proof);
       // Password/proof live only in this request, never in retained flow data.
     }).catch(() => {});
@@ -125,6 +130,7 @@ export function GoogleLinkPanel({
           autoComplete="current-password"
           showPasswordLabel={dict.fields.showPassword}
           hidePasswordLabel={dict.fields.hidePassword}
+          disabled={submitting}
         />
 
         {error && (
@@ -137,10 +143,8 @@ export function GoogleLinkPanel({
 
         <button
           type="submit"
-          disabled={submitting}
-          aria-label={t.submit}
-          aria-busy={submitting}
-          className="relative w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={submitting || txExpired}
+          className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className={submitting ? "invisible" : undefined} aria-hidden={submitting || undefined}>
             {t.submit}
@@ -159,7 +163,8 @@ export function GoogleLinkPanel({
       <button
         type="button"
         onClick={onCancel}
-        className="mt-6 w-full text-center text-sm text-zinc-500 underline-offset-2 transition hover:text-zinc-900 hover:underline"
+        disabled={submitting}
+        className="mt-6 w-full text-center text-sm text-zinc-500 underline-offset-2 transition hover:text-zinc-900 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
       >
         {t.cancel}
       </button>

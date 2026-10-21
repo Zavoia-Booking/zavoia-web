@@ -30,6 +30,17 @@ export const NAME_MIN_LENGTH = 2;
 export const NAME_MAX_LENGTH = 32;
 
 /**
+ * admin-api `TrimmedName`'s PERSON_NAME_PATTERN: letters, spaces, hyphens and
+ * apostrophes, with at least one actual letter — so a punctuation-only name
+ * like "--", which `sanitizeName` lets through, is caught before submit.
+ */
+export const PERSON_NAME_PATTERN = /^(?=.*\p{L})[\p{L}\s'’-]+$/u;
+
+/** Validates a (trimmed) person name the way the backend will. */
+export const isValidPersonName = (value: string): boolean =>
+  PERSON_NAME_PATTERN.test(value);
+
+/**
  * admin-api `PHONE_REGEX` (validation.ts:10) — digits only, no formatting:
  * an international number without a leading zero, or a national one with it.
  */

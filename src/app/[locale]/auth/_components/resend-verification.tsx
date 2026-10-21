@@ -6,8 +6,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { ApiError } from "@/lib/api/http";
-import { resendVerificationEmail } from "@/lib/api/customer-auth";
-import { errorMessage } from "@/lib/api/error-messages";
+import {
+  resendAccountVerificationEmail,
+  resendVerificationEmail,
+} from "@/lib/api/customer-auth";
+import { backendCode, errorMessage } from "@/lib/api/error-messages";
 import { AuthField } from "./auth-field";
 import { InlineError } from "@/components/ui/inline-error";
 
@@ -18,6 +21,11 @@ export interface ResendVerificationProps {
    * address has to be asked for.
    */
   email?: string;
+  /**
+   * Signed-in account screen: resend through the session's endpoint, which
+   * enforces the shared 2-per-24h budget and reports when it's used up.
+   */
+  signedIn?: boolean;
 }
 
 /**
@@ -32,7 +40,7 @@ export interface ResendVerificationProps {
  * `retryAfterSeconds`, which becomes a live countdown rather than a bare "try
  * again later".
  */
-export function ResendVerification({ email: knownEmail }: ResendVerificationProps) {
+export function ResendVerification({ email: knownEmail, signedIn = false }: ResendVerificationProps) {
   const { dict } = useTranslation();
   const t = dict.auth.resendVerification;
 
@@ -72,12 +80,16 @@ export function ResendVerification({ email: knownEmail }: ResendVerificationProp
       setSending(true);
       setError(null);
       try {
-        const res = await resendVerificationEmail(address);
-        // Surface the backend's own neutral wording when it sends one, so the
-        // enumeration-safe phrasing stays owned in one place.
-        setSentMessage(res.message || t.sent);
+        if (signedIn) await resendAccountVerificationEmail();
+        else await resendVerificationEmail(address);
+        // NOT `res.message || …`: the backend always returns a message code
+        // (CUSTOMER_AUTH.S16), so the localized, equally neutral copy is used.
+        setSentMessage(t.sent);
       } catch (err) {
-        if (err instanceof ApiError && err.status === 429) {
+        if (signedIn && backendCode(err) === "AUTH.E39") {
+          // Shared resend budget used up — a short countdown would only fail again.
+          setError(t.limitReached);
+        } else if (err instanceof ApiError && err.status === 429) {
           startCooldown(err.retryAfterSeconds ?? 60);
           setError(null);
         } else {
@@ -87,7 +99,7 @@ export function ResendVerification({ email: knownEmail }: ResendVerificationProp
         setSending(false);
       }
     },
-    [knownEmail, email, sending, cooldown, t.sent, t.failed, dict.errors, startCooldown],
+    [knownEmail, signedIn, email, sending, cooldown, t.sent, t.failed, t.limitReached, dict.errors, startCooldown],
   );
 
   if (sentMessage) {

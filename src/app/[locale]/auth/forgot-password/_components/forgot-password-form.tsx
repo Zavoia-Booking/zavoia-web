@@ -68,8 +68,9 @@ export function ForgotPasswordForm({
 
   function validate(): Errors {
     const next: Errors = {};
-    if (!email.trim()) next.email = dict.errors.emailRequired;
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    const value = email.trim();
+    if (!value) next.email = dict.errors.emailRequired;
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
       next.email = dict.errors.emailInvalid;
     return next;
   }

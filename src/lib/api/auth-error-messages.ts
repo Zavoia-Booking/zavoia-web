@@ -38,6 +38,20 @@ const CODE_TO_KEY: Record<string, keyof AuthErrorsDict> = {
   // E48: wrong account password supplied when unlinking.
   "CUSTOMER_AUTH.E48": "incorrectPassword",
 
+  // ── Google link (verify-then-link after a sign-in collision) ──
+  // E03: wrong password on /link/google/re-auth (the email is fixed by the
+  // collision, so only the password can be wrong).
+  "CUSTOMER_AUTH.E03": "incorrectPassword",
+  // E49: the pending Google tx expired or is unknown — only a fresh Google
+  // sign-in can mint a new one.
+  "CUSTOMER_AUTH.E49": "googleLinkExpired",
+  // E50: the re-auth proof was missing/expired — re-entering the password fixes it.
+  "CUSTOMER_AUTH.E50": "googleLinkVerifyAgain",
+  // E56 / `google_email_unverified`: a new account can only be created from a
+  // Google identity whose email Google has verified.
+  "CUSTOMER_AUTH.E56": "googleEmailUnverified",
+  GOOGLE_EMAIL_UNVERIFIED: "googleEmailUnverified",
+
   // ── Token validation (password reset & other emailed links) ──
   // Thrown by the backend's TokenService.validateToken: E06 = token not
   // found (invalid), E07 = already used, E08 = expired. Worded generically

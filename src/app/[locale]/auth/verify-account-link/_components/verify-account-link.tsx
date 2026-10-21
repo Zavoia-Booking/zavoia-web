@@ -15,7 +15,9 @@ import {
   isOfflineError,
   isServerError,
   isTimeoutError,
+  transportErrorMessage,
 } from "@/lib/api/error-messages";
+import { InlineError } from "@/components/ui/inline-error";
 import { defaultPostAuthTarget } from "@/lib/auth/redirects";
 import { useAuth } from "@/lib/auth/useAuth";
 import type { AccountLinkValidation } from "@/lib/auth/types";
@@ -59,6 +61,7 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
   );
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const startedRef = useRef(false);
   const mountedRef = useRef(true);
@@ -99,12 +102,18 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
       return;
     }
     setPasswordError(null);
+    setSubmitError(null);
     setSubmitting(true);
     try {
       await completeAccountLink(token, password);
       setState({ kind: "success" });
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
+      // Offline / timeout / rate limit / server failure: the token may still
+      // be valid, so keep the form and let the user retry.
+      const transport = transportErrorMessage(e, dictionary.errors);
+      if (transport) {
+        setSubmitError(transport);
+      } else if (e instanceof ApiError && e.status === 401) {
         // Wrong password — keep the form so the user can retry.
         setPasswordError(t.wrongPassword);
       } else if (e instanceof ApiError && e.code === "google_login_required") {
@@ -217,6 +226,14 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
             showPasswordLabel={dict.fields.showPassword}
             hidePasswordLabel={dict.fields.hidePassword}
           />
+
+          {submitError && (
+            <InlineError
+              className="rounded-[10px] border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2"
+            >
+              {submitError}
+            </InlineError>
+          )}
 
           <button
             type="submit"

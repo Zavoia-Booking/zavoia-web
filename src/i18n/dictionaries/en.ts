@@ -240,6 +240,7 @@ export const en: {
       lastNameRequired: string;
       nameTooShort: string;
       nameTooLong: string;
+      nameNeedsLetter: string;
       phoneInvalid: string;
       emailAlreadyRegistered: string;
       googleEmailMismatch: string;
@@ -252,6 +253,9 @@ export const en: {
       resetLinkInvalid: string;
       resetLinkExpired: string;
       userNotFound: string;
+      googleLinkExpired: string;
+      googleLinkVerifyAgain: string;
+      googleEmailUnverified: string;
       linkCheckFailedHeading: string;
       linkCheckFailedBody: string;
     };
@@ -353,6 +357,7 @@ export const en: {
       sent: string;
       failed: string;
       retryIn: string;
+      limitReached: string;
       unverifiedTitle: string;
       unverifiedBody: string;
     };
@@ -1909,6 +1914,7 @@ export const en: {
       lastNameRequired: "Last name is required.",
       nameTooShort: "Must be at least 2 characters.",
       nameTooLong: "Must be 32 characters or fewer.",
+      nameNeedsLetter: "Must include at least one letter.",
       phoneInvalid: "Phone number is not valid.",
       emailAlreadyRegistered: "Email already in use.",
       googleEmailMismatch:
@@ -1923,6 +1929,12 @@ export const en: {
       resetLinkInvalid: "This link is invalid or has already been used.",
       resetLinkExpired: "This link has expired.",
       userNotFound: "We couldn't find this account.",
+      googleLinkExpired:
+        "This Google sign-in has expired. Go back and continue with Google again.",
+      googleLinkVerifyAgain:
+        "We couldn't confirm your password in time. Enter it again to continue.",
+      googleEmailUnverified:
+        "Your Google account's email isn't verified. Verify it with Google, or create an account with your email and a password.",
       linkCheckFailedHeading: "We couldn't check this link",
       linkCheckFailedBody:
         "That's a problem on our side, not with your link — it may still be perfectly good. Please try again.",
@@ -2040,6 +2052,7 @@ export const en: {
       sent: "If that account exists and isn't verified yet, a new verification link is on its way.",
       failed: "Couldn't send the link. Please try again.",
       retryIn: "Try again in {seconds}s",
+      limitReached: "You've reached the limit for new links. Try again later.",
       unverifiedTitle: "Verify your email",
       unverifiedBody:
         "We sent a link to your inbox. Verify your email to receive appointment updates and reminders.",

@@ -57,6 +57,7 @@ import {
   NAME_MIN_LENGTH,
   PASSWORD_MIN_LENGTH,
   PASSWORD_REGEX,
+  isValidPersonName,
   isValidPhone,
   normalizePhone,
   sanitizeName,
@@ -1825,7 +1826,7 @@ function ChangeEmailRow({
               >
                 {rv.unverifiedBody}
               </div>
-              <ResendVerification email={currentEmail} />
+              <ResendVerification email={currentEmail} signedIn />
             </div>
           )}
           {emailVerified === true && (
@@ -2213,6 +2214,7 @@ function SectionBody({
             if (!v) return authErrors.firstNameRequired;
             if (v.length < NAME_MIN_LENGTH) return authErrors.nameTooShort;
             if (v.length > NAME_MAX_LENGTH) return authErrors.nameTooLong;
+            if (!isValidPersonName(v)) return authErrors.nameNeedsLetter;
             return undefined;
           }}
         />
@@ -2230,6 +2232,7 @@ function SectionBody({
             if (!v) return authErrors.lastNameRequired;
             if (v.length < NAME_MIN_LENGTH) return authErrors.nameTooShort;
             if (v.length > NAME_MAX_LENGTH) return authErrors.nameTooLong;
+            if (!isValidPersonName(v)) return authErrors.nameNeedsLetter;
             return undefined;
           }}
         />

@@ -115,7 +115,8 @@ export function ConfirmAccessPanel({
       <button
         type="button"
         onClick={onCancel}
-        className="mt-6 w-full text-center text-sm text-zinc-500 underline-offset-2 transition hover:text-zinc-900 hover:underline"
+        disabled={submitting}
+        className="mt-6 w-full text-center text-sm text-zinc-500 underline-offset-2 transition hover:text-zinc-900 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
       >
         {t.cancel}
       </button>

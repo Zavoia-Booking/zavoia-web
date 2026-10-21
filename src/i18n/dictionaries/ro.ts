@@ -269,6 +269,7 @@ export const ro: Dictionary = {
       lastNameRequired: "Numele este obligatoriu.",
       nameTooShort: "Trebuie să aibă cel puțin 2 caractere.",
       nameTooLong: "Poate avea cel mult 32 de caractere.",
+      nameNeedsLetter: "Trebuie să conțină cel puțin o literă.",
       phoneInvalid: "Numărul de telefon nu este valid.",
       emailAlreadyRegistered: "Emailul este deja folosit.",
       googleEmailMismatch:
@@ -283,6 +284,12 @@ export const ro: Dictionary = {
       resetLinkInvalid: "Acest link este invalid sau a fost deja folosit.",
       resetLinkExpired: "Acest link a expirat.",
       userNotFound: "Nu am găsit acest cont.",
+      googleLinkExpired:
+        "Această autentificare cu Google a expirat. Revino și continuă din nou cu Google.",
+      googleLinkVerifyAgain:
+        "Nu am putut confirma parola la timp. Introdu-o din nou pentru a continua.",
+      googleEmailUnverified:
+        "Emailul contului tău Google nu este verificat. Verifică-l la Google sau creează un cont cu emailul și o parolă.",
       linkCheckFailedHeading: "Nu am putut verifica linkul",
       linkCheckFailedBody:
         "E o problemă de partea noastră, nu cu linkul tău — s-ar putea să fie perfect valabil. Te rugăm să încerci din nou.",
@@ -403,6 +410,7 @@ export const ro: Dictionary = {
       sent: "Dacă acel cont există și nu este încă verificat, un nou link de verificare este pe drum.",
       failed: "Nu am putut trimite linkul. Încearcă din nou.",
       retryIn: "Reîncearcă în {seconds}s",
+      limitReached: "Ai atins limita de linkuri noi. Încearcă din nou mai târziu.",
       unverifiedTitle: "Verifică-ți emailul",
       unverifiedBody:
         "Ți-am trimis un link. Confirmă adresa de e-mail pentru a primi actualizări despre programări și mementouri.",

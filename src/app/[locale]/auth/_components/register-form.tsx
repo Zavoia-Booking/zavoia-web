@@ -18,6 +18,7 @@ import {
   NAME_MAX_LENGTH,
   NAME_MIN_LENGTH,
   PASSWORD_REGEX,
+  isValidPersonName,
   isValidPhone,
   normalizePhone,
   sanitizeName,
@@ -112,11 +113,13 @@ export function RegisterForm({
           if (!value) return dict.errors.firstNameRequired;
           if (value.length < NAME_MIN_LENGTH) return dict.errors.nameTooShort;
           if (value.length > NAME_MAX_LENGTH) return dict.errors.nameTooLong;
+          if (!isValidPersonName(value)) return dict.errors.nameNeedsLetter;
           return undefined;
         case "lastName":
           if (!value) return dict.errors.lastNameRequired;
           if (value.length < NAME_MIN_LENGTH) return dict.errors.nameTooShort;
           if (value.length > NAME_MAX_LENGTH) return dict.errors.nameTooLong;
+          if (!isValidPersonName(value)) return dict.errors.nameNeedsLetter;
           return undefined;
         case "phone":
           return value && !isValidPhone(value)
