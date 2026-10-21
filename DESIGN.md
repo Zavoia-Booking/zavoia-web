@@ -331,7 +331,7 @@ carries `.tap` (scale 0.97 + slight fade on press); buttons add `.zw-btn`
 ### Cards / Containers
 Three card families share `var(--card-r, 18px)` and `.zw-hover-lift`:
 - **White card** (BusinessCard): white, 6%-ink hairline, sh-sm; 16:10 photo header with frosted category pill (94% white + blur, CatDot + 11px/600 label) and floating HeartButton; body `15px 17px 17px` with 18px/600 truncating name, Rating on the same baseline, 13.5px blurb, and a fused meta row.
-- **Overlay card** (BusinessOverlayCard): 4:5 full-bleed photo on ink, dual scrims (top 30% black fading out; bottom rising to 88% black), magazine-bold white name (clamp 20–25px/700/−0.03em with text-shadow), city · distance line at 82% white, and a confident rating block — 31px/700 number beside fractional 10px stars.
+- **Overlay card** (BusinessOverlayCard): 4:5 full-bleed photo on ink, dual scrims (top 30% black fading out; bottom rising to 88% black), magazine-bold white name (clamp 20–25px/700/−0.03em with text-shadow), city · distance line at 82% white, and a confident rating block — 31px/700 number beside fractional 12px stars and a 13px review count.
 - **Content panels** (help cards, TOC disclosure, search fields): white, 8–12% hairline, `--r-lg`–`--r-xl`, sh-sm.
 
 Skeleton states use `.zv-skel` (shimmering `--c-200`→`--c-300` gradient sweep,
@@ -365,7 +365,8 @@ zero result; a failed request must offer recovery instead of claiming either.
 
 ### Navigation
 - **Top bar:** sticky, `--nav-h` (68px), with an opaque `--c-canvas` background and a subtle bottom hairline. The background stays solid before and after scrolling, on desktop and mobile. Text links (`.zw-navlink`) are 14px/600 at `--c-600`; hover and active simply darken to `--c-900` — color alone carries the state, no underline or pill.
-- **Header search:** a 52px segmented pill at viewport widths of 1100px and above, with a viewport-based width of 400–480px that stays consistent across English, Romanian and active query values. Three equal fields use 10px mono labels, 14px values, visible focus rings and ellipsis for long selections. The terracotta search action is 44px square. At 601–1099px, a compact labelled control (180–220px) opens the same search flow; phones up to 600px use a 44px search icon. On home, the control appears after the hero search scrolls away, with a short 180ms rise/fade when reduced motion is off. Field hover uses a faint inset highlight, without changing the outer shadow or showing native tooltips. Press feedback stays subtle; widths never animate. Styles live in `site-header.module.css`.
+- **Header search:** a 52px segmented pill at viewport widths of 1200px and above, with a viewport-based width of 400–480px that stays consistent across English, Romanian and active query values. Three equal fields use 10px mono labels, 14px values, visible focus rings and ellipsis for long selections. The terracotta search action is 44px square. At 601–1199px, a compact labelled control (180–220px) opens the same search flow; phones up to 600px use a 44px search icon. On home, the control appears after the hero search scrolls away, with a short 180ms rise/fade when reduced motion is off. Field hover uses a faint inset highlight, without changing the outer shadow or showing native tooltips. Press feedback stays subtle; widths never animate. Styles live in `site-header.module.css`.
+- **Language navigation:** reuse `LanguageSwitcher` in the header, beside the account controls. Show the current language name on desktop and its existing 44px globe trigger up to 920px. The menu opens below the trigger and preserves the existing route, query, hash and translated destinations. Search uses this same header control; the standalone 404 uses its own header. The footer's trailing slot holds the existing 250 × 50px ANPC/SAL badge, on a separate row on narrow screens.
 - **Tabs** (Journal `.zw-jtab`, detail pages): 14.5px/600 quiet text (inactive `--c-500`, hover `--c-800`, active `--c-900`) over a 1px hairline rail, with a 2px ink indicator that springs (`0.42s var(--ease-spring)`) between tabs; mono micro-counts sit beside labels and turn terracotta when active. Tab panels enter with `.zv-tab-in` (6px rise + fade, 0.32s).
 - **Pagination:** 42px mono pill buttons; active = ink; hover = shade + stronger hairline.
 
@@ -394,6 +395,28 @@ icon and optional action button; holds 2600ms (4200ms with an action), exits
 with a soft drop.
 
 ### Web Studio — specimen catalogue
+
+The homepage website showcase uses published brand websites, one card per business.
+Keep its optional band absent until the feed confirms at least one website. A
+successful empty result renders nothing, including no section spacing or skeleton;
+request failures retain the existing retry notice. Once websites are known, render
+the actual card count, captions, intro and carousel controls immediately. Only the
+preview assets use a skeleton, inside the same fixed frame as the rendered website.
+Reuse the shared shimmer with dark neutral tokens scoped to this preview placeholder.
+`WebsiteHeroPreview` reuses the real published website navigation, announcement
+and hero renderers inside an inert, static preview with no browser decoration.
+The 4:4.2 media frame matches its skeleton. Published layout controls the header
+variant, visible section links and whether navigation is shown. The whole card
+opens the localized published website. Use published configuration and the existing
+website entitlement rules, never draft designs or location photos as website previews.
+The caption places a single-line brand name on the left and the optional industry
+on the right, below the name on narrow cards. Pair the industry label with its
+canonical icon and accent from the shared industry registry, without a dot or icon
+background. The whole card is the action; do not add a separate visible website CTA.
+Use the existing industry dictionary fallback for missing translations. The caption
+stays visible while preview assets load. Its compact footprint keeps long names and
+absent industries from changing the card height; keep the full name in its title
+and accessible link label.
 
 Character: a museum plate, not a screenshot. Where a surface must *show* the
 product rather than describe it, it runs the real renderer inside a numbered,

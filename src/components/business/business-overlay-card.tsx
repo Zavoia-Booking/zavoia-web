@@ -104,7 +104,7 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
           {b.distance && <span>{b.distance}</span>}
         </div>
         {b.rating != null && (
-          <div style={{ marginTop: 13, display: "flex", alignItems: "flex-end", gap: 9 }}>
+          <div style={{ marginTop: 13, display: "flex", alignItems: "flex-start", gap: 9 }}>
             <span
               style={{
                 fontSize: 31,
@@ -125,13 +125,13 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
                   return (
                     <span
                       key={i}
-                      style={{ position: "relative", width: 10, height: 10, display: "inline-block" }}
+                      style={{ position: "relative", width: 12, height: 12, display: "inline-block" }}
                     >
-                      <Icon name="star" size={10} color="rgba(255,255,255,0.32)" />
+                      <Icon name="star" size={12} color="rgba(255,255,255,0.32)" />
                       <span
                         style={{ position: "absolute", inset: 0, overflow: "hidden", width: `${fill * 100}%` }}
                       >
-                        <Icon name="star" size={10} color="#fff" />
+                        <Icon name="star" size={12} color="#fff" />
                       </span>
                     </span>
                   );
@@ -140,7 +140,8 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
               {b.reviews != null && (
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: 13,
+                    lineHeight: "16px",
                     fontWeight: 500,
                     color: "rgba(255,255,255,0.78)",
                     letterSpacing: "-0.005em",

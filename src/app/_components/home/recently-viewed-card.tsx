@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Img, Rating } from "@/components/ui";
+import styles from "./recently-viewed.module.css";
 
 export interface RecentlyViewedCardData {
   /** Location id (nav target). */
@@ -27,54 +28,24 @@ export function RecentlyViewedCard({ b }: { b: RecentlyViewedCardData }) {
   return (
     <Link
       href={b.href}
-      className="zw-hover-lift zw-zoom-parent"
-      style={{
-        display: "block",
-        width: 224,
-        flexShrink: 0,
-        scrollSnapAlign: "start",
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.06)",
-        borderRadius: "var(--card-r, 18px)",
-        overflow: "hidden",
-        boxShadow: "var(--sh-sm)",
-        color: "inherit",
-        textDecoration: "none",
-      }}
+      className={`${styles.card} ${styles.link}`}
     >
-      <div
-        className="zw-zoom-wrap"
-        style={{ aspectRatio: "16 / 10", background: "var(--c-300)" }}
-      >
+      <div className={styles.media}>
         <Img src={b.image} alt={b.name} style={{ width: "100%", height: "100%" }} />
       </div>
-      <div style={{ padding: "11px 14px 13px" }}>
-        <div
-          style={{
-            fontSize: 14.5,
-            fontWeight: 600,
-            letterSpacing: "-0.015em",
-            color: "var(--c-900)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {b.name}
+      <div className={styles.body}>
+        <div className={styles.name}>{b.name}</div>
+        <div className={styles.meta}>
+          {b.rating != null && (
+            <Rating rating={b.rating} reviews={b.reviews} size={12} />
+          )}
+          {b.rating != null && meta && (
+            <span className={styles.separator}>·</span>
+          )}
+          {meta && (
+            <span title={meta} className={styles.location}>{meta}</span>
+          )}
         </div>
-          <div
-            style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, minHeight: 18, whiteSpace: "nowrap", overflow: "hidden" }}
-          >
-            {b.rating != null && (
-              <Rating rating={b.rating} reviews={b.reviews} size={12} />
-            )}
-            {b.rating != null && meta && (
-              <span style={{ color: "var(--c-400)", fontSize: 12 }}>·</span>
-            )}
-            {meta && (
-              <span title={meta} style={{ fontSize: 12, color: "var(--c-600)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{meta}</span>
-            )}
-          </div>
       </div>
     </Link>
   );

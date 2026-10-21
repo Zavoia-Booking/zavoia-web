@@ -1,8 +1,17 @@
-import type { SectionEntry } from "../../../../../types";
+import type { SectionEntry, WebsiteBuilderAddressComponents, WebsiteBuilderLocation } from "../../../../../types";
 import type { PreviewData, T } from "../../shared/types";
 
+/** Published hero previews need identity and rating/place summaries, not the full booking catalog. */
+export type HeroPreviewLocation = Pick<WebsiteBuilderLocation, "averageRating" | "totalReviews"> & {
+  addressComponents: Pick<WebsiteBuilderAddressComponents, "city" | "country"> | null;
+};
+
+export type HeroPreviewData = Pick<PreviewData, "businessName" | "tagline" | "heroImageUrl" | "locale"> & {
+  locations: HeroPreviewLocation[];
+};
+
 /** Section render props for Hero (note: `parallax`, not `no`). Every variant component takes these. */
-export type HeroVariantProps = { entry: SectionEntry; data: PreviewData; t: T; parallax: boolean };
+export type HeroVariantProps = { entry: SectionEntry; data: HeroPreviewData; t: T; parallax: boolean };
 
 /** Shared content bundle every variant derives from its props (see parts/content.tsx#deriveHeroContent). */
 export interface HeroContent {
@@ -19,7 +28,7 @@ export interface HeroContent {
 
 /** What the free base's Drenched treatment renders against: content plus the Default variant's refs. */
 export type HeroModeProps = HeroContent & {
-  data: PreviewData;
+  data: HeroPreviewData;
   t: T;
   parallax: boolean;
   headerRef: React.RefObject<HTMLElement | null>;

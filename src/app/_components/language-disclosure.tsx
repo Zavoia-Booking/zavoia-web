@@ -147,7 +147,7 @@ export function LanguageDisclosure({
         <summary className={styles.trigger} aria-label={`${label}: ${currentLabel}`}>
           <span className={styles.globe}><Icon name="globe" size={17} /></span>
           <span className={styles.label} lang={currentLocale} dir="auto">{currentLabel}</span>
-          <Icon name="chevD" size={12} className={styles.chevron} />
+          <span className={styles.chevron} aria-hidden="true"><Icon name="chevD" size={12} /></span>
         </summary>
         <nav className={styles.panel} aria-label={label}>
           <ul className={styles.options}>

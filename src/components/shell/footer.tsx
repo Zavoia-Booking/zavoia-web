@@ -3,7 +3,6 @@
 import { useId, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import {
   Collapsible,
   CollapsibleContent,
@@ -102,21 +101,18 @@ export function Footer({ locale, explore, showWordmark = true }: {
             <a href="https://anpc.ro/" className={styles.link}>
               {t.consumerProtection}
             </a>
-            {/* Official artwork: https://anpc.ro/download/sal/SAL-PICTOGRAMA.png */}
-            <a href="https://reclamatiisal.anpc.ro/" className={styles.salLink}>
-              <Image
-                src="/legal/anpc-sal.png"
-                alt={t.alternativeDisputeResolution}
-                width={250}
-                height={50}
-                className={styles.salBadge}
-                unoptimized
-              />
-            </a>
           </div>
-          <div className={styles.language}>
-            <LanguageSwitcher currentLocale={locale} placement="above" />
-          </div>
+          {/* Official artwork: https://anpc.ro/download/sal/SAL-PICTOGRAMA.png */}
+          <a href="https://reclamatiisal.anpc.ro/" className={styles.salLink}>
+            <Image
+              src="/legal/anpc-sal.png"
+              alt={t.alternativeDisputeResolution}
+              width={250}
+              height={50}
+              className={styles.salBadge}
+              unoptimized
+            />
+          </a>
         </div>
 
         {/* All navigation remains rendered when JavaScript is unavailable. */}

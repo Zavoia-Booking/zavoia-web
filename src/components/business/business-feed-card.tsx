@@ -5,7 +5,7 @@ import type { CSSProperties, KeyboardEvent } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Img } from "@/components/ui/image";
 import { Icon } from "@/components/ui/icon";
-import { industryAccent } from "@/lib/marketplace/industry-visuals";
+import { industryVisual } from "@/lib/marketplace/industry-visuals";
 import type { BusinessCardData } from "./types";
 
 export interface BusinessFeedCardProps {
@@ -30,6 +30,7 @@ const ROOT_STYLE: CSSProperties = {
 // Ported from ZwBusinessFeedCard.
 export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
   const { dict } = useTranslation();
+  const industry = industryVisual(b.cat);
   const is247 = b.status === "24-7" || b.status === "24/7";
   const isOpen = b.status === "open" || is247;
 
@@ -104,7 +105,7 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
             gap: 5,
             fontSize: 11,
             fontWeight: 700,
-            color: industryAccent(b.cat),
+            color: "var(--c-700)",
             letterSpacing: "0.02em",
             textTransform: "uppercase",
             whiteSpace: "nowrap",
@@ -112,23 +113,16 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
             textOverflow: "ellipsis",
           }}
         >
-          <span
-            aria-hidden="true"
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: industryAccent(b.cat),
-              flexShrink: 0,
-            }}
-          />
-          {b.catLabel}
+          <Icon name={industry.icon} size={14} color={industry.accent} />
+          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+            {b.catLabel}
+          </span>
         </span>
         {b.blurb && (
           <div
             style={{
               marginTop: 9,
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: 500,
               color: "var(--c-900)",
               letterSpacing: "-0.015em",
@@ -145,7 +139,7 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
         {b.rating != null && (
           <div
             style={{
-              marginTop: 5,
+              marginTop: b.blurb ? "auto" : 5,
               display: "inline-flex",
               alignItems: "center",
               gap: 5,
@@ -164,7 +158,7 @@ export function BusinessFeedCard({ b, onClick }: BusinessFeedCardProps) {
         )}
         <div
           style={{
-            marginTop: "auto",
+            marginTop: b.blurb && b.rating != null ? 9 : "auto",
             marginBottom: 13,
             paddingTop: 9,
             borderTop: "1px solid rgba(28,28,26,0.06)",

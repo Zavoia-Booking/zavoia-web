@@ -6,7 +6,7 @@ export const localized = (v: { en: string; ro: string } | undefined, locale: "en
   (v ? v[locale] || v.en || v.ro : "") || "";
 
 /** Weighted average rating + total count across rated locations (mirrors the microsite aggregate). */
-export function aggregateReviews(locations: WebsiteBuilderLocation[]) {
+export function aggregateReviews(locations: Pick<WebsiteBuilderLocation, "averageRating" | "totalReviews">[]) {
   const rated = locations.filter((l) => (l.totalReviews ?? 0) > 0);
   const count = rated.reduce((s, l) => s + (l.totalReviews ?? 0), 0);
   const rating =

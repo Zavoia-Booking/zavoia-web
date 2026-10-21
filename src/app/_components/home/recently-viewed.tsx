@@ -9,6 +9,7 @@ import type { ListingLightCard } from "@/lib/api/marketplace/types";
 import { getRecentViews, removeRecentViews } from "@/lib/recent-views";
 import { RecentlyViewedSkeleton } from "./section-skeletons";
 import { SectionFailed } from "./section-failed";
+import styles from "./recently-viewed.module.css";
 import {
   RecentlyViewedCard,
   type RecentlyViewedCardData,
@@ -29,6 +30,7 @@ interface RecentEntry {
   request: Promise<void> | null;
 }
 const INITIAL: RecentState = { ids: [], items: null, loading: false, failed: false };
+const MAX_VISIBLE_RECENT = 6;
 // Match the home feeds' browser-only freshness/retention convention. Only the
 // current trail is retained, never an unbounded collection of history keys.
 const FRESH_MS = 60_000;
@@ -119,7 +121,7 @@ function haversineKm(
 // Reads the recently-viewed LOCATION-id trail from localStorage (written by
 // the business-detail slice) and hydrates it with ONE bulk light-card call
 // (max 10 ids, extras ignored server-side) instead of N detail fetches.
-// Shows a compact rail of name + rating + distance/city mini cards. Hidden
+// Shows the latest six resolved locations in a compact grid. Hidden
 // when fewer than 2 ids resolve. Geolocation is requested once and is purely
 // optional — denial/error falls back to the listing's city.
 export function RecentlyViewed() {
@@ -162,12 +164,12 @@ export function RecentlyViewed() {
   }, []);
 
   // Local history establishes eligibility after hydration. A successful empty
-  // result hides the rail; an initial failure remains recoverable, not "empty".
+  // result hides the grid; an initial failure remains recoverable, not "empty".
   if (ids.length < 2 || (listings && listings.length < 2)) return null;
   if (!listings && failed) return <SectionFailed paddingTop={60} onRetry={retryRecent} loading={loading} />;
   const s = dict.homeSections.recentlyViewed;
 
-  const cards: RecentlyViewedCardData[] = (listings ?? []).map((d) => {
+  const cards: RecentlyViewedCardData[] = (listings ?? []).slice(0, MAX_VISIBLE_RECENT).map((d) => {
     const distance =
       coords && d.latitude != null && d.longitude != null
         ? `${haversineKm(coords, { lat: d.latitude, lng: d.longitude }).toFixed(1)} km`
@@ -187,10 +189,10 @@ export function RecentlyViewed() {
   });
 
   return <>
-    <section className="zw-container" style={{ paddingTop: 60 }} aria-busy={loading}>
-      <SectionTitle kicker={s.kicker} title={s.title} />
+    <section className={`zw-container ${styles.section}`} aria-busy={loading}>
+      <SectionTitle title={s.title} />
       <span className="sr-only" role="status">{loading ? s.loading : ""}</span>
-      {!listings ? <RecentlyViewedSkeleton count={ids.length} /> : <div className="zw-scroll-x" style={{ gap: 14, paddingBottom: 6 }}>
+      {!listings ? <RecentlyViewedSkeleton count={Math.min(ids.length, MAX_VISIBLE_RECENT)} /> : <div className={styles.grid}>
         {cards.map((b) => (
           <RecentlyViewedCard key={b.id} b={b} />
         ))}

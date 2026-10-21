@@ -8,7 +8,11 @@ web
 
 ## Users
 
-Primary: Romanian consumers discovering and booking local service appointments (beauty, barbering, spa, dental, and similar) on desktop and mobile web. Secondary audience reached through the same site: small service businesses evaluating Zavoia's business offering (separate /for-business surface).
+Primary: consumers discovering and booking local service appointments across industries and markets, on desktop and mobile web. Secondary audience reached through the same site: service businesses evaluating Zavoia's business offering (separate /for-business surface).
+
+Zavoia is an international, multi-industry appointment marketplace and business operating platform. Its canonical industries cover beauty, wellness, aesthetics, tattoo/piercing, health, fitness, pets, automotive, home services, professional services, education/coaching, events/creative, tailoring/repairs, and Other. Do not use a single category, development fixture, current translation set, or rollout country as the product's audience boundary.
+
+Current implementation coverage is separate from product scope: English and Romanian are the available interface languages; business signup currently gates country selection to Romania; the web's configured SEO city pages are currently Romanian. Country-aware pricing, business/service currencies, and location timezones support the broader architecture. Actual launched countries, provider inventory, and app-store distribution require separate verification.
 
 ## Product Purpose
 

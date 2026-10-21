@@ -13,6 +13,18 @@
 @media (prefers-reduced-motion: reduce) {
   .mc-mask-in, .mc-locx-fade, .mc-locx-rowin { animation: none !important; }
 }
+
+/* Same static thumbnail scope as the dashboard. JS effects settle through StaticPreviewContext;
+   this freezes CSS choreography and avoids promoting full-size layers inside a scaled card. */
+.mc-scaled-preview-static .mc-root,
+.mc-scaled-preview-static .mc-root *,
+.mc-scaled-preview-static .mc-root *::before,
+.mc-scaled-preview-static .mc-root *::after {
+  animation: none !important;
+  transition: none !important;
+  will-change: auto !important;
+}
+
 /* The dashboard globally assigns every button a 44px minimum. The microsite is its own
    design context, just like the reference iframe, so its controls must use section-owned sizes. */
 .mc-root.mc-root button,

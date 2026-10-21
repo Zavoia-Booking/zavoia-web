@@ -1,6 +1,7 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useContext, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../../../../../../../shared/lib/utils";
 import { findScrollParent } from "../../../shared/util";
+import { StaticPreviewContext } from "../../../shared/hooks";
 import {
   DialogPrimitive,
   MenuButton,
@@ -15,6 +16,7 @@ import "./capsule.css";
 
 /** Capsule — a wide transparent lockup that pulls inward into one dark-glass pill as the page scrolls. */
 export function Capsule(props: NavVariantViewProps) {
+  const staticPreview = useContext(StaticPreviewContext);
   const shellRef = useRef<HTMLDivElement>(null);
   const scrollParentRef = useRef<HTMLElement | null>(null);
   const [navNode, setNavNode] = useState<HTMLElement | null>(null);
@@ -26,8 +28,8 @@ export function Capsule(props: NavVariantViewProps) {
   useLayoutEffect(() => {
     const shell = shellRef.current;
     if (!shell || !navNode) return;
-    const scrollParent = findScrollParent(navNode);
-    if (!scrollParent) return;
+    const scrollParent = staticPreview ? null : findScrollParent(navNode);
+    if (!staticPreview && !scrollParent) return;
     scrollParentRef.current = scrollParent;
     let contentWidth = 0;
     let fullWidth = 0;
@@ -55,10 +57,10 @@ export function Capsule(props: NavVariantViewProps) {
     const apply = () => {
       frame = 0;
       const compact = navNode.clientWidth <= 980;
-      const distance = Math.max(1, scrollParent.clientHeight * 0.55);
+      const distance = Math.max(1, (scrollParent?.clientHeight ?? 0) * 0.55);
       const progress = !props.overHero || compact
         ? 1
-        : Math.max(0, Math.min(1, scrollParent.scrollTop / distance));
+        : Math.max(0, Math.min(1, (scrollParent?.scrollTop ?? 0) / distance));
       shell.style.setProperty("--mc-cap-progress", progress.toFixed(4));
 
       if (compact) {
@@ -82,19 +84,19 @@ export function Capsule(props: NavVariantViewProps) {
     };
 
     refresh();
-    scrollParent.addEventListener("scroll", schedule, { passive: true });
+    scrollParent?.addEventListener("scroll", schedule, { passive: true });
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(refresh);
     observer?.observe(navNode);
-    observer?.observe(scrollParent);
+    if (scrollParent) observer?.observe(scrollParent);
     return () => {
-      scrollParent.removeEventListener("scroll", schedule);
+      scrollParent?.removeEventListener("scroll", schedule);
       observer?.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
       shell.style.removeProperty("width");
       shell.style.removeProperty("--mc-cap-progress");
       if (scrollParentRef.current === scrollParent) scrollParentRef.current = null;
     };
-  }, [navNode, props.data.logo, props.links, props.name, props.overHero]);
+  }, [navNode, props.data.logo, props.links, props.name, props.overHero, staticPreview]);
 
   const syncMenuOrigin = useCallback(() => {
     const shell = shellRef.current;

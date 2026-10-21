@@ -52,17 +52,15 @@ export const en: {
       kicker: string;
       title: string;
     };
-    editorsPick: {
-      kicker: string;
+    websiteShowcase: {
       title: string;
       sub: string;
       cta: string;
-      viewProfile: string;
+      viewWebsite: string;
       prev: string;
       next: string;
     };
     trust: {
-      kicker: string;
       title: string;
       items: {
         title: string;
@@ -70,17 +68,33 @@ export const en: {
       }[];
     };
     app: {
-      kicker: string;
-      title: string;
+      titleFirst: string;
+      titleSecond: string;
+      titleAccent: string;
       sub: string;
       appStore: string;
       googlePlay: string;
-      mockLabel: string;
+      ios: string;
+      android: string;
+      scheduleAlt: string;
+      mapAlt: string;
+      downloadsLabel: string;
+    };
+    webStudio: {
+      titleFirst: string;
+      titleSecond: string;
+      titleAccent: string;
+      sub: string;
+      cta: string;
+      phoneAlt: string;
+      desktopAlt: string;
     };
     bizStrip: {
-      kicker: string;
-      title: string;
-      meta: string;
+      titleFirst: string;
+      titleSecond: string;
+      titleAccent: string;
+      sub: string;
+      commission: string;
       cta: string;
       pricing: string;
     };
@@ -1643,10 +1657,10 @@ export const en: {
   },
   homeSections: {
     hero: {
-      headlineLead: "Book the city's best,",
-      headlineAccent: "in seconds.",
+      headlineLead: "Local services.",
+      headlineAccent: "On your schedule.",
       subcopy:
-        "See real-time availability from trusted local professionals — and reserve in a couple of clicks.",
+        "From haircuts to car inspections, see available times and book online.",
       searchTryPrefix: "Try",
       searchAria: "Search",
       prompts: [
@@ -1663,7 +1677,7 @@ export const en: {
     },
     inCity: {
       kicker: "Around town",
-      title: "Places in your city",
+      title: "In your city",
       action: "See all",
       showMore: "Show more places",
       locating: "Finding your city…",
@@ -1677,8 +1691,8 @@ export const en: {
     },
     nearYou: {
       kicker: "Near you",
-      title: "More places nearby",
-      action: "Open map",
+      title: "Nearby",
+      action: "See on map",
       showMore: "Show more places",
       locating: "Finding places near you…",
     },
@@ -1687,47 +1701,61 @@ export const en: {
       kicker: "Pick up where you left off",
       title: "Recently viewed",
     },
-    editorsPick: {
-      kicker: "Editor's picks",
-      title: "The standouts near you",
-      sub: "Hand-picked studios and pros worth the trip. Open a profile to see services and book.",
-      cta: "See all businesses",
-      viewProfile: "View profile",
+    websiteShowcase: {
+      title: "Made with Web Studio",
+      sub: "See what your business could look like online.",
+      cta: "Explore Web Studio",
+      viewWebsite: "View website",
       prev: "Previous",
       next: "Next",
     },
     trust: {
-      kicker: "Why Zavoia",
-      title: "Booking you can trust",
+      title: "Booking with Zavoia",
       items: [
         {
-          title: "Book local services",
-          sub: "Find and book appointments with businesses in your area.",
+          title: "Find local services",
+          sub: "Browse businesses and choose the service you need.",
         },
         {
-          title: "Easy online booking",
-          sub: "Choose a service, pick a time, and book in just a few clicks.",
+          title: "Book online",
+          sub: "See available times and choose one that works for you.",
         },
         {
           title: "Pay at the venue",
-          sub: "Nothing upfront. Settle directly with the business after your visit.",
+          sub: "Pay the business directly when you visit.",
         },
       ],
     },
     app: {
-      kicker: "The Zavoia app",
-      title: "Your appointments, in your pocket",
-      sub: "Live slots, two-tap rebooking and reminders that actually remind — the whole marketplace, wherever you are",
+      titleFirst: "Your appointments,",
+      titleSecond: "always with ",
+      titleAccent: "you.",
+      sub: "Book on the go and keep track of your appointments in the Zavoia app.",
       appStore: "App Store",
       googlePlay: "Google Play",
-      mockLabel: "Zavoia app",
+      ios: "For iOS",
+      android: "For Android",
+      scheduleAlt: "Zavoia schedule in an iPhone mockup, with sample personal training, vehicle inspection and guitar lesson appointments.",
+      mapAlt: "Zavoia map in an iPhone mockup, with sample locations for fitness, education, automotive, pet care and home services.",
+      downloadsLabel: "Zavoia app",
+    },
+    webStudio: {
+      titleFirst: "Your business.",
+      titleSecond: "Your ",
+      titleAccent: "website.",
+      sub: "Choose your design. Your services, prices and team details come directly from Zavoia.",
+      cta: "Explore Web Studio",
+      phoneAlt: "The Paw & Co pet-care website, built with Zavoia Web Studio, displayed on an angled iPhone.",
+      desktopAlt: "Lumi Beauty’s salon gallery, using Web Studio’s native Carousel layout.",
     },
     bizStrip: {
-      kicker: "Bring your business online",
-      title: "Get found, booked, and rebooked by local clients.",
-      meta: "No commission · simple pricing · start today",
+      titleFirst: "Get found.",
+      titleSecond: "Get",
+      titleAccent: "booked.",
+      sub: "Reach local clients. Manage appointments and your team in one place.",
+      commission: "No booking commission.",
       cta: "Zavoia for business",
-      pricing: "Pricing",
+      pricing: "View pricing",
     },
     favorites: {
       saved: "Saved",

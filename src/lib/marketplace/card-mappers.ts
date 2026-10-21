@@ -124,6 +124,7 @@ export function locationCardToData(
     name: l.name,
     locationName: l.locationName,
     businessName: l.businessName,
+    blurb: l.description?.trim() || undefined,
     address: l.address ?? undefined,
     cat: toCat(l.industry, slugById),
     catLabel: l.industry ? taxonomyLabel(l.industry, locale) : undefined,

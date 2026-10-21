@@ -1,5 +1,7 @@
 import { ArrowRight } from "lucide-react";
+import { useContext } from "react";
 import { useMicrositeActions } from "../../../shared/actions";
+import { StaticPreviewContext } from "../../../shared/hooks";
 
 function safeExternalUrl(value: string): string | undefined {
   try {
@@ -26,11 +28,12 @@ export function AnnoCta({
   showArrow,
   appearance = "bar",
 }: AnnoCtaProps) {
+  const staticPreview = useContext(StaticPreviewContext);
   const actions = useMicrositeActions();
   const href = safeExternalUrl(url);
   const content = <>{label}{showArrow && <ArrowRight className="mc-anno-arrow" strokeWidth={2} aria-hidden />}</>;
   const className = appearance === "dialog" ? "mc-anno-details-action" : "mc-anno-link";
-  if (!href) return <span className={className}>{content}</span>;
+  if (staticPreview || !href) return <span className={className}>{content}</span>;
   return (
     <a
       className={className}

@@ -4,11 +4,10 @@ import { dictionaries } from "@/i18n/dictionaries";
 import type {
   BrandCard,
   Industry,
-  LocationCard,
+  PublicWebsiteShowcaseCard,
 } from "@/lib/api/marketplace/types";
 import {
   brandCardToData,
-  locationCardToData,
 } from "@/lib/marketplace/card-mappers";
 import { currentDaySeed, seededShuffle } from "@/lib/marketplace/industry-teaser";
 import { otherIndustryLast } from "@/lib/marketplace/industry-order";
@@ -18,17 +17,17 @@ import { InYourCity } from "@/app/_components/home/in-your-city";
 import { BrandsSection } from "@/app/_components/home/brands-section";
 import { NearYouSection } from "@/app/_components/home/near-you-section";
 import { RecentlyViewed } from "@/app/_components/home/recently-viewed";
-import { EditorsPick } from "@/app/_components/home/editors-pick";
+import { WebsiteShowcase } from "@/app/_components/home/editors-pick";
 import { SectionFailed } from "@/app/_components/home/section-failed";
 import {
   BrandsSkeleton,
-  EditorsPickSkeleton,
   CategoryRailSkeleton,
 } from "@/app/_components/home/section-skeletons";
 import {
   AppBand,
   BizStrip,
   TrustBand,
+  WebStudioBand,
 } from "@/app/_components/home/editorial-bands";
 
 // "No data" vs. "the request failed" for a home feed: `ok: true` carries the
@@ -44,7 +43,7 @@ export interface HomeContentProps {
   // over unawaited so the editorial shell can stream immediately while the
   // marketplace feeds are still in flight.
   industries: Promise<FeedResult<Industry[]>>;
-  editorsPick: Promise<FeedResult<LocationCard[]>>;
+  websites: Promise<FeedResult<PublicWebsiteShowcaseCard[]>>;
   brands: Promise<FeedResult<BrandCard[]>>;
 }
 
@@ -58,20 +57,21 @@ export interface HomeContentProps {
 //   2. Category rail ..... getIndustries          [streamed]
 //   3. In your city ...... searchListings (client: coords + 50km + seeded
 //                          shuffle, strict, paged 10/page)
-//   4. Brands ............ getBrands              [streamed]
-//   5. Recently viewed ... localStorage + getListingsBulk (client, 1 call)
-//   6. Editor's pick ..... searchListings, no geo (server-rendered)
+//   4. Websites .......... getWebsiteShowcase     [streamed]
+//   5. Brands ............ getBrands              [streamed]
+//   6. Recently viewed ... localStorage + getListingsBulk (client, 1 call)
 //   7. Near you .......... getNearbyLocations (client coords + 20km, strict)
 //   8. App band .......... editorial
 //   9. Trust band ........ editorial
-//  10. For-business strip  editorial
+//  10. Web Studio ........ editorial
+//  11. For-business strip  editorial
 //
 // Deferred for v1 (no public endpoint / auth-only): Offers row, Visits strip,
 // Book again / Rebook.
 export function HomeContent({
   locale,
   industries,
-  editorsPick,
+  websites,
   brands,
 }: HomeContentProps) {
   return (
@@ -84,20 +84,23 @@ export function HomeContent({
 
       <InYourCity />
 
+      {/* An optional showcase appears only after its feed confirms websites exist.
+          Each real card reserves its preview frame while its assets load. */}
+      <Suspense fallback={null}>
+        <WebsitesSection websites={websites} />
+      </Suspense>
+
       <Suspense fallback={<BrandsSkeleton labels={dictionaries[locale].homeSections.brands} />}>
         <BrandsBlock locale={locale} brands={brands} />
       </Suspense>
 
       <RecentlyViewed />
 
-      <Suspense fallback={<EditorsPickSkeleton labels={dictionaries[locale].homeSections.editorsPick} />}>
-        <PicksSection locale={locale} editorsPick={editorsPick} />
-      </Suspense>
-
       <NearYouSection />
 
       <AppBand locale={locale} />
       <TrustBand locale={locale} />
+      <WebStudioBand locale={locale} />
       <BizStrip locale={locale} />
     </main>
   );
@@ -139,17 +142,13 @@ async function BrandsBlock({
   return <BrandsSection cards={cards} />;
 }
 
-// The only server-rendered card feed left on the home page: everything else is
-// location-scoped, so it can only be resolved on the client.
-async function PicksSection({
-  locale,
-  editorsPick,
+async function WebsitesSection({
+  websites,
 }: {
-  locale: Locale;
-  editorsPick: Promise<FeedResult<LocationCard[]>>;
+  websites: Promise<FeedResult<PublicWebsiteShowcaseCard[]>>;
 }) {
-  const result = await editorsPick;
-  if (!result.ok) return <SectionFailed paddingTop={60} />;
-  const cards = result.data.map((l) => locationCardToData(l, locale));
-  return <EditorsPick cards={cards} />;
+  const result = await websites;
+  if (!result.ok) return <SectionFailed paddingTop={64} />;
+  if (result.data.length === 0) return null;
+  return <WebsiteShowcase cards={result.data} />;
 }

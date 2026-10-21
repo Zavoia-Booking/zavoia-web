@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
+import { LayoutTemplate, Newspaper, type LucideIcon } from "lucide-react";
 import { useLocaleAlternates } from "@/i18n/locale-navigation";
 import { authEntryHref } from "@/lib/auth/redirects";
 import { Avatar, Button, Icon, InlineError, Skeleton, Spinner, type IconName, useToast } from "@/components/ui";
@@ -59,6 +60,20 @@ function subscribeHash(onChange: () => void) {
 const getHash = () => window.location.hash;
 const getServerHash = () => "";
 
+function MenuIcon({ icon, color }: { icon: IconName | LucideIcon; color: string }) {
+  if (typeof icon === "string") return <Icon name={icon} size={16} color={color} />;
+  const Glyph = icon;
+  return (
+    <Glyph
+      size={16}
+      strokeWidth={1.7}
+      color={color}
+      aria-hidden="true"
+      style={{ display: "block", flexShrink: 0 }}
+    />
+  );
+}
+
 export function AccountMenu({ locale, onClose }: Props) {
   const { status, user, logout, initializing, optimisticUser, refresh } = useAuth();
   const [retryingSession, setRetryingSession] = useState(false);
@@ -82,7 +97,7 @@ export function AccountMenu({ locale, onClose }: Props) {
   const loginHref = authEntryHref(locale, "login", current, alternates);
 
   const linkRow = (
-    icon: IconName,
+    icon: IconName | LucideIcon,
     label: string,
     ...segments: string[]
   ) => (
@@ -92,7 +107,7 @@ export function AccountMenu({ locale, onClose }: Props) {
       onClick={onClose}
       style={{ ...rowStyle, color: "var(--c-800)" }}
     >
-      <Icon name={icon} size={16} color="var(--c-600)" />
+      <MenuIcon icon={icon} color="var(--c-600)" />
       {label}
     </Link>
   );
@@ -101,7 +116,7 @@ export function AccountMenu({ locale, onClose }: Props) {
   // (icon --p-600, label --p-700 per the terracotta-as-text rule) so it reads as
   // an offer rather than another destination.
   const accentRow = (
-    icon: IconName,
+    icon: IconName | LucideIcon,
     label: string,
     ...segments: string[]
   ) => (
@@ -111,7 +126,7 @@ export function AccountMenu({ locale, onClose }: Props) {
       onClick={onClose}
       style={{ ...rowStyle, color: "var(--p-700)", fontWeight: 600 }}
     >
-      <Icon name={icon} size={16} color="var(--p-600)" />
+      <MenuIcon icon={icon} color="var(--p-600)" />
       {label}
     </Link>
   );
@@ -265,14 +280,14 @@ export function AccountMenu({ locale, onClose }: Props) {
 
       <div className="zv-hair" style={{ height: 1 }} />
       <div style={{ padding: "8px 0" }}>
-        {linkRow("sparkle", t.journal, "blog")}
+        {linkRow(Newspaper, t.journal, "blog")}
         {linkRow("info", t.helpSupport, "help")}
       </div>
 
       <div className="zv-hair" style={{ height: 1 }} />
       <div style={{ padding: "8px 0" }}>
         {linkRow("building", t.forBusiness, "for-business")}
-        {accentRow("globe", t.webStudio, "web-studio")}
+        {accentRow(LayoutTemplate, t.webStudio, "web-studio")}
         {linkRow("wallet", t.pricing, "pricing")}
       </div>
 

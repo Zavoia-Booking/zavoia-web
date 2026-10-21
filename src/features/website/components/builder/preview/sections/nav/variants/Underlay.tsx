@@ -1,9 +1,10 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ArrowRight } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 import { cn } from "../../../../../../../../shared/lib/utils";
 import { DISPLAY, MONO } from "../../../shared/constants";
 import { prefersReducedMotion } from "../../../shared/util";
+import { StaticPreviewContext } from "../../../shared/hooks";
 import { isPendingBooking, useMicrositeActions } from "../../../shared/actions";
 import { Spinner } from "@/components/ui/spinner";
 import actionStyles from "../../../shared/actions.module.css";
@@ -19,6 +20,7 @@ import "./underlay.css";
 
 /** Underlay — a restrained top bar; opening reveals a paper navigation behind the translated page. */
 export function Underlay(props: NavVariantViewProps) {
+  const staticPreview = useContext(StaticPreviewContext);
   const motionFrameRef = useRef(0);
   const actions = useMicrositeActions();
   const pendingBookingRef = useRef(false);
@@ -100,15 +102,22 @@ export function Underlay(props: NavVariantViewProps) {
         style={chrome.style}
       >
         <NavBrand data={props.data} name={props.name} mark={props.mark} />
-        <DialogPrimitive.Trigger asChild>
-          <button type="button" className="mc-nav-underlay-toggle" aria-expanded={props.menuOpen} aria-label={menuLabel}>
+        {staticPreview ? (
+          <span className="mc-nav-underlay-toggle">
             <span className="mc-nav-underlay-toggle-label" style={MONO}>{props.t("businessPage.builder.preview.menu")}</span>
-            <BurgerGlyph open={props.menuOpen} />
-          </button>
-        </DialogPrimitive.Trigger>
+            <BurgerGlyph open={false} />
+          </span>
+        ) : (
+          <DialogPrimitive.Trigger asChild>
+            <button type="button" className="mc-nav-underlay-toggle" aria-expanded={props.menuOpen} aria-label={menuLabel}>
+              <span className="mc-nav-underlay-toggle-label" style={MONO}>{props.t("businessPage.builder.preview.menu")}</span>
+              <BurgerGlyph open={props.menuOpen} />
+            </button>
+          </DialogPrimitive.Trigger>
+        )}
       </nav>
 
-      {props.portalRoot ? (
+      {!staticPreview && props.portalRoot ? (
         <DialogPrimitive.Portal forceMount container={props.portalRoot}>
           <DialogPrimitive.Content
             forceMount

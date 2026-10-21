@@ -120,11 +120,11 @@
   .errorCode { font-size: 80px; }.errorScript { font-size: 40px; }[data-locale=ro] .errorScript { font-size: 30px; }
   .recoveryLink { grid-column: 2; justify-self: start; }
 }
-/* On phones, the recovery message gets the same readable width as the offer.
-   The language control stays in normal footer flow, clear of browser chrome. */
+/* On phones, the recovery message gets the same readable width as the offer. */
 @media (max-width:600px) {
   .page { padding-inline: max(24px, env(safe-area-inset-left)) max(24px, env(safe-area-inset-right)); }
   .header { min-height: 80px; padding-block: 16px 12px; gap: 16px; }
+  .headerNav { gap: 12px; }
   .logo img { width: 112px; }
   .signInFull { display: none; }.signInCompact { display: inline; }
   .signIn { font-size: 14px; }.signInArrow { display: none; }
@@ -149,7 +149,6 @@
   .recoveryMeta { margin-top: 16px; }.requestedAddress { font-size: 13px; }
   .recoveryLink { align-self: stretch; margin: 0; min-height: 52px; padding: 12px 20px; gap: 12px; font-size: 16px; line-height: 1.4; white-space: normal; }
   .footer { min-height: 84px; flex-wrap: wrap; gap: 4px 16px; padding-block: 16px max(24px, env(safe-area-inset-bottom)); border-top: 1px solid var(--nf-line); }
-  .footer > :last-child { margin-inline-start: auto; }
 }
 @media (max-width:350px) {
   .page { padding-inline: max(20px, env(safe-area-inset-left)) max(20px, env(safe-area-inset-right)); }

@@ -1,4 +1,7 @@
 import type { ReactNode } from "react";
+import type { PreviewData } from "../../shared/types";
+
+export type AnnouncementPreviewData = Pick<PreviewData, "announcement" | "locale" | "businessTimezone">;
 
 export type AnnouncementLayout = "ribbon" | "ticker" | "pill";
 

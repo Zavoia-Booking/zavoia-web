@@ -1,18 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { AnnoCta } from "../parts/AnnoCta";
 import type { AnnouncementVariantProps } from "../types";
-import { prefersReducedMotion } from "../../../shared/util";
+import { StaticPreviewContext, useReducedMotion } from "../../../shared/hooks";
 import "./ticker.css";
 
 const REPEATS = Array.from({ length: 10 }, (_, index) => index);
 
 function TickerLane({ text }: { text: string }) {
+  const staticPreview = useContext(StaticPreviewContext);
+  const reducedMotion = useReducedMotion();
   const trackRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     const track = trackRef.current;
-    if (!track || paused || prefersReducedMotion()) return;
+    if (!track || paused || reducedMotion) return;
     let offset = Number.parseFloat(track.dataset.offset ?? "0") || 0;
     let last = performance.now();
     const interval = window.setInterval(() => {
@@ -29,12 +31,12 @@ function TickerLane({ text }: { text: string }) {
       track.style.transform = `translate3d(${offset.toFixed(1)}px,0,0)`;
     }, 1_000 / 60);
     return () => window.clearInterval(interval);
-  }, [paused, text]);
+  }, [paused, reducedMotion, text]);
 
   return (
     <div
       className="mc-anno-tick"
-      tabIndex={0}
+      tabIndex={staticPreview ? undefined : 0}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}

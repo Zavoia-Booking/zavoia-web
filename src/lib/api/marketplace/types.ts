@@ -30,6 +30,27 @@ import type {
   PreviewReview,
   RatingBars,
 } from "@/features/website/components/builder/preview/shared/types";
+import type { HeroPreviewLocation } from "@/features/website/components/builder/preview/sections/hero/types";
+
+/** Published Website Builder heroes, without the full site's booking catalog. */
+export interface PublicWebsiteShowcaseCard {
+  businessId: number;
+  slug: string;
+  name: string;
+  logo: string | null;
+  timezone: string | null;
+  layout: SectionEntry[];
+  announcement: AnnouncementContent | null;
+  industry: { id: number; name: string; nameRo: string | null; slug: string } | null;
+  publishedVersion: number | null;
+  publishedAt: string | null;
+  hero: SectionEntry;
+  heroImageUrl: string | null;
+  tagline: string | null;
+  brandColor: string | null;
+  fontKey: string | null;
+  locations: HeroPreviewLocation[];
+}
 
 // ============================================================================
 // Envelope & pagination helpers
@@ -302,6 +323,8 @@ export interface LocationCard {
   name: string;
   locationName: string;
   businessName: string;
+  /** Optional location description; independent of business/marketplace copy. */
+  description?: string | null;
   address: string | null;
   city: string | null;
   latitude: number | null;

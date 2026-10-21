@@ -1,13 +1,15 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ArrowRight, X } from "lucide-react";
-import { forwardRef, useRef, type ComponentPropsWithoutRef, type CSSProperties, type ReactNode } from "react";
+import { forwardRef, useContext, useRef, type ComponentPropsWithoutRef, type CSSProperties, type ReactNode } from "react";
 import { cn } from "../../../../../../../shared/lib/utils";
 import { DISPLAY, MONO } from "../../shared/constants";
 import { BookButton } from "../../shared/primitives";
 import { isPendingBooking, useMicrositeActions } from "../../shared/actions";
 import { Spinner } from "@/components/ui/spinner";
 import actionStyles from "../../shared/actions.module.css";
-import type { PreviewData, T } from "../../shared/types";
+import type { T } from "../../shared/types";
+import { StaticPreviewContext } from "../../shared/hooks";
+import type { NavPreviewData } from "./types";
 
 export type NavStyleKey = "editorial" | "capsule" | "split" | "underlay";
 
@@ -17,7 +19,7 @@ export type NavLinkItem = {
 };
 
 export type NavVariantViewProps = {
-  data: PreviewData;
+  data: NavPreviewData;
   t: T;
   name: string;
   mark: string;
@@ -116,15 +118,16 @@ export function NavBrand({
   mark,
   className,
 }: {
-  data: PreviewData;
+  data: NavPreviewData;
   name: string;
   mark: string;
   className?: string;
 }) {
+  const staticPreview = useContext(StaticPreviewContext);
   return (
     <span className={cn("mc-nav-brand", className)}>
       {data.logo ? (
-        <img className="mc-nav-brand-logo" src={data.logo} alt="" loading="lazy" decoding="async" />
+        <img className="mc-nav-brand-logo" src={data.logo} alt="" loading={staticPreview ? "eager" : "lazy"} decoding="async" />
       ) : (
         <span className="mc-nav-brand-mark" aria-hidden style={DISPLAY}>{mark}</span>
       )}
@@ -144,9 +147,14 @@ export function NavLinks({
   onNavigate: (type: string) => void;
   className?: string;
 }) {
+  const staticPreview = useContext(StaticPreviewContext);
   return (
     <div className={cn("mc-nav-links", className)}>
-      {links.map((link) => (
+      {links.map((link) => staticPreview ? (
+        <span key={link.type} className="mc-nav-link" data-active={activeType === link.type ? "true" : undefined}>
+          {link.label}
+        </span>
+      ) : (
         <button
           key={link.type}
           type="button"
@@ -189,6 +197,10 @@ export const MenuButton = forwardRef<HTMLButtonElement, MenuButtonProps>(functio
   children,
   ...buttonProps
 }, ref) {
+  const staticPreview = useContext(StaticPreviewContext);
+  if (staticPreview) {
+    return <span className={cn("mc-nav-menu-button", className)}>{children ?? <BurgerGlyph open={false} />}</span>;
+  }
   return (
     <button
       {...buttonProps}
@@ -203,15 +215,15 @@ export const MenuButton = forwardRef<HTMLButtonElement, MenuButtonProps>(functio
   );
 });
 
-const socialsFor = (data: PreviewData) => [
-  data.social.instagram && "Instagram",
-  data.social.tiktok && "TikTok",
-  data.social.facebook && "Facebook",
-  data.social.pinterest && "Pinterest",
-  data.social.website && "Website",
+const socialsFor = (data: NavPreviewData) => [
+  data.social?.instagram && "Instagram",
+  data.social?.tiktok && "TikTok",
+  data.social?.facebook && "Facebook",
+  data.social?.pinterest && "Pinterest",
+  data.social?.website && "Website",
 ].filter((label): label is string => !!label);
 
-export function NavMenuFooter({ data }: { data: PreviewData }) {
+export function NavMenuFooter({ data }: { data: NavPreviewData }) {
   const socials = socialsFor(data);
   if (socials.length === 0) return null;
   return (
@@ -235,17 +247,18 @@ export function MobileMenuPortal({
 }: {
   variant: "editorial" | "capsule" | "split";
   portalRoot: HTMLElement | null;
-  data: PreviewData;
+  data: NavPreviewData;
   name: string;
   mark: string;
   links: NavLinkItem[];
   onNavigate: (type: string) => void;
   t: T;
 }) {
+  const staticPreview = useContext(StaticPreviewContext);
   const actions = useMicrositeActions();
   const pendingBookingRef = useRef(false);
   const pendingNavigationRef = useRef<string | null>(null);
-  if (!portalRoot) return null;
+  if (staticPreview || !portalRoot) return null;
   const cut = Math.max(1, Math.floor(links.length / 2));
   const indexedLink = (link: NavLinkItem, index: number) => (
     <DialogPrimitive.Close asChild key={link.type}>

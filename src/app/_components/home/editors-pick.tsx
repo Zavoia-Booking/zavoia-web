@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
-import { Kicker } from "@/components/ui/kicker";
-import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { Img } from "@/components/ui/image";
-import { CatDot } from "@/components/ui/cat-dot";
-import type { BusinessCardData } from "@/components/business";
+import type { PublicWebsiteShowcaseCard } from "@/lib/api/marketplace/types";
+import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
+import { industryVisual } from "@/lib/marketplace/industry-visuals";
+import type { Locale } from "@/i18n/locales";
+import { WebsiteHeroPreview } from "./website-hero-preview";
+import cardStyles from "./website-card.module.css";
 
 const pad2 = (n: number) => String(n + 1).padStart(2, "0");
 
@@ -70,197 +71,43 @@ function animateScroll(el: HTMLElement | null, to: number, dur = 760) {
   t.raf = requestAnimationFrame(tick);
 }
 
-// ── Editor's-pick card (ported from docs/web-featured.jsx ZwBizEditorialCard) ──
-// Photo + category chip, with a white card overhanging below: mono city kicker,
-// star rating, name, and a "View profile →" chevron that nudges on hover. The
-// whole card links to the business profile. No blurb (BusinessCardData has none).
-function EditorsPickCard({
-  b,
-  viewProfileLabel,
+// The compact caption identifies the website. The inert hero is only a preview;
+// the outer link is the card's single action and opens the published website.
+function WebsiteCard({
+  site,
+  locale,
+  viewWebsiteLabel,
+  industryLabel,
 }: {
-  b: BusinessCardData;
-  viewProfileLabel: string;
+  site: PublicWebsiteShowcaseCard;
+  locale: Locale;
+  viewWebsiteLabel: string;
+  industryLabel: string | null;
 }) {
-  const inner = (
-    <>
-      {/* Photo */}
-      <div
-        className="zw-zoom-wrap"
-        style={{
-          position: "relative",
-          width: "100%",
-          aspectRatio: "4 / 4.2",
-          borderRadius: 22,
-          overflow: "hidden",
-          background: "var(--c-300)",
-          boxShadow: "var(--sh-md)",
-        }}
-      >
-        <Img
-          src={b.image}
-          alt={b.name}
-          label={b.catLabel ?? b.cat}
-          style={{ width: "100%", height: "100%" }}
-        />
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0) 32%)",
-          }}
-        />
-        <span
-          style={{
-            position: "absolute",
-            top: 14,
-            left: 14,
-            background: "rgba(255,255,255,0.94)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            padding: "5px 11px",
-            borderRadius: 999,
-            fontSize: 11.5,
-            fontWeight: 600,
-            color: "var(--c-800)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <CatDot cat={b.cat} size={6} />
-          {b.catLabel}
-        </span>
-      </div>
+  const visual = site.industry ? industryVisual(toCat(site.industry)) : null;
 
-      {/* Overhang card */}
-      <div
-        style={{
-          margin: "-26px 14px 0",
-          position: "relative",
-          background: "#fff",
-          border: "1px solid rgba(28,28,26,0.06)",
-          borderRadius: 18,
-          boxShadow: "var(--sh-sm)",
-          padding: "14px 17px 16px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            minHeight: 19.5,
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--p-600)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              minWidth: 0,
-            }}
-          >
-            {b.city}
-          </div>
-          {b.rating != null && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                flexShrink: 0,
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--c-900)",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              <Icon name="star" size={12} color="var(--p-500)" />
-              {b.rating.toFixed(1)}
-              {b.reviews != null && (
-                <span style={{ color: "var(--c-500)", fontWeight: 500 }}>
-                  ({b.reviews})
-                </span>
-              )}
-            </span>
-          )}
-        </div>
-        <h3
-          title={b.name}
-          className="txt-balance"
-          style={{
-            margin: "6px 0 0",
-            fontSize: "clamp(20px, 1.4vw, 22px)",
-            fontWeight: 600,
-            color: "var(--c-900)",
-            letterSpacing: "-0.028em",
-            lineHeight: 1.06,
-            minHeight: "2.12em",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          {b.name}
-        </h3>
-        <div
-          style={{
-            marginTop: 12,
-            minHeight: 19,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            gap: 8,
-          }}
-        >
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: "var(--p-700)",
-            }}
-          >
-            {viewProfileLabel}
-            <span className="zw-card-cta-arrow" style={{ display: "inline-flex" }}>
-              <Icon name="chevR" size={13} color="var(--p-700)" />
-            </span>
-          </span>
-        </div>
-      </div>
-    </>
-  );
-
-  if (b.href) {
-    return (
-      <Link
-        href={b.href}
-        className="zw-hover-lift zw-zoom-parent"
-        style={{ position: "relative", textDecoration: "none", display: "block" }}
-      >
-        {inner}
-      </Link>
-    );
-  }
   return (
-    <article
-      className="zw-hover-lift zw-zoom-parent"
-      style={{ position: "relative" }}
+    <Link
+      href={localeHref(locale, site.slug)}
+      prefetch={false}
+      aria-label={`${viewWebsiteLabel}: ${site.name}`}
+      className={`${cardStyles.card} zw-hover-lift zw-zoom-parent`}
     >
-      {inner}
-    </article>
+      <WebsiteHeroPreview site={site} locale={locale} />
+      <div className={cardStyles.caption}>
+        <div className={cardStyles.identity}>
+          <h3 title={site.name} className={cardStyles.name}>{site.name}</h3>
+        </div>
+        {visual && industryLabel && (
+          <div className={cardStyles.industry}>
+            <Icon name={visual.icon} size={16} color={visual.accent} />
+            <span title={industryLabel} className={cardStyles.industryLabel}>
+              {industryLabel}
+            </span>
+          </div>
+        )}
+      </div>
+    </Link>
   );
 }
 
@@ -306,7 +153,7 @@ function RailArrow({
   );
 }
 
-// EDITOR'S PICK — full-bleed dark band. Left: intro + CTA + vertical stepper +
+// WEBSITE SHOWCASE — full-bleed dark band. Left: intro + CTA + vertical stepper +
 // pager + progress thumb. Right: a rail of editorial cards that bleeds off the
 // screen edge. Faithful port of the prototype's (docs/web-featured.jsx
 // ZwFeatSplit) imperative motion engine: one rAF loop reads the rail's live
@@ -315,9 +162,9 @@ function RailArrow({
 // — with NO React state updates during scroll (no re-renders). The loop
 // self-parks ~10 idle frames after motion settles and wakes on input/resize.
 // Reduced-motion safe. Tone is DARK (the home band).
-export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
+export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] }) {
   const { locale, dict } = useTranslation();
-  const s = dict.homeSections.editorsPick;
+  const s = dict.homeSections.websiteShowcase;
 
   const railRef = useRef<HTMLDivElement>(null);
   const backdropRefs = useRef<(HTMLElement | null)[]>([]);
@@ -378,14 +225,14 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
       const sl = rail.scrollLeft;
       const max = rail.scrollWidth - rail.clientWidth;
       // When every card fits without scrolling (few cards / wide viewport)
-      // there is nothing to page: hide the pager + progress thumb and show
-      // all cards at full emphasis. Re-evaluated live (ResizeObserver wakes
+      // there is nothing to page: hide the controls while preserving their
+      // layout footprint, and show all cards at full emphasis. Re-evaluated live (ResizeObserver wakes
       // the loop), so shrinking the window brings the pager back.
       const noScroll = max <= 2;
       if (pagerRef.current)
-        pagerRef.current.style.display = noScroll ? "none" : "flex";
+        pagerRef.current.style.visibility = noScroll ? "hidden" : "visible";
       if (progressRef.current)
-        progressRef.current.style.display = noScroll ? "none" : "block";
+        progressRef.current.style.visibility = noScroll ? "hidden" : "visible";
       const frac = max > 0 ? Math.min(1, Math.max(0, sl / max)) : 0;
       const thumb = Math.min(1, rail.clientWidth / Math.max(1, rail.scrollWidth));
       // Active position in [0, n-1], driven by scroll PROGRESS rather than the
@@ -541,11 +388,12 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
           the rAF loop null-checks bd[i]); array indices stay aligned. */}
       <div aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
         {cards.map((b, i) =>
-          b.image ? (
+          b.heroImageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              key={b.id ?? i}
-              src={b.image}
+              key={b.businessId}
+              src={b.heroImageUrl}
+              loading="lazy"
               alt=""
               ref={(el) => {
                 backdropRefs.current[i] = el;
@@ -625,12 +473,6 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
             </div>
 
             <div style={{ minWidth: 0 }}>
-              <Kicker
-                color="color-mix(in oklch, var(--p-400) 78%, #fff)"
-                style={{ marginBottom: 16 }}
-              >
-                {s.kicker}
-              </Kicker>
               <h2
                 className="txt-balance"
                 style={{
@@ -658,12 +500,25 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
                 {s.sub}
               </p>
               <Link
-                href={localeHref(locale, "search")}
-                style={{ textDecoration: "none" }}
+                href={localeHref(locale, "web-studio")}
+                className="tap zw-btn"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  background: "#fff",
+                  color: "var(--c-900)",
+                  border: "1px solid rgba(28,28,26,0.14)",
+                  borderRadius: "var(--r-full)",
+                  padding: "15px 28px",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  letterSpacing: "-0.01em",
+                  whiteSpace: "nowrap",
+                }}
               >
-                <Button kind="secondary" size="lg">
-                  {s.cta}
-                </Button>
+                {s.cta}
               </Link>
 
               {/* Pager (hidden by the rAF loop when the rail has no overflow) */}
@@ -671,6 +526,7 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
                 ref={pagerRef}
                 style={{
                   marginTop: "clamp(30px, 3.2vw, 44px)",
+                  visibility: n <= 1 ? "hidden" : "visible",
                   display: "flex",
                   alignItems: "center",
                   gap: 18,
@@ -717,6 +573,7 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
                 ref={progressRef}
                 style={{
                   marginTop: 18,
+                  visibility: n <= 1 ? "hidden" : "visible",
                   height: 3,
                   borderRadius: 999,
                   maxWidth: 240,
@@ -747,7 +604,7 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
           <div ref={railRef} className="zw-carousel-rail zw-rail-split">
             {cards.map((b, i) => (
               <div
-                key={b.id ?? i}
+                key={b.businessId}
                 data-card
                 className="zw-carousel-card"
                 ref={(el) => {
@@ -761,7 +618,12 @@ export function EditorsPick({ cards }: { cards: BusinessCardData[] }) {
                     i === 0 ? "none" : "translateY(10px) scale(0.925)",
                 }}
               >
-                <EditorsPickCard b={b} viewProfileLabel={s.viewProfile} />
+                <WebsiteCard
+                  site={b}
+                  locale={locale}
+                  viewWebsiteLabel={s.viewWebsite}
+                  industryLabel={b.industry ? taxonomyLabel(b.industry, locale, dict.industries) : null}
+                />
               </div>
             ))}
           </div>

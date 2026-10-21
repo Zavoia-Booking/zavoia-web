@@ -1,7 +1,8 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { findScrollParent } from "../../../shared/util";
+import { StaticPreviewContext } from "../../../shared/hooks";
 import type { T } from "../../../shared/types";
 import { AnnoCta } from "./AnnoCta";
 import { AnnoCountdown } from "./AnnoCountdown";
@@ -130,6 +131,8 @@ function useAnnouncementDialogViewport({
 }
 
 export function AnnoDetailsTrigger({ label }: { label: string }) {
+  const staticPreview = useContext(StaticPreviewContext);
+  if (staticPreview) return <span className="mc-anno-more">{label}</span>;
   return (
     <DialogPrimitive.Trigger asChild>
       <button type="button" className="mc-anno-more">

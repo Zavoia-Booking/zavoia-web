@@ -29,6 +29,7 @@ import type {
   PaginatedFeed,
   ProfessionalReview,
   PublicWebsite,
+  PublicWebsiteShowcaseCard,
   Review,
   ReviewPageParams,
   SearchListingsParams,
@@ -209,6 +210,16 @@ export function getPublicWebsite(
 ): Promise<PublicWebsite> {
   return apiFetch<PublicWebsite>(
     `/marketplace/public/website/${encodeURIComponent(slug)}`,
+    { method: "GET", ...cacheInit(opts) },
+  );
+}
+
+/** Published, entitled websites with a visible hero; newest publication first. */
+export function getWebsiteShowcase(
+  opts?: CacheOptions,
+): Promise<{ data: PublicWebsiteShowcaseCard[] }> {
+  return apiFetch<{ data: PublicWebsiteShowcaseCard[] }>(
+    "/marketplace/public/websites?limit=10",
     { method: "GET", ...cacheInit(opts) },
   );
 }

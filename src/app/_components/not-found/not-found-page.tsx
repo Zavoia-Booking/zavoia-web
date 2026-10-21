@@ -34,6 +34,15 @@ export function NotFoundPage({ locale, pathname, dictionary }: {
             <Image src="/brand/wordmark-cropped.png" alt="Zavoia" width={141} height={45} />
           </Link>
           <nav className={styles.headerNav} aria-label={t.navigation}>
+            <LanguageSwitcher
+              messages={{ language: dictionary.language, localeNames: dictionary.localeNames }}
+              currentLocale={locale}
+              pathname={pathname}
+              label={t.language}
+              placement="below"
+              compact="responsive"
+              alternates="same-path"
+            />
             <a className={styles.signIn} href={`${BUSINESS_APP_URL}/login`} aria-label={t.signIn}>
               <span className={styles.signInFull}>{t.signIn}</span>
               <span className={styles.signInCompact}>{t.signInShort}</span>
@@ -83,14 +92,6 @@ export function NotFoundPage({ locale, pathname, dictionary }: {
         </main>
         <footer className={styles.footer}>
           <span>© {new Date().getUTCFullYear()} Zavoia</span>
-          <LanguageSwitcher
-            messages={{ language: dictionary.language, localeNames: dictionary.localeNames }}
-            currentLocale={locale}
-            pathname={pathname}
-            label={t.language}
-            placement="above"
-            alternates="same-path"
-          />
         </footer>
       </div>
       <NotFoundEnhancements />

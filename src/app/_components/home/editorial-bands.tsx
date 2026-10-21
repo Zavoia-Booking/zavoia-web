@@ -1,312 +1,172 @@
+/* eslint-disable @next/next/no-img-element -- Pre-sized WebP captures use native srcSet, including inside the scaled SVG device scene. */
+import type { CSSProperties } from "react";
 import Link from "next/link";
+import localFont from "next/font/local";
+import clsx from "clsx";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
-import { Kicker } from "@/components/ui/kicker";
-import { Icon, type IconName } from "@/components/ui/icon";
+import styles from "./editorial-bands.module.css";
 
-// ─────────────────────────────────────────────
-// Trust band — quiet three-up reassurance row. Editorial (i18n only).
-// ─────────────────────────────────────────────
-export function TrustBand({ locale }: { locale: Locale }) {
-  const s = dictionaries[locale].homeSections.trust;
-  const icons: IconName[] = ["pin", "cal", "wallet"];
+const caveat = localFont({
+  src: [
+    { path: "../../fonts/caveat-latin-700.woff2", weight: "700", style: "normal" },
+    { path: "../../fonts/caveat-latin-ext-700.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-home-caveat",
+  display: "swap",
+  preload: false,
+});
 
+const assets = "/images/homepage";
+const theme = clsx(styles.theme, caveat.variable);
+
+function Arrow() {
   return (
-    <section className="zw-container" style={{ paddingTop: 76 }}>
-      <div
-        style={{
-          borderTop: "1px solid rgba(28,28,26,0.10)",
-          paddingTop: 40,
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "clamp(24px, 4vw, 56px)",
-        }}
-      >
-        {s.items.map((it, i) => (
-          <div
-            key={it.title}
-            style={{ display: "flex", gap: 15, alignItems: "flex-start" }}
-          >
-            <span
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                flexShrink: 0,
-                background: "#fff",
-                border: "1px solid rgba(28,28,26,0.08)",
-                boxShadow: "var(--sh-sm)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Icon name={icons[i] ?? "shield"} size={17} color="var(--p-600)" />
-            </span>
-            <span>
-              <span
-                style={{
-                  display: "block",
-                  fontSize: 15.5,
-                  fontWeight: 600,
-                  letterSpacing: "-0.015em",
-                  color: "var(--c-900)",
-                }}
-              >
-                {it.title}
-              </span>
-              <span
-                className="txt-pretty"
-                style={{
-                  display: "block",
-                  fontSize: 13.5,
-                  lineHeight: 1.5,
-                  color: "var(--c-600)",
-                  marginTop: 4,
-                  maxWidth: 300,
-                }}
-              >
-                {it.sub}
-              </span>
-            </span>
-          </div>
-        ))}
-      </div>
-    </section>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
-// ─────────────────────────────────────────────
-// App band — two-column copy + a simple phone mock. Editorial (i18n only).
-// ─────────────────────────────────────────────
+function AppPhone({ variant, alt }: { variant: "schedule" | "map"; alt: string }) {
+  const map = variant === "map";
+  return (
+    <div className={clsx(styles["device-mount"], styles[map ? "device-secondary" : "device-primary"])}>
+      <div className={styles.phone}>
+        {[-8, -6, -4, -2].map(depth => (
+          <i key={depth} className={styles.edge} style={{ "--depth": `${depth}px` } as CSSProperties} aria-hidden="true" />
+        ))}
+        <div className={styles["phone-face"]}>
+          <div className={styles.screen}>
+            <img
+              src={`${assets}/${map ? "native-map-en" : "aligned-schedule-en"}.webp`}
+              srcSet={map ? `${assets}/native-map-en-540.webp 540w, ${assets}/native-map-en-810.webp 810w, ${assets}/native-map-en.webp 1080w` : undefined}
+              sizes={map ? "(max-width: 374px) 220px, (max-width: 900px) 248px, (max-width: 1060px) 212px, (max-width: 1250px) 232px, 246px" : undefined}
+              width={1080}
+              height={2424}
+              alt={alt}
+              loading="lazy"
+              decoding="async"
+            />
+            <span className={styles["dynamic-island"]} aria-hidden="true" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AppBand({ locale }: { locale: Locale }) {
   const s = dictionaries[locale].homeSections.app;
-
   return (
-    <section className="zw-container" style={{ paddingTop: 76 }}>
-      <div
-        data-feature-grid="1"
-        style={{
-          background: "var(--c-mist)",
-          borderRadius: "var(--r-2xl)",
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 6fr) minmax(0, 5fr)",
-          gap: "clamp(28px, 4vw, 64px)",
-          alignItems: "center",
-          padding: "clamp(36px, 5vw, 56px)",
-        }}
-      >
-        <div>
-          <Kicker style={{ marginBottom: 14 }}>{s.kicker}</Kicker>
-          <h2
-            className="txt-balance"
-            style={{
-              margin: 0,
-              fontSize: "clamp(26px, 3vw, 38px)",
-              fontWeight: 700,
-              letterSpacing: "-0.035em",
-              lineHeight: 1.05,
-              color: "var(--c-900)",
-            }}
-          >
-            {s.title}
+    <div className={clsx(theme, styles["app-shell"])}>
+      <section className={styles["app-band"]} id="zavoia-app" aria-labelledby="app-heading">
+        <div className={styles.copy}>
+          <h2 className={styles["app-title"]} id="app-heading">
+            <span className={styles["headline-line"]}>{s.titleFirst}</span>
+            <span className={styles["headline-line"]}>{s.titleSecond}<em className={styles.signature}>{s.titleAccent}</em></span>
           </h2>
-          <p
-            className="txt-pretty"
-            style={{
-              margin: "16px 0 26px",
-              fontSize: 16,
-              lineHeight: 1.6,
-              color: "var(--c-700)",
-              maxWidth: 420,
-            }}
-          >
-            {s.sub}
-          </p>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {[s.appStore, s.googlePlay].map((label) => (
-              <span
-                key={label}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "var(--c-ink)",
-                  color: "#fff",
-                  padding: "12px 20px",
-                  borderRadius: "var(--r-full)",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                <Icon name="phone" size={16} color="#fff" />
-                {label}
+          <p className={styles.intro}>{s.sub}</p>
+          {/* No verified store destinations exist yet. Preserve the original
+              noninteractive platform labels rather than ship preview actions. */}
+          <div className={styles["store-actions"]} role="group" aria-label={s.downloadsLabel}>
+            {[
+              { icon: "apple", platform: s.ios, name: s.appStore },
+              { icon: "google-play", platform: s.android, name: s.googlePlay },
+            ].map(store => (
+              <span className={styles["store-badge"]} key={store.icon}>
+                <span className={styles["store-symbol"]} style={{ "--store-icon": `url('${assets}/${store.icon}.svg')` } as CSSProperties} aria-hidden="true" />
+                <span className={styles["store-label"]}><small>{store.platform}</small><strong>{store.name}</strong></span>
               </span>
             ))}
           </div>
         </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          {/* Lightweight phone/app mock placeholder. */}
-          <div
-            aria-hidden="true"
-            style={{
-              width: 220,
-              aspectRatio: "9 / 18",
-              borderRadius: 36,
-              background: "#0d0d0c",
-              padding: 9,
-              boxShadow: "var(--sh-xl)",
-            }}
-          >
-            <div
-              className="zv-stripe"
-              style={{
-                width: "100%",
-                height: "100%",
-                borderRadius: 28,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--c-600)",
-                }}
-              >
-                {s.mockLabel}
-              </span>
-            </div>
+        <div className={styles["device-stage"]}>
+          <AppPhone variant="map" alt={s.mapAlt} />
+          <AppPhone variant="schedule" alt={s.scheduleAlt} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const benefitIcons = [
+  <><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>,
+  <><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M16 3v4M8 3v4M3 11h18m-13 5 2 2 4-4" /></>,
+  <><rect x="2.5" y="5" width="19" height="14" rx="3" /><path d="M2.5 10h19M7 15h3" /></>,
+];
+
+export function TrustBand({ locale }: { locale: Locale }) {
+  const s = dictionaries[locale].homeSections.trust;
+  return (
+    <section className={clsx(theme, styles["closing-trust"])} id="booking-benefits" aria-label={s.title}>
+      <ul className={styles["closing-benefits"]}>
+        {s.items.map((item, index) => (
+          <li key={item.title}>
+            <svg className={styles["closing-benefit-icon"]} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{benefitIcons[index]}</svg>
+            <div><strong>{item.title}</strong><p>{item.sub}</p></div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function WebStudioBand({ locale }: { locale: Locale }) {
+  const s = dictionaries[locale].homeSections.webStudio;
+  return (
+    <section className={clsx(theme, styles["studio-option"])} id="web-studio" aria-labelledby="web-studio-heading">
+      <div className={styles["studio-option-inner"]}>
+        <div className={clsx(styles["studio-visual"], styles["sa-scene"])}>
+          <div className={styles["sa-hardware-stage"]}>
+            <div className={styles["sa-contact"]} aria-hidden="true" />
+            <svg viewBox="0 0 1536 1240" xmlns="http://www.w3.org/2000/svg" focusable="false">
+              <foreignObject width="1536" height="1240">
+                <div className={styles["sa-browser"]} style={{ transform: "matrix(0.81887622,0.04291548,-0.04291548,0.81887622,310,30)" }}>
+                  <div className={styles["sa-browser-bar"]} aria-hidden="true"><span className={styles["sa-browser-dots"]}><i /><i /><i /></span>zavoia.com/lumi-beauty</div>
+                  <img src={`${assets}/beauty-desktop.webp`} srcSet={`${assets}/beauty-desktop-560.webp 560w, ${assets}/beauty-desktop-1120.webp 1120w, ${assets}/beauty-desktop.webp 1440w`} sizes="(max-width: 600px) 80vw, (max-width: 900px) 600px, 700px" width={1440} height={960} alt={s.desktopAlt} loading="lazy" decoding="async" />
+                </div>
+              </foreignObject>
+              <foreignObject width="1536" height="1240">
+                <div className={styles["sa-phone"]} role="img" aria-label={s.phoneAlt} style={{ transform: "matrix(0.98768834,-0.15643447,0.15643447,0.98768834,55,300)" }}>
+                  <div className={styles["sa-glass"]} aria-hidden="true">
+                    <div className={styles["sa-status"]}>
+                      <span>9:41</span>
+                      <span className={styles["sa-status-symbols"]}>
+                        <svg viewBox="0 0 17 12"><path d="M1 10V8m4 2V6m4 4V3m4 7V1" stroke="currentColor" strokeWidth="2.5" /></svg>
+                        <svg viewBox="0 0 19 12"><rect x="1" y="2" width="14" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.1" /><rect x="3" y="4" width="10" height="4" rx=".7" fill="currentColor" /><path d="M17 5v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                      </span>
+                    </div>
+                    <span className={styles["dynamic-island"]} />
+                    <img className={styles["sa-screen"]} src={`${assets}/pet-phone.webp`} srcSet={`${assets}/pet-phone-390.webp 390w, ${assets}/pet-phone.webp 780w`} sizes="(max-width: 600px) 150px, 280px" width={780} height={1520} alt="" loading="lazy" decoding="async" />
+                    <span className={styles["sa-home"]} />
+                  </div>
+                </div>
+              </foreignObject>
+            </svg>
           </div>
+        </div>
+        <div className={styles["studio-copy"]}>
+          <h2 className={styles["studio-title"]} id="web-studio-heading">{s.titleFirst}<br />{s.titleSecond}<em className={styles.signature}>{s.titleAccent}</em></h2>
+          <p className={styles["studio-intro"]}>{s.sub}</p>
+          <Link className={styles["studio-cta"]} href={localeHref(locale, "web-studio")}>{s.cta}<Arrow /></Link>
         </div>
       </div>
     </section>
   );
 }
 
-// ─────────────────────────────────────────────
-// For-business strip — slim ink CTA closer. Editorial (i18n only).
-// ─────────────────────────────────────────────
 export function BizStrip({ locale }: { locale: Locale }) {
   const s = dictionaries[locale].homeSections.bizStrip;
-
   return (
-    <section className="zw-container" style={{ paddingTop: 64 }}>
-      <div
-        style={{
-          background: "var(--c-ink)",
-          color: "#fff",
-          borderRadius: "var(--r-2xl)",
-          padding: "clamp(26px, 3vw, 40px) clamp(24px, 3.5vw, 48px)",
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: "18px 28px",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-            background:
-              "radial-gradient(60% 140% at 100% 0%, color-mix(in oklch, var(--p-500) 22%, transparent) 0%, transparent 60%)",
-          }}
-        />
-        <div style={{ position: "relative", flex: "1 1 320px", minWidth: 0 }}>
-          <Kicker color="var(--p-400)" style={{ marginBottom: 8 }}>
-            {s.kicker}
-          </Kicker>
-          <div
-            className="txt-balance"
-            style={{
-              fontSize: "clamp(20px, 2.2vw, 27px)",
-              fontWeight: 700,
-              letterSpacing: "-0.028em",
-              lineHeight: 1.12,
-            }}
-          >
-            {s.title}
-          </div>
-          <div
-            style={{
-              marginTop: 10,
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "rgba(255,255,255,0.5)",
-            }}
-          >
-            {s.meta}
-          </div>
-        </div>
-        <div
-          style={{
-            position: "relative",
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-          }}
-        >
-          <Link
-            href={localeHref(locale, "for-business")}
-            className="tap zw-btn"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              background: "var(--p-500)",
-              color: "#fff",
-              border: "1px solid var(--p-500)",
-              padding: "11px 20px",
-              borderRadius: "var(--r-full)",
-              fontSize: 14.5,
-              fontWeight: 600,
-              textDecoration: "none",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {s.cta}
-            <Icon name="arrowR" size={15} color="#fff" />
-          </Link>
-          <Link
-            href={localeHref(locale, "pricing")}
-            className="tap zw-btn"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              background: "transparent",
-              color: "#fff",
-              border: "1px solid rgba(255,255,255,0.28)",
-              padding: "11px 20px",
-              borderRadius: "var(--r-full)",
-              fontSize: 14.5,
-              fontWeight: 600,
-              textDecoration: "none",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {s.pricing}
-          </Link>
+    <section className={clsx(theme, styles["homepage-close"], styles["closing-business"])} id="homepage-close" aria-labelledby="closing-title">
+      <h2 className={styles["closing-title"]} id="closing-title">{s.titleFirst}<br />{s.titleSecond}{" "}<em className={styles.signature}>{s.titleAccent}</em></h2>
+      <div className={styles["closing-details"]}>
+        <p className={styles["closing-intro"]}>{s.sub}{" "}<strong>{s.commission}</strong></p>
+        <div className={styles["closing-actions"]}>
+          <Link className={styles["closing-primary"]} href={localeHref(locale, "for-business")}>{s.cta}<Arrow /></Link>
+          <Link className={styles["closing-pricing"]} href={localeHref(locale, "pricing")}>{s.pricing}</Link>
         </div>
       </div>
     </section>

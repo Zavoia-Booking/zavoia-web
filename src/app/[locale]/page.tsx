@@ -12,7 +12,7 @@ import { HomeContent, type FeedResult } from "@/app/_components/home-content";
 import {
   getBrands,
   getIndustries,
-  searchListings,
+  getWebsiteShowcase,
 } from "@/lib/api/marketplace/public";
 
 import { DISCOVERY_TAG, TAXONOMY_TAG, DISCOVERY_REVALIDATE_SECONDS, LISTING_REVALIDATE_SECONDS } from "@/lib/cache/tags";
@@ -92,11 +92,10 @@ export default async function Home({ params }: Props) {
     revalidate: DISCOVERY_REVALIDATE_SECONDS,
     tags: [DISCOVERY_TAG],
   };
-  // Editor's pick is the one home feed that is NOT location-scoped: it renders
-  // on the server, before any coordinates exist. No geo params → the search
-  // path's default order (top-rated, then newest).
-  const editorsPick = settle(
-    searchListings({ limit: 10 }, discoveryCache).then((res) => res.locations),
+  // Website publication changes already expire the discovery tag. The API
+  // applies the same publication and entitlement gates as the website route.
+  const websites = settle(
+    getWebsiteShowcase(discoveryCache).then((res) => res.data),
   );
   const brands = settle(getBrands({ limit: 10 }, discoveryCache).then((res) => res.data));
 
@@ -104,7 +103,7 @@ export default async function Home({ params }: Props) {
     <HomeContent
       locale={localeParam}
       industries={industries}
-      editorsPick={editorsPick}
+      websites={websites}
       brands={brands}
     />
   );

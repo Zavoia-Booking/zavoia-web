@@ -20,7 +20,6 @@ export function BrandsSection({ cards }: { cards: BusinessCardData[] }) {
   return (
     <section className="zw-container" style={{ paddingTop: 60 }}>
       <SectionTitle
-        kicker={s.kicker}
         title={s.title}
         action={s.action}
         onAction={() => router.push(localeHref(locale, "search"))}

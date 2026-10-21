@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Icon } from "./icon";
 import { Kicker } from "./kicker";
+import styles from "./section-title.module.css";
 
 export interface SectionTitleProps {
   kicker?: ReactNode;
@@ -55,7 +56,7 @@ export function SectionTitle({
         <button
           type="button"
           onClick={onAction}
-          className="tap"
+          className={`tap ${styles.action}`}
           style={{
             background: "transparent",
             border: 0,
@@ -71,7 +72,7 @@ export function SectionTitle({
           }}
         >
           {action}
-          <Icon name="chevR" size={14} color="var(--c-700)" />
+          <Icon name="chevR" size={18} color="var(--p-500)" className={styles.chevron} />
         </button>
       )}
     </div>

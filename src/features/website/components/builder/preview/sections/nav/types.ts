@@ -2,10 +2,13 @@ import type { Ref } from "react";
 import type { SectionEntry } from "../../../../../types";
 import type { PreviewData, T } from "../../shared/types";
 
+/** Header snapshots use published identity without fetching the rest of the booking catalog. */
+export type NavPreviewData = Pick<PreviewData, "businessName" | "logo"> & Partial<Pick<PreviewData, "social">>;
+
 /** Contract the Nav layout variant renders against — the full set of chrome inputs LivePreview computes
  *  (frost progress, over-hero state, sticky-wrapper ownership, and the shared element ref). */
 export type NavVariantProps = {
-  data: PreviewData;
+  data: NavPreviewData;
   layout: SectionEntry[];
   t: T;
   overHero: boolean;

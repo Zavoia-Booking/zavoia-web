@@ -1,4 +1,6 @@
 import "./base.css";
+import { useContext } from "react";
+import { StaticPreviewContext } from "../../shared/hooks";
 import type { HeroVariantProps } from "./types";
 import { Default } from "./variants/Default";
 import { Cinematic } from "./variants/Cinematic";
@@ -21,6 +23,7 @@ const VARIANTS: Record<string, React.FC<HeroVariantProps>> = {
 };
 
 export function Hero(props: HeroVariantProps) {
+  const staticPreview = useContext(StaticPreviewContext);
   const View = Object.hasOwn(VARIANTS, props.entry.variant) ? VARIANTS[props.entry.variant] : Default;
-  return <View {...props} />;
+  return <View {...props} parallax={props.parallax && !staticPreview} />;
 }

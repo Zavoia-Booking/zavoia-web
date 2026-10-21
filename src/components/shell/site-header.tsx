@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Avatar, Icon } from "@/components/ui";
+import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
@@ -391,12 +392,13 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           <Link
             href={localeHref(locale, "web-studio")}
             className={
-              "zw-only-desktop zw-navlink" +
+              `zw-only-desktop zw-navlink ${styles.webStudioLink}` +
               (webStudioActive ? " zw-navlink--on" : "")
             }
-            style={{ marginRight: 20 }}
+            style={{ marginRight: 20, display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700 }}
           >
             {dict.nav.webStudio}
+            <Icon name="arrowR" size={16} color="var(--p-500)" className={styles.webStudioArrow} />
           </Link>
 
           <Link
@@ -418,6 +420,8 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           >
             <Icon name="search" size={18} color="var(--c-800)" />
           </button>
+
+          <LanguageSwitcher currentLocale={locale} placement="below" compact="responsive" />
 
           <div className={styles.accountControls}>
             {showAuthedCorner ? (

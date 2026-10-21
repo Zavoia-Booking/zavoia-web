@@ -1,0 +1,31 @@
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 4.2;
+  overflow: hidden;
+  border-radius: 22px;
+  pointer-events: none;
+  user-select: none;
+  /* Keep the scaled preview's rounded edge free of a pale background halo. */
+  background: transparent;
+}
+
+.viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  container-type: inline-size;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--mc-bg);
+}
+
+.skeleton {
+  /* Reuse the shared shimmer in the dark showcase's neutral palette. */
+  --c-200: var(--c-800);
+  --c-300: var(--c-700);
+  position: absolute;
+  inset: 0;
+}
+

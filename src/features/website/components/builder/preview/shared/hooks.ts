@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
 import { findScrollParent, prefersReducedMotion } from "./util";
 
 const motionQuery = "(prefers-reduced-motion: reduce)";
@@ -11,9 +11,14 @@ function subscribeReducedMotion(onChange: () => void) {
   return () => media.removeEventListener("change", onChange);
 }
 
-/** The server and hydration share a stable snapshot; browser preference changes remain reactive. */
+/** The dashboard's thumbnail scope: previews render each design in its settled state. */
+export const StaticPreviewContext = createContext(false);
+
+/** The server and hydration share a stable snapshot; static previews also suppress JS motion. */
 export function useReducedMotion(): boolean {
-  return useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, serverReducedMotion);
+  const staticPreview = useContext(StaticPreviewContext);
+  const reduced = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, serverReducedMotion);
+  return staticPreview || reduced;
 }
 
 /** IntersectionObserver gate (F5): tracks whether `ref` is in view (continuously, so callers can pause motion

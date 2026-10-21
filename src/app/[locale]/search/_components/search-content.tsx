@@ -71,7 +71,6 @@ import { getBrowserLocation, ipLocate, resolveCity } from "@/lib/geocoding";
 import { CITY_ENTRIES, slugifyRo } from "@/data/seo";
 import { getRecentViews } from "@/lib/recent-views";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
-import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { TagRail } from "@/components/search/tag-rail";
 import {
   BottomSheet,
@@ -1074,17 +1073,6 @@ export function SearchContent({
           ))}
         </>
       )}
-      <footer
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginTop: 16,
-          paddingTop: 12,
-          borderTop: "1px solid var(--c-mist)",
-        }}
-      >
-        <LanguageSwitcher currentLocale={locale} placement="above" />
-      </footer>
     </div>
   );
 

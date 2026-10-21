@@ -1,14 +1,14 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useContext, useEffect, useState, type ComponentType } from "react";
 import type { SectionEntry, AnnouncementConfig } from "../../../../../types";
-import { prefersReducedMotion } from "../../shared/util";
-import type { PreviewData, T } from "../../shared/types";
+import { StaticPreviewContext, useReducedMotion } from "../../shared/hooks";
+import type { T } from "../../shared/types";
 import "./base.css";
 import { AnnoDetailsDialog, AnnoDetailsTrigger } from "./parts/AnnoDetails";
 import { AnnoDismiss } from "./parts/AnnoDismiss";
 import { Pill } from "./variants/Pill";
 import { Ribbon } from "./variants/Ribbon";
 import { Ticker } from "./variants/Ticker";
-import type { AnnouncementLayout, AnnouncementVariantProps } from "./types";
+import type { AnnouncementLayout, AnnouncementPreviewData, AnnouncementVariantProps } from "./types";
 
 const DISMISSAL_KEY = "mc-anno-dismissed";
 
@@ -36,7 +36,7 @@ function hashAnnouncement(value: string) {
 }
 
 /** Visible content changes make a previously dismissed announcement reappear. */
-export function announcementDismissalSignature(data: PreviewData) {
+export function announcementDismissalSignature(data: AnnouncementPreviewData) {
   const message = localizedAnnouncementText(data.announcement.message, data.locale);
   const details = localizedAnnouncementText(data.announcement.details ?? undefined, data.locale);
   const cta = localizedAnnouncementText(data.announcement.cta.label, data.locale);
@@ -49,7 +49,7 @@ export function announcementDismissalSignature(data: PreviewData) {
   return hashAnnouncement(`v2|${message}|${details}|${cta}|${deadline}${countdownSignature}`);
 }
 
-export function announcementHasMessage(data: PreviewData) {
+export function announcementHasMessage(data: AnnouncementPreviewData) {
   return localizedAnnouncementText(data.announcement.message, data.locale).length > 0;
 }
 
@@ -70,7 +70,7 @@ const VARIANTS: Record<AnnouncementLayout, ComponentType<AnnouncementVariantProp
 
 interface AnnouncementBarProps {
   entry: SectionEntry;
-  data: PreviewData;
+  data: AnnouncementPreviewData;
   t: T;
   sample?: boolean;
   /** Builder-only empty-state copy for the full draft preview; publish readiness still requires real copy. */
@@ -89,6 +89,8 @@ export function AnnouncementBar({
   persistDismissal = false,
   onVisibilityChange,
 }: AnnouncementBarProps) {
+  const staticPreview = useContext(StaticPreviewContext);
+  const reducedMotion = useReducedMotion();
   const realMsg = localizedAnnouncementText(data.announcement.message, data.locale);
   const realDetails = localizedAnnouncementText(data.announcement.details ?? undefined, data.locale);
   const cta = data.announcement.cta;
@@ -116,13 +118,13 @@ export function AnnouncementBar({
 
   useEffect(() => {
     const element = rootNode;
-    if (!show || !element || prefersReducedMotion()) return;
+    if (!show || !element || reducedMotion) return;
     const animation = element.animate(
       [{ transform: "translateY(-100%)" }, { transform: "translateY(0)" }],
       { duration: 520, easing: "cubic-bezier(0.22,1,0.36,1)" },
     );
     return () => animation.cancel();
-  }, [rootNode, show, signature]);
+  }, [rootNode, show, signature, reducedMotion]);
 
   if (!show) return null;
 
@@ -164,7 +166,7 @@ export function AnnouncementBar({
     <AnnoDismiss
       label={t("businessPage.builder.preview.aria.dismissAnnouncement")}
       onDismiss={dismiss}
-      sample={sample || placeholder}
+      sample={sample || placeholder || staticPreview}
     />
   );
   const detailsControl = showDetails ? (
@@ -209,7 +211,7 @@ export function AnnouncementBar({
     </div>
   );
 
-  return showDetails ? (
+  return showDetails && !staticPreview ? (
     <AnnoDetailsDialog
       anchor={rootNode}
       portalRoot={portalRoot}

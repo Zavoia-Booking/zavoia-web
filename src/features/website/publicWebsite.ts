@@ -22,7 +22,7 @@ import type {
 import { resolveTagLabel, type MicrositeLocale } from "./i18n/translate";
 
 /** Structurally-valid blank announcement for snapshots published without one. */
-const EMPTY_ANNOUNCEMENT: AnnouncementContent = {
+export const EMPTY_ANNOUNCEMENT: AnnouncementContent = {
   message: { en: "", ro: "" },
   details: null,
   cta: {

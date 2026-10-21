@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { sectionLinkLabelKey } from "../../shared/sectionLinks";
 import { findScrollParent, prefersReducedMotion } from "../../shared/util";
+import { StaticPreviewContext } from "../../shared/hooks";
 import type { NavVariantProps } from "./types";
 import type { NavLinkItem, NavStyleKey, NavVariantViewProps } from "./parts";
 
@@ -33,6 +34,7 @@ const VARIANTS: Record<NavStyleKey, (props: NavVariantViewProps) => React.ReactN
 /** Dispatches the selected navigation style and owns only cross-variant behavior: scroll spy, scoped
  * section navigation, preview-local scroll locking, and cleanup when the preview/device changes. */
 export function Nav(props: NavVariantProps) {
+  const staticPreview = useContext(StaticPreviewContext);
   const variant = normalizeNavStyle(props.layout.find((section) => section.type === "nav")?.variant);
   const name = props.data.businessName || props.t("businessPage.builder.preview.businessNamePlaceholder");
   const mark = name.trim().charAt(0).toUpperCase() || "•";
@@ -54,22 +56,22 @@ export function Nav(props: NavVariantProps) {
   const smoothScrollTargetRef = useRef<number | null>(null);
 
   const navElementRef = useCallback((node: HTMLElement | null) => {
-    scrollParentRef.current = node ? findScrollParent(node) : null;
+    scrollParentRef.current = node && !staticPreview ? findScrollParent(node) : null;
     setNavNode((current) => (current === node ? current : node));
     setPortalRoot((current) => {
-      const root = node?.closest<HTMLElement>(".mc-root") ?? null;
+      const root = !staticPreview ? node?.closest<HTMLElement>(".mc-root") ?? null : null;
       return current === root ? current : root;
     });
     if (typeof props.navRef === "function") props.navRef(node);
     else if (props.navRef) props.navRef.current = node;
-  }, [props.navRef]);
+  }, [props.navRef, staticPreview]);
 
   useEffect(() => {
     if (!links.some((link) => link.type === activeType)) setActiveType(links[0]?.type ?? "");
   }, [activeType, links]);
 
   useEffect(() => {
-    if (!navNode) return;
+    if (staticPreview || !navNode) return;
     const scrollParent = scrollParentRef.current ?? findScrollParent(navNode);
     if (!scrollParent) return;
 
@@ -111,12 +113,12 @@ export function Nav(props: NavVariantProps) {
       scrollParent.removeEventListener("keydown", onKeyDown);
       scrollParent.removeEventListener("scroll", onScroll);
     };
-  }, [navNode]);
+  }, [navNode, staticPreview]);
 
   // Match the design source's `past-hero` state: after 60% of one preview viewport the
   // transparent hero chrome resolves into the compact frosted paper bar.
   useEffect(() => {
-    if (!navNode || !props.overHero) {
+    if (staticPreview || !navNode || !props.overHero) {
       setPastHero(false);
       return;
     }
@@ -139,10 +141,10 @@ export function Nav(props: NavVariantProps) {
       scrollParent.removeEventListener("scroll", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [navNode, portalRoot, props.overHero]);
+  }, [navNode, portalRoot, props.overHero, staticPreview]);
 
   useEffect(() => {
-    if (!navNode || !portalRoot || links.length === 0) return;
+    if (staticPreview || !navNode || !portalRoot || links.length === 0) return;
     const scrollParent = findScrollParent(navNode);
     if (!scrollParent) return;
     let frame = 0;
@@ -172,10 +174,10 @@ export function Nav(props: NavVariantProps) {
       observer?.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [links, navNode, portalRoot]);
+  }, [links, navNode, portalRoot, staticPreview]);
 
   const onNavigate = useCallback((type: string) => {
-    if (!navNode || !portalRoot) return;
+    if (staticPreview || !navNode || !portalRoot) return;
     const target = Array.from(
       portalRoot.querySelectorAll<HTMLElement>(".mc-page-flow > [data-preview-section]"),
     ).find((section) => section.dataset.previewSection === type);
@@ -198,7 +200,7 @@ export function Nav(props: NavVariantProps) {
     smoothScrollTargetRef.current = reducedMotion ? null : targetScrollTop;
     scrollParent.scrollTo({ top: targetScrollTop, behavior: reducedMotion ? "auto" : "smooth" });
     setActiveType(type);
-  }, [navNode, portalRoot]);
+  }, [navNode, portalRoot, staticPreview]);
 
   useEffect(() => {
     setMenuOpen(false);

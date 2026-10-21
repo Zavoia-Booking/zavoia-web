@@ -41,7 +41,6 @@ export function InYourCity() {
     <>
       <section className="zw-container" style={{ paddingTop: 60 }} aria-busy={busy}>
         <SectionTitle
-          kicker={s.kicker}
           title={s.title}
           action={s.action}
           onAction={() => router.push(mapHref(locale, city))}
