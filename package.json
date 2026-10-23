@@ -8,6 +8,7 @@
     "start": "next start -p 3001",
     "lint": "eslint",
     "test:e2e": "playwright test",
+    "test:e2e:explore": "playwright test --config=playwright.explore.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report"

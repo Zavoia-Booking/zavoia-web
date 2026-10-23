@@ -8,6 +8,7 @@ import { format } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
 import { createGuestTicket } from "@/lib/api/marketplace/support";
 import { ApiError } from "@/lib/api/http";
+import type { CreateTicketContext } from "@/lib/api/marketplace/types";
 
 type ReportDict = Dictionary["help"]["report"];
 
@@ -38,24 +39,32 @@ const labelStyle: React.CSSProperties = {
 // signed out: the report goes to the PUBLIC guest ticket endpoint with the
 // visitor's email as the only return channel (confirmation + replies arrive
 // by email; there is no in-app thread for guests).
-export function ReportIssue({ t, locale }: { t: ReportDict; locale: Locale }) {
+export function ReportIssue({ t, locale, context, triggerLabel, className }: { t: ReportDict; locale: Locale; context?: CreateTicketContext; triggerLabel?: string; className?: string }) {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState<{ email: string; reference: string } | null>(
     null,
   );
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(context?.label ?? "");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // Escape closes + body scroll lock while the dialog is up (same recipe as
   // the search overlay — inline fixed backdrop, no portal).
   useEffect(() => {
     if (!open) return;
+    const previousFocus = document.activeElement;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape" && dialogRef.current?.getAttribute("aria-busy") !== "true") setOpen(false);
+      if (e.key !== "Tab") return;
+      const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]') ?? []).filter(element => element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls.at(-1);
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
     };
     window.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
@@ -64,6 +73,7 @@ export function ReportIssue({ t, locale }: { t: ReportDict; locale: Locale }) {
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
     };
   }, [open]);
 
@@ -85,10 +95,11 @@ export function ReportIssue({ t, locale }: { t: ReportDict; locale: Locale }) {
         email: cleanEmail,
         locale,
         category: "bug",
+        ...(context ? { context } : {}),
         message: `${title.trim()}\n\n${message.trim()}`,
       });
       setSent({ email: cleanEmail, reference: receipt.uuid });
-      setTitle("");
+      setTitle(context?.label ?? "");
       setEmail("");
       setMessage("");
     } catch (err) {
@@ -110,7 +121,8 @@ export function ReportIssue({ t, locale }: { t: ReportDict; locale: Locale }) {
   };
 
   return (
-    <div className="zw-help-card">
+    <div className={triggerLabel ? undefined : "zw-help-card"}>
+      {triggerLabel ? <button type="button" className={className} onClick={() => setOpen(true)}>{triggerLabel}<Icon name="arrowUR" size={13} /></button> : <>
       <div
         style={{
           fontSize: 16,
@@ -132,11 +144,14 @@ export function ReportIssue({ t, locale }: { t: ReportDict; locale: Locale }) {
       >
         {t.cta}
       </Button>
+      </>}
 
       {open && (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
+          aria-busy={submitting || undefined}
           aria-labelledby="zw-report-issue-title"
           style={{
             position: "fixed",

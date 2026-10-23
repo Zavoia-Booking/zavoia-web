@@ -1,0 +1,57 @@
+.rail {
+  position: relative;
+  height: 48px;
+  overflow: hidden;
+  pointer-events: none;
+  transition-property: none;
+}
+
+.rail[data-hidden="true"] {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* The global reduced-motion duration clamp must not create an implicit
+     visibility transition that briefly prevents focus on the new layer. */
+  transition-property: none;
+}
+
+.suggestions { transform: translateY(-4px); }
+.selection { justify-content: center; transform: translateY(4px) scale(.98); }
+
+.layer[data-active="true"] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.layer[data-active="true"] > button { pointer-events: auto; }
+.rail[data-hidden="true"] .layer > button { pointer-events: none; }
+.selectionButton:focus-visible { outline-offset: -4px; }
+
+/* Keyboard updates and first paint stay immediate. Two retained layers let
+   rapid pointer changes reverse cleanly, without timers or layout animation. */
+@media (prefers-reduced-motion: no-preference) {
+  .rail[data-input="pointer"] { transition: opacity 180ms var(--ease-out), transform 200ms var(--ease-out); }
+  .rail[data-input="pointer"] .layer {
+    transition: opacity 120ms var(--ease-out), transform 180ms var(--ease-out), visibility 0s 180ms;
+  }
+  .rail[data-input="pointer"] .layer[data-active="true"] {
+    transition: opacity 180ms var(--ease-out), transform 220ms var(--ease-out), visibility 0s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail, .layer { transform: none; }
+}

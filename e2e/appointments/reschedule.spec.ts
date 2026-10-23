@@ -5,7 +5,7 @@ import { makeTestCustomer, registerCustomerViaApi, signInAsFreshCustomer } from 
 import { DEMO, getUserIdByEmail, seedAppointment, setBookingSettings } from '../fixtures/seed'
 
 /**
- * Reschedule flow — src/app/[locale]/appointments/[uuid]/_components/sections.tsx
+ * Reschedule flow — src/app/[locale]/appointments/[uuid]/_components/detail-content.tsx
  * (ActionRail's "Reschedule" ManageRow) and
  * .../_components/actions/reschedule-modal.tsx (the modal itself).
  *
@@ -49,25 +49,15 @@ test.describe('Reschedule', () => {
     })
 
     await page.goto(`/appointments/${uuid}`)
-    // NOT `.zw-only-desktop` — that class is also on the header nav ("Explore"
-    // etc.), and .first() picks the nav's instance (never changes) over the
-    // appointment content's. The date/time block is the div right after the
-    // service-name h1 (see the detail page's aria snapshot: heading "Tuns
-    // clasic" [level=1] followed by a generic div "Fri, Sep 4 · 17:19 – 18:04").
-    const dateTimeBlock = page.getByRole('heading', { level: 1 }).locator('xpath=following-sibling::div[1]')
-    const before = await dateTimeBlock.innerText()
+    const appointmentTime = page.getByRole('main').locator('header time[datetime]')
+    await expect(appointmentTime).toBeVisible()
+    const before = await appointmentTime.getAttribute('datetime')
 
     await page.getByRole('button', { name: 'Reschedule', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Reschedule' })
     await expect(dialog).toBeVisible()
 
-    // The date grid is the sibling directly under the literal "Date" label —
-    // its buttons carry no aria-pressed/data-testid (see reschedule-modal.tsx
-    // DateGrid), only a real `disabled` attribute on unavailable days.
-    const dateContainer = dialog
-      .getByText('Date', { exact: true })
-      .locator('xpath=following-sibling::div[1]')
-    const firstDay = dateContainer.locator('button:not([disabled])').first()
+    const firstDay = dialog.locator('button[aria-pressed]:not(.zv-slot):not([disabled])').first()
     await expect(firstDay).toBeVisible({ timeout: 15_000 })
     await firstDay.click()
 
@@ -83,8 +73,8 @@ test.describe('Reschedule', () => {
 
     // Re-fetch and confirm the hero date+time actually changed.
     await page.reload()
-    const after = await dateTimeBlock.innerText()
-    expect(after).not.toBe(before)
+    await expect(appointmentTime).toBeVisible()
+    await expect(appointmentTime).not.toHaveAttribute('datetime', before!)
   })
 
   test('RESCH-03a reschedule row is disabled once the business-set window has closed', async ({ page }) => {
@@ -191,10 +181,7 @@ test.describe('Reschedule', () => {
     const dialog = page.getByRole('dialog', { name: 'Reschedule' })
     await expect(dialog).toBeVisible()
 
-    const dateContainer = dialog
-      .getByText('Date', { exact: true })
-      .locator('xpath=following-sibling::div[1]')
-    const dayA = dateContainer.locator('button:not([disabled])').first()
+    const dayA = dialog.locator('button[aria-pressed]:not(.zv-slot):not([disabled])').first()
     await expect(dayA).toBeVisible({ timeout: 15_000 })
     await dayA.click()
     const slotA = dialog.locator('.zv-slot').first()

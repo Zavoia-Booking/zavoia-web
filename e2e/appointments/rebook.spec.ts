@@ -4,14 +4,9 @@ import { signInAsFreshCustomer } from '../fixtures/customer-helpers'
 import { DEMO, getUserIdByEmail, seedAppointment, setLocationServiceOverride } from '../fixtures/seed'
 
 /**
- * "Book again" — src/lib/booking/useRebook.ts (the imperative launcher,
- * shared by the detail page's desktop ActionRail and mobile sticky bar) and
- * src/app/[locale]/appointments/[uuid]/_components/sections.tsx (the
- * "Book again" RailButton, `t.bookAgain`). Scoped to `.zw-only-desktop`
- * throughout: the SAME button text also renders in the mobile sticky bar
- * (MobileBar), so an unscoped `getByRole('button', { name: 'Book again' })`
- * would resolve to two elements at the default desktop viewport and throw a
- * strict-mode violation.
+ * Rebooking shares one launcher between the management rail and mobile bar.
+ * Scope the desktop flow to the named management landmark so the test follows
+ * the same action surface across layout changes.
  */
 
 test.describe('Book again', () => {
@@ -32,7 +27,7 @@ test.describe('Book again', () => {
     })
 
     await page.goto(`/appointments/${originalUuid}`)
-    await page.locator('.zw-only-desktop').getByRole('button', { name: 'Book again' }).click()
+    await page.getByRole('complementary', { name: 'Manage appointment' }).getByRole('button', { name: 'Book again' }).click()
 
     const drawer = new BookingDrawer(page)
     await drawer.waitForOpen()
@@ -54,7 +49,7 @@ test.describe('Book again', () => {
     // customer: the original (completed, past) and the freshly rebooked one
     // (upcoming).
     await expect(page).toHaveURL(/\/appointments$/)
-    const cards = page.getByRole('button').filter({ hasText: DEMO.services.glowTuns.name })
+    const cards = page.getByRole('link').filter({ hasText: DEMO.services.glowTuns.name })
     await expect(cards).toHaveCount(2)
 
     // The original is untouched — still completed.
@@ -88,7 +83,7 @@ test.describe('Book again', () => {
     })
 
     await page.goto(`/appointments/${uuid}`)
-    await page.locator('.zw-only-desktop').getByRole('button', { name: 'Book again' }).click()
+    await page.getByRole('complementary', { name: 'Manage appointment' }).getByRole('button', { name: 'Book again' }).click()
 
     await expect(page.getByRole('alert').filter({ hasText: 'is no longer offered at this venue' })).toBeVisible({
       timeout: 10_000,

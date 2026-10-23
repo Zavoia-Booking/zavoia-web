@@ -48,12 +48,15 @@ export function MapSkeleton({ railInsetLeft = 0, controlsBottom = 24, showRail =
           overflow: "hidden",
         }}
       >
-        {[112, 88, 132, 96, 76].map((w, i) => (
-          <Skeleton key={i} w={w} h={34} r={999} />
-        ))}
+        <div style={{ display: "flex", flex: 1, minWidth: 0, flexWrap: "wrap", gap: 8, height: 34, overflow: "hidden" }}>
+          {[112, 168, 132, 156, 148, 120, 160, 136, 112, 144, 132, 148, 128].map((w, i) => (
+            <Skeleton key={i} w={w} h={34} r={999} style={{ flexShrink: 0 }} />
+          ))}
+        </div>
+        <Skeleton w={76} h={34} r={999} style={{ flexShrink: 0 }} />
       </div>}
       {showControls && <div style={{ position: "absolute", right: 12, bottom: controlsBottom }}>
-        <Skeleton w={40} h={40} r={12} />
+        <Skeleton w={44} h={44} r={12} />
       </div>}
     </div>
   );

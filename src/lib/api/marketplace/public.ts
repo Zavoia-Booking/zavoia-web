@@ -1,8 +1,8 @@
 /**
  * Marketplace PUBLIC discovery endpoints (`/marketplace/public/*`).
  *
- * Auth: all public. `getListing` is optional-auth on the server — calling it
- * normally (apiFetch attaches the token when present) yields `isFavorited`.
+ * Auth: all public. Responses are identical for every visitor; saved state
+ * comes from the customer favourites endpoints, never from these payloads.
  *
  * Envelope handling:
  * - RAW (body IS the payload): industries, listing detail, team-member profiles.
@@ -53,13 +53,14 @@ function cacheInit(opts?: CacheOptions): RequestInit {
 }
 
 /** GET /marketplace/public/industries — RAW Industry[]. */
-export async function getIndustries(opts?: CacheOptions): Promise<Industry[]> {
+export async function getIndustries(opts?: CacheOptions & { order?: "catalog" | "api" }): Promise<Industry[]> {
   const industries = await apiFetch<Industry[]>("/marketplace/public/industries", {
     ...cacheInit(opts),
     method: "GET",
   });
-  // All display consumers share this order. Local shuffles/sorts reapply it.
-  return otherIndustryLast(industries, (industry) => industry.slug);
+  // Catalogs keep the catch-all last. The map teaser preserves the API order
+  // so its seeded shuffle produces the same suggestions as the native app.
+  return opts?.order === "api" ? industries : otherIndustryLast(industries, (industry) => industry.slug);
 }
 
 /**
@@ -159,8 +160,7 @@ export async function getListingsBulk(
 /**
  * GET /marketplace/public/listing/:idOrSlug — RAW ListingDetail.
  * `slug` is a LOCATION slug (non-enumerable). The backend resolves either a
- * slug or a numeric id, so a string param is correct. Optional-auth: the token
- * is attached automatically when present, populating `isFavorited`.
+ * slug or a numeric id, so a string param is correct.
  */
 export function getListing(
   slug: string,
@@ -176,11 +176,17 @@ export function getListing(
 export function getListingReviews(
   locationId: number,
   params: ReviewPageParams = {},
+  opts?: { signal?: AbortSignal },
 ): Promise<PaginatedFeed<Review>> {
-  const query = buildQuery({ offset: params.offset, limit: params.limit });
+  const query = buildQuery({
+    offset: params.offset,
+    limit: params.limit,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
+  });
   return apiFetch<PaginatedFeed<Review>>(
     `/marketplace/public/listing/${locationId}/reviews${query}`,
-    { method: "GET" },
+    { method: "GET", signal: opts?.signal },
   );
 }
 

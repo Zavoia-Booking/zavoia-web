@@ -32,14 +32,13 @@ const CODE_TO_KEY: Record<string, keyof CustomerErrorsDict> = {
   "CUSTOMER.E07": "imageType",
 
   // ── Favorites ──
-  // Business/location missing or delisted all mean the same thing to someone
-  // looking at a saved card: the place is gone. E03/E07 (already a favorite)
+  // A missing or delisted location or professional means the same thing to
+  // someone looking at a saved card: it is gone. E07/E10 (already a favorite)
   // and E04 (favorite not found) are deliberately NOT mapped — they mean the
   // UI already shows what the user wanted, so a red message would be noise.
-  "CUSTOMER_FAVORITE.E01": "favoriteGone",
-  "CUSTOMER_FAVORITE.E02": "favoriteGone",
   "CUSTOMER_FAVORITE.E05": "favoriteGone",
   "CUSTOMER_FAVORITE.E06": "favoriteGone",
+  "CUSTOMER_FAVORITE.E09": "favoriteGone",
 
   // ── Reviews ──
   "CUSTOMER_REVIEW.E02": "reviewNotCompleted",
@@ -55,9 +54,9 @@ const CODE_TO_KEY: Record<string, keyof CustomerErrorsDict> = {
  * clothes — callers should stay quiet rather than surface anything.
  */
 const BENIGN_CODES = new Set([
-  "CUSTOMER_FAVORITE.E03",
   "CUSTOMER_FAVORITE.E04",
   "CUSTOMER_FAVORITE.E07",
+  "CUSTOMER_FAVORITE.E10",
 ]);
 
 export function isBenignCustomerError(error: unknown): boolean {

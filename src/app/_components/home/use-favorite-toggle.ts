@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { useAuth } from "@/lib/auth/useAuth";
+import { useAuthModal } from "@/components/shell/auth-modal-provider";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { customerErrorMessage, isBenignCustomerError } from "@/lib/api/customer-error-messages";
 import {
-  addFavoriteBusiness, addFavoriteLocation, addFavoriteProfessional,
-  removeFavoriteBusiness, removeFavoriteLocation, removeFavoriteProfessional,
+  addFavoriteLocation, addFavoriteProfessional,
+  removeFavoriteLocation, removeFavoriteProfessional,
 } from "@/lib/api/marketplace/customer";
 import {
   beginFavoriteChange, ensureFavoriteIds, getFavoriteIds, getServerFavoriteIds,
@@ -15,19 +16,21 @@ import {
 } from "@/lib/favorites/store";
 
 export type { FavoriteKind } from "@/lib/favorites/store";
-const ADD = { business: addFavoriteBusiness, location: addFavoriteLocation, professional: addFavoriteProfessional };
-const REMOVE = { business: removeFavoriteBusiness, location: removeFavoriteLocation, professional: removeFavoriteProfessional };
+const ADD = { location: addFavoriteLocation, professional: addFavoriteProfessional };
+const REMOVE = { location: removeFavoriteLocation, professional: removeFavoriteProfessional };
 
 export interface FavoriteToggle {
-  canFavorite: boolean;
   /** undefined is pending; null is unavailable; only a boolean is actionable. */
   isFavorited: (id: number) => boolean | null | undefined;
   toggle: (id: string | number) => void;
 }
 
-/** Shared session-owned IDs survive translation; view copy stays locale-specific. */
+/** Shared session-owned IDs survive translation; view copy stays locale-specific.
+ * Like the app, hearts show for everyone: signed out, a tap asks to sign in.
+ */
 export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
   const { status } = useAuth();
+  const { openAuthModal } = useAuthModal();
   const toast = useToast();
   const { dict } = useTranslation();
   const mounted = useRef(false);
@@ -53,14 +56,24 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
     };
   }, [kind, status]);
 
-  const isFavorited = useCallback((id: number) => favorited == null ? favorited : favorited.has(id), [favorited]);
+  const isFavorited = useCallback((id: number) => {
+    // Signed out, nothing is saved: the heart stays actionable and asks to sign
+    // in. An unverifiable session is "unavailable", never a false "not saved".
+    if (status === "unauthenticated") return false;
+    if (status === "error") return null;
+    return favorited == null ? favorited : favorited.has(id);
+  }, [favorited, status]);
   const toggle = useCallback((rawId: string | number) => {
     const id = typeof rawId === "number" ? rawId : Number(rawId);
     if (!Number.isFinite(id)) return;
-    if (status !== "authenticated") {
-      toast(dict.homeSections.favorites.savePrompt, "heart");
+    if (status === "unauthenticated") {
+      toast(dict.homeSections.favorites.savePrompt, "heart", {
+        label: dict.common.signIn,
+        onClick: () => openAuthModal("signin"),
+      });
       return;
     }
+    if (status !== "authenticated") return;
     const change = beginFavoriteChange(kind, id);
     if (!change) return;
     const action = change.previous ? REMOVE[kind] : ADD[kind];
@@ -72,7 +85,7 @@ export function useFavoriteToggle(kind: FavoriteKind): FavoriteToggle {
       change.rollback();
       if (mounted.current) toast(customerErrorMessage(error, dict.errors), "warn", undefined, "error");
     }).finally(change.finish);
-  }, [status, kind, toast, dict]);
+  }, [status, kind, toast, dict, openAuthModal]);
 
-  return { canFavorite: status === "authenticated", isFavorited, toggle };
+  return { isFavorited, toggle };
 }

@@ -11,6 +11,7 @@ import {
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Icon } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
+import styles from "./action-fields.module.css";
 
 export interface ActionModalProps {
   title: string;
@@ -178,8 +179,8 @@ export function ActionModal({
                 disabled={!dismissible}
                 aria-label={dict.booking.close}
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: 44,
+                  height: 44,
                   borderRadius: "50%",
                   border: 0,
                   background: "var(--c-100)",
@@ -206,12 +207,14 @@ export function ActionModal({
             {/* Footer */}
             {footer && (
               <div
+                className={styles.footer}
                 style={{
                   padding: "14px 22px",
                   borderTop: "1px solid rgba(28,28,26,0.07)",
                   background: "#fff",
                   display: "flex",
                   gap: 10,
+                  flexWrap: "wrap",
                   alignItems: "center",
                   flexShrink: 0,
                 }}

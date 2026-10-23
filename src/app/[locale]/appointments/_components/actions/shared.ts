@@ -12,6 +12,12 @@ import type {
   AppointmentDetailStaffMember,
 } from "@/lib/api/marketplace/types";
 
+/** Authoritative fields returned by a successful appointment mutation. */
+export type AppointmentChange = Partial<Pick<
+  AppointmentDetail,
+  "status" | "scheduled_at" | "ends_at" | "cancellation_reason"
+>>;
+
 /**
  * Whether the customer may still reschedule / cancel, mirroring the backend
  * gates in `AppointmentsService.rescheduleAppointment` (APPOINTMENTS.E08/E12)
@@ -23,19 +29,21 @@ import type {
  * not least because the clock keeps moving while a modal is open.
  */
 function minutesUntil(scheduledAt: string | null | undefined): number {
-  if (!scheduledAt) return Number.POSITIVE_INFINITY;
+  if (!scheduledAt) return Number.NEGATIVE_INFINITY;
   const at = new Date(scheduledAt).getTime();
-  if (Number.isNaN(at)) return Number.POSITIVE_INFINITY;
+  if (Number.isNaN(at)) return Number.NEGATIVE_INFINITY;
   return (at - Date.now()) / 60_000;
 }
 
 export function canReschedule(appt: AppointmentDetail): boolean {
+  if (appt.status !== "pending" && appt.status !== "confirmed") return false;
   const loc = appt.location;
   if (!loc?.allowCustomerReschedule) return false;
   return minutesUntil(appt.scheduled_at) >= (loc.rescheduleWindowMinutes ?? 0);
 }
 
 export function canCancel(appt: AppointmentDetail): boolean {
+  if (appt.status !== "pending" && appt.status !== "confirmed") return false;
   const loc = appt.location;
   if (!loc?.allowCustomerCancellation) return false;
   return minutesUntil(appt.scheduled_at) >= (loc.cancellationWindowMinutes ?? 0);

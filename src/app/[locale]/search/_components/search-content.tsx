@@ -3,9 +3,11 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
@@ -13,8 +15,8 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { format } from "@/i18n/format";
 import { Kicker } from "@/components/ui/kicker";
-import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { InlineError } from "@/components/ui/inline-error";
@@ -30,6 +32,7 @@ import {
 import {
   businessCardToData,
   locationCardToData,
+  taxonomyLabel,
 } from "@/lib/marketplace/card-mappers";
 import {
   buildSlugById,
@@ -40,19 +43,20 @@ import { errorMessage } from "@/lib/api/error-messages";
 import type {
   Industry,
   LocationCard,
-  SearchListingsParams,
   SearchListingsResult,
 } from "@/lib/api/marketplace/types";
-import { useSearchOverlay } from "@/components/search/search-overlay-provider";
+import { useServiceCatalog } from "@/components/search/service-catalog-provider";
 import {
   MapboxSurface,
+  DEFAULT_ZOOM,
+  PLACE_ZOOM,
+  RECENTER_ZOOM,
   type GeoPin,
   type GeoPoint,
   type MapboxSurfaceHandle,
 } from "@/components/search/mapbox-surface";
 import {
   DEFAULT_ANCHOR,
-  SEARCH_LIMIT,
   SEARCH_RADIUS_KM,
 } from "@/components/search/constants";
 import {
@@ -69,7 +73,7 @@ import { LocationPermissionModal } from "@/components/search/location-permission
 import { MapFloatingCard } from "@/components/search/map-floating-card";
 import { getBrowserLocation, ipLocate, resolveCity } from "@/lib/geocoding";
 import { CITY_ENTRIES, slugifyRo } from "@/data/seo";
-import { getRecentViews } from "@/lib/recent-views";
+import { deriveSearchParams, hasLocationRefinements, numberParam as numParam, patchSearchParams, searchRequestKey, toSearchListingsParams, type SearchQuery } from "@/lib/search/query";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { TagRail } from "@/components/search/tag-rail";
 import {
@@ -78,8 +82,6 @@ import {
   type SheetPosition,
 } from "@/components/search/bottom-sheet";
 import { MapSkeleton } from "@/components/search/map-skeleton";
-import { SortMenu } from "./sort-menu";
-import { FilterRow } from "./filter-row";
 
 const MOBILE_MQ = "(max-width: 920px)";
 
@@ -103,51 +105,11 @@ const LOC_SKIP_KEY = "zv-loc-skip";
  * applied client-side to whatever the search returned — the same split the
  * mobile app makes between `SearchQuery` and its filters store.
  */
-type DerivedParams = SearchListingsParams;
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function numParam(v: string | null): number | undefined {
-  if (v == null || v.trim() === "") return undefined;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : undefined;
-}
-
-function csvNums(v: string | null): number[] | undefined {
-  if (!v) return undefined;
-  const arr = v
-    .split(",")
-    .map((s) => Number(s.trim()))
-    .filter((n) => Number.isFinite(n));
-  return arr.length ? arr : undefined;
-}
-
-function deriveSearchParams(params: Pick<URLSearchParams, "get">): DerivedParams {
-  return {
-    search: params.get("search") ?? undefined,
-    industrySlug: params.get("industry") ?? undefined,
-    tagIds: csvNums(params.get("tagIds")),
-    city: params.get("city") ?? undefined,
-    date: params.get("date") ?? undefined,
-    lat: numParam(params.get("lat")),
-    lng: numParam(params.get("lng")),
-    offset: 0,
-    limit: SEARCH_LIMIT,
-  };
-}
-
-function searchRequestKey(params: DerivedParams): string {
-  return JSON.stringify([
-    params.search, params.industrySlug, params.tagIds,
-    params.city, params.date, params.lat, params.lng,
-  ]);
-}
+type DerivedParams = SearchQuery;
 
 function cameraRequestKey(params: DerivedParams, filters: MapFilters, focus: number | null): string {
   return JSON.stringify([
-    searchRequestKey(params), { ...filters, sort: EMPTY_FILTERS.sort }, focus,
+    searchRequestKey(params), { ...filters, sort: EMPTY_FILTERS.sort }, focus, params.mapZoom,
   ]);
 }
 
@@ -174,14 +136,14 @@ export function SearchContent({
   const router = useRouter();
   const sp = useSearchParams();
   const toast = useToast();
-  const { openSearch } = useSearchOverlay();
+  const { openCatalog } = useServiceCatalog();
   const [industries, setIndustries] = useState(initialIndustries);
   const [industriesFailed, setIndustriesFailed] = useState(initialIndustriesFailed);
   const [industriesLoading, setIndustriesLoading] = useState(false);
   const retryIndustries = async () => {
     setIndustriesLoading(true);
     try {
-      setIndustries(await getIndustries());
+      setIndustries(await getIndustries({ order: "api" }));
       setIndustriesFailed(false);
     } catch {
       setIndustriesFailed(true);
@@ -189,16 +151,13 @@ export function SearchContent({
       setIndustriesLoading(false);
     }
   };
-  // Result rows are location-sourced; the supplementary business rows use the
-  // business endpoint family. Hearts hide entirely when signed out.
+  // Result rows are location-sourced. The supplementary business rows carry no
+  // heart: customers save locations and people only. Signed out, a heart asks
+  // the user to sign in.
   const locFav = useFavoriteToggle("location");
-  const bizFav = useFavoriteToggle("business");
+  const isLocationFavorited = locFav.isFavorited;
 
-  // ── Derive the request from URL params ──────────────────────────────────
-  // `radius` is NOT read from the URL: like the mobile app, every point-anchored
-  // query uses one fixed radius, and "show me somewhere smaller" is the
-  // client-side `maxDistanceKm` filter instead. Reading it here while sending a
-  // fixed radius is how a shared ?radius=5 link used to return 20km of results.
+  // Server and client share parsing, including the 20–50km area-search radius.
   const derived = useMemo(() => deriveSearchParams(sp), [sp]);
 
   // Client-side refinement of whatever the search returned. Persisted in the
@@ -215,6 +174,7 @@ export function SearchContent({
   const slugById = useMemo(() => buildSlugById(industries), [industries]);
 
   const hasGeo = derived.lat != null && derived.lng != null;
+  const anchorZoom = derived.mapZoom ?? (hasGeo && derived.city ? PLACE_ZOOM : DEFAULT_ZOOM);
 
   // A stable key for the current request (excludes the client-only filters),
   // used to trigger a fresh single fetch when any query/geo param changes.
@@ -231,6 +191,7 @@ export function SearchContent({
     initialResult.locations,
   );
   const [businesses, setBusinesses] = useState(initialResult.businesses);
+  const [totalLocations, setTotalLocations] = useState(initialResult.total);
   const [loading, setLoading] = useState(false);
   // Previous results remain visible while fetching; never aim a new search at them.
   const [resultsKey, setResultsKey] = useState(requestKey);
@@ -261,7 +222,6 @@ export function SearchContent({
     setSelectionContext({ requestKey, focusId });
     setSelectedId(focusId);
   }
-  const [hoverId, setHoverId] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [viewportReady, setViewportReady] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -285,15 +245,20 @@ export function SearchContent({
   const resolvedOnce = useRef(false);
 
   const listRef = useRef<HTMLDivElement>(null);
+  const measureResultPhotosRef = useRef<(() => void) | null>(null);
+  const lastScrolledSelectionRef = useRef<{ id: number; list: HTMLDivElement } | null>(null);
+  const initialFocusScrollPendingRef = useRef(true);
+  const filtersTriggerRef = useRef<HTMLButtonElement>(null);
   const mapHandleRef = useRef<MapboxSurfaceHandle>(null);
   const sheetRef = useRef<BottomSheetHandle>(null);
   const [sheetPosition, setSheetPosition] = useState<SheetPosition>("mid");
   const [sheetGeometry, setSheetGeometry] = useState<{
     height: number;
     position: SheetPosition;
+    containerHeight: number;
   } | null>(null);
   const onSheetHeightChange = useCallback((height: number, position: SheetPosition) => {
-    setSheetGeometry({ height, position });
+    setSheetGeometry({ height, position, containerHeight: listRef.current?.closest("main")?.clientHeight ?? 0 });
   }, []);
 
   // The mobile tab bar is fixed to the bottom of the viewport, so the map
@@ -360,28 +325,8 @@ export function SearchContent({
     return () => window.removeEventListener("resize", apply);
   }, []);
 
-  // Places the visitor has already opened, dimmed on the map so a repeated
-  // search reads as "these are the ones you've seen". Read once on mount:
-  // localStorage is not reactive and the rail on the home page uses the same
-  // snapshot semantics.
-  const [viewedIds, setViewedIds] = useState<Set<number>>(() => new Set());
-  useEffect(() => {
-    // Deferred a microtask past the effect body: localStorage is only readable
-    // on the client, so this cannot be a useState initializer without risking a
-    // hydration mismatch, and a synchronous setState here would cascade. Same
-    // idiom as NearYouSection's loading flag.
-    let cancelled = false;
-    void Promise.resolve().then(() => {
-      if (cancelled) return;
-      setViewedIds(new Set(getRecentViews()));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // ── Fetch on param change ───────────────────────────────────────────────
-  // Single fixed-radius call (limit 300, offset 0) that REPLACES results — no
+  // Single area-scoped call (limit 300, offset 0) that REPLACES results — no
   // pagination. Held in a ref so the retry-toast callback can re-invoke the
   // latest fetch without referencing `runFetch` before its own declaration.
   const runFetchRef = useRef<() => Promise<void>>(async () => {});
@@ -394,31 +339,9 @@ export function SearchContent({
 
   const runFetch = useCallback(async () => {
     const id = (requestIdRef.current += 1);
-    // Two mutually exclusive scopes, matching the mobile app: whole-city (from a
-    // home rail's "see all" — city NAME only, so the query can't inherit the
-    // rail's radius), or point + fixed radius.
-    const cityScoped =
-      derived.city != null && derived.lat == null && derived.lng == null;
-    const params: SearchListingsParams = {
-      search: derived.search,
-      industrySlug: derived.industrySlug,
-      tagIds: derived.tagIds,
-      city: derived.city,
-      date: derived.date,
-      lat: cityScoped ? undefined : derived.lat,
-      lng: cityScoped ? undefined : derived.lng,
-      // Fixed radius whenever we have an anchor; omitted in city scope.
-      radius: cityScoped || !hasGeo ? undefined : SEARCH_RADIUS_KM,
-      // ALWAYS strict — the same contract the mobile app holds. Without it the
-      // server climbs its relaxation ladder on an empty result (dropping the
-      // date, the tags, then widening the radius to 50km and dropping the
-      // industry) and returns places from far outside what the map is showing,
-      // flagged only by a `fallback` field. An area with nothing in it must
-      // read as empty, and a filter the user set must not be silently discarded.
-      strict: true,
-      limit: SEARCH_LIMIT,
-      offset: 0,
-    };
+    // Coordinate searches use their radius; a city-only search uses its name.
+    // A point's human-readable city label must not become an extra API filter.
+    const params = toSearchListingsParams(derived);
     setLoading(true);
     try {
       const res = await searchListings(params);
@@ -427,10 +350,9 @@ export function SearchContent({
       if (id !== requestIdRef.current) return;
       // keepPreviousData: only swap in the new set on success, so previous rows
       // + pins stay visible while refetching.
-      // TODO(i18n slice): if res.total > res.locations.length, show a
-      // "showing first 300" note. Deferred — no new i18n keys this slice.
       setLocations(res.locations);
       setBusinesses(res.businesses);
+      setTotalLocations(res.total);
       setResultsKey(requestKey);
       setResultsFailed(false);
       setLastError(null);
@@ -449,7 +371,7 @@ export function SearchContent({
     } finally {
       if (id === requestIdRef.current) setLoading(false);
     }
-  }, [derived, hasGeo, requestKey, dict.errors, t.retry, t.retryError, toast]);
+  }, [derived, requestKey, dict.errors, t.retry, t.retryError, toast]);
 
   // Keep the ref pointing at the latest fetch for retry callbacks.
   useEffect(() => {
@@ -472,13 +394,7 @@ export function SearchContent({
   // ── URL param updates (shareable, no reload) ────────────────────────────
   const updateParams = useCallback(
     (patch: Record<string, string | null>, options?: { preserveCamera: boolean }) => {
-      const next = new URLSearchParams(sp.toString());
-      for (const [k, v] of Object.entries(patch)) {
-        if (v == null || v === "") next.delete(k);
-        else next.set(k, v);
-      }
-      // No pagination — strip any stale offset param from older URLs.
-      if (!("offset" in patch)) next.delete("offset");
+      const next = patchSearchParams(new URLSearchParams(sp.toString()), patch);
       const nextDerived = deriveSearchParams(next);
       const nextFilters = parseFilters(next);
       // A new search replaces a business deep link; sorting alone preserves it.
@@ -533,6 +449,10 @@ export function SearchContent({
     }
     return out;
   }, [visibleLocations, slugById]);
+  const favoriteIds = useMemo(
+    () => new Set(locations.filter(location => isLocationFavorited(location.id) === true).map(location => location.id)),
+    [locations, isLocationFavorited],
+  );
 
   // City-only links deliberately search the whole city. Resolve a camera
   // target separately: adding these coordinates to the URL/API would turn that
@@ -597,31 +517,109 @@ export function SearchContent({
       ? (locationRows.find((r) => r.id === selectedId)?.data ?? null)
       : null;
 
-  // Supplementary business rows only when a text search is present.
+  // Brand summaries are separate from places and cannot satisfy location-only
+  // refinements (hours, distance or features). Never inflate the place count.
   const businessRows: { id: number; data: BusinessCardData }[] = useMemo(() => {
-    if (!derived.search) return [];
+    if (!derived.search || derived.date || derived.industrySlug || derived.tagIds?.length || hasLocationRefinements(filters)) return [];
     return businesses.map((b) => ({
       id: b.id,
       data: businessCardToData(b, locale, slugById),
     }));
-  }, [businesses, derived.search, locale, slugById]);
+  }, [businesses, derived.search, derived.date, derived.industrySlug, derived.tagIds, filters, locale, slugById]);
 
-  const resultCount = visibleLocations.length + businessRows.length;
+  const resultCount = visibleLocations.length;
+  const resultsLimited = totalLocations > locations.length;
+  const [eagerResultPhotos, setEagerResultPhotos] = useState<Set<string>>(() => new Set());
+  const firstResultPhotoKey = eagerResultPhotos.values().next().value;
+  // Reused assets share one request and Next's LCP bookkeeping. Keep their
+  // loading policy consistent when any occurrence is visible or selected.
+  const eagerResultPhotoSources = useMemo(() => {
+    const sources = new Set<string>();
+    for (const { id, data } of locationRows) {
+      if (data.image && eagerResultPhotos.has(`loc-${id}`)) sources.add(data.image);
+    }
+    for (const { id, data } of businessRows) {
+      if (data.image && eagerResultPhotos.has(`biz-${id}`)) sources.add(data.image);
+    }
+    if (selectedCardData?.image) sources.add(selectedCardData.image);
+    return sources;
+  }, [locationRows, businessRows, eagerResultPhotos, selectedCardData]);
+
+  // Promote only photos in the actual visible list viewport before paint.
+  // Measuring the DOM handles different screen heights, localized headers,
+  // missing photos and supplementary business rows without a fixed row count.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const main = list?.closest("main");
+    if (!list || !main) return;
+    const measure = () => {
+      const listBounds = list.getBoundingClientRect();
+      const mainBounds = main.getBoundingClientRect();
+      let visibleTop = Math.max(listBounds.top, mainBounds.top, 0);
+      let visibleBottom = Math.min(listBounds.bottom, mainBounds.bottom, window.innerHeight);
+      if (isMobile) {
+        const sheet = list.closest<HTMLElement>("[data-sheet-position]");
+        if (!sheet || !sheetGeometry || sheetGeometry.position !== sheetPosition) return;
+        // The sheet moves with a transform, so its content height alone also
+        // includes rows below the clipped map. Use its measured resting overlap
+        // to promote the destination's visible photos during a snap as well.
+        const headerHeight = listBounds.top - sheet.getBoundingClientRect().top;
+        visibleTop = listBounds.top;
+        visibleBottom = listBounds.top + Math.max(0, Math.min(listBounds.height, sheetGeometry.height - headerHeight));
+      }
+      const visible = new Set<string>();
+      for (const row of list.querySelectorAll<HTMLElement>("[data-result-key]")) {
+        const photo = row.querySelector<HTMLImageElement>("img[data-result-photo]");
+        if (!photo) continue;
+        const bounds = photo.getBoundingClientRect();
+        if (bounds.bottom > visibleTop && bounds.top < visibleBottom && visibleBottom > visibleTop) {
+          visible.add(row.dataset.resultKey!);
+        }
+      }
+      const keys = [...visible];
+      setEagerResultPhotos(previous => previous.size === visible.size && [...previous].every((key, index) => key === keys[index]) ? previous : visible);
+    };
+    measureResultPhotosRef.current = measure;
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    observer.observe(main);
+    list.addEventListener("scrollend", measure);
+    return () => {
+      observer.disconnect();
+      list.removeEventListener("scrollend", measure);
+      if (measureResultPhotosRef.current === measure) measureResultPhotosRef.current = null;
+    };
+  }, [locationRows, businessRows, viewportReady, isMobile, tabBarH, sheetPosition, sheetGeometry]);
 
   // ── Selecting a pin scrolls its row near the top of the list ────────────
   // Rect-delta (not offsetTop, whose offsetParent is this positioned container)
   // so the selected row lands ~12px below the top of the list viewport.
-  useEffect(() => {
-    if (selectedId == null || !listRef.current) return;
+  useLayoutEffect(() => {
     const container = listRef.current;
+    if (!container) return;
+    if (selectedId == null) {
+      lastScrolledSelectionRef.current = null;
+      initialFocusScrollPendingRef.current = false;
+      return;
+    }
+    const previous = lastScrolledSelectionRef.current;
+    if (previous?.id === selectedId && previous.list === container) return;
     const el = container.querySelector<HTMLElement>(
       `[data-biz="${selectedId}"]`,
     );
     if (!el) return;
+    const initialFocus = initialFocusScrollPendingRef.current && selectedId === focusId;
+    initialFocusScrollPendingRef.current = false;
+    lastScrolledSelectionRef.current = { id: selectedId, list: container };
     const delta =
       el.getBoundingClientRect().top - container.getBoundingClientRect().top - 12;
-    container.scrollTo({ top: container.scrollTop + delta, behavior: "smooth" });
-  }, [selectedId]);
+    // The first pass can run while only the page skeleton exists. Once the
+    // real list mounts, settle a deep link before paint; later pin selections
+    // retain their normal smooth scroll and do not re-anchor on data refreshes.
+    container.scrollTo({ top: container.scrollTop + delta, behavior: initialFocus || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    measureResultPhotosRef.current?.();
+  }, [selectedId, focusId, viewportReady, isMobile, tabBarH, locationRows]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const onPinSelect = useCallback((id: number) => {
@@ -638,12 +636,13 @@ export function SearchContent({
 
   // The visitor has already positioned the camera for "Search this area".
   const onSearchArea = useCallback(
-    ({ lat, lng }: { lat: number; lng: number }) => {
+    ({ lat, lng, radiusKm, zoom }: { lat: number; lng: number; radiusKm: number; zoom: number }) => {
       updateParams({
         city: null,
         lat: lat.toFixed(6),
         lng: lng.toFixed(6),
-        radius: String(SEARCH_RADIUS_KM),
+        radius: String(radiusKm),
+        mapZoom: String(zoom),
       }, { preserveCamera: true });
     },
     [updateParams],
@@ -651,7 +650,7 @@ export function SearchContent({
 
   // ── Location-permission resolution ───────────────────────────────────────
   // Writing lat/lng makes `hasGeo` true (modal won't reopen) and triggers the
-  // existing requestKey fetch. Always fixed 20km radius.
+  // existing requestKey fetch. A fresh location starts at the 20km base radius.
   const applyAnchor = useCallback(
     (p: GeoPoint) => {
       updateParams({
@@ -659,6 +658,7 @@ export function SearchContent({
         lat: p.lat.toFixed(6),
         lng: p.lng.toFixed(6),
         radius: String(SEARCH_RADIUS_KM),
+        mapZoom: String(RECENTER_ZOOM),
       });
     },
     [updateParams],
@@ -805,6 +805,7 @@ export function SearchContent({
         lat: loc.lat.toFixed(6),
         lng: loc.lng.toFixed(6),
         radius: String(SEARCH_RADIUS_KM),
+        mapZoom: String(RECENTER_ZOOM),
       }, { preserveCamera: true });
     },
     [updateParams],
@@ -870,130 +871,73 @@ export function SearchContent({
     const duration = cameraArrived.current ? 450 : 0;
     if (focusedPin) {
       map.flyTo(focusedPin, { zoom: 14, duration });
-    } else if (pins.length) {
-      map.revealPins(pins, { duration });
-    } else if (searchAnchor && (anchorChanged || !cameraArrived.current)) {
-      map.flyTo(searchAnchor, { duration });
+    } else {
+      if (searchAnchor && (anchorChanged || !cameraArrived.current)) {
+        map.flyTo(searchAnchor, { zoom: anchorZoom, duration: 0 });
+      }
+      if (pins.length) map.revealPins(pins, { duration });
     }
     handledCameraKey.current = cameraKey;
     cameraArrived.current = true;
   }, [mapMounted, mapEnabled, loading, resultsFailed, lastError, resultsKey,
     requestKey, cameraKey, focusId, pins, searchAnchor, anchorKey,
-    isMobile, sheetGeometry, sheetPosition]);
-
-  // ── Edit search — reopen the overlay prefilled from the active URL params ──
-  const editSearch = useCallback(() => {
-    openSearch({
-      step: "what",
-      initial: {
-        what: derived.search ?? "",
-        industry: derived.industrySlug ?? "",
-        tagIds: derived.tagIds ?? [],
-        city: derived.city ?? "",
-        when: derived.date ? `date:${derived.date}` : "",
-        lat: derived.lat,
-        lng: derived.lng,
-      },
-    });
-  }, [openSearch, derived]);
+    isMobile, sheetGeometry, sheetPosition, anchorZoom]);
 
   // Transport failures (offline/timeout/rate-limited/5xx) win over the plain
   // "couldn't load results" copy; falls back to it when there's no error to
   // read (the SSR-side failure only carried a boolean, not the ApiError).
   const failureMessage = errorMessage(lastError, dict.errors, t.retryError);
 
-  const queryLabel = derived.search || t.allServices;
-
   // ── Header ──────────────────────────────────────────────────────────────
   const panelHeader = (
-    <div className={searchStyles.header}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 10,
-        }}
-      >
-        <div style={{ minWidth: 0, flex: 1 }}>
+    <div className={searchStyles.header} data-explore-results-header>
+      <div className={searchStyles.headerRow}>
+        <div className={searchStyles.summary}>
           <Kicker style={{ marginBottom: 5 }}>{t.inThisArea}</Kicker>
-          <div style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
-          <div
-            aria-busy={loading}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 21,
-              minWidth: 166,
-              flexShrink: 0,
-              fontWeight: 600,
-              letterSpacing: "-0.025em",
-              color: "var(--c-900)",
-            }}
-          >
-            {loading && locations.length === 0 && businesses.length === 0 ? (
-              <div aria-hidden="true" style={{ height: "1.5em", display: "flex", alignItems: "center" }}><Skeleton w={144} h={21} /></div>
-            ) : (
-              format(resultCount === 1 ? t.resultCountOne : t.resultCount, {
-                count: String(resultCount),
-              })
+          <div className={searchStyles.resultLine}>
+            <div aria-busy={loading} className={searchStyles.count}>
+              {loading && locations.length === 0 && businesses.length === 0 ? (
+                <div aria-hidden="true" style={{ height: "1.5em", display: "flex", alignItems: "center" }}><Skeleton w={114} h={21} /></div>
+              ) : (
+                format(resultCount === 1 ? t.resultCountOne : t.resultCount, {
+                  count: String(resultCount),
+                })
+              )}
+              <span aria-hidden="true" style={{ width: 14, height: 14, flexShrink: 0 }}>
+                {loading && <Spinner size={14} color="var(--c-600)" />}
+              </span>
+            </div>
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                className={`${searchStyles.clearButton} tap`}
+                onClick={() => {
+                  applyFilters(EMPTY_FILTERS);
+                  filtersTriggerRef.current?.focus({ preventScroll: true });
+                }}
+              >
+                {t.clearFilters}
+              </button>
             )}
-            <span aria-hidden="true" style={{ width: 14, height: 14 }}>
-              {loading && <Spinner size={14} color="var(--c-600)" />}
-            </span>
           </div>
           <span role="status" aria-atomic="true" className="sr-only">
             {loading ? t.updating : ""}
           </span>
-          <button
-            type="button"
-            className="tap"
-            onClick={editSearch}
-            aria-label={`${t.editSearch}: ${queryLabel}`}
-            title={queryLabel}
-            style={{
-              marginLeft: 8,
-              background: "transparent",
-              border: 0,
-              padding: 0,
-              cursor: "pointer",
-              fontSize: 13,
-              color: "var(--c-600)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              minWidth: 0,
-            }}
-          >
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{queryLabel}</span>
-            <Icon name="pencil" size={12} color="var(--c-500)" style={{ flexShrink: 0 }} />
-          </button>
-          </div>
         </div>
-        <SortMenu
-          sort={filters.sort}
-          setSort={(sort) => applyFilters({ ...filters, sort })}
-          allowClosest={hasGeo}
-        />
+        <button
+          ref={filtersTriggerRef}
+          type="button"
+          className={`${searchStyles.filtersButton} tap`}
+          aria-label={activeFilterCount > 0 ? format(t.filters.activeLabel, { count: String(activeFilterCount) }) : t.filters.title}
+          aria-haspopup="dialog"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen(true)}
+        >
+          <Icon name="sliders" size={16} />
+          {t.filters.title}
+          {activeFilterCount > 0 && <span aria-hidden="true" className={searchStyles.filterCount}>{activeFilterCount}</span>}
+        </button>
       </div>
-      <FilterRow
-        industries={industries}
-        activeSlug={derived.industrySlug ?? null}
-        onSelectIndustry={(slug) => updateParams({ industry: slug })}
-        openNow={filters.openNow}
-        onToggleOpenNow={() =>
-          applyFilters({ ...filters, openNow: !filters.openNow })
-        }
-        availableToday={derived.date === todayIso()}
-        onToggleAvailableToday={() =>
-          updateParams({
-            date: derived.date === todayIso() ? null : todayIso(),
-          })
-        }
-        activeFilterCount={activeFilterCount}
-        onOpenFilters={() => setFiltersOpen(true)}
-      />
       {industriesFailed && <div style={{ display: "grid", gap: 8 }}>
         <InlineError>{dict.searchOverlay.industriesError}</InlineError>
         <Button kind="secondary" size="sm" loading={industriesLoading} onClick={() => void retryIndustries()} style={{ justifySelf: "start" }}>{t.retry}</Button>
@@ -1006,16 +950,17 @@ export function SearchContent({
     <div
       ref={listRef}
       data-locale-scroll="search-results"
-      className="zw-scroll-y"
-      style={{ flex: 1, padding: "4px 10px 16px", position: "relative" }}
+      className={`${searchStyles.results} ${searchStyles.resultsFrame}`}
+      aria-busy={loading}
     >
+      {resultsLimited && <p className={searchStyles.limitNote}>{format(t.resultsLimited, { count: String(locations.length), total: String(totalLocations) })}</p>}
       {loading && locations.length === 0 && businesses.length === 0 && !resultsFailed ? (
-        <div aria-label={t.updating}>
+        <div className={searchStyles.resultItems} aria-hidden="true">
           {[0, 1, 2, 3, 4].map((i) => (
             <RowSkeleton key={i} />
           ))}
         </div>
-      ) : resultCount === 0 ? (
+      ) : resultCount === 0 && businessRows.length === 0 ? (
         <div style={{ padding: "48px 20px", textAlign: "center" }}>
           <div
             style={{
@@ -1049,29 +994,31 @@ export function SearchContent({
           )}
         </div>
       ) : (
-        <>
+        <div className={searchStyles.resultItems}>
           {locationRows.map(({ id, data }) => (
-            <div key={`loc-${id}`} data-biz={id}>
+            <div key={`loc-${id}`} data-biz={id} data-result-key={`loc-${id}`}>
               <BusinessRow
                 b={data}
-                selected={id === selectedId || id === hoverId}
+                imageLoading={data.image && eagerResultPhotoSources.has(data.image) ? "eager" : "lazy"}
+                imageFetchPriority={`loc-${id}` === firstResultPhotoKey ? "high" : undefined}
                 favorited={locFav.isFavorited(id)}
-                onFavorite={locFav.canFavorite ? locFav.toggle : undefined}
-                onHover={() => setHoverId(id)}
-                onLeave={() => setHoverId(null)}
+                onFavorite={locFav.toggle}
               />
             </div>
           ))}
-          {businessRows.map(({ id, data }) => (
-            <div key={`biz-${id}`}>
+          {businessRows.length > 0 && <section className={searchStyles.resultItems} aria-label={t.matchingBusinesses}>
+            <h2 className={searchStyles.businessHeading}>{t.matchingBusinesses}</h2>
+            {businessRows.map(({ id, data }) => (
+            <div key={`biz-${id}`} data-result-key={`biz-${id}`}>
               <BusinessRow
                 b={data}
-                favorited={bizFav.isFavorited(id)}
-                onFavorite={bizFav.canFavorite ? bizFav.toggle : undefined}
+                imageLoading={data.image && eagerResultPhotoSources.has(data.image) ? "eager" : "lazy"}
+                imageFetchPriority={`biz-${id}` === firstResultPhotoKey ? "high" : undefined}
               />
             </div>
-          ))}
-        </>
+            ))}
+          </section>}
+        </div>
       )}
     </div>
   );
@@ -1081,6 +1028,24 @@ export function SearchContent({
   // detail of the search bar, not a search — same rule the mobile app applies.
   const searchActive =
     !!derived.search || !!derived.industrySlug || !!derived.tagIds?.length;
+  const activeSelection = useMemo(() => {
+    if (!searchActive) return undefined;
+    const industry = industries.find(item => item.slug === derived.industrySlug)
+      ?? industries.find(item => item.tags.some(tag => derived.tagIds?.includes(tag.id)));
+    const tags = (derived.tagIds ?? []).flatMap(id => {
+      const tag = industries.flatMap(item => item.tags).find(item => item.id === id);
+      return tag ? [taxonomyLabel(tag, locale, dict.industryTags)] : [];
+    });
+    const tagLabel = tags.length === derived.tagIds?.length ? tags.join(", ") : "";
+    return {
+      label: derived.search || tagLabel || taxonomyLabel(industry ?? { name: t.selectedServices, slug: derived.industrySlug }, locale, dict.industries),
+      industrySlug: derived.search ? undefined : industry?.slug ?? derived.industrySlug,
+    };
+  }, [searchActive, industries, derived.search, derived.industrySlug, derived.tagIds, locale, dict.industryTags, dict.industries, t.selectedServices]);
+
+  const onClearSelection = useCallback(() => {
+    updateParams({ search: null, industry: null, tagIds: null });
+  }, [updateParams]);
 
   const onPickTag = useCallback(
     (industry: Industry, tagId: number) => {
@@ -1099,6 +1064,24 @@ export function SearchContent({
   // fit has to know about it or every result set puts pins underneath it. The
   // number mirrors the panel's own geometry below: 16px inset + its width.
   const panelInsetPx = isMobile ? 0 : PANEL_EDGE_PX + panelWidthPx;
+  // The collapsed sheet's measured header, rather than a guessed fixed offset,
+  // owns the space under the card and controls. Card height matches its scene.
+  const collapsedSheetHeight = sheetGeometry?.position === "down" ? sheetGeometry.height : 0;
+  const selectedCardHeight = isMobile && collapsedSheetHeight && sheetGeometry?.containerHeight
+    ? Math.min(220, Math.max(156, sheetGeometry.containerHeight - collapsedSheetHeight - 12 - 44 - 12 - 12))
+    : 220;
+  const selectedCardBottom = isMobile ? collapsedSheetHeight + 12 : 28;
+  const mapControlsBottom = isMobile
+    ? (sheetGeometry?.height ?? 0) + 12 + (selectedCardData && sheetPosition === "down" ? selectedCardHeight + 12 : 0)
+    : 24;
+  const reserveRailControls = isMobile && !!sheetGeometry?.containerHeight
+    && sheetGeometry.containerHeight - mapControlsBottom - 44 < 64;
+  const mapChromeInset = {
+    left: isMobile ? 0 : panelInsetPx + 16,
+    right: reserveRailControls ? 60 : 0,
+  };
+  const cardHidden = isMobile && sheetPosition !== "down";
+  const mapTopInset = (industries.length > 0 || searchActive) && !(isMobile && sheetPosition === "top") ? 64 : 16;
 
   const mapSurfaceInner = (
     <MapboxSurface
@@ -1107,11 +1090,9 @@ export function SearchContent({
       ref={mapHandleRef}
       pins={pins}
       selectedId={selectedId}
-      hoverId={hoverId}
       userPos={deviceLocation}
       onSelect={onPinSelect}
       onDismiss={() => setSelectedId(null)}
-      onHover={isMobile ? undefined : setHoverId}
       onRecenter={requestLocation}
       recenterAria={t.recenterAria}
       pinListLabel={t.pinListLabel}
@@ -1119,6 +1100,8 @@ export function SearchContent({
       loading={loading}
       locating={locating}
       anchor={searchAnchor}
+      anchorZoom={derived.mapZoom}
+      searchRadiusKm={derived.radius ?? SEARCH_RADIUS_KM}
       onSearchArea={onSearchArea}
       searchAreaLabel={t.searchThisArea}
       onUserMoveStart={onUserMoveStart}
@@ -1127,30 +1110,28 @@ export function SearchContent({
       enabled={mapEnabled}
       unavailableLabel={cityCameraPending ? (
         <>
-          <MapSkeleton railInsetLeft={isMobile ? 0 : panelInsetPx + 16} controlsBottom={isMobile ? 200 : selectedCardData ? 128 : 24} showRail={industries.length > 0 && !searchActive && !(isMobile && sheetPosition === "top")} showControls={!(isMobile && sheetPosition === "top")} />
+          <MapSkeleton showRail={false} showControls={false} />
           <span role="status" className="sr-only">{t.updating}</span>
         </>
       ) : t.mapUnavailable}
       fitInset={{
         left: panelInsetPx,
-        top: searchActive ? 16 : 64,
+        top: mapTopInset,
         bottom: isMobile ? (sheetGeometry?.height ?? 0) : 16,
       }}
-      // Clear the browse rail while it is up; reclaim the space once it steps
-      // aside, so the "Search this area" pill sits where the eye expects it.
-      topInset={searchActive ? 16 : 64}
+      // Both discovery chips and the removable selection occupy this row.
+      topInset={mapTopInset}
+      chromeInset={mapChromeInset}
       // Above the floating card, and above the mobile sheet's peek.
-      controlsBottom={isMobile ? 200 : selectedCardData ? 128 : 24}
-      viewedIds={viewedIds}
+      controlsBottom={mapControlsBottom}
+      favoriteIds={favoriteIds}
     >
-      {/* Browse rail — floats over the map, clear of the desktop results
-          panel. Steps aside the moment a search names the query. */}
+      {/* Browse or clear the current service, above the usable map area. */}
       <div
         style={{
           position: "absolute",
           top: 12,
-          left: isMobile ? 0 : panelInsetPx + 16,
-          right: 0,
+          ...mapChromeInset,
           zIndex: 36,
           pointerEvents: "none",
         }}
@@ -1159,8 +1140,13 @@ export function SearchContent({
           <TagRail
             industries={industries}
             onPick={onPickTag}
-            onMore={editSearch}
-            hidden={searchActive || (isMobile && sheetPosition === "top")}
+            activeSelection={activeSelection}
+            onClear={onClearSelection}
+            onMore={() => openCatalog({
+              industries,
+              onSelect: (industry, tag) => onPickTag(industry, tag.id),
+            })}
+            hidden={isMobile && sheetPosition === "top"}
           />
         </div>
       </div>
@@ -1193,21 +1179,27 @@ export function SearchContent({
         // — on the sheet's own clock, published as CSS vars, so following it
         // costs no re-render per frame. Inert on desktop: no sheet, no vars.
         <div
+          inert={cardHidden}
+          aria-hidden={cardHidden || undefined}
           style={{
-            opacity: "calc(1 - var(--zv-sheet-raise, 0))",
+            position: "absolute",
+            inset: 0,
+            zIndex: 45,
+            opacity: cardHidden ? 0 : "calc(1 - var(--zv-sheet-raise, 0))",
             transform: "translateY(calc(var(--zv-sheet-raise, 0) * 24px))",
             transition: "var(--zv-sheet-t, none)",
-            pointerEvents: sheetPosition === "down" ? "auto" : "none",
-          }}
+            pointerEvents: "none",
+            "--zv-selected-card-height": `${selectedCardHeight}px`,
+          } as CSSProperties}
         >
           <MapFloatingCard
             key={selectedCardData.id}
             data={selectedCardData}
             favorited={locFav.isFavorited(Number(selectedCardData.id))}
-            onFavorite={locFav.canFavorite ? locFav.toggle : undefined}
+            onFavorite={locFav.toggle}
             onClose={() => setSelectedId(null)}
             closeAria={t.closePinCard}
-            bottomOffset={isMobile ? 128 : 28}
+            bottomOffset={selectedCardBottom}
             insetLeft={isMobile ? "0px" : "calc(32px + min(424px, 36vw))"}
             insetRight="0px"
           />
@@ -1225,17 +1217,17 @@ export function SearchContent({
       </div>}
       {!mapPainted && !mapFailed && !!MAPBOX_TOKEN && mapEnabled && (
         <div
+          data-explore-map-loading
           style={{
             position: "absolute",
             inset: 0,
-            // Above the map's own chrome (controls 30, rail 36, pill 40) and
-            // below the results surfaces (sheet 42, card 45, panel 47), which
-            // already have real rows to show while the tiles arrive.
-            zIndex: 41,
+            // Cover only unresolved tiles. Keep the already-resolved browse
+            // rail, recenter control and result surfaces visible and usable.
+            zIndex: 1,
             pointerEvents: "none",
           }}
         >
-          <MapSkeleton railInsetLeft={isMobile ? 0 : panelInsetPx + 16} controlsBottom={isMobile ? 200 : selectedCardData ? 128 : 24} showRail={industries.length > 0 && !searchActive && !(isMobile && sheetPosition === "top")} showControls={!(isMobile && sheetPosition === "top")} />
+          <MapSkeleton showRail={false} showControls={false} />
         </div>
       )}
     </>
@@ -1243,7 +1235,12 @@ export function SearchContent({
 
   // Use the same CSS-responsive shell during hydration; never flash the
   // desktop layout before matchMedia resolves on a phone.
-  if (!viewportReady || (isMobile && tabBarH === 0)) return <SearchPageSkeleton showRail={industries.length > 0 && !searchActive} desktopControlsBottom={selectedCardData ? 128 : 24} />;
+  if (!viewportReady || (isMobile && tabBarH === 0)) return (
+    <SearchPageSkeleton
+      showRail={industries.length > 0 || searchActive}
+      activeFilterCount={activeFilterCount}
+    />
+  );
 
   // ── Mobile: the map, with the results on a sheet over it ────────────────
   if (isMobile) {

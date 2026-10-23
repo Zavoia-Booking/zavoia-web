@@ -1,160 +1,88 @@
 "use client";
 
 import Link from "next/link";
-import type { CSSProperties, KeyboardEvent } from "react";
 import { Img } from "@/components/ui/image";
-import { CatDot } from "@/components/ui/cat-dot";
+import { Icon } from "@/components/ui/icon";
 import { Rating } from "@/components/ui/rating";
-import { StatusPill } from "@/components/ui/status-pill";
 import { HeartButton } from "@/components/ui/heart-button";
+import { useTranslation } from "@/i18n/useTranslation";
+import { industryAccent, industryIcon } from "@/lib/marketplace/industry-visuals";
 import type { BusinessCardData } from "./types";
 import styles from "./business-row.module.css";
 
 export interface BusinessRowProps {
   b: BusinessCardData;
   onClick?: () => void;
-  selected?: boolean;
   favorited?: boolean | null;
-  /** Favorite handler — the heart only renders when provided (signed-in). */
+  /** Favorite handler — the heart only renders when provided. */
   onFavorite?: (id: BusinessCardData["id"]) => void;
-  onHover?: () => void;
-  onLeave?: () => void;
+  imageLoading?: "eager" | "lazy";
+  imageFetchPriority?: "high" | "low" | "auto";
 }
 
-// Compact horizontal row for results panels / lists. Ported from
-// ZwBusinessRow. Uses CatDot / Rating / StatusPill / HeartButton(floating=false).
+// Search result ticket: the location lives on its photo; the adjacent panel
+// carries category, address, rating and a compact distance/status footer.
 export function BusinessRow({
   b,
   onClick,
-  selected = false,
   favorited,
   onFavorite,
-  onHover,
-  onLeave,
+  imageLoading,
+  imageFetchPriority,
 }: BusinessRowProps) {
-  const rootStyle: CSSProperties = {
-    display: "flex",
-    gap: 14,
-    padding: 12,
-    borderRadius: 16,
-    cursor: "pointer",
-    background: selected ? "var(--c-100)" : "transparent",
-    border: selected ? "1px solid rgba(28,28,26,0.10)" : "1px solid transparent",
-    transition:
-      "background-color .18s var(--ease-soft), border-color .18s var(--ease-soft)",
-    textDecoration: "none",
-  };
+  const { dict } = useTranslation();
+  const locationName = b.locationName?.trim() || b.name;
+  const businessName = b.businessName?.trim();
+  const showBusinessName = businessName && businessName.toLowerCase() !== locationName.toLowerCase();
+  const cardName = [locationName, showBusinessName ? businessName : null, b.city].filter(Boolean).join(", ");
+  const address = b.address?.trim() || b.blurb?.trim();
+  const distanceOrCity = b.distance || b.city;
+  const alwaysOpen = b.status === "24-7" || b.status === "24/7";
+  const isOpen = b.status === "open" || alwaysOpen;
+  const statusLabel = alwaysOpen ? dict.common.open247 : isOpen ? dict.common.open : dict.common.closed;
 
-  const inner = (
-    <>
-      <div
-        className="zw-zoom-wrap"
-        style={{
-          width: 116,
-          height: 96,
-          borderRadius: 12,
-          overflow: "hidden",
-          background: "var(--c-300)",
-          flexShrink: 0,
-          position: "relative",
-        }}
-      >
-        <Img src={b.image} alt={b.name} label={b.cat} style={{ width: "100%", height: "100%" }} />
-      </div>
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-          paddingTop: 2,
-          containerType: "inline-size",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            justifyContent: "space-between",
-            minHeight: 28,
-          }}
-        >
-          <span
-            title={b.name}
-            style={{
-              fontSize: 15.5,
-              fontWeight: 600,
-              letterSpacing: "-0.015em",
-              color: "var(--c-900)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {b.name}
-          </span>
-          {onFavorite && (
-            <HeartButton
-              active={favorited}
-              onClick={() => onFavorite(b.id)}
-              size={28}
-              floating={false}
-            />
-          )}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12.5,
-            minHeight: 18.75,
-            color: "var(--c-600)",
-          }}
-        >
-          <CatDot cat={b.cat} size={5} />
-          {b.catLabel && <span title={b.catLabel} style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.catLabel}</span>}
-          {b.catLabel && b.distance && <span style={{ color: "var(--c-400)" }}>·</span>}
-          {b.distance && <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}>{b.distance}</span>}
-        </div>
-        <div style={{ minHeight: 18.75 }}>{b.rating != null && <Rating rating={b.rating} reviews={b.reviews} size={12.5} />}</div>
-          <div className={styles.status}>
-            {b.status && <StatusPill status={b.status} closesAt={b.closesAt} dense />}
-          </div>
-      </div>
-    </>
-  );
-
-  if (b.href) {
-    return (
-      <Link
-        href={b.href}
-        title={b.name}
-        onMouseEnter={onHover}
-        onMouseLeave={onLeave}
-        className="zw-zoom-parent"
-        style={rootStyle}
-      >
-        {inner}
-      </Link>
-    );
-  }
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onMouseEnter={onHover}
-      onMouseLeave={onLeave}
-      onKeyDown={(e: KeyboardEvent) => {
-        if (e.key === "Enter") onClick?.();
-      }}
-      className="zw-zoom-parent"
-      style={rootStyle}
-    >
-      {inner}
+    <div className={styles.row}>
+      <div className={styles.photo}>
+        <Img data-result-photo src={b.image} alt={cardName} label={b.catLabel} sizes="120px" loading={imageLoading} fetchPriority={imageFetchPriority} className={styles.image} />
+        <div className={styles.shade} aria-hidden="true" />
+        <div className={styles.identity}>
+          <span className={styles.name} title={locationName}>{locationName}</span>
+          {showBusinessName && <span className={styles.businessName} title={businessName}>{businessName}</span>}
+        </div>
+      </div>
+      <div className={styles.content}>
+        {b.catLabel && (
+          <div className={styles.category}>
+            <Icon name={industryIcon(b.cat)} size={14} color={industryAccent(b.cat)} />
+            <span title={b.catLabel}>{b.catLabel}</span>
+          </div>
+        )}
+        {address && <div className={styles.address} title={address}>{address}</div>}
+        {(b.rating != null || distanceOrCity || b.status) && (
+          <div className={styles.metadata}>
+            {b.rating != null && (
+              <div className={styles.rating}><Rating rating={b.rating} reviews={b.reviews} size={12.5} /></div>
+            )}
+            {(distanceOrCity || b.status) && (
+              <div className={styles.footer}>
+                {distanceOrCity && <span className={styles.distance} title={distanceOrCity}>{distanceOrCity}</span>}
+                {b.status && <span className={`${styles.status} ${isOpen ? styles.open : styles.closed}`}>{statusLabel}</span>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      {b.href ? (
+        <Link href={b.href} title={cardName} aria-label={cardName} className={styles.action} />
+      ) : onClick ? (
+        <button type="button" onClick={onClick} aria-label={cardName} className={styles.action} />
+      ) : null}
+      {onFavorite && (
+        <div className={styles.favorite}>
+          <HeartButton active={favorited} onClick={() => onFavorite(b.id)} size={44} iconSize={18} floating={false} />
+        </div>
+      )}
     </div>
   );
 }

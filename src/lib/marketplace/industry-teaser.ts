@@ -15,7 +15,6 @@
  */
 
 import type { Industry, IndustryTag } from "@/lib/api/marketplace/types";
-import { otherIndustryLast } from "./industry-order";
 
 export interface TeaserChip {
   industry: Industry;
@@ -74,7 +73,7 @@ export function industryTeaserChips(
       tags.find((x) => x.slug === HERO_TAG_SLUG[industry.slug]) ?? tags[0];
     heroes.push({ industry, tag });
   }
-  return otherIndustryLast(seededShuffle(heroes, daySeed), ({ industry }) => industry.slug);
+  return seededShuffle(heroes, daySeed);
 }
 
 // Fisher–Yates over a mulberry32 stream — deterministic for a given seed.

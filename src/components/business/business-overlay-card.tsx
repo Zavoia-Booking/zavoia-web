@@ -12,7 +12,7 @@ export interface BusinessOverlayCardProps {
   b: BusinessCardData;
   onClick?: () => void;
   favorited?: boolean | null;
-  /** Favorite handler — the heart only renders when provided (signed-in). */
+  /** Favorite handler — the heart only renders when provided. */
   onFavorite?: (id: BusinessCardData["id"]) => void;
 }
 

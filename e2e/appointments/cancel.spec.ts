@@ -3,13 +3,13 @@ import { signInAsFreshCustomer } from '../fixtures/customer-helpers'
 import { DEMO, getUserIdByEmail, seedAppointment, setBookingSettings } from '../fixtures/seed'
 
 /**
- * Cancel flow — src/app/[locale]/appointments/[uuid]/_components/sections.tsx
+ * Cancel flow — src/app/[locale]/appointments/[uuid]/_components/detail-content.tsx
  * (ActionRail's "Cancel appointment" ManageRow) and
  * .../_components/actions/cancel-modal.tsx (the modal itself).
  *
  * Copy verified straight from src/i18n/dictionaries/en.ts:
  *   - modal: role="dialog" aria-label="Cancel this appointment?"
- *   - footer buttons: "Keep it" (dismiss) / "Cancel booking" (confirm)
+ *   - footer buttons: "Keep it" (dismiss) / "Cancel appointment" (confirm)
  *   - success toast: "Appointment cancelled" (role="status", default tone)
  *   - ManageRow label when allowed: "Cancel appointment"
  *   - ManageRow label when the business closed the window:
@@ -45,7 +45,7 @@ test.describe('Cancel appointment', () => {
 
     const dialog = page.getByRole('dialog', { name: 'Cancel this appointment?' })
     await expect(dialog).toBeVisible()
-    await dialog.getByRole('button', { name: 'Cancel booking' }).click()
+    await dialog.getByRole('button', { name: 'Cancel appointment' }).click()
 
     await expect(page.getByRole('status').filter({ hasText: 'Appointment cancelled' })).toBeVisible({
       timeout: 10_000,

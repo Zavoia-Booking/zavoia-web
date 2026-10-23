@@ -634,7 +634,8 @@ export interface ListingDetail {
   location: ListingLocation;
 
   featuredImage: string | null;
-  portfolioImages: ListingPortfolioImage[];
+  /** Legacy rows contain URLs; uploaded images include their metadata. */
+  portfolioImages: Array<string | ListingPortfolioImage>;
 
   serviceCategories: ListingServiceCategory[];
   services: ServiceSummary[];
@@ -659,9 +660,6 @@ export interface ListingDetail {
 
   createdAt: string;
   updatedAt: string;
-
-  /** Present only for authenticated requests. */
-  isFavorited?: boolean;
 }
 
 // ============================================================================
@@ -727,6 +725,8 @@ export interface TeamMemberBookingLocation {
   averageRating: number | null;
   totalReviews: number;
   allowOnlineBooking: boolean;
+  /** Effective venue/listing pricing policy; absent on older API versions. */
+  showPricing?: boolean;
   services: TeamMemberBookingContextService[];
 }
 
@@ -824,6 +824,8 @@ export interface NearbyLocationsResult {
 export interface ReviewPageParams {
   offset?: number;
   limit?: number;
+  sortBy?: "createdAt" | "rating";
+  sortOrder?: "ASC" | "DESC";
 }
 
 // ============================================================================
@@ -1024,6 +1026,13 @@ export interface AppointmentListItem {
   duration: number;
   price: number;
   currency: string;
+  /** Additive list identity. Older API responses may omit it. */
+  business?: {
+    id: number | null;
+    name: string | null;
+    logo: string | null;
+    businessSlug: string | null;
+  } | null;
   location: {
     id: number | null;
     name: string | null;
@@ -1066,6 +1075,14 @@ export interface AppointmentBreakdownItem {
   duration?: number | null; // minutes
   price?: number | null; // integer MINOR units
   startOffsetMinutes?: number | null;
+  /** Historical constituent services for a booked bundle. */
+  services?: Array<{
+    serviceId?: number | null;
+    serviceUuid?: string | null;
+    name: string;
+    duration: number;
+    price: number;
+  }>;
   [key: string]: unknown; // keep — payload may carry more
 }
 
@@ -1434,31 +1451,14 @@ export interface SubmitReviewResult {
 }
 
 // --- Favorites ---
-
-export interface FavoriteBusiness {
-  id: number;
-  business: {
-    id: number;
-    uuid: string;
-    name: string;
-    logo: string | null;
-    averageRating: number | null;
-    totalReviews: number;
-    industry: { id: number; name: string; slug: string } | null;
-  };
-  marketplace: {
-    listingId: number | null;
-    primaryLocationId: number | null;
-    isListed: boolean;
-    featuredImage: string | null;
-  };
-}
+// Customers save locations and people only (same as the marketplace app).
 
 export interface FavoriteLocation {
   id: number;
   location: {
     id: number;
     uuid: string;
+    slug?: string | null;
     name: string;
     address: string | null;
     city: string | null;
@@ -1499,7 +1499,6 @@ export interface FavoriteProfessional {
 }
 
 export interface AllFavorites {
-  businesses: FavoriteBusiness[];
   locations: FavoriteLocation[];
   professionals: FavoriteProfessional[];
 }

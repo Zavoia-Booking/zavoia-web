@@ -9,6 +9,7 @@ import type { ListingLightCard } from "@/lib/api/marketplace/types";
 import { getRecentViews, removeRecentViews } from "@/lib/recent-views";
 import { RecentlyViewedSkeleton } from "./section-skeletons";
 import { SectionFailed } from "./section-failed";
+import { useFavoriteToggle } from "./use-favorite-toggle";
 import styles from "./recently-viewed.module.css";
 import {
   RecentlyViewedCard,
@@ -127,6 +128,8 @@ function haversineKm(
 export function RecentlyViewed() {
   const { locale, dict } = useTranslation();
   const { ids, items: listings, loading, failed } = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
+  // The trail holds locations only, so these hearts save locations.
+  const fav = useFavoriteToggle("location");
   // null = not yet resolved (asked & pending, denied, or unavailable).
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -194,7 +197,12 @@ export function RecentlyViewed() {
       <span className="sr-only" role="status">{loading ? s.loading : ""}</span>
       {!listings ? <RecentlyViewedSkeleton count={Math.min(ids.length, MAX_VISIBLE_RECENT)} /> : <div className={styles.grid}>
         {cards.map((b) => (
-          <RecentlyViewedCard key={b.id} b={b} />
+          <RecentlyViewedCard
+            key={b.id}
+            b={b}
+            favorited={fav.isFavorited(b.id)}
+            onFavorite={fav.toggle}
+          />
         ))}
       </div>}
     </section>

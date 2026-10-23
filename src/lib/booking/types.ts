@@ -58,6 +58,9 @@ export interface OpenBookingPayload {
   timezone: string;
   /** ISO 4217 currency code (businessCurrency). */
   currency: string;
+  /** Effective location price-display policy. False shows the existing quote
+   *  label throughout the drawer; numeric amounts remain available to booking. */
+  showPricing?: boolean;
   /** The location's real cancellation/reschedule policy. `null` when the
    *  location has no policy configured. Not currently surfaced in the drawer
    *  UI (cancellation-claim copy was removed); kept so policy-aware behavior

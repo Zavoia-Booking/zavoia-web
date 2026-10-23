@@ -1,0 +1,77 @@
+.position {
+  position: absolute;
+  z-index: 45;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.card {
+  position: relative;
+  width: min(430px, calc(100% - 32px));
+  height: var(--zv-selected-card-height, 220px);
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--c-ink);
+  box-shadow: var(--sh-lg);
+  color: #fff;
+  pointer-events: auto;
+}
+
+.photo, .image, .shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+.shade { pointer-events: none; background: linear-gradient(180deg, transparent 20%, rgba(0, 0, 0, .4) 48%, rgba(0, 0, 0, .9)); }
+.topShade { position: absolute; inset: 0 0 auto; height: 100px; pointer-events: none; background: linear-gradient(180deg, rgba(0, 0, 0, .3), transparent); }
+.info { position: absolute; left: 14px; right: 66px; bottom: 14px; text-align: left; }
+.name { display: -webkit-box; margin: 0; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: #fff; font-size: 20px; font-weight: 700; line-height: 22px; letter-spacing: -.025em; text-shadow: 0 2px 14px rgba(0, 0, 0, .42); }
+.businessName { margin: 5px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(255, 255, 255, .94); font-size: 12.5px; font-weight: 600; line-height: 16px; text-shadow: 0 1px 6px rgba(0, 0, 0, .4); }
+.meta { margin: 6px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(255, 255, 255, .9); font-size: 12px; font-weight: 500; line-height: 16px; font-variant-numeric: tabular-nums; text-shadow: 0 1px 6px rgba(0, 0, 0, .4); }
+.rating { display: flex; align-items: flex-end; gap: 8px; margin-top: 10px; }
+.ratingNumber { color: #fff; font-size: 30px; font-weight: 700; line-height: 30px; letter-spacing: -.035em; font-variant-numeric: tabular-nums; text-shadow: 0 2px 12px rgba(0, 0, 0, .38); }
+.ratingDetails { display: flex; flex-direction: column; gap: 2px; padding-bottom: 1px; }
+.stars { display: inline-flex; align-items: center; gap: 1.5px; }
+.star { position: relative; display: inline-block; width: 12px; height: 12px; }
+.starFill { position: absolute; inset: 0 auto 0 0; overflow: hidden; }
+.reviewCount { color: rgba(255, 255, 255, .9); font-size: 11.5px; font-weight: 500; line-height: 14px; font-variant-numeric: tabular-nums; }
+.action { position: absolute; z-index: 1; inset: 0; border-radius: inherit; outline-offset: -3px; }
+.close { position: absolute; z-index: 2; top: 4px; right: 4px; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #fff; cursor: pointer; }
+.close::before { content: ""; position: absolute; inset: 6px; border: 1px solid rgba(255, 255, 255, .18); border-radius: 50%; background: rgba(0, 0, 0, .45); pointer-events: none; }
+.close > svg { position: relative; }
+.favorite { position: absolute; z-index: 2; bottom: 10px; right: 10px; }
+.favorite::before { content: ""; position: absolute; inset: 6px; border: 1px solid rgba(255, 255, 255, .24); border-radius: 50%; background: rgba(255, 255, 255, .18); pointer-events: none; }
+.favorite > button { position: relative; }
+.favorite button[aria-pressed="false"] svg { color: #fff !important; }
+.favorite button[aria-pressed="true"] svg { color: var(--p-400) !important; }
+
+@media (min-width: 921px) {
+  .card {
+    /* Leave room for the map controls beside the card on smaller laptops. */
+    width: min(520px, calc(100% - 128px));
+    height: min(280px, calc(100dvh - var(--nav-h) - 112px));
+  }
+  .info { left: 20px; right: 80px; bottom: 20px; }
+  .name { font-size: 28px; line-height: 32px; }
+  .businessName { margin-top: 6px; font-size: 16px; line-height: 21px; }
+  .meta { margin-top: 7px; font-size: 14px; line-height: 20px; }
+  .rating { gap: 10px; margin-top: 14px; }
+  .ratingNumber { font-size: 34px; line-height: 36px; }
+  .ratingDetails { gap: 3px; padding-bottom: 2px; }
+  .stars { gap: 2px; }
+  .star, .star svg { width: 14px; height: 14px; }
+  .reviewCount { font-size: 13px; line-height: 17px; }
+  .close { top: 8px; right: 8px; }
+  .favorite { bottom: 14px; right: 14px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card { animation: enter 280ms var(--ease-out) both; }
+  .closing { animation: exit 180ms var(--ease-out) both; pointer-events: none; }
+}
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(22px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes exit {
+  to { opacity: 0; transform: translateY(16px) scale(.98); }
+}

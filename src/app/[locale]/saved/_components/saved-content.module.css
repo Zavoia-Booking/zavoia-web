@@ -1,0 +1,532 @@
+.page {
+  width: 100%;
+  padding-top: 40px;
+  padding-bottom: 72px;
+}
+.page[data-empty] {
+  padding-block: 0;
+}
+/* The account-page header, shared with Appointments. */
+.heading {
+  margin: 0;
+  color: var(--c-900);
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  margin: 12px 0 0;
+  color: var(--c-600);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 26px 0 28px;
+}
+.filter {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 18px;
+  border: 1px solid rgba(28, 28, 26, 0.12);
+  border-radius: var(--r-full);
+  background: #fff;
+  color: var(--c-700);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 180ms var(--ease-soft),
+    color 180ms var(--ease-soft),
+    border-color 180ms var(--ease-soft);
+}
+.filter[aria-pressed="true"] {
+  border-color: var(--c-ink);
+  background: var(--c-ink);
+  color: #fff;
+}
+.filter:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.filterCount {
+  min-width: 1ch;
+  color: var(--c-600);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.filter[aria-pressed="true"] .filterCount {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* The homepage "Near you" tracks and ticket cards (BusinessFeedCard). */
+.grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
+  gap: 16px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.item {
+  min-width: 0;
+}
+.item[data-leaving] {
+  pointer-events: none;
+}
+.card {
+  position: relative;
+  display: flex;
+  height: 168px;
+  overflow: hidden;
+  isolation: isolate;
+  container-type: inline-size;
+  border: 1px solid rgba(28, 28, 26, 0.06);
+  border-radius: var(--card-r, 18px);
+  background: #fff;
+  box-shadow: var(--sh-sm);
+  transition:
+    transform 250ms var(--ease-out),
+    box-shadow 250ms var(--ease-out);
+}
+.media {
+  position: relative;
+  flex: 0 0 150px;
+  overflow: hidden;
+  background: var(--c-300);
+}
+/* A light top fade, then the deep bottom fade that carries the name. */
+.media::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0, rgba(0, 0, 0, 0) 70px),
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0) 30%,
+      rgba(0, 0, 0, 0.42) 60%,
+      rgba(0, 0, 0, 0.88) 100%
+    );
+  content: "";
+  pointer-events: none;
+}
+.photo {
+  position: absolute;
+  inset: 0;
+}
+.identity {
+  position: absolute;
+  z-index: 1;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  color: #fff;
+  pointer-events: none;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.42);
+}
+.name {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.brand {
+  overflow: hidden;
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.details {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 22px 16px 0;
+  border-left: 1px dashed rgba(28, 28, 26, 0.08);
+}
+/* Its right end stays clear of the heart. */
+.category {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding-right: 40px;
+  margin: 0;
+  color: var(--c-700);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.category svg {
+  flex-shrink: 0;
+}
+.category span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.address {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 10px 0 0;
+  color: var(--c-900);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.address:first-child {
+  margin-top: 0;
+}
+/* The feed card's hairline footer. */
+.footer {
+  display: flex;
+  /* The rating line's height, so the hairline holds without a rating. */
+  min-height: 31px;
+  align-items: center;
+  padding-top: 10px;
+  margin: auto 0 14px;
+  border-top: 1px solid rgba(28, 28, 26, 0.06);
+  line-height: 20px;
+}
+
+/* People: a framed circle portrait, with their name, role and rating beside
+   it. The text starts where a place's details do. */
+.personCard {
+  align-items: center;
+}
+.avatar {
+  position: relative;
+  display: grid;
+  width: 112px;
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  margin-left: 23px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--c-shade), var(--c-mist));
+  box-shadow:
+    0 0 0 4px #fff,
+    0 0 0 5px rgba(28, 28, 26, 0.08),
+    0 12px 28px rgba(28, 28, 26, 0.14);
+}
+.monogram {
+  color: var(--c-800);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.profile {
+  min-width: 0;
+  flex: 1;
+  padding: 0 16px 0 32px;
+}
+/* Only a two-line name can rise beside the heart. */
+.profileName {
+  display: -webkit-box;
+  overflow: hidden;
+  padding-right: 40px;
+  margin: 0;
+  color: var(--c-900);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.role {
+  overflow: hidden;
+  margin: 7px 0 0;
+  color: var(--c-700);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.profileRating {
+  display: flex;
+  margin-top: 12px;
+  line-height: 20px;
+}
+
+.primaryAction {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.primaryAction:focus-visible {
+  outline: 2px solid var(--p-500);
+  outline-offset: -3px;
+}
+/* Top right, centred on the category line: a ringed chip like the location
+   page's icon buttons, so it reads as its own control. */
+.heart {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  border: 1px solid rgba(28, 28, 26, 0.12);
+  border-radius: 50%;
+  background: var(--c-50);
+  box-shadow: var(--sh-sm);
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 160ms var(--ease-soft),
+    border-color 160ms var(--ease-soft);
+}
+.heart:has(button:active) {
+  transform: scale(0.94);
+}
+/* Narrow phones keep the text readable with a slimmer photo and portrait. */
+@container (max-width: 339px) {
+  .media {
+    flex-basis: 120px;
+  }
+  .details {
+    padding-inline: 12px;
+  }
+  .avatar {
+    width: 96px;
+    margin-left: 15px;
+  }
+  .monogram {
+    font-size: 30px;
+  }
+  .profile {
+    padding: 0 12px 0 22px;
+  }
+  .profileName {
+    font-size: 17px;
+  }
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 0;
+  margin: 0 0 24px;
+  color: var(--c-600);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.notice svg {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(28, 28, 26, 0.1);
+  border-radius: var(--r-lg);
+  background: #fff;
+}
+/* The artwork leads one centered column on the page's warm paper canvas. */
+.empty {
+  display: grid;
+  min-height: calc(100svh - var(--nav-h));
+  place-items: center;
+  padding-block: 48px;
+}
+.emptyInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+.emptyArtwork {
+  display: block;
+  width: min(440px, 100%);
+  height: auto;
+  pointer-events: none;
+}
+.emptyCopy {
+  min-width: 0;
+  max-width: 44ch;
+}
+.emptyCopy h1 {
+  margin: 0;
+  color: var(--c-900);
+  font-size: clamp(26px, 2.5vw, 32px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.emptyCopy p {
+  margin: 10px 0 0;
+  color: var(--c-700);
+  font-size: 16px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.emptyAction {
+  display: inline-flex;
+  min-height: 52px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border: 1px solid var(--c-ink);
+  border-radius: var(--r-full);
+  background: var(--c-ink);
+  color: var(--c-canvas);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 160ms var(--ease-soft);
+}
+.emptyAction svg {
+  transition: transform 200ms var(--ease-out);
+}
+.emptyAction:active {
+  transform: scale(0.98);
+}
+.gateActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .empty[data-enter] {
+    animation: emptyIn 280ms var(--ease-out) both;
+  }
+}
+@keyframes emptyIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.filteredEmpty {
+  padding: 28px 0;
+  margin: 0;
+  color: var(--c-600);
+  font-size: 14px;
+}
+
+/* Center within the space above the fixed mobile navigation. */
+@media (max-width: 920px) {
+  .empty {
+    min-height: calc(100svh - var(--nav-h) - var(--mobile-tabs-h));
+  }
+}
+@media (max-width: 600px) {
+  .page {
+    padding-top: 32px;
+    padding-bottom: 48px;
+  }
+  .grid {
+    gap: 12px;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .filter:not(:disabled):not([aria-pressed="true"]):hover {
+    border-color: rgba(28, 28, 26, 0.22);
+    background: var(--c-shade);
+  }
+  .emptyAction:hover {
+    background: var(--c-800);
+  }
+  .heart:hover {
+    border-color: rgba(28, 28, 26, 0.22);
+    background: var(--c-200);
+  }
+}
+/* Pressing the card settles it; the heart keeps its own press. */
+@media (hover: none) and (prefers-reduced-motion: no-preference) {
+  .card:has(.primaryAction:active) {
+    transform: scale(0.98);
+    transition-duration: 120ms;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .card:hover {
+    box-shadow: var(--sh-lg);
+    transform: translateY(-3px);
+  }
+  .card:hover .photo > img,
+  .card:hover .avatar img {
+    transform: scale(1.045);
+  }
+  .card:has(.primaryAction:active) {
+    transform: translateY(-1px) scale(0.995);
+    transition-duration: 120ms;
+  }
+  .emptyAction:hover svg {
+    transform: translateX(3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .photo > img,
+  .avatar img,
+  .filter,
+  .heart,
+  .emptyAction,
+  .emptyAction svg {
+    transition: none;
+  }
+  .heart:has(button:active),
+  .emptyAction:active {
+    transform: none;
+  }
+}

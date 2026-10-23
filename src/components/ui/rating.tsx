@@ -2,6 +2,8 @@
 
 import type { CSSProperties } from "react";
 import { Icon } from "./icon";
+import { useTranslation } from "@/i18n/useTranslation";
+import { format } from "@/i18n/format";
 
 export interface StarsProps {
   value?: number;
@@ -19,6 +21,10 @@ export function Stars({
   empty = "var(--c-300)",
   gap = 1,
 }: StarsProps) {
+  const { dict, locale } = useTranslation();
+  const label = format(dict.locationPage.ratingLabel, {
+    rating: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value),
+  });
   const stars = [];
   for (let i = 1; i <= 5; i++) {
     const filled = value >= i;
@@ -32,7 +38,7 @@ export function Stars({
       />,
     );
   }
-  return <span style={{ display: "inline-flex", gap, alignItems: "center" }}>{stars}</span>;
+  return <span role="img" aria-label={label} style={{ display: "inline-flex", gap, alignItems: "center" }}>{stars}</span>;
 }
 
 export interface RatingProps {
@@ -46,9 +52,15 @@ export interface RatingProps {
 // docs/web-components.jsx (ZwRating). Uses the i18n hook so it stays
 // consistent with the shared dictionary (review-count is numeric).
 export function Rating({ rating, reviews, size = 13, color = "var(--c-900)" }: RatingProps) {
+  const { dict, locale } = useTranslation();
+  const formattedRating = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(rating);
+  const formattedReviews = reviews != null ? new Intl.NumberFormat(locale).format(reviews) : null;
+  const label = format(dict.locationPage.ratingLabel, { rating: formattedRating });
   const tnum: CSSProperties = { fontVariantNumeric: "tabular-nums" };
   return (
     <span
+      role="img"
+      aria-label={formattedReviews !== null ? `${label}, ${formattedReviews} ${dict.common.reviews}` : label}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -60,9 +72,9 @@ export function Rating({ rating, reviews, size = 13, color = "var(--c-900)" }: R
       }}
     >
       <Icon name="star" size={size - 1} color="var(--p-500)" />
-      <span style={tnum}>{rating.toFixed(1)}</span>
+      <span style={tnum}>{formattedRating}</span>
       {reviews != null && (
-        <span style={{ color: "var(--c-600)", fontWeight: 400, ...tnum }}>({reviews})</span>
+        <span style={{ color: "var(--c-600)", fontWeight: 400, ...tnum }}>({formattedReviews})</span>
       )}
     </span>
   );

@@ -23,8 +23,8 @@ export function MapControls({
   busy = false,
 }: MapControlsProps) {
   const btn: CSSProperties = {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     border: 0,
     background: "#fff",
@@ -59,6 +59,7 @@ export function MapControls({
           className="tap"
           style={{ ...btn, cursor: busy ? "default" : "pointer" }}
           onClick={busy ? undefined : onRecenter}
+          disabled={busy}
           aria-label={recenterAria}
           aria-busy={busy}
         >

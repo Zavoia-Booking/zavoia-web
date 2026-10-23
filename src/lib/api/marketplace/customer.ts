@@ -18,7 +18,6 @@ import type {
   ChangePasswordBody,
   CustomerProfile,
   CustomerProfileSummary,
-  FavoriteBusiness,
   FavoriteLocation,
   FavoriteMutationResult,
   FavoriteProfessional,
@@ -201,34 +200,6 @@ export function getFavorites(): Promise<AllFavorites> {
   return apiFetch<AllFavorites>("/marketplace/customer/favorites", {
     method: "GET",
   });
-}
-
-/** GET /marketplace/customer/favorite/businesses — RAW FavoriteBusiness[]. */
-export function getFavoriteBusinesses(): Promise<FavoriteBusiness[]> {
-  return apiFetch<FavoriteBusiness[]>(
-    "/marketplace/customer/favorite/businesses",
-    { method: "GET" },
-  );
-}
-
-/** POST /marketplace/customer/favorite/business/:id — RAW mutation result. */
-export function addFavoriteBusiness(
-  businessId: number,
-): Promise<FavoriteMutationResult> {
-  return apiFetch<FavoriteMutationResult>(
-    `/marketplace/customer/favorite/business/${businessId}`,
-    { method: "POST", body: JSON.stringify({}) },
-  );
-}
-
-/** DELETE /marketplace/customer/favorite/business/:id — RAW mutation result. */
-export function removeFavoriteBusiness(
-  businessId: number,
-): Promise<FavoriteMutationResult> {
-  return apiFetch<FavoriteMutationResult>(
-    `/marketplace/customer/favorite/business/${businessId}`,
-    { method: "DELETE" },
-  );
 }
 
 /** GET /marketplace/customer/favorite/professionals — RAW FavoriteProfessional[]. */

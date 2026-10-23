@@ -16,7 +16,7 @@ export function StatusPill({ status, closesAt, dense = false }: StatusPillProps)
   const { dict } = useTranslation();
   const is247 = status === "24-7" || status === "24/7";
   const isOpen = status === "open" || is247;
-  const color = isOpen ? "var(--s-success-600)" : "var(--c-500)";
+  const color = isOpen ? "var(--s-success-600)" : "var(--c-600)";
   const label = is247 ? dict.common.open247 : isOpen ? dict.common.open : dict.common.closed;
   return (
     <span

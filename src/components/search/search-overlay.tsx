@@ -38,6 +38,7 @@ import type {
   LocationCard,
 } from "@/lib/api/marketplace/types";
 import { useSearchPreview } from "@/lib/search/use-search-preview";
+import { PLACE_ZOOM, RECENTER_ZOOM, SEARCH_RADIUS_KM } from "./constants";
 import type { Locale } from "@/i18n/locales";
 import type { Dictionary } from "@/i18n/dictionaries";
 import {
@@ -79,6 +80,7 @@ export interface WhereValue {
   label?: string;
   lat?: number;
   lng?: number;
+  zoom?: number;
 }
 
 export interface QueryModel {
@@ -101,9 +103,6 @@ export const EMPTY_QUERY: QueryModel = {
   where: {},
   when: "",
 };
-
-// Radius (km) applied to a coordinate search — matches the RN marketplace app.
-const DEFAULT_RADIUS = 20;
 
 // Static city convenience list — these just prefill the city text box. There is
 // no city API; this is the unlabeled fallback shown only when there are no
@@ -1797,7 +1796,7 @@ export function SearchOverlay({
         if (est) {
           setQ((prev) => ({
             ...prev,
-            where: { label: est.label, lat: est.lat, lng: est.lng },
+            where: { label: est.label, lat: est.lat, lng: est.lng, zoom: RECENTER_ZOOM },
           }));
           recordRecentLocation(est);
           toast(t.locationApproximate, "pin");
@@ -1822,7 +1821,7 @@ export function SearchOverlay({
         reverseGeocode(lat, lng)
           .then((res) => {
             const label = res?.label ?? t.currentLocationFallback;
-            setQ((prev) => ({ ...prev, where: { label, lat, lng } }));
+            setQ((prev) => ({ ...prev, where: { label, lat, lng, zoom: RECENTER_ZOOM } }));
             // Record as a recent location — build a CityResult when reverse
             // geocoding yielded none.
             recordRecentLocation(
@@ -1832,7 +1831,7 @@ export function SearchOverlay({
           .catch(() => {
             // reverseGeocode never throws, but stay defensive — keep coords.
             const label = t.currentLocationFallback;
-            setQ((prev) => ({ ...prev, where: { label, lat, lng } }));
+            setQ((prev) => ({ ...prev, where: { label, lat, lng, zoom: RECENTER_ZOOM } }));
             recordRecentLocation({
               id: `${lat},${lng}`,
               label,
@@ -1909,7 +1908,8 @@ export function SearchOverlay({
       // Picked city / current location → coordinate search.
       params.set("lat", String(where.lat));
       params.set("lng", String(where.lng));
-      params.set("radius", String(DEFAULT_RADIUS));
+      params.set("radius", String(SEARCH_RADIUS_KM));
+      params.set("mapZoom", String(where.zoom ?? PLACE_ZOOM));
       // Human-readable label for the results-page chip.
       if (where.label?.trim()) params.set("city", where.label.trim());
     } else if (where.label?.trim()) {

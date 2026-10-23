@@ -1,0 +1,92 @@
+.field {
+  display: block;
+  margin-top: 18px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--c-700);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(28, 28, 26, 0.14);
+  border-radius: var(--r-lg);
+  background: #fff;
+  color: var(--c-900);
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: var(--sh-sm);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--p-500);
+  outline-offset: 2px;
+  border-color: var(--p-400);
+}
+
+.input:disabled {
+  opacity: 0.6;
+}
+
+textarea.input {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--c-600);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ratingGroup {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.ratingGroup + .ratingGroup {
+  margin-top: 24px;
+  border-top: 1px solid rgba(28, 28, 26, 0.08);
+  padding-top: 24px;
+}
+
+.calendarNavigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.calendarRange {
+  color: var(--c-700);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .input { font-size: 16px; }
+  .calendarRange { font-size: 12px; }
+  .footer { flex-direction: column; align-items: stretch !important; }
+  .footer > button {
+    flex: initial !important;
+    width: 100%;
+    max-width: 100%;
+    min-height: 44px;
+    white-space: normal !important;
+  }
+  .footer > div { flex: initial !important; }
+}

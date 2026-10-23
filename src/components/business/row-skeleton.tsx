@@ -1,26 +1,29 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import styles from "./business-row.module.css";
 
-// Shimmer placeholder matching BusinessRow's anatomy. Ported from ZwRowSkeleton.
+// Reserve the same photo, content and footer geometry as a loaded result.
 export function RowSkeleton() {
   return (
-    <div style={{ display: "flex", gap: 14, padding: 12, border: "1px solid transparent", borderRadius: 16 }} aria-hidden="true">
-      <Skeleton w={116} h={96} r={12} style={{ flexShrink: 0 }} />
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          paddingTop: 2,
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-          containerType: "inline-size",
-        }}
-      >
-        <div style={{ height: 28, display: "flex", alignItems: "center" }}><Skeleton w="62%" h={15.5} /></div>
-        <div style={{ height: 18.75, display: "flex", alignItems: "center" }}><Skeleton w="58%" h={12.5} /></div>
-        <div style={{ height: 18.75, display: "flex", alignItems: "center" }}><Skeleton w="42%" h={12.5} /></div>
-        <div className={styles.status} style={{ display: "flex", alignItems: "center" }}><Skeleton w="48%" h={11.5} /></div>
+    <div className={styles.row} aria-hidden="true">
+      <div className={styles.photo}>
+        <Skeleton h="100%" r={0} />
+      </div>
+      <div className={styles.content}>
+        <div className={styles.category}><Skeleton w={14} h={14} r={3} /><Skeleton w="65%" h={15} /></div>
+        <div className={styles.address}>
+          {["95%", "70%"].map(width => (
+            <div key={width} style={{ height: 18, display: "flex", alignItems: "center" }}>
+              <Skeleton w={width} h={12} />
+            </div>
+          ))}
+        </div>
+        <div className={styles.metadata}>
+          <Skeleton w={68} h={17} />
+          <div className={styles.footer}>
+            <Skeleton w={60} h={15} />
+            <Skeleton w={52} h={15} />
+          </div>
+        </div>
       </div>
     </div>
   );

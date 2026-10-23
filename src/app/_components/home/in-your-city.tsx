@@ -71,7 +71,7 @@ export function InYourCity() {
                   key={b.id}
                   b={b}
                   favorited={fav.isFavorited(Number(b.id))}
-                  onFavorite={fav.canFavorite ? fav.toggle : undefined}
+                  onFavorite={fav.toggle}
                 />
               ))}
             </div>

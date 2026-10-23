@@ -209,6 +209,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   // payload's until the calendar loads.
   const timeZone = calendar?.timezone ?? payload?.timezone ?? "UTC";
   const currency = payload?.currency ?? "USD";
+  const showPricing = payload?.showPricing !== false;
+  const quoteLabel = dict.locationPage.requestQuote;
   const isAuthed = status === "authenticated";
 
   // ── Resolved services: `payload.services` when non-empty, otherwise the
@@ -957,6 +959,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                     catalog={payload.catalog}
                     picked={picked}
                     currency={currency}
+                    showPricing={showPricing}
+                    quoteLabel={quoteLabel}
                     locale={locale}
                     tb={tb}
                     onToggle={togglePicked}
@@ -999,6 +1003,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         staffPicks={staffPicks}
                         locale={locale}
                         currency={currency}
+                        showPricing={showPricing}
+                        quoteLabel={quoteLabel}
                         timeZone={timeZone}
                         sectionLabel={sectionLabel}
                         t={t}
@@ -1024,6 +1030,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                     calendar={calendar}
                     services={services}
                     currency={currency}
+                    showPricing={showPricing}
+                    quoteLabel={quoteLabel}
                     locale={locale}
                     timeZone={timeZone}
                     totalMinor={totalMinor}
@@ -1063,7 +1071,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >
-                      {footerSpread.priceVaries && (
+                      {showPricing && footerSpread.priceVaries && (
                         <span
                           style={{
                             fontWeight: 500,
@@ -1074,7 +1082,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                           {tb.priceFrom}{" "}
                         </span>
                       )}
-                      {footerSpread.price}
+                      {showPricing ? footerSpread.price : quoteLabel}
                     </div>
                     <div
                       style={{
@@ -1161,6 +1169,8 @@ function ServicesStep({
   catalog,
   picked,
   currency,
+  showPricing,
+  quoteLabel,
   locale,
   tb,
   onToggle,
@@ -1168,6 +1178,8 @@ function ServicesStep({
   catalog: NonNullable<OpenBookingPayload["catalog"]>;
   picked: Array<{ type: "service" | "bundle"; id: number }>;
   currency: string;
+  showPricing: boolean;
+  quoteLabel: string;
   locale: string;
   tb: BusinessDict;
   onToggle: (type: "service" | "bundle", id: number) => void;
@@ -1239,6 +1251,8 @@ function ServicesStep({
                 currency={currency}
                 locale={locale}
                 fromLabel={tb.priceFrom}
+                showPricing={showPricing}
+                quoteLabel={quoteLabel}
               />
             ))}
           </div>
@@ -1274,6 +1288,8 @@ function ServicesStep({
                 currency={currency}
                 locale={locale}
                 fromLabel={tb.priceFrom}
+                showPricing={showPricing}
+                quoteLabel={quoteLabel}
               />
             ))}
           </div>
@@ -1298,6 +1314,8 @@ function ServiceCheckRow({
   currency,
   locale,
   fromLabel,
+  showPricing,
+  quoteLabel,
 }: {
   name: string;
   /** Services carry a staff spread; bundles don't, and degrade to exact figures. */
@@ -1307,6 +1325,8 @@ function ServiceCheckRow({
   currency: string;
   locale: string;
   fromLabel: string;
+  showPricing: boolean;
+  quoteLabel: string;
 }) {
   const meta = formatServiceSpread(service, currency, locale);
   return (
@@ -1368,10 +1388,10 @@ function ServiceCheckRow({
           }}
         >
           {meta.duration} ·{" "}
-          {meta.priceVaries && (
+          {showPricing && meta.priceVaries && (
             <span style={{ fontWeight: 500 }}>{fromLabel} </span>
           )}
-          {meta.price}
+          {showPricing ? meta.price : quoteLabel}
         </span>
       </span>
     </button>
@@ -1581,6 +1601,8 @@ function SlotStep({
   staffPicks,
   locale,
   currency,
+  showPricing,
+  quoteLabel,
   timeZone,
   sectionLabel,
   t,
@@ -1598,6 +1620,8 @@ function SlotStep({
   staffPicks: StaffPicks;
   locale: string;
   currency: string;
+  showPricing: boolean;
+  quoteLabel: string;
   timeZone: string;
   sectionLabel: CSSProperties;
   t: BookingDict;
@@ -1719,6 +1743,8 @@ function SlotStep({
               )}
               staffPricing={daySlots.staffPricing ?? {}}
               currency={currency}
+              showPricing={showPricing}
+              quoteLabel={quoteLabel}
               locale={locale}
               t={t}
               onPick={onPickStaff}
@@ -1740,6 +1766,8 @@ function StaffPicker({
   pinned,
   staffPricing,
   currency,
+  showPricing,
+  quoteLabel,
   locale,
   t,
   onPick,
@@ -1755,6 +1783,8 @@ function StaffPicker({
   pinned: number | undefined;
   staffPricing: BookingDaySlots["staffPricing"];
   currency: string;
+  showPricing: boolean;
+  quoteLabel: string;
   locale: string;
   t: BookingDict;
   onPick: (idx: number, staffId: number | null) => void;
@@ -1872,7 +1902,7 @@ function StaffPicker({
                     >
                       {formatDuration(f.durationMinutes)}
                       <br />
-                      {formatMoney(f.priceAmountMinor, currency, locale)}
+                      {showPricing ? formatMoney(f.priceAmountMinor, currency, locale) : quoteLabel}
                     </span>
                   );
                 })()}
@@ -1925,6 +1955,8 @@ function ReviewStep({
   calendar,
   services,
   currency,
+  showPricing,
+  quoteLabel,
   locale,
   timeZone,
   totalMinor,
@@ -1942,6 +1974,8 @@ function ReviewStep({
   calendar: BookingCalendar | null;
   services: OpenBookingPayload["services"];
   currency: string;
+  showPricing: boolean;
+  quoteLabel: string;
   locale: string;
   timeZone: string;
   totalMinor: number;
@@ -2023,11 +2057,11 @@ function ReviewStep({
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                {formatMoney(
+                {showPricing ? formatMoney(
                   resolvedItems[idx]?.priceAmountMinor ?? item.priceAmountMinor,
                   currency,
                   locale,
-                )}
+                ) : quoteLabel}
               </span>
             </div>
           );
@@ -2055,7 +2089,7 @@ function ReviewStep({
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            {formatMoney(totalMinor, currency, locale)}
+            {showPricing ? formatMoney(totalMinor, currency, locale) : quoteLabel}
           </span>
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dictionary } from "@/i18n/dictionaries";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Button, useToast } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -9,7 +9,7 @@ import { ApiError } from "@/lib/api/http";
 import { cancelAppointment } from "@/lib/api/marketplace/appointments";
 import type { AppointmentDetail } from "@/lib/api/marketplace/types";
 import { ActionModal, ApptMini } from "./action-modal";
-import { apptMiniProps } from "./shared";
+import { apptMiniProps, type AppointmentChange } from "./shared";
 
 /**
  * Turn a namespaced backend error code into copy the customer can act on.
@@ -47,7 +47,7 @@ export function CancelModal({
 }: {
   appointment: AppointmentDetail;
   onClose: () => void;
-  onChanged?: () => void | Promise<void>;
+  onChanged?: (change?: AppointmentChange) => void | Promise<void>;
 }) {
   const { dict } = useTranslation();
   const t = dict.appointmentActions.cancel;
@@ -55,35 +55,41 @@ export function CancelModal({
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
+  const closingRef = useRef(false);
+  const handleClosing = useCallback(() => { closingRef.current = true; }, []);
 
   const mini = apptMiniProps(appointment, dict.common.photo);
 
   const confirm = async () => {
-    if (submitting) return;
+    if (inFlightRef.current || closingRef.current) return;
+    inFlightRef.current = true;
     setSubmitting(true);
     setError(null);
     try {
-      await cancelAppointment({ uuid: appointment.uuid });
+      const result = await cancelAppointment({ uuid: appointment.uuid });
       toast(t.successToast, "check");
-      await onChanged?.();
       onClose();
+      void onChanged?.({ status: result.status, cancellation_reason: result.cancellation_reason });
     } catch (e) {
       const code = e instanceof ApiError ? e.code : undefined;
       setError(cancelErrorMessage(code, t));
       setSubmitting(false);
+      inFlightRef.current = false;
     }
   };
 
   return (
     <ActionModal title={t.title} onClose={onClose} width={440}
+      dismissible={!submitting} onClosing={handleClosing}
       footer={
         <>
           <Button
             kind="secondary"
             size="lg"
-            onClick={onClose}
+            onClick={() => { closingRef.current = true; onClose(); }}
             disabled={submitting}
-            style={{ flex: 1 }}
+            style={{ flex: "1 1 120px", whiteSpace: "normal" }}
           >
             {t.keep}
           </Button>
@@ -94,7 +100,8 @@ export function CancelModal({
             onClick={() => void confirm()}
             disabled={submitting}
             style={{
-              flex: 1,
+              flex: "1 1 120px",
+              whiteSpace: "normal",
               background: "var(--s-error-600)",
               border: "1px solid var(--s-error-600)",
             }}

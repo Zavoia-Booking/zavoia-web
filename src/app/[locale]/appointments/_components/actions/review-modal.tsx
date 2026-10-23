@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button, Icon, useToast } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -14,6 +14,7 @@ import type {
 } from "@/lib/api/marketplace/types";
 import { ActionModal, ApptMini } from "./action-modal";
 import { apptMiniProps, canLeaveReview, staffDisplayName } from "./shared";
+import styles from "./action-fields.module.css";
 
 type ReviewDict = ReturnType<
   typeof useTranslation
@@ -143,7 +144,7 @@ export function ReviewModal({
       onClosing={handleClosing}
       footer={
         <>
-          <span style={{ flex: 1, fontSize: 12.5, color: "var(--c-500)" }}>
+          <span style={{ flex: 1, fontSize: 12.5, color: "var(--c-600)" }}>
             {t.publicNote}
           </span>
           <Button
@@ -159,6 +160,7 @@ export function ReviewModal({
       }
     >
       <ApptMini {...mini} />
+      <p className={styles.hint} style={{ marginTop: 16 }}>{dict.appointmentPage.reviewFinality}</p>
 
       {error && (
         <InlineError style={{ margin: "14px 0 0" }}>
@@ -180,6 +182,7 @@ export function ReviewModal({
             state={businessState}
             onChange={setBusinessState}
             t={t}
+            disabled={submitting}
           />
         )}
 
@@ -187,7 +190,7 @@ export function ReviewModal({
           const member = appointment.staff_users?.find(
             (s) => s.teamMemberId === p.staffId,
           );
-          const name = staffDisplayName(member) ?? `#${p.staffId}`;
+          const name = staffDisplayName(member) ?? dict.appointmentPage.professionalUnavailable;
           const state = proStates[p.staffId] ?? { rating: 0, comment: "" };
           return (
             <RatingBlock
@@ -196,6 +199,7 @@ export function ReviewModal({
               state={state}
               onChange={(next) => setProTarget(p.staffId, next)}
               t={t}
+              disabled={submitting}
               divider={idx > 0 || showBusiness}
             />
           );
@@ -216,13 +220,19 @@ function RatingBlock({
   onChange,
   t,
   divider,
+  disabled,
 }: {
   label: string;
   state: TargetState;
   onChange: (next: TargetState) => void;
   t: ReviewDict;
   divider?: boolean;
+  disabled: boolean;
 }) {
+  const labelId = useId();
+  const commentId = useId();
+  const countId = useId();
+  const { dict } = useTranslation();
   const [hover, setHover] = useState(0);
   const shown = hover || state.rating;
   const valueLabels = [
@@ -236,12 +246,15 @@ function RatingBlock({
 
   return (
     <div
+      role="group"
+      aria-labelledby={labelId}
       style={{
         paddingTop: divider ? 22 : 0,
         borderTop: divider ? "1px solid rgba(28,28,26,0.08)" : 0,
       }}
     >
       <div
+        id={labelId}
         style={{
           fontSize: 13.5,
           fontWeight: 600,
@@ -262,13 +275,14 @@ function RatingBlock({
         }}
       >
         <div
-          style={{ display: "flex", gap: 6 }}
+          style={{ display: "flex", gap: 4 }}
           onMouseLeave={() => setHover(0)}
         >
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
               type="button"
+              disabled={disabled}
               className="tap"
               aria-label={format(t.starsAria, { n: String(n) })}
               aria-pressed={state.rating === n}
@@ -278,7 +292,9 @@ function RatingBlock({
                 background: "transparent",
                 border: 0,
                 cursor: "pointer",
-                padding: 2,
+                padding: 3,
+                minWidth: 44,
+                minHeight: 44,
                 lineHeight: 0,
               }}
             >
@@ -304,8 +320,13 @@ function RatingBlock({
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <div style={sectionLabel}>{t.noteLabel}</div>
+        <label htmlFor={commentId} style={{ ...sectionLabel, display: "block" }}>{t.noteLabel}</label>
         <textarea
+          id={commentId}
+          className={styles.input}
+          aria-describedby={countId}
+          disabled={disabled}
+          maxLength={2000}
           value={state.comment}
           onChange={(e) => onChange({ ...state, comment: e.target.value })}
           rows={4}
@@ -317,14 +338,16 @@ function RatingBlock({
             border: "1px solid rgba(28,28,26,0.12)",
             borderRadius: 14,
             padding: "12px 14px",
-            fontSize: 14,
+            fontSize: 16,
             lineHeight: 1.5,
             background: "#fff",
             color: "var(--c-900)",
-            outline: "none",
             fontFamily: "inherit",
           }}
         />
+        <span id={countId} className={styles.hint} style={{ fontVariantNumeric: "tabular-nums" }}>
+          {format(dict.appointmentPage.commentLimit, { count: String(state.comment.length) })}
+        </span>
       </div>
     </div>
   );
@@ -336,6 +359,6 @@ const sectionLabel: CSSProperties = {
   fontWeight: 600,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "var(--c-500)",
+  color: "var(--c-600)",
   marginBottom: 8,
 };

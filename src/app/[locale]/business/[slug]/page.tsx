@@ -115,5 +115,5 @@ export default async function BusinessDetailPage({ params }: Props) {
   }
 
   const categoryHref = await getLocationCategoryHref(listing, locale);
-  return <BusinessDetail listing={listing} locale={locale} categoryHref={categoryHref} />;
+  return <BusinessDetail key={listing.locationId} listing={listing} locale={locale} categoryHref={categoryHref} />;
 }

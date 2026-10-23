@@ -2,9 +2,8 @@ import { Icon, type IconName } from "@/components/ui";
 
 /**
  * Shared tab/section empty state — used by the location page's Services and
- * Reviews tabs and the team-member profile modal's Reviews section. Mirrors
- * the Saved page's empty-state grammar: shade circle + outline glyph, title,
- * one line of guidance.
+ * Reviews tabs and the team-member profile modal's Reviews section: shade
+ * circle + outline glyph, title, one line of guidance.
  */
 export function EmptyState({
   icon,

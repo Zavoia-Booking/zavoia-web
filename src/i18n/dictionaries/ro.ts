@@ -1,8 +1,12 @@
 import type { Dictionary } from "../dictionaries";
+import { locationPageRo } from "./location-page";
+import { appointmentPageRo } from "./appointment-page";
 
 // Romanian dictionary — must mirror the key structure of ./en.ts.
 // Typed as `Dictionary` so missing/extra keys are caught at compile time.
 export const ro: Dictionary = {
+  locationPage: locationPageRo,
+  appointmentPage: appointmentPageRo,
   preposition: "în",
   home: {
     title: "Zavoia — Descoperă servicii și programează-te online",
@@ -679,28 +683,35 @@ export const ro: Dictionary = {
   },
   saved: {
     title: "Salvate",
-    kicker: "Selecția ta",
     heading: "Salvate",
     countSuffix: "salvate",
+    filtersLabel: "Filtrează elementele salvate",
+    unnamedPerson: "Profesionist",
+    refreshError: "Nu am putut actualiza elementele salvate. Lista anterioară este afișată în continuare.",
+    offline: "Ești offline. Elementele salvate se vor actualiza când te reconectezi.",
+    offlineEmpty: "Conectează-te la internet pentru a vedea elementele salvate.",
     tabs: {
       all: "Toate",
-      businesses: "Businessuri",
       locations: "Locații",
       people: "Persoane",
     },
     empty: {
       title: "Nimic salvat încă",
-      body: "Apasă inima pe orice business, locație sau membru al echipei — favoritele tale se adună aici pentru data viitoare.",
+      body: "Salvează orice locație sau profesionist cu inima și rămâne aici pentru următoarea programare.",
       cta: "Explorează",
     },
-    filteredEmpty: "Nimic salvat în această categorie încă.",
+    filteredEmpty: {
+      location: "Nicio locație salvată încă.",
+      person: "Nicio persoană salvată încă.",
+    },
     removed: "Eliminat · {name}",
     undo: "Anulează",
     removeError: "Ceva nu a mers bine. Încearcă din nou.",
     removeAria: "Elimină {name} din salvate",
     gate: {
-      title: "Lista ta, salvată.",
-      body: "Conectează-te pentru a păstra businessurile, locațiile și persoanele preferate într-o singură listă.",
+      title: "Salvate",
+      body: "Conectează-te pentru a vedea ce ai salvat.",
+      cta: "Conectează-te",
       secondary: "Explorează",
     },
     loading: "Se încarcă elementele salvate…",
@@ -767,6 +778,10 @@ export const ro: Dictionary = {
     memberSelectPrompt: "Alege un serviciu pentru programare",
     memberBookWith: "Programează-te la {name}",
     memberLoadError: "Profilul complet nu a putut fi încărcat.",
+    memberUnavailable: "Acest profil nu mai este disponibil.",
+    memberContextLoadError: "Nu am putut încărca opțiunile de programare.",
+    memberChooseVenuePrompt: "Alege o locație pentru a vedea serviciile disponibile.",
+    memberBookingDetailsUnavailable: "Detaliile de programare nu sunt disponibile pentru această locație.",
     memberRetry: "Încearcă din nou",
     memberPhotoAria: "Vezi fotografia",
     memberClosePhotoAria: "Închide fotografia",
@@ -950,6 +965,17 @@ export const ro: Dictionary = {
     defaultWhere: "Oriunde",
     searchAria: "Caută",
   },
+  serviceCatalog: {
+    title: "Explorează serviciile",
+    close: "Închide catalogul",
+    description: "Alege o industrie, apoi selectează serviciul pe care vrei să îl explorezi.",
+    industries: "Industrii",
+    allIndustries: "Toate industriile",
+    services: "Servicii",
+    emptyTitle: "Nu există servicii de afișat",
+    emptyBody: "Încearcă altă industrie sau revino mai târziu.",
+    loadError: "Nu am putut încărca serviciile. Încearcă din nou.",
+  },
   searchOverlay: {
     previewError: "Nu am putut încărca sugestiile.",
     industriesError: "Nu am putut încărca domeniile de servicii.",
@@ -1004,6 +1030,8 @@ export const ro: Dictionary = {
     resultCountOne: "{count} loc",
     updating: "Se actualizează…",
     allServices: "Toate serviciile",
+    clearSelection: "Șterge {selection}",
+    selectedServices: "Servicii selectate",
     sortLabel: "Sortează",
     sortTopRated: "Cele mai apreciate",
     sortNearest: "Cele mai apropiate",
@@ -1032,7 +1060,9 @@ export const ro: Dictionary = {
     mapUnavailable: "Harta este indisponibilă",
     pinListLabel: "Locuri pe hartă",
     browseMore: "Mai multe",
-    sheetHandleAria: "Trage pentru a redimensiona panoul cu rezultate",
+    sheetHandleAria: "Redimensionează panoul cu rezultate. Folosește săgețile sus și jos, Home sau End.",
+    matchingBusinesses: "Businessuri care corespund căutării",
+    resultsLimited: "Rezultate limitate la {count} din {total} de locații. Restrânge căutarea pentru rezultate mai precise.",
     filters: {
       loadError: "Nu am putut încărca opțiunile disponibile.",
       title: "Filtre",
@@ -1848,7 +1878,6 @@ export const ro: Dictionary = {
     },
   },
   appointments: {
-    kicker: "Programările tale",
     title: "Programări",
     upcomingWord: "URMĂTOARE",
     pastWord: "TRECUTE",
@@ -1933,7 +1962,7 @@ export const ro: Dictionary = {
     free: "Gratuit",
     awaitingConfirmation: "În așteptarea confirmării",
     awaitingConfirmationBody:
-      "{business} confirmă de obicei în câteva ore. Te anunțăm imediat ce o fac — nu se percepe nimic până atunci.",
+      "Programarea ta așteaptă confirmarea de la {business}.",
     inProgress: "În curs",
     endingNow: "Se încheie acum",
     oneMinLeft: "1 minut rămas",

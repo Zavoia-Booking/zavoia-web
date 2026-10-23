@@ -17,7 +17,9 @@ import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { EmptyState } from "./empty-state";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
-import { mapBackendCode } from "@/lib/api/error-messages";
+import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
+import { ApiError } from "@/lib/api/http";
+import { getPendingFavoriteIds, subscribeFavoriteIds } from "@/lib/favorites/store";
 import type { Locale } from "@/i18n/locales";
 import { formatDuration, formatMoney } from "@/lib/format/money-time";
 import { useBooking } from "@/lib/booking";
@@ -25,9 +27,11 @@ import {
   getTeamMember,
   getTeamMemberBookingContext,
   getTeamMemberInListing,
+  getTeamMemberReviews,
 } from "@/lib/api/marketplace/public";
 import type {
   ListingDetail,
+  ProfessionalReview,
   TeamMemberBookingContext,
   TeamMemberProfile,
 } from "@/lib/api/marketplace/types";
@@ -41,6 +45,7 @@ import type {
 
 const HAIRLINE = "1px solid rgba(28,28,26,0.08)";
 const INITIAL_REVIEWS = 4;
+const EMPTY_PICKED: ReadonlySet<number> = new Set();
 
 /** Social keys → icon names, in display order. */
 const SOCIALS: Array<{ key: string; icon: "ig" | "tt" | "fb" | "globe" }> = [
@@ -94,12 +99,31 @@ interface Venue {
   location: ContextLocation;
 }
 
-// CUSTOMER_BOOKING.E16 = team member not found; E17 = no active business
-// assignments. Both are permanent: a retry can never turn them around.
+// These responses mean the current public profile/booking context is unavailable.
+// Retrying the same request is not a useful recovery action for this state.
 const MEMBER_GONE_CODES = {
   "CUSTOMER_BOOKING.E16": true,
   "CUSTOMER_BOOKING.E17": true,
 } as const;
+
+function isMemberUnavailable(error: unknown): boolean {
+  return Boolean(mapBackendCode(error, MEMBER_GONE_CODES)) ||
+    (error instanceof ApiError && (error.status === 404 || error.status === 410));
+}
+
+function validTimeZone(value: string): boolean {
+  if (!value) return false;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function subscribeProfessionalFavorites(listener: () => void): () => void {
+  return subscribeFavoriteIds("professional", listener);
+}
 
 export function TeamMemberProfileModal({
   member,
@@ -131,14 +155,21 @@ export function TeamMemberProfileModal({
   const t = dict.business;
   const openBooking = useBooking().openBooking;
   const cardRef = useRef<HTMLDivElement>(null);
-  // Favorite heart — hidden for signed-out visitors (same rule as the cards).
+  // Favorite heart — shown to everyone; signed out, a tap asks to sign in
+  // (same rule as the cards).
   // The hook seeds the current state from GET favorite/professionals itself.
   const favorites = useFavoriteToggle("professional");
+  const favoritePending = useSyncExternalStore(
+    subscribeProfessionalFavorites,
+    () => getPendingFavoriteIds("professional").has(member.id),
+    () => false,
+  );
 
   const [profile, setProfile] = useState<TeamMemberProfile | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [profileError, setProfileError] = useState<unknown>(null);
   const [requesting, setRequesting] = useState(true);
-  const [attempt, setAttempt] = useState(0);
+  const [profileAttempt, setProfileAttempt] = useState(0);
+  const [contextAttempt, setContextAttempt] = useState(0);
   // Favorites flow only: where the member can be booked (null while loading).
   const [context, setContext] = useState<TeamMemberBookingContext | null>(null);
   const [contextRequesting, setContextRequesting] = useState(!listing);
@@ -150,10 +181,13 @@ export function TeamMemberProfileModal({
   const [contextFailure, setContextFailure] = useState<
     "permanent" | "transient" | null
   >(null);
+  const [contextError, setContextError] = useState<unknown>(null);
   const [venueKey, setVenueKey] = useState<string | null>(null);
-  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [selection, setSelection] = useState<{ scope: string | null; ids: ReadonlySet<number> }>({
+    scope: null,
+    ids: EMPTY_PICKED,
+  });
   const [lightbox, setLightbox] = useState<string | null>(null);
-  const [allReviews, setAllReviews] = useState(false);
   // Portal target exists only on the client (the deep-link path renders the
   // modal on the very first pass, which also runs on the server).
   const mounted = useSyncExternalStore(
@@ -169,6 +203,8 @@ export function TeamMemberProfileModal({
     setLightbox(v);
   }, []);
 
+  const failed = profileError !== null;
+  const profileUnavailable = failed && isMemberUnavailable(profileError);
   const loading = !profile && !failed;
 
   useEffect(() => {
@@ -182,17 +218,19 @@ export function TeamMemberProfileModal({
       .then((p) => {
         if (alive) {
           setProfile(p);
-          setFailed(false);
+          setProfileError(null);
         }
       })
-      .catch(() => {
-        if (alive) setFailed(true);
+      .catch((error: unknown) => {
+        if (!alive) return;
+        setProfileError(error);
+        if (isMemberUnavailable(error)) setProfile(null);
       })
       .finally(() => { if (alive) setRequesting(false); });
     return () => {
       alive = false;
     };
-  }, [listing, member.id, attempt]);
+  }, [listing, member.id, profileAttempt]);
 
   // Favorites flow: resolve the member's bookable venues + per-venue menus.
   useEffect(() => {
@@ -203,19 +241,23 @@ export function TeamMemberProfileModal({
         if (alive) {
           setContext(ctx);
           setContextFailure(null);
+          setContextError(null);
         }
       })
       .catch((e) => {
         if (!alive) return;
+        const unavailable = isMemberUnavailable(e);
         setContextFailure(
-          mapBackendCode(e, MEMBER_GONE_CODES) ? "permanent" : "transient",
+          unavailable ? "permanent" : "transient",
         );
+        setContextError(e);
+        if (unavailable) setContext(null);
       })
       .finally(() => { if (alive) setContextRequesting(false); });
     return () => {
       alive = false;
     };
-  }, [listing, member.id, attempt]);
+  }, [listing, member.id, contextAttempt]);
 
   // Shareable deep link (?tab=team&member=<id>) while open; drop it on close.
   // Location-page flow only — the Saved page has no ?member= inbound route.
@@ -276,9 +318,11 @@ export function TeamMemberProfileModal({
     if (e.key !== "Tab") return;
     const card = cardRef.current;
     if (!card) return;
-    const focusables = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>(
-      'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-    );
+    const focusables = Array.from((e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>(
+      'button, a[href], [tabindex]',
+    )).filter((element) => element.tabIndex >= 0 && !element.matches(":disabled") &&
+      !element.closest('[hidden], [inert], [aria-hidden="true"], [aria-disabled="true"]') &&
+      element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden");
     if (focusables.length === 0) return;
     const first = focusables[0];
     const last = focusables[focusables.length - 1];
@@ -309,10 +353,6 @@ export function TeamMemberProfileModal({
   const reviewCount = profile?.reviewStats.totalCount ?? member.totalReviews;
 
   const numFmt = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const dateFmt = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }),
-    [locale],
-  );
 
   // Stat strip cells — only the facts that exist.
   const stats = useMemo(() => {
@@ -351,9 +391,8 @@ export function TeamMemberProfileModal({
     }).map(({ key, icon }) => ({ key, icon, href: externalHref(links[key]!.trim()) }));
   }, [profile]);
 
-  // Favorites flow: flatten businesses → venues. One entry per bookable
-  // location; the first is the working default (menus differ per venue, so a
-  // default beats an empty state — switching is one click).
+  // A single venue is unambiguous. Multiple venues need an explicit choice
+  // before displaying their location-specific menu, prices, or booking action.
   const venues = useMemo<Venue[]>(() => {
     if (listing || !context) return [];
     return context.businesses
@@ -367,12 +406,16 @@ export function TeamMemberProfileModal({
       );
   }, [listing, context, businessId]);
   const selectedVenue =
-    venues.find((v) => v.key === venueKey) ?? venues[0] ?? null;
+    venues.find((v) => v.key === venueKey) ?? (venues.length === 1 ? venues[0] : null);
+  const selectionScope = listing
+    ? `listing-${listing.listingId}-${listing.locationId}`
+    : selectedVenue?.key ?? null;
+  const picked = selection.scope === selectionScope ? selection.ids : EMPTY_PICKED;
 
   const pickVenue = useCallback((key: string) => {
     setVenueKey(key);
     // Menus and prices are venue-specific — a selection never carries over.
-    setPicked(new Set());
+    setSelection({ scope: key, ids: EMPTY_PICKED });
   }, []);
 
   // The bookable menu for the current flow. Location-page flow: the listing-
@@ -408,13 +451,14 @@ export function TeamMemberProfileModal({
   }, [activeServices]);
 
   const togglePick = useCallback((id: number) => {
-    setPicked((prev) => {
-      const next = new Set(prev);
+    if (!selectionScope) return;
+    setSelection((previous) => {
+      const next = new Set(previous.scope === selectionScope ? previous.ids : EMPTY_PICKED);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      return next;
+      return { scope: selectionScope, ids: next };
     });
-  }, []);
+  }, [selectionScope]);
 
   const pickedServices = useMemo(
     () => activeServices.filter((s) => picked.has(s.id)),
@@ -423,19 +467,22 @@ export function TeamMemberProfileModal({
   const totalMinor = pickedServices.reduce((a, s) => a + s.priceAmountMinor, 0);
   const totalDur = pickedServices.reduce((a, s) => a + s.duration, 0);
 
-  const canBook = listing
-    ? listing.allowOnlineBooking && activeServices.length > 0
-    : selectedVenue != null &&
-      selectedVenue.location.allowOnlineBooking &&
-      activeServices.length > 0;
-  const currency = (
-    listing
-      ? listing.businessCurrency
-      : (selectedVenue?.business.businessCurrency ?? "EUR")
-  ).toUpperCase();
+  const currency = (listing?.businessCurrency ?? selectedVenue?.business.businessCurrency ?? "").trim().toUpperCase();
+  const currencyValid = /^[A-Z]{3}$/.test(currency) && Intl.supportedValuesOf("currency").includes(currency);
+  const timezone = (listing?.timezone ?? selectedVenue?.location.timezone ?? "").trim();
+  const bookingDetailsAvailable = currencyValid && validTimeZone(timezone);
+  const onlineBookingAllowed = listing
+    ? listing.allowOnlineBooking === true
+    : selectedVenue?.location.allowOnlineBooking === true;
+  const canBook = !!profile && !profileUnavailable && onlineBookingAllowed &&
+    bookingDetailsAvailable && activeServices.length > 0;
+  const showPricing = listing
+    ? !(listing.additionalSettings && typeof listing.additionalSettings === "object" &&
+      "showPricing" in listing.additionalSettings && listing.additionalSettings.showPricing === false)
+    : selectedVenue?.location.showPricing !== false;
 
   const onBook = useCallback(() => {
-    if (pickedServices.length === 0) return;
+    if (!canBook || pickedServices.length === 0) return;
     // Each item carries the professional so the drawer pre-selects them.
     const services = pickedServices.map((s) => ({
       serviceId: s.id,
@@ -450,8 +497,9 @@ export function TeamMemberProfileModal({
         businessId: listing.businessId,
         listingId: listing.listingId,
         locationId: listing.locationId,
-        timezone: listing.timezone,
+        timezone,
         currency,
+        showPricing,
         bookingPolicy: listing.bookingPolicy,
         services,
       });
@@ -460,12 +508,9 @@ export function TeamMemberProfileModal({
         businessId: selectedVenue.business.id,
         listingId: selectedVenue.business.listingId,
         locationId: selectedVenue.location.id,
-        // Context timezone is location || business; a null here is a data
-        // gap — fall back to the browser tz rather than fabricating one.
-        timezone:
-          selectedVenue.location.timezone ??
-          Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone,
         currency,
+        showPricing,
         // The booking context carries no policy — the drawer must not
         // fabricate a cancellation window from a null policy.
         bookingPolicy: null,
@@ -480,16 +525,14 @@ export function TeamMemberProfileModal({
     websiteSlug,
     selectedVenue,
     currency,
+    timezone,
+    showPricing,
+    canBook,
     member.id,
     onClose,
   ]);
 
   const about = profile?.about;
-  const visibleReviews = profile
-    ? allReviews
-      ? profile.reviews
-      : profile.reviews.slice(0, INITIAL_REVIEWS)
-    : [];
 
   // Portal to <body>: an ancestor animating `transform` (e.g. the tab's
   // .zv-tab-in entrance) would otherwise become the containing block for this
@@ -510,16 +553,16 @@ export function TeamMemberProfileModal({
         style={{ position: "absolute", inset: 0, background: "rgba(28,28,26,0.42)", cursor: "pointer" }}
       />
       <div ref={cardRef} tabIndex={-1} className={`zw-member-card zw-modal-in ${styles.card}`} style={{ outline: "none" }}>
-        {favorites.canFavorite && (
-          <div style={{ position: "absolute", top: 14, left: 14, zIndex: 2 }}>
-            <HeartButton
-              active={favorites.isFavorited(member.id)}
-              floating={false}
-              size={36}
-              onClick={() => favorites.toggle(member.id)}
-            />
-          </div>
-        )}
+        <div style={{ position: "absolute", top: 14, left: 14, zIndex: 2 }}>
+          <HeartButton
+            active={favorites.isFavorited(member.id)}
+            floating={false}
+            size={44}
+            iconSize={20}
+            loading={favoritePending}
+            onClick={() => favorites.toggle(member.id)}
+          />
+        </div>
         <button
           type="button"
           className="tap"
@@ -530,8 +573,8 @@ export function TeamMemberProfileModal({
             top: 16,
             right: 16,
             zIndex: 2,
-            width: 32,
-            height: 32,
+            width: 44,
+            height: 44,
             borderRadius: "50%",
             border: 0,
             cursor: "pointer",
@@ -544,9 +587,9 @@ export function TeamMemberProfileModal({
           <Icon name="x" size={13} color="var(--c-700)" />
         </button>
 
-        <div className="zw-member-body zw-noscrollbar">
+        <div className="zw-member-body">
           {/* ── Identity rail ─────────────────────────────── */}
-          <aside className="zw-member-rail zw-noscrollbar">
+          <aside className="zw-member-rail">
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
               <Avatar src={member.profileImage ?? undefined} name={displayName} size={96} ring />
               <div
@@ -655,8 +698,8 @@ export function TeamMemberProfileModal({
                     rel="noreferrer"
                     aria-label={s.key}
                     style={{
-                      width: 34,
-                      height: 34,
+                      width: 44,
+                      height: 44,
                       borderRadius: "50%",
                       border: "1px solid rgba(28,28,26,0.14)",
                       background: "#fff",
@@ -674,27 +717,32 @@ export function TeamMemberProfileModal({
           </aside>
 
           {/* ── Content ───────────────────────────────────── */}
-          <div className="zw-member-main zw-noscrollbar" aria-busy={requesting || contextRequesting || undefined}>
+          <div className="zw-member-main" aria-busy={requesting || contextRequesting || undefined}>
             {loading && <ProfileSkeleton />}
 
             {failed && (
               <div style={{ paddingTop: 8 }}>
-                <p style={{ margin: 0, fontSize: 14, color: "var(--c-600)" }}>
-                  {t.memberLoadError}
-                </p>
+                <InlineError style={{ margin: 0 }}>
+                  {profileUnavailable ? t.memberUnavailable : errorMessage(profileError, dict.errors, t.memberLoadError)}
+                </InlineError>
                 <div style={{ marginTop: 12 }}>
-                  <Button
+                  {profileUnavailable ? (
+                    <Button kind="secondary" size="sm" onClick={onClose} style={{ minHeight: 44 }}>
+                      {t.close}
+                    </Button>
+                  ) : <Button
                     kind="secondary"
                     size="sm"
+                    style={{ minHeight: 44 }}
                     loading={requesting}
                     onClick={() => {
                       setRequesting(true);
-                      if (!listing) setContextRequesting(true);
-                      setAttempt((a) => a + 1);
+                      setProfileAttempt((a) => a + 1);
                     }}
                   >
                     {t.memberRetry}
-                  </Button>
+                  </Button>}
+                  <span role="status" className="sr-only">{requesting ? t.memberChecking : ""}</span>
                 </div>
               </div>
             )}
@@ -725,6 +773,11 @@ export function TeamMemberProfileModal({
                 {!listing && venues.length > 0 && (
                   <section>
                     <SectionKicker>{t.memberChooseVenue}</SectionKicker>
+                    {!selectedVenue && (
+                      <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.5, color: "var(--c-600)" }}>
+                        {t.memberChooseVenuePrompt}
+                      </p>
+                    )}
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {venues.map((v) => {
                         const on = v.key === selectedVenue?.key;
@@ -733,6 +786,7 @@ export function TeamMemberProfileModal({
                           v.location.averageRating != null
                             ? Number(v.location.averageRating)
                             : null;
+                        const hasVenueRating = venueRating != null && Number.isFinite(venueRating) && venueRating > 0;
                         return (
                           <button
                             key={v.key}
@@ -785,7 +839,7 @@ export function TeamMemberProfileModal({
                                   ? ` · ${v.location.name}`
                                   : ""}
                               </span>
-                              {(v.location.address || venueRating != null) && (
+                              {(v.location.address || hasVenueRating) && (
                                 <span
                                   style={{
                                     display: "flex",
@@ -797,7 +851,7 @@ export function TeamMemberProfileModal({
                                     minWidth: 0,
                                   }}
                                 >
-                                  {venueRating != null && (
+                                  {hasVenueRating && (
                                     <span
                                       style={{
                                         display: "inline-flex",
@@ -814,7 +868,7 @@ export function TeamMemberProfileModal({
                                         size={10.5}
                                         color="var(--p-500)"
                                       />
-                                      {venueRating.toFixed(1)}
+                                      {venueRating!.toFixed(1)}
                                     </span>
                                   )}
                                   {v.location.address && (
@@ -878,7 +932,7 @@ export function TeamMemberProfileModal({
                           <Skeleton w="56%" h={21.75} style={{ marginBottom: 4 }} />
                           <Skeleton w={110} h={18.75} />
                         </div>
-                        <Skeleton w={34} h={34} r={999} />
+                        <Skeleton w={44} h={44} r={999} />
                       </div>
                     ))}
                   </section>
@@ -886,11 +940,11 @@ export function TeamMemberProfileModal({
 
                 {/* Favorites flow — no bookable venue (or the context call
                     failed): the profile stays useful, booking is just absent. */}
-                {!listing && !servicesPending && venues.length === 0 && (
+                {!listing && !servicesPending && (contextFailure || venues.length === 0) && (
                   <div>
                     {contextFailure === "transient" ? (
                       <InlineError style={{ margin: 0 }}>
-                        {t.memberLoadError}
+                        {errorMessage(contextError, dict.errors, t.memberContextLoadError)}
                       </InlineError>
                     ) : (
                       <p
@@ -908,15 +962,16 @@ export function TeamMemberProfileModal({
                         <Button
                           kind="secondary"
                           size="sm"
+                          style={{ minHeight: 44 }}
                           loading={contextRequesting}
                           onClick={() => {
                             setContextRequesting(true);
-                            setRequesting(true);
-                            setAttempt((a) => a + 1);
+                            setContextAttempt((a) => a + 1);
                           }}
                         >
                           {t.memberRetry}
                         </Button>
+                        <span role="status" className="sr-only">{contextRequesting ? t.memberChecking : ""}</span>
                       </div>
                     )}
                   </div>
@@ -928,13 +983,17 @@ export function TeamMemberProfileModal({
                     section reads as a loading failure. */}
                 {!servicesPending &&
                   activeServices.length === 0 &&
-                  (listing || venues.length > 0) && (
+                  (listing || selectedVenue) && (
                     <p
                       style={{ margin: 0, fontSize: 13.5, color: "var(--c-600)" }}
                     >
                       {format(t.memberNoServicesHere, { name: firstName })}
                     </p>
                   )}
+
+                {onlineBookingAllowed && activeServices.length > 0 && !bookingDetailsAvailable && (
+                  <InlineError>{t.memberBookingDetailsUnavailable}</InlineError>
+                )}
 
                 {activeServices.length > 0 && (
                   <section>
@@ -954,7 +1013,7 @@ export function TeamMemberProfileModal({
                                 fontWeight: 600,
                                 letterSpacing: "0.14em",
                                 textTransform: "uppercase",
-                                color: "var(--c-500)",
+                                color: "var(--c-600)",
                               }}
                             >
                               <span
@@ -1003,8 +1062,10 @@ export function TeamMemberProfileModal({
                                       fontVariantNumeric: "tabular-nums",
                                     }}
                                   >
-                                    {formatDuration(s.duration)} ·{" "}
-                                    {formatMoney(s.priceAmountMinor, currency, locale)}
+                                    {formatDuration(s.duration)}
+                                    {!showPricing
+                                      ? ` · ${dict.locationPage.requestQuote}`
+                                      : currencyValid ? ` · ${formatMoney(s.priceAmountMinor, currency, locale)}` : ""}
                                   </div>
                                 </div>
                                 {canBook && (
@@ -1019,8 +1080,8 @@ export function TeamMemberProfileModal({
                                     }
                                     aria-pressed={picked.has(s.id)}
                                     style={{
-                                      width: 34,
-                                      height: 34,
+                                      width: 44,
+                                      height: 44,
                                       borderRadius: "50%",
                                       cursor: "pointer",
                                       flexShrink: 0,
@@ -1081,107 +1142,21 @@ export function TeamMemberProfileModal({
                   </section>
                 )}
 
-                <section>
-                  <SectionKicker>{t.tabReviews}</SectionKicker>
-                  {profile.reviews.length === 0 ? (
-                    <EmptyState
-                      icon="starO"
-                      title={t.reviewsEmptyTitle}
-                      body={t.reviewsEmptyBody}
-                    />
-                  ) : (
-                    <>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                      <span
-                        style={{
-                          fontSize: 30,
-                          fontWeight: 600,
-                          letterSpacing: "-0.03em",
-                          lineHeight: 1,
-                          color: "var(--c-900)",
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
-                        {(avgRating ?? 0).toFixed(1)}
-                      </span>
-                      <Stars value={avgRating ?? 0} size={13} />
-                      <span style={{ fontSize: 13, color: "var(--c-600)" }}>
-                        {format(
-                          profile.reviewStats.totalCount === 1
-                            ? t.reviewsCountOne
-                            : t.reviewsCount,
-                          { count: String(profile.reviewStats.totalCount) },
-                        )}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", marginTop: 4 }}>
-                      {visibleReviews.map((r) => {
-                        const name = [r.customer?.firstName, r.customer?.lastName]
-                          .filter(Boolean)
-                          .join(" ")
-                          .trim();
-                        return (
-                          <div
-                            key={r.id}
-                            style={{
-                              padding: "16px 0",
-                              boxShadow: "inset 0 -1px 0 rgba(28,28,26,0.06)",
-                            }}
-                          >
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <Avatar
-                                src={r.customer?.profileImage ?? undefined}
-                                name={name || "?"}
-                                size={32}
-                              />
-                              <div>
-                                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--c-900)" }}>
-                                  {name || "—"}
-                                </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 2 }}>
-                                  <Stars value={r.rating} size={10.5} />
-                                  <span style={{ fontSize: 11.5, color: "var(--c-500)" }}>
-                                    {dateFmt.format(new Date(r.createdAt))}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            {r.comment && (
-                              <p
-                                className="txt-pretty"
-                                style={{
-                                  margin: "9px 0 0",
-                                  fontSize: 14,
-                                  lineHeight: 1.6,
-                                  color: "var(--c-800)",
-                                }}
-                              >
-                                {r.comment}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {!allReviews && profile.reviews.length > INITIAL_REVIEWS && (
-                      <div style={{ marginTop: 16 }}>
-                        <Button kind="secondary" size="sm" onClick={() => setAllReviews(true)}>
-                          {format(t.memberShowAllReviews, {
-                            count: String(profile.reviews.length),
-                          })}
-                        </Button>
-                      </div>
-                    )}
-                    </>
-                  )}
-                </section>
+                <ProfessionalReviews
+                  key={profile.id}
+                  memberId={profile.id}
+                  initialReviews={profile.reviews}
+                  initialTotal={profile.reviewStats.totalCount}
+                  averageRating={avgRating}
+                  locale={locale}
+                />
               </div>
             )}
           </div>
         </div>
 
         {/* ── Booking bar ─────────────────────────────────── */}
-        {(canBook || servicesPending) && (
+        {!profileUnavailable && (canBook || servicesPending) && (
           <div
             aria-busy={servicesPending}
             style={{
@@ -1214,7 +1189,9 @@ export function TeamMemberProfileModal({
                 }}
               >
                 {pickedServices.length} · {formatDuration(totalDur)} ·{" "}
-                {formatMoney(totalMinor, currency, locale)}
+                {showPricing
+                  ? formatMoney(totalMinor, currency, locale)
+                  : dict.locationPage.requestQuote}
               </span>
             ) : (
               <span style={{ fontSize: 13, color: "var(--c-600)" }}>
@@ -1224,6 +1201,7 @@ export function TeamMemberProfileModal({
             <Button
               kind="primary"
               onClick={onBook}
+              style={{ minHeight: 44 }}
               disabled={servicesPending || pickedServices.length === 0}
             >
               {format(t.memberBookWith, { name: firstName })}
@@ -1272,8 +1250,8 @@ export function TeamMemberProfileModal({
               position: "absolute",
               top: 18,
               right: 18,
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               borderRadius: "50%",
               border: 0,
               cursor: "pointer",
@@ -1292,6 +1270,131 @@ export function TeamMemberProfileModal({
   );
 }
 
+function ProfessionalReviews({
+  memberId,
+  initialReviews,
+  initialTotal,
+  averageRating,
+  locale,
+}: {
+  memberId: number;
+  initialReviews: ProfessionalReview[];
+  initialTotal: number;
+  averageRating: number | null;
+  locale: Locale;
+}) {
+  const { dict } = useTranslation();
+  const t = dict.business;
+  const [reviews, setReviews] = useState(initialReviews);
+  const [offset, setOffset] = useState(initialReviews.length);
+  const [total, setTotal] = useState(initialTotal);
+  const [expanded, setExpanded] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const active = useRef(true);
+  const inFlight = useRef(false);
+
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []);
+
+  const dateFmt = useMemo(
+    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }),
+    [locale],
+  );
+  const hasMore = offset < total;
+  const visibleReviews = expanded ? reviews : reviews.slice(0, INITIAL_REVIEWS);
+
+  const loadMore = async () => {
+    if (inFlight.current) return;
+    setExpanded(true);
+    if (!hasMore) return;
+    inFlight.current = true;
+    setPending(true);
+    setLoadError(null);
+    try {
+      const response = await getTeamMemberReviews(memberId, { offset, limit: 10 });
+      if (!active.current) return;
+      setReviews((current) => {
+        // A new review can shift an offset-based feed between requests.
+        const unique = new Map(current.map((review) => [review.id, review]));
+        for (const review of response.data) unique.set(review.id, review);
+        return [...unique.values()];
+      });
+      setOffset(response.pagination.offset + response.data.length);
+      setTotal(response.pagination.total);
+    } catch (error) {
+      if (active.current) {
+        setLoadError(errorMessage(error, dict.errors, t.loadMoreReviewsError));
+      }
+    } finally {
+      inFlight.current = false;
+      if (active.current) setPending(false);
+    }
+  };
+
+  return (
+    <section>
+      <SectionKicker>{t.tabReviews}</SectionKicker>
+      {reviews.length === 0 && total === 0 ? (
+        <EmptyState icon="starO" title={t.reviewsEmptyTitle} body={t.reviewsEmptyBody} />
+      ) : (
+        <>
+          <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: 10 }}>
+            <span style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1, color: "var(--c-900)", fontVariantNumeric: "tabular-nums" }}>
+              {new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(averageRating ?? 0)}
+            </span>
+            <Stars value={averageRating ?? 0} size={13} />
+            <span style={{ fontSize: 13, color: "var(--c-600)", fontVariantNumeric: "tabular-nums" }}>
+              {format(total === 1 ? t.reviewsCountOne : t.reviewsCount, { count: String(total) })}
+            </span>
+          </div>
+          <div aria-busy={pending || undefined} style={{ display: "flex", flexDirection: "column", marginTop: 4 }}>
+            {visibleReviews.map((review) => {
+              const name = [review.customer?.firstName, review.customer?.lastName].filter(Boolean).join(" ").trim();
+              return (
+                <div key={review.id} style={{ padding: "16px 0", boxShadow: "inset 0 -1px 0 rgba(28,28,26,0.06)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Avatar src={review.customer?.profileImage ?? undefined} name={name || "?"} size={32} />
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--c-900)" }}>{name || "—"}</div>
+                      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 7, marginTop: 2 }}>
+                        <Stars value={review.rating} size={10.5} />
+                        <time dateTime={review.createdAt} style={{ fontSize: 11.5, color: "var(--c-600)" }}>
+                          {dateFmt.format(new Date(review.createdAt))}
+                        </time>
+                      </div>
+                    </div>
+                  </div>
+                  {review.comment && (
+                    <p className="txt-pretty" style={{ margin: "9px 0 0", fontSize: 14, lineHeight: 1.6, color: "var(--c-800)", overflowWrap: "anywhere" }}>
+                      {review.comment}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {((!expanded && reviews.length > INITIAL_REVIEWS) || hasMore) && (
+            <div style={{ marginTop: 16 }}>
+              <Button kind="secondary" size="sm" onClick={loadMore} loading={pending} style={{ minHeight: 44 }}>
+                {t.loadMoreReviews}
+              </Button>
+              {loadError && <InlineError style={{ display: "flex", marginTop: 10 }}>{loadError}</InlineError>}
+            </div>
+          )}
+          <span role="status" className="sr-only">
+            {pending
+              ? dict.locationPage.reviewsUpdating
+              : expanded ? dict.locationPage.reviewsUpdated : ""}
+          </span>
+        </>
+      )}
+    </section>
+  );
+}
+
 /** Mono uppercase section label — the page's kicker grammar, modal-scaled. */
 function SectionKicker({ children }: { children: React.ReactNode }) {
   return (
@@ -1302,7 +1405,7 @@ function SectionKicker({ children }: { children: React.ReactNode }) {
         fontWeight: 600,
         letterSpacing: "0.14em",
         textTransform: "uppercase",
-        color: "var(--c-500)",
+        color: "var(--c-600)",
         marginBottom: 12,
       }}
     >
@@ -1321,7 +1424,7 @@ function RailKicker({ children }: { children: React.ReactNode }) {
         fontWeight: 600,
         letterSpacing: "0.14em",
         textTransform: "uppercase",
-        color: "var(--c-500)",
+        color: "var(--c-600)",
         marginBottom: 8,
       }}
     >
@@ -1350,7 +1453,7 @@ function ProfileSkeleton() {
               <Skeleton h={21.75} w="56%" style={{ marginBottom: 4 }} />
               <Skeleton h={18.75} w={110} />
             </div>
-            <Skeleton w={34} h={34} r={999} />
+            <Skeleton w={44} h={44} r={999} />
           </div>
         ))}
       </div>

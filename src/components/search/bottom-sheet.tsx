@@ -88,6 +88,18 @@ export function BottomSheet({
   const [peekH, setPeekH] = useState(0);
   const [position, setPosition] = useState<SheetPosition>(initialPosition);
   const [drag, setDrag] = useState<number | null>(null);
+  const inputModeRef = useRef<"keyboard" | "pointer">("keyboard");
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    const keyboard = () => { inputModeRef.current = "keyboard"; };
+    const pointer = () => { inputModeRef.current = "pointer"; };
+    document.addEventListener("keydown", keyboard, true);
+    document.addEventListener("pointerdown", pointer, true);
+    return () => {
+      document.removeEventListener("keydown", keyboard, true);
+      document.removeEventListener("pointerdown", pointer, true);
+    };
+  }, []);
 
   // Measured, not assumed: the header carries a live result count whose text
   // can wrap, and a peek that guesses wrong either clips the count or leaves a
@@ -234,12 +246,13 @@ export function BottomSheet({
   return (
     <div
       ref={rootRef}
+      data-sheet-position={position}
       style={{
         position: "absolute",
         left: 0,
         right: 0,
         top: 0,
-        height: "100%",
+        height: `calc(100% - ${topOffset}px)`,
         transform: `translateY(${y}px)`,
         transition: dragging ? "none" : `transform ${SNAP_MS}ms ${SNAP_EASE}`,
         zIndex: 42,
@@ -264,22 +277,66 @@ export function BottomSheet({
         onPointerCancel={endDrag}
         style={{ touchAction: "none", cursor: dragging ? "grabbing" : "grab" }}
       >
-        <div style={{ display: "flex", justifyContent: "center", paddingTop: 8 }}>
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: 2 }}>
           <span
             role="separator"
+            tabIndex={0}
             aria-label={handleAria}
-            style={{
-              width: 36,
-              height: 4,
-              borderRadius: 2,
-              background: "var(--c-mist)",
-              display: "block",
+            aria-orientation="horizontal"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(raise * 100)}
+            onKeyDown={(event) => {
+              const order: SheetPosition[] = ["down", "mid", "top"];
+              const current = order.indexOf(position);
+              const next = event.key === "Home" ? "down"
+                : event.key === "End" ? "top"
+                : event.key === "ArrowUp" ? order[Math.min(2, current + 1)]
+                : event.key === "ArrowDown" ? order[Math.max(0, current - 1)]
+                : null;
+              if (!next) return;
+              event.preventDefault();
+              setAndReport(next);
             }}
-          />
+            style={{
+              width: 44,
+              height: 20,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span aria-hidden="true" style={{ width: 36, height: 4, borderRadius: 2, background: "var(--c-mist)" }} />
+          </span>
         </div>
         {header}
       </div>
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <div
+        onFocusCapture={() => {
+          if (position !== "top" && inputModeRef.current !== "pointer") setAndReport("top");
+        }}
+        onWheelCapture={(event) => {
+          if (position !== "top" && event.deltaY > Math.abs(event.deltaX)) setAndReport("top");
+        }}
+        onTouchStartCapture={(event) => {
+          const touch = event.touches[0];
+          touchStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+        }}
+        onTouchMoveCapture={(event) => {
+          const start = touchStartRef.current;
+          const touch = event.touches[0];
+          if (!start || !touch || position === "top") return;
+          const dy = start.y - touch.clientY;
+          if (dy > 12 && dy > Math.abs(start.x - touch.clientX)) {
+            touchStartRef.current = null;
+            setAndReport("top");
+          }
+        }}
+        onTouchEndCapture={() => { touchStartRef.current = null; }}
+        onTouchCancelCapture={() => { touchStartRef.current = null; }}
+        style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         {children}
       </div>
     </div>

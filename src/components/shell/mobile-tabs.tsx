@@ -85,6 +85,11 @@ export function MobileTabs({ locale }: { locale: Locale }) {
             key={tab.segment || "home"}
             href={href}
             title={tab.label}
+            prefetch={tab.segment === "search" && active ? false : undefined}
+            onNavigate={event => {
+              // Re-selecting the map tab keeps its current query and viewport.
+              if (tab.segment === "search" && active) event.preventDefault();
+            }}
             aria-current={pathname === href ? "page" : undefined}
             className="tap"
             style={{

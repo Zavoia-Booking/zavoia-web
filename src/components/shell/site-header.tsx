@@ -294,6 +294,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
       data-marketplace-chrome
       style={{
         position: "sticky",
+        height: "var(--nav-h)",
         top: 0,
         zIndex: 90,
         background: "var(--c-canvas)",
@@ -303,7 +304,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
       <div
         className="zw-container"
         style={{
-          height: "var(--nav-h)",
+          height: "100%",
           display: "flex",
           alignItems: "center",
           gap: "clamp(8px, 2vw, 24px)",
@@ -339,6 +340,12 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           <Link
             href={localeHref(locale, "search")}
             title={dict.nav.explore}
+            aria-current={key === "search" ? "page" : undefined}
+            prefetch={key === "search" ? false : undefined}
+            onNavigate={event => {
+              // Explore is the current map, not a reset of its query/camera.
+              if (key === "search") event.preventDefault();
+            }}
             className={"zw-navlink" + (exploreActive ? " zw-navlink--on" : "")}
           >
             {dict.nav.explore}

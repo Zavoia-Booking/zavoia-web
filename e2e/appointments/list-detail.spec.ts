@@ -74,11 +74,11 @@ test.describe('Appointments list + detail', () => {
       scheduledAt: past(),
     })
 
-    const pendingCard = () => page.getByRole('button').filter({ hasText: DEMO.services.glowTuns.name })
-    const confirmedCard = () => page.getByRole('button').filter({ hasText: DEMO.services.glowVopsit.name })
-    const cancelledCard = () => page.getByRole('button').filter({ hasText: DEMO.services.glowMani.name })
-    const completedCard = () => page.getByRole('button').filter({ hasText: DEMO.services.glowCoafat.name })
-    const noShowCard = () => page.getByRole('button').filter({ hasText: DEMO.services.barberTuns.name })
+    const pendingCard = () => page.getByRole('link').filter({ hasText: DEMO.services.glowTuns.name })
+    const confirmedCard = () => page.getByRole('link').filter({ hasText: DEMO.services.glowVopsit.name })
+    const cancelledCard = () => page.getByRole('link').filter({ hasText: DEMO.services.glowMani.name })
+    const completedCard = () => page.getByRole('link').filter({ hasText: DEMO.services.glowCoafat.name })
+    const noShowCard = () => page.getByRole('link').filter({ hasText: DEMO.services.barberTuns.name })
 
     await page.goto('/appointments')
 
@@ -131,7 +131,7 @@ test.describe('Appointments list + detail', () => {
     // so this test only asserts what /appointments itself actually does.)
     await expect(page).toHaveURL(/\/appointments$/)
     await expect(page).not.toHaveURL(/\/auth/)
-    await expect(page.getByRole('heading', { name: 'Keep every booking in one place.' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Keep every appointment in one place.' })).toBeVisible()
   })
 
   test('LIST-03 a composite (multi-service, same-staff) appointment shows each item with its own price/duration', async ({
@@ -170,7 +170,7 @@ test.describe('Appointments list + detail', () => {
     // card by its "+ 1 more" suffix (TicketCard title logic), independent of
     // which of the two services the backend chose as "primary".
     await expect(page).toHaveURL(/\/appointments$/)
-    const card = page.getByRole('button').filter({ hasText: '+ 1 more' })
+    const card = page.getByRole('link').filter({ hasText: '+ 1 more' })
     await expect(card).toBeVisible({ timeout: 10_000 })
     await card.click()
     await expect(page).toHaveURL(/\/appointments\/.+/)

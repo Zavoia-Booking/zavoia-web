@@ -127,8 +127,10 @@ ramp, terracotta primary, Geist Sans, photo-forward cards with hover-lift +
 zoom, stagger rise-in as the one authored motion."
 
 There is no dark mode; the system is one light world. Pages and vertical
-results panels use native scrollbars. Horizontal carousels can hide their
-internal scrollbars. All copy exists in both English and Romanian.
+results panels use native scrollbars. Explore fills the viewport and hides its
+results scrollbar while preserving scrolling; its map and sheet own the available
+space. Horizontal carousels can hide their internal scrollbars. All copy exists
+in both English and Romanian.
 
 **Key Characteristics:**
 - Warm paper canvas; white cards; ink pills; terracotta as the only accent
@@ -369,11 +371,106 @@ zero result; a failed request must offer recovery instead of claiming either.
 - **Language navigation:** reuse `LanguageSwitcher` in the header, beside the account controls. Show the current language name on desktop and its existing 44px globe trigger up to 920px. The menu opens below the trigger and preserves the existing route, query, hash and translated destinations. Search uses this same header control; the standalone 404 uses its own header. The footer's trailing slot holds the existing 250 × 50px ANPC/SAL badge, on a separate row on narrow screens.
 - **Tabs** (Journal `.zw-jtab`, detail pages): 14.5px/600 quiet text (inactive `--c-500`, hover `--c-800`, active `--c-900`) over a 1px hairline rail, with a 2px ink indicator that springs (`0.42s var(--ease-spring)`) between tabs; mono micro-counts sit beside labels and turn terracotta when active. Tab panels enter with `.zv-tab-in` (6px rise + fade, 0.32s).
 - **Pagination:** 42px mono pill buttons; active = ink; hover = shade + stronger hairline.
+- **Service catalog:** homepage industry tiles, See all industries and the map's More action share `ServiceCatalogProvider`. Use a wide desktop dialog with a fixed industry sidebar and grouped service rows; up to 760px it becomes a full-height sheet with horizontal industry filters. Select exactly one industry or All industries; selecting the active industry again keeps it selected. Keep option positions and typography stable, and reset on each opening. The active option uses a neutral gray fill, a thin neutral outline, dark text and its canonical colored icon, with a neutral trailing chevron on desktop. Industry focus rings also stay neutral; do not use terracotta for catalog selection styling. Choosing a service applies immediately, preserving the map's place, date and refinements. Keep the homepage's real search and `/industries` links for direct navigation. Reuse loaded taxonomy; retain keyboard focus in view, restore opener focus on dismissal, and use the shared loading/error components for recovery.
+- **Explore service rail:** an active industry, service or text query appears as one centered, clearable pill; hide suggestions and More until it is cleared. Pointer changes use a short rise/fade with the shared ease-out curve; keyboard and reduced-motion changes stay immediate. Inactive layers are inert and hidden from assistive technology. Move focus to the selected pill after choosing, and back to More after clearing; keep the 44px clear target and its focus ring within the rail.
 
 ### StatusPill
 6px status dot + 600-weight label in the status color (`--s-success-600` open /
 `--c-500` closed), followed by an optional `--c-600` "· closes {time}" suffix.
 The whole pill is one 12.5px inline-flex span.
+
+### Saved collections
+
+Customers save locations and people only, as in the marketplace app; brand and
+business surfaces carry no heart. Hearts show for everyone: signed out, a tap
+shows "Sign in to save" with a Sign in action, and an unverifiable session shows
+the heart as unavailable rather than "not saved".
+
+Saved uses the account-page header shared with Appointments: a 36px/600 title
+with no kicker above it and a mono "N saved" summary that hides at zero. Counted ink-active filter
+pills (the Appointments filter grammar) offer All plus only the types you have;
+a selected type that empties stays visible so the choice can be changed. Saved
+sets both a step larger than Appointments: a 13px summary, and 46px pills with
+15px labels and 12.5px counts. The All
+view is one list, newest saved first. Use supplied public slugs, with the
+existing numeric route fallback. There is no Refresh button: the list
+revalidates on focus and reconnect, and Retry appears only with an error.
+
+Places are the homepage's "Near you" tickets (BusinessFeedCard) with larger
+type: 168px tall, white with a 6% hairline, sh-sm and the 18px card radius. A
+150px photo on the left carries the white name (16px/700, two lines at most)
+over the feed card's top and bottom fades, with the 13px brand under it
+(location names are often neighbourhoods; the brand is omitted when it repeats
+the name). A dashed seam leads to the details: the category in 12px/700 small
+caps with its 16px industry icon in the industry accent, the address in
+16px/500 (two lines at most), and the hairline footer with the shared 14px
+rating ("★ 4.4 (17)"). Saved has no distance or opening hours to put beside it.
+No saved dates, distance or map link.
+
+People get their own card in the same frame. Profile photos are often small
+avatars, so a person is a 112px circle portrait (or their initials on a
+shade-to-mist gradient when there is no photo or it fails to load), framed by a
+white gap, a hairline ring and a soft shadow. Beside it, vertically centred: the
+name (19px/600, two lines at most), the role in 12px/700 small caps, and the
+rating. The text starts where a place's details do, so mixed columns align.
+
+The remove heart sits top right on every card as a 40px ringed chip, like the
+location page's icon buttons (c-50 fill, 12% hairline, sh-sm; hover darkens it
+to c-200 and a press settles it), with a 20px terracotta glyph. It is inset
+11px from the corner and centred on the category line, its tooltip names the
+action, and it is a sibling of the card link. The grid uses the feed's auto-fill 360px tracks with a 16px gap (12px on
+phones); cards narrower than 340px slim the photo to 120px and the portrait to
+96px. Hover lifts the card 3px and zooms the photo or portrait (pointer devices,
+motion allowed); a press settles it. Skeletons are 168px tiles in the same grid.
+
+With nothing saved, the page centers one vertical composition on its warm paper
+canvas: a fine-line SVG of an empty heart-marked collection folder between
+neighborhood buildings, the "Nothing saved yet" H1, guidance, and a compact
+52px ink Explore places pill. The separate Saved header is hidden in this state.
+The artwork is up to 440px wide and scales to fit phones; the title is 26–32px/600,
+and the copy and action remain centered at every width. The composition centers
+within the viewport below the site header and above the mobile tabs. The artwork
+follows the marketplace app's homepage streetscape: rounded 1.4–1.7px strokes,
+stone outlines, paper and mist fills, and terracotta reserved for the collection.
+It uses web color tokens and is decorative, with no extra screen-reader
+announcement. It renders in place on first load. Swapping between it and the
+grid (removing the last item, or undoing that) settles in, and removing the last
+item from the keyboard moves focus to Explore places.
+
+Signed-out Saved uses the same centered composition and artwork scale, with a
+companion SVG of a favorite storefront with an open door and a heart above its
+striped awning. Its centered H1 is "Saved / Salvate", followed by "Sign in to see
+what you’ve saved. / Conectează-te pentru a vedea ce ai salvat." The primary
+"Sign in / Conectează-te" and secondary "Explore / Explorează" buttons sit
+together below, wrapping as needed on narrow screens.
+
+Removal follows the app: the row hides at once and an Undo toast shows
+immediately (it does not queue). The delete is sent when the 6s window closes,
+when another item is removed, or when Saved unmounts; Undo is local, so it never
+re-saves or changes the saved date. A failed delete restores the row with Retry.
+Closing the tab inside the window leaves the item saved. Hearts elsewhere change
+when the delete is sent.
+
+Removal and Undo move one card at a time: the removed card fades out (180ms)
+before it hides; cards in the same row slide into the gap (280ms), and a card
+that changes rows settles in at its new place once the slide clears it (120ms
+later) instead of sweeping across the grid. Undo settles the card back the same
+way. Bulk changes (a filter switch, a refresh) render at once, reduced motion
+skips every animation, and removing from the keyboard moves focus to the card
+that took the removed one's place.
+
+Keep raw favourite records in a browser-only, session-owned memory cache. Reuse
+cached content during navigation and offline; revalidate on focus and reconnect,
+and distinguish unresolved, failed and successful-empty responses. A first load
+that fails on the network or with a server error retries twice before the error
+shows. A session-verification outage offers retry, never a false sign-in claim.
+
+Saved never asks for location. Missing hours, availability and prices remain
+unknown. Professional profiles select a single venue automatically, require an
+explicit choice for multiple venues, and clear service picks when that choice
+changes. Missing currency/timezone blocks booking instead of guessing. Carry the
+effective pricing visibility policy through the profile and booking drawer;
+hidden amounts use the existing Request quote wording.
 
 ### Detail-Page Grammar (signature)
 Location (`/business/[slug]`) and brand (`/brand/[slug]`) pages share one

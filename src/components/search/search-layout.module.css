@@ -4,6 +4,9 @@
   overflow: hidden;
 }
 
+/* The viewport-filling map must not move below its reserved height on entry. */
+:global(.zw-page-in):has(.shell) { animation: none; }
+
 .panel {
   position: absolute;
   top: 16px;
@@ -21,23 +24,58 @@
 }
 
 .header {
-  min-height: 150px;
-  padding: 18px 18px 10px;
+  padding: 18px 18px 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  container-type: inline-size;
 }
+
+.headerRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.summary { min-width: 0; flex: 1; }
+.resultLine { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px; }
+.count { display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap; font-size: 21px; font-weight: 600; line-height: 1.5; letter-spacing: -.025em; color: var(--c-900); }
+.filtersButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex-shrink: 0; height: 44px; padding: 0 16px; border: 1px solid var(--c-300); border-radius: 999px; background: var(--c-canvas); color: var(--c-900); font-size: 14px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; cursor: pointer; }
+.filtersButton[aria-expanded="true"] { background: var(--c-200); border-color: var(--c-400); }
+.filterCount { min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: var(--c-ink); color: var(--c-canvas); font-size: 10.5px; font-weight: 600; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.clearButton { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--c-600); font: inherit; font-size: 13px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) {
+  .filtersButton:hover { background: var(--c-100); border-color: var(--c-400); }
+  .clearButton:hover { color: var(--c-ink); }
+}
+@container (max-width: 340px) {
+  .headerRow { align-items: flex-start; }
+}
+
+.results {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.results::-webkit-scrollbar { display: none; }
+.resultsFrame { flex: 1; min-height: 0; padding: 4px 10px 16px; position: relative; }
+.placeholderResults { overflow: hidden; }
+:global([data-sheet-position="mid"]) .results,
+:global([data-sheet-position="down"]) .results { overflow-y: hidden; }
+.resultItems { display: grid; gap: 12px; }
+.limitNote { margin: 4px 4px 16px; color: var(--c-600); font-size: 13px; line-height: 1.5; }
+.businessHeading { margin: 12px 4px 0; font-size: 14px; font-weight: 600; color: var(--c-700); }
 
 .mapPlaceholder { position: absolute; inset: 0; }
 .mobileMapPlaceholder, .handle { display: none; }
+.placeholderShell {
+  --zv-search-placeholder-peek-h: 107.75px;
+  --zv-search-placeholder-sheet-top: max(12px, calc(46% + 6.48px - var(--zv-search-placeholder-peek-h) * .46));
+}
 
 @media (max-width: 920px) {
   .shell { height: calc(100dvh - var(--nav-h) - var(--mobile-tabs-h, calc(66px + env(safe-area-inset-bottom)))); }
   .desktopMapPlaceholder { display: none; }
   .mobileMapPlaceholder { display: block; }
   .placeholderPanel {
-    /* Same mid snap as BottomSheet: 12 + (height - 162 - 12) * .46. */
-    top: max(12px, calc(46% - 68.04px));
+    /* Same mid snap as BottomSheet, using its measured localized header. */
+    top: var(--zv-search-placeholder-sheet-top);
     left: 0;
     right: 0;
     bottom: 0;
@@ -47,5 +85,5 @@
     background: var(--c-canvas);
     box-shadow: var(--sh-up);
   }
-  .handle { display: flex; justify-content: center; padding-top: 8px; }
+  .handle { display: flex; justify-content: center; padding: 2px 0 0; }
 }

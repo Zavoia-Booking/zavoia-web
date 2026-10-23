@@ -1,9 +1,7 @@
 /**
- * Best-effort open/closed status from a LocationCard's workingHours/open247.
- * The API does not return a live open/closed flag, so this is a client-side
- * approximation against the visitor's local clock (the location's timezone is
- * NOT applied — same known limitation as the old isOpenNow). When working hours
- * are absent we return no status (the row shows no pill).
+ * Derive opening status from a venue's schedule and, when supplied, timezone.
+ * Older discovery payloads omit timezone; only those retain local-clock behavior.
+ * Unknown hours or an invalid supplied timezone cannot establish a status.
  */
 
 import type { LocationCard, WorkingHoursDay } from "@/lib/api/marketplace/types";
@@ -18,12 +16,13 @@ const DAYS = [
   "saturday",
 ] as const;
 
-function toMinutes(hhmm: string): number | null {
+function toMinutes(hhmm: unknown): number | null {
+  if (typeof hhmm !== "string") return null;
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
   if (!m) return null;
   const h = Number(m[1]);
   const min = Number(m[2]);
-  if (Number.isNaN(h) || Number.isNaN(min)) return null;
+  if (h > 23 || min > 59) return null;
   return h * 60 + min;
 }
 
@@ -32,27 +31,61 @@ export interface OpenStatus {
   closesAt?: string;
 }
 
-/** Best-effort open/closed from workingHours/open247 against the visitor's local
- *  clock (location timezone NOT applied — same known limitation as isOpenNow).
- *  Accepts any object carrying the two fields it reads, so listing-detail
- *  locations (which aren't full LocationCards) can reuse it too. */
+function venueClock(now: Date, timezone?: string | null) {
+  if (!Number.isFinite(now.getTime())) return null;
+  if (timezone == null) {
+    return { day: now.getDay(), minutes: now.getHours() * 60 + now.getMinutes() };
+  }
+  if (!timezone.trim()) return null;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone.trim(),
+      weekday: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(now);
+    const weekday = parts.find((part) => part.type === "weekday")?.value.toLowerCase();
+    const day = DAYS.findIndex((value) => value === weekday);
+    const hour = Number(parts.find((part) => part.type === "hour")?.value);
+    const minute = Number(parts.find((part) => part.type === "minute")?.value);
+    return day >= 0 && Number.isFinite(hour) && Number.isFinite(minute)
+      ? { day, minutes: hour * 60 + minute }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function interval(day?: WorkingHoursDay) {
+  if (!day?.isOpen) return null;
+  const open = toMinutes(day.open);
+  const close = toMinutes(day.close);
+  // Equal endpoints are ambiguous; the explicit open247 flag owns all-day hours.
+  return open != null && close != null && open !== close ? { open, close } : null;
+}
+
+/** Overnight hours belong to the day they start, including after midnight. */
 export function openStatus(
-  loc: Pick<LocationCard, "open247" | "workingHours">,
+  loc: Pick<LocationCard, "open247" | "workingHours"> & { timezone?: string | null },
   now: Date = new Date(),
 ): OpenStatus {
   if (loc.open247) return { status: "24-7" };
   const wh = loc.workingHours;
   if (!wh) return {}; // unknown hours → no pill
-  const today: WorkingHoursDay | undefined = wh[DAYS[now.getDay()]];
-  if (!today || !today.isOpen) return { status: "closed" };
-  const open = toMinutes(today.open);
-  const close = toMinutes(today.close);
-  if (open == null || close == null) return { status: "closed" };
-  const cur = now.getHours() * 60 + now.getMinutes();
-  // A day whose close is at or before its open runs past midnight (e.g. a bar
-  // at 20:00–02:00). Treat it as two ranges rather than an empty one, which is
-  // what a plain `cur >= open && cur < close` reduces it to.
-  const isOpen =
-    close > open ? cur >= open && cur < close : cur >= open || cur < close;
-  return isOpen ? { status: "open", closesAt: today.close } : { status: "closed" };
+  const clock = venueClock(now, loc.timezone);
+  if (!clock) return {};
+  const today = wh[DAYS[clock.day]];
+  const current = interval(today);
+  if (current && clock.minutes >= current.open &&
+      (current.close < current.open || clock.minutes < current.close)) {
+    return { status: "open", closesAt: today!.close };
+  }
+  const yesterday = wh[DAYS[(clock.day + 6) % 7]];
+  const previous = interval(yesterday);
+  if (previous && previous.close < previous.open && clock.minutes < previous.close) {
+    return { status: "open", closesAt: yesterday!.close };
+  }
+  if (!today || (today.isOpen && !current)) return {};
+  return { status: "closed" };
 }

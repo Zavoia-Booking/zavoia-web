@@ -12,7 +12,8 @@ import type { AppointmentDetail } from "@/lib/api/marketplace/types";
 import { CancelModal } from "./cancel-modal";
 import { RescheduleModal } from "./reschedule-modal";
 import { ReviewModal } from "./review-modal";
-import { canLeaveReview } from "./shared";
+import { canLeaveReview, type AppointmentChange } from "./shared";
+import { ReportModal } from "./report-modal";
 
 /**
  * Imperative API for opening the appointment action modals. The detail page
@@ -23,9 +24,10 @@ export interface ApptActionsApi {
   openCancel(appt: AppointmentDetail): void;
   openReschedule(appt: AppointmentDetail): void;
   openReview(appt: AppointmentDetail): void;
+  openReport(appt: AppointmentDetail): void;
 }
 
-type ActionKind = "cancel" | "reschedule" | "review";
+type ActionKind = "cancel" | "reschedule" | "review" | "report";
 
 interface ActiveAction {
   kind: ActionKind;
@@ -47,7 +49,7 @@ export function AppointmentActionsProvider({
   onReviewSubmitted,
 }: {
   children: ReactNode;
-  onChanged?: () => void | Promise<void>;
+  onChanged?: (change?: AppointmentChange) => void | Promise<void>;
   onReviewSubmitted?: (uuid: string) => void;
 }) {
   const [active, setActive] = useState<ActiveAction | null>(null);
@@ -65,15 +67,17 @@ export function AppointmentActionsProvider({
       : { kind: "review", appointment: appt });
   }, []);
 
-  const close = useCallback(() => setActive(null), []);
-  const closeReview = useCallback(() => {
-    // A late review completion must never dismiss a newer action.
+  const openReport = useCallback((appt: AppointmentDetail) => {
+    setActive({ kind: "report", appointment: appt });
+  }, []);
+  const close = useCallback(() => {
+    // A late completion must never dismiss a newer action.
     setActive((current) => current === active ? null : current);
   }, [active]);
 
   const api = useMemo<ApptActionsApi>(
-    () => ({ openCancel, openReschedule, openReview }),
-    [openCancel, openReschedule, openReview],
+    () => ({ openCancel, openReschedule, openReview, openReport }),
+    [openCancel, openReschedule, openReview, openReport],
   );
 
   return (
@@ -96,10 +100,13 @@ export function AppointmentActionsProvider({
       {active?.kind === "review" && (
         <ReviewModal
           appointment={active.appointment}
-          onClose={closeReview}
+          onClose={close}
           onChanged={onChanged}
           onSubmitted={onReviewSubmitted}
         />
+      )}
+      {active?.kind === "report" && (
+        <ReportModal appointment={active.appointment} onClose={close} />
       )}
     </ApptActionsContext.Provider>
   );

@@ -7,12 +7,12 @@
  * stays put while the user is still deciding, and the CTA counts matches
  * against the exact set the screen will render.
  *
- * The web differences are presentational only: a centered dialog instead of a
- * bottom sheet, and a `<details>`-free manual disclosure for the tag block so
- * the collapsed peek can be animated with plain CSS.
+ * The web uses the same accessible dialog foundation as the search overlay.
+ * Feature previews keep only fully visible choices interactive until expanded.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,7 +22,6 @@ import { format } from "@/i18n/format";
 import type { LocationCard, VenueTagDictionaries } from "@/lib/api/marketplace/types";
 import {
   applyMapFilters,
-  countActiveFilters,
   DISTANCE_STEPS,
   EMPTY_FILTERS,
   RATING_STEPS,
@@ -32,6 +31,10 @@ import {
   type MapFilters,
   type SortKey,
 } from "@/lib/search/filters";
+import styles from "./filters-panel.module.css";
+
+const FEATURES_PREVIEW_HEIGHT = 176;
+const FEATURES_FADE_HEIGHT = 64;
 
 export interface FiltersPanelProps {
   open: boolean;
@@ -81,18 +84,9 @@ function FiltersPanelBody({
   const [featuresOpen, setFeaturesOpen] = useState(() =>
     TAG_GROUPS.some((g) => filters[g.key].length > 0),
   );
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  // Escape closes, and focus moves into the dialog so the panel is operable
-  // from the keyboard the moment it appears.
-  useEffect(() => {
-    dialogRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const featuresId = useId();
+  const featuresToggleRef = useRef<HTMLButtonElement>(null);
 
   const set = useCallback(
     (patch: Partial<MapFilters>) => setDraft((d) => ({ ...d, ...patch })),
@@ -105,8 +99,6 @@ function FiltersPanelBody({
     () => applyMapFilters(listings, draft, distanceFor).length,
     [listings, draft, distanceFor],
   );
-
-  const draftCount = countActiveFilters(draft);
 
   const tagGroups = useMemo(
     () => TAG_GROUPS.filter((g) => dictionaries[g.dict].length > 0),
@@ -125,15 +117,13 @@ function FiltersPanelBody({
   };
 
   return (
-    <div
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <DialogPrimitive.Root open onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+      <DialogPrimitive.Portal>
+      <DialogPrimitive.Overlay
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 80,
+        zIndex: 300,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -143,17 +133,20 @@ function FiltersPanelBody({
         backdropFilter: "blur(2px)",
       }}
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t.title}
-        tabIndex={-1}
+      <DialogPrimitive.Content
+        aria-describedby={undefined}
+        onOpenAutoFocus={() => {
+          returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus({ preventScroll: true });
+        }}
         className="zv-fade"
         style={{
           width: "min(520px, 100%)",
           cursor: "default",
-          maxHeight: "min(86vh, 760px)",
+          maxHeight: "min(86dvh, 760px)",
           background: "var(--c-canvas)",
           borderRadius: 24,
           boxShadow: "var(--sh-xl)",
@@ -170,27 +163,30 @@ function FiltersPanelBody({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "18px 20px 10px",
+            padding: "14px 20px 6px",
           }}
         >
-          <span
+          <DialogPrimitive.Title asChild>
+          <h2
             style={{
-              fontSize: 21,
+              margin: 0,
+              fontSize: 22,
               fontWeight: 700,
               letterSpacing: "-0.025em",
               color: "var(--c-900)",
             }}
           >
             {t.title}
-          </span>
+          </h2>
+          </DialogPrimitive.Title>
           <button
             type="button"
             className="tap"
             onClick={onClose}
             aria-label={t.close}
             style={{
-              width: 32,
-              height: 32,
+              width: 44,
+              height: 44,
               borderRadius: 999,
               border: 0,
               background: "transparent",
@@ -205,10 +201,8 @@ function FiltersPanelBody({
         </div>
 
         {/* Body */}
-        <div
-          className="zw-scroll-y"
-          style={{ flex: 1, padding: "0 20px 24px", minHeight: 0 }}
-        >
+        <div className={styles.bodyWrap}>
+        <div className={styles.body}>
           <GroupLabel>{t.sortBy}</GroupLabel>
           <ChipWrap>
             {SORT_KEYS.map((key) => (
@@ -267,6 +261,7 @@ function FiltersPanelBody({
             help={t.open247Help}
             checked={draft.open247}
             onChange={(v) => set({ open247: v })}
+            last
           />
 
           {!dictionariesLoaded && <>
@@ -275,53 +270,32 @@ function FiltersPanelBody({
             {dictionariesFailed ? <div style={{ display: "grid", gap: 12 }}>
               <InlineError>{t.loadError}</InlineError>
               <Button kind="secondary" size="sm" loading={dictionariesLoading} onClick={onRetryDictionaries} style={{ justifySelf: "start" }}>{dict.search.retry}</Button>
-            </div> : <div aria-hidden="true" style={{ height: 176, overflow: "hidden", borderLeft: "1px solid rgba(28,28,26,0.12)", paddingLeft: 16 }}>
-              {TAG_GROUPS.map((group, i) => <div key={group.key} style={{ marginTop: i === 0 ? 2 : 18 }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 600, letterSpacing: ".09em", textTransform: "uppercase", marginBottom: 9 }}>{sectionLabel[group.dict]}</div>
-                <div style={{ display: "flex", gap: 8 }}><Skeleton w="34%" h={36} r={999} /><Skeleton w="45%" h={36} r={999} /></div>
-              </div>)}
+            </div> : <div className={styles.featuresViewport} aria-busy={dictionariesLoading}>
+              <div className={styles.featuresClip} aria-hidden="true">
+                {TAG_GROUPS.map(group => <div key={group.key} className={styles.featureGroup}>
+                  <div className={styles.featureHeading}>{sectionLabel[group.dict]}</div>
+                  <ChipWrap><Skeleton w="34%" h={38} r={999} /><Skeleton w="45%" h={38} r={999} /></ChipWrap>
+                </div>)}
+              </div>
+              <div className={styles.featuresFade} aria-hidden="true" />
             </div>}
           </>}
           {tagGroups.length > 0 && (
             <>
               <GroupLabel>{t.features}</GroupLabel>
-              <div
-                style={{
-                  borderLeft: "1px solid rgba(28,28,26,0.12)",
-                  paddingLeft: 16,
-                  maxHeight: featuresOpen ? 2000 : 176,
-                  overflow: "hidden",
-                  // Height is animated against a generous cap rather than a
-                  // measured value — the block is short enough that the eased
-                  // overshoot isn't perceptible, and it needs no layout probe.
-                  transition: "max-height .32s var(--ease-soft)",
-                  maskImage: featuresOpen
-                    ? undefined
-                    : "linear-gradient(to bottom, #000 60%, transparent 100%)",
-                }}
-              >
-                {tagGroups.map((group, i) => (
-                  <div key={group.key}>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 10.5,
-                        fontWeight: 600,
-                        letterSpacing: "0.09em",
-                        textTransform: "uppercase",
-                        color: "var(--c-500)",
-                        marginTop: i === 0 ? 2 : 18,
-                        marginBottom: 9,
-                      }}
-                    >
+              <FeaturePreview id={featuresId} expanded={featuresOpen} toggleRef={featuresToggleRef}>
+                {tagGroups.map(group => (
+                  <div key={group.key} className={styles.featureGroup}>
+                    <div className={styles.featureHeading}>
                       {sectionLabel[group.dict]}
                     </div>
-                    <ChipWrap tight>
+                    <ChipWrap>
                       {dictionaries[group.dict].map((tag) => (
                         <Choice
                           key={tag.id}
                           label={tagLabels[group.dict][tag.slug] ?? tag.name}
                           selected={draft[group.key].includes(tag.id)}
+                          feature
                           onClick={() =>
                             setDraft((d) => toggleTag(d, group.key, tag.id))
                           }
@@ -330,25 +304,26 @@ function FiltersPanelBody({
                     </ChipWrap>
                   </div>
                 ))}
-              </div>
+              </FeaturePreview>
             </>
           )}
           {(tagGroups.length > 0 || (!dictionariesLoaded && !dictionariesFailed)) && (
               <button
+                ref={featuresToggleRef}
                 type="button"
-                className="tap"
+                className={`${styles.featuresToggle} tap`}
                 disabled={!dictionariesLoaded}
+                aria-expanded={featuresOpen}
+                aria-controls={tagGroups.length > 0 ? featuresId : undefined}
                 onClick={() => setFeaturesOpen((o) => !o)}
                 style={{
-                  marginTop: 12,
-                  display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
+                  gap: 6,
                   background: "transparent",
                   border: 0,
-                  padding: "4px 0",
+                  padding: "10px 6px 10px 0",
                   cursor: "pointer",
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 600,
                   color: "var(--c-700)",
                   fontFamily: "inherit",
@@ -359,7 +334,7 @@ function FiltersPanelBody({
                   style={{
                     display: "inline-flex",
                     transform: featuresOpen ? "rotate(180deg)" : "none",
-                    transition: "transform .25s var(--ease-soft)",
+                    transition: "transform 260ms var(--ease-out)",
                   }}
                 >
                   <Icon name="chevD" size={16} color="var(--c-600)" />
@@ -367,31 +342,32 @@ function FiltersPanelBody({
               </button>
           )}
         </div>
+        <div className={styles.bodyFade} aria-hidden="true" />
+        </div>
 
         {/* Footer */}
         <div
+          className={styles.footer}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 12,
-            padding: "14px 20px",
             borderTop: "1px solid rgba(28,28,26,0.08)",
             background: "var(--c-canvas)",
           }}
         >
           <Button
-            kind="ghost"
+            kind="secondary"
             size="md"
-            onClick={() => setDraft(EMPTY_FILTERS)}
-            disabled={draftCount === 0}
+            style={{ height: 42, padding: "0 var(--filter-reset-padding, 22px)", fontSize: 15, fontWeight: 700, flexShrink: 0, borderColor: matchCount === 0 ? "rgba(28,28,26,0.35)" : "rgba(28,28,26,0.12)" }}
+            onClick={() => { onApply(EMPTY_FILTERS); onClose(); }}
           >
             {t.reset}
           </Button>
-          <div style={{ flex: 1 }} />
           {/* At zero matches the honest CTA is no CTA — Reset is the way out. */}
           <Button
-            kind="primary"
+            kind="accent"
             size="md"
+            style={{ height: 48, flex: 1, minWidth: 0, padding: "0 12px", fontSize: 16, fontWeight: 700, whiteSpace: "normal", lineHeight: 1.2, ...(matchCount === 0 ? { background: "var(--c-200)", borderColor: "var(--c-200)", color: "var(--c-600)", opacity: 1 } : {}) }}
             onClick={() => {
               onApply(draft);
               onClose();
@@ -405,18 +381,71 @@ function FiltersPanelBody({
                 })}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogPrimitive.Content>
+      </DialogPrimitive.Overlay>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
 // ── Small presentational pieces ─────────────────────────────────────────────
 
+function FeaturePreview({
+  id,
+  expanded,
+  toggleRef,
+  children,
+}: {
+  id: string;
+  expanded: boolean;
+  toggleRef: RefObject<HTMLButtonElement | null>;
+  children: ReactNode;
+}) {
+  const clipRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const fadeRef = useRef<HTMLDivElement>(null);
+  // This component mounts inside the portal, so its measured elements exist
+  // even when the dialog opens after the feature vocabulary has already loaded.
+  useLayoutEffect(() => {
+    const clip = clipRef.current;
+    const content = contentRef.current;
+    if (!clip || !content) return;
+    const measure = () => {
+      const overflowing = content.scrollHeight > FEATURES_PREVIEW_HEIGHT + 8;
+      clip.style.maxHeight = expanded || !overflowing ? "none" : `${FEATURES_PREVIEW_HEIGHT}px`;
+      if (fadeRef.current) fadeRef.current.hidden = expanded || !overflowing;
+      if (toggleRef.current) toggleRef.current.hidden = !overflowing;
+      const top = content.getBoundingClientRect().top;
+      const visibleHeight = FEATURES_PREVIEW_HEIGHT - FEATURES_FADE_HEIGHT;
+      for (const choice of content.querySelectorAll<HTMLButtonElement>("[data-feature-choice]")) {
+        const hidden = !expanded && overflowing && choice.getBoundingClientRect().bottom - top > visibleHeight + .5;
+        choice.inert = hidden;
+        choice.tabIndex = hidden ? -1 : 0;
+        choice.setAttribute("aria-hidden", String(hidden));
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    observer.observe(clip);
+    return () => observer.disconnect();
+  }, [expanded, children, toggleRef]);
+
+  return (
+    <div className={styles.featuresViewport}>
+      <div ref={clipRef} id={id} className={styles.featuresClip}>
+        <div ref={contentRef}>{children}</div>
+      </div>
+      <div ref={fadeRef} className={styles.featuresFade} aria-hidden="true" />
+    </div>
+  );
+}
+
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        fontFamily: "var(--font-mono)",
+        fontFamily: "var(--font-sans)",
         fontSize: 11,
         fontWeight: 700,
         letterSpacing: "0.1em",
@@ -431,19 +460,13 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ChipWrap({
-  children,
-  tight,
-}: {
-  children: React.ReactNode;
-  tight?: boolean;
-}) {
+function ChipWrap({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
         display: "flex",
         flexWrap: "wrap",
-        gap: tight ? 7 : 8,
+        gap: 8,
       }}
     >
       {children}
@@ -456,40 +479,44 @@ function Choice({
   icon,
   selected,
   onClick,
+  feature = false,
 }: {
   label: string;
   icon?: "star";
   selected: boolean;
   onClick: () => void;
+  feature?: boolean;
 }) {
   return (
     <button
       type="button"
       className="tap"
-      onClick={onClick}
+      onClick={(event) => { if (!event.currentTarget.inert) onClick(); }}
+      data-feature-choice={feature || undefined}
       aria-pressed={selected}
       style={{
         display: "inline-flex",
         alignItems: "center",
         gap: 5,
-        padding: "8px 13px",
+        height: 38,
+        maxWidth: "100%",
+        padding: "0 16px",
         borderRadius: 999,
         cursor: "pointer",
-        fontSize: 13.5,
-        fontWeight: 600,
-        letterSpacing: "-0.01em",
+        fontSize: 14,
+        fontWeight: 700,
         fontFamily: "inherit",
         background: selected ? "var(--c-ink)" : "#fff",
         color: selected ? "#fff" : "var(--c-800)",
         border: selected
           ? "1px solid var(--c-ink)"
-          : "1px solid rgba(28,28,26,0.12)",
+          : "1px solid rgba(28,28,26,0.10)",
       }}
     >
       {icon === "star" && (
         <Icon name="star" size={13} color={selected ? "#fff" : "var(--c-700)"} />
       )}
-      {label}
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
     </button>
   );
 }
@@ -499,47 +526,41 @@ function ToggleRow({
   help,
   checked,
   onChange,
+  last = false,
 }: {
   label: string;
   help?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  last?: boolean;
 }) {
+  const labelId = useId();
+  const helpId = useId();
   return (
-    <label
-      style={{
-        display: "flex",
-        alignItems: help ? "flex-start" : "center",
-        justifyContent: "space-between",
-        gap: 16,
-        padding: "11px 0",
-        borderBottom: "1px solid rgba(28,28,26,0.07)",
-        cursor: "pointer",
-      }}
-    >
-      <span style={{ display: "grid", gap: 2 }}>
-        <span style={{ fontSize: 14.5, fontWeight: 500, color: "var(--c-900)" }}>
+    <div className={styles.toggleRow} data-last={last || undefined}>
+      <span className={styles.toggleText}>
+        <span id={labelId} className={styles.toggleLabel}>
           {label}
         </span>
         {help && (
-          <span style={{ fontSize: 12.5, lineHeight: 1.45, color: "var(--c-600)" }}>
+          <span id={helpId} className={styles.toggleHelp}>
             {help}
           </span>
         )}
       </span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        style={{
-          width: 18,
-          height: 18,
-          accentColor: "var(--c-ink)",
-          cursor: "pointer",
-          flexShrink: 0,
-          marginTop: help ? 2 : 0,
-        }}
-      />
-    </label>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-labelledby={labelId}
+        aria-describedby={help ? helpId : undefined}
+        className={`${styles.switchButton} tap`}
+        onClick={() => onChange(!checked)}
+      >
+        <span className={styles.switchTrack} aria-hidden="true">
+          <span className={styles.switchThumb} />
+        </span>
+      </button>
+    </div>
   );
 }

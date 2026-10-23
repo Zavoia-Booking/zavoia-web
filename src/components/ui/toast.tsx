@@ -43,18 +43,40 @@ export type ToastAction = {
  */
 export type ToastTone = "default" | "error";
 
+/**
+ * `interrupt` shows the toast at once instead of queueing it; a message it cuts
+ * short returns to the front of the queue. `hold: null` keeps it on screen until
+ * its handle dismisses it, for callers that own their own deadline.
+ */
+export type ToastOptions = {
+  interrupt?: boolean;
+  hold?: number | null;
+};
+
+export type ToastHandle = { dismiss: () => void };
+
 export type ToastApi = (
   text: string,
   icon?: IconName,
   action?: ToastAction,
   tone?: ToastTone,
-) => void;
+  options?: ToastOptions,
+) => ToastHandle;
+
+// Hold timings. Longer than the original 2600/4200: a message the reader has
+// to find, read and act on inside three seconds is a message some readers
+// never get.
+const HOLD_MS = 4000;
+export const ACTION_TOAST_HOLD_MS = 6000;
+const EXIT_MS = 350;
 
 type ToastState = {
   text: string;
   icon: IconName;
   action: ToastAction | null;
   tone: ToastTone;
+  hold: number | null;
+  interrupt: boolean;
   key: number;
 };
 
@@ -62,33 +84,40 @@ const ToastContext = createContext<ToastApi | null>(null);
 
 // Internal channel: <ToastHost/> registers its dispatcher here so the public
 // `toast()` API can forward calls to whichever host is currently mounted.
-type ShowFn = (s: ToastState) => void;
-type RegisterFn = (fn: ShowFn | null) => void;
+type HostFns = { show: (s: ToastState) => void; dismiss: (key: number) => void };
+type RegisterFn = (host: HostFns | null) => void;
 const HostContext = createContext<RegisterFn | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const hostRef = useRef<ShowFn | null>(null);
+  const hostRef = useRef<HostFns | null>(null);
   const seqRef = useRef(0);
 
   const toast = useCallback<ToastApi>(
-    (text, icon = "check", action, tone = "default") => {
+    (text, icon = "check", action, tone = "default", options) => {
       // A monotonic counter, not Date.now(): two toasts fired in the same
       // millisecond would otherwise share a key and React would treat the
       // second as the same element, skipping the re-entry animation.
       seqRef.current += 1;
-      hostRef.current?.({
+      const key = seqRef.current;
+      hostRef.current?.show({
         text,
         icon,
         action: action ?? null,
         tone,
-        key: seqRef.current,
+        hold:
+          options?.hold === undefined
+            ? action ? ACTION_TOAST_HOLD_MS : HOLD_MS
+            : options.hold,
+        interrupt: options?.interrupt ?? false,
+        key,
       });
+      return { dismiss: () => hostRef.current?.dismiss(key) };
     },
     [],
   );
 
-  const register = useCallback<RegisterFn>((fn) => {
-    hostRef.current = fn;
+  const register = useCallback<RegisterFn>((host) => {
+    hostRef.current = host;
   }, []);
 
   return (
@@ -106,13 +135,6 @@ export function useToast(): ToastApi {
   return ctx;
 }
 
-// Hold timings. Longer than the original 2600/4200: a message the reader has
-// to find, read and act on inside three seconds is a message some readers
-// never get.
-const HOLD_MS = 4000;
-const HOLD_WITH_ACTION_MS = 6000;
-const EXIT_MS = 350;
-
 export function ToastHost() {
   const register = useContext(HostContext);
   const { dict } = useTranslation();
@@ -127,57 +149,83 @@ export function ToastHost() {
     undefined,
   );
 
-  // Whether a toast currently occupies the slot. A ref rather than reading
-  // `current`, so `advance` never has to be re-created and `register` is never
-  // handed a stale dispatcher — and so nothing touches a ref during render.
-  const showingRef = useRef(false);
+  // The toast occupying the slot, and whether it is already on its way out.
+  // Refs rather than reading `current`, so the dispatcher never has to be
+  // re-created or handed a stale render — and nothing touches a ref in render.
+  const currentRef = useRef<ToastState | null>(null);
+  const leavingRef = useRef(false);
   // `advance` re-arms itself on a timer; the indirection keeps it from
   // referencing its own binding before it exists.
   const advanceRef = useRef<() => void>(() => {});
 
+  const start = useCallback((next: ToastState) => {
+    currentRef.current = next;
+    leavingRef.current = false;
+    setLeaving(false);
+    setCurrent(next);
+    if (next.hold === null) return;
+    leaveTimer.current = setTimeout(() => {
+      leavingRef.current = true;
+      setLeaving(true);
+    }, next.hold);
+    clearTimer.current = setTimeout(() => advanceRef.current(), next.hold + EXIT_MS);
+  }, []);
+
   const advance = useCallback(() => {
     const next = queueRef.current.shift();
     if (!next) {
-      showingRef.current = false;
+      currentRef.current = null;
       setCurrent(null);
       return;
     }
-    showingRef.current = true;
-    setLeaving(false);
-    setCurrent(next);
-    const hold = next.action ? HOLD_WITH_ACTION_MS : HOLD_MS;
-    leaveTimer.current = setTimeout(() => setLeaving(true), hold);
-    clearTimer.current = setTimeout(() => advanceRef.current(), hold + EXIT_MS);
-  }, []);
+    start(next);
+  }, [start]);
 
   useEffect(() => {
     advanceRef.current = advance;
   }, [advance]);
 
+  const leave = useCallback(() => {
+    clearTimeout(leaveTimer.current);
+    clearTimeout(clearTimer.current);
+    leavingRef.current = true;
+    setLeaving(true);
+    clearTimer.current = setTimeout(() => advanceRef.current(), EXIT_MS);
+  }, []);
+
   useEffect(() => {
     if (!register) return;
-    const show = (s: ToastState) => {
-      queueRef.current.push(s);
-      // Only kick the queue when nothing is on screen; otherwise the running
-      // timers will pick this up when the current one finishes.
-      if (!showingRef.current) advance();
+    const show = (next: ToastState) => {
+      const shown = currentRef.current;
+      if (!shown) {
+        start(next);
+      } else if (next.interrupt) {
+        clearTimeout(leaveTimer.current);
+        clearTimeout(clearTimer.current);
+        // A message cut short is shown again afterwards; one already leaving is done.
+        if (!leavingRef.current) queueRef.current.unshift(shown);
+        start(next);
+      } else {
+        // The running timers pick this up when the current toast finishes.
+        queueRef.current.push(next);
+      }
     };
-    register(show);
+    const dismiss = (key: number) => {
+      if (currentRef.current?.key === key) {
+        if (!leavingRef.current) leave();
+      } else {
+        queueRef.current = queueRef.current.filter((queued) => queued.key !== key);
+      }
+    };
+    register({ show, dismiss });
     return () => {
       register(null);
       clearTimeout(leaveTimer.current);
       clearTimeout(clearTimer.current);
       queueRef.current = [];
-      showingRef.current = false;
+      currentRef.current = null;
     };
-  }, [register, advance]);
-
-  const dismiss = useCallback(() => {
-    clearTimeout(leaveTimer.current);
-    clearTimeout(clearTimer.current);
-    setLeaving(true);
-    clearTimer.current = setTimeout(() => advanceRef.current(), EXIT_MS);
-  }, []);
+  }, [register, start, leave]);
 
   return (
     // Always mounted: a live region inserted at the same moment as its text is
@@ -248,7 +296,7 @@ export function ToastHost() {
             <button
               type="button"
               className="tap"
-              onClick={dismiss}
+              onClick={leave}
               aria-label={dismissLabel}
               style={{
                 marginLeft: 2,
@@ -285,7 +333,7 @@ export function ToastHost() {
               className="tap"
               onClick={() => {
                 current.action?.onClick?.();
-                dismiss();
+                leave();
               }}
               style={{
                 marginLeft: 4,

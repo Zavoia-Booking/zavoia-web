@@ -143,6 +143,7 @@ export function BusinessMicrosite({ site, locale }: { site: PublicWebsite; local
         locationId: listing.locationId,
         timezone: listing.timezone,
         currency: listing.businessCurrency,
+        showPricing: !(listing.additionalSettings && typeof listing.additionalSettings === "object" && "showPricing" in listing.additionalSettings && listing.additionalSettings.showPricing === false),
         bookingPolicy: listing.bookingPolicy,
         services,
         catalog: {

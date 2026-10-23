@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/ui/icon";
 import { useTranslation } from "@/i18n/useTranslation";
+import { format } from "@/i18n/format";
 import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import {
   industryAccent,
@@ -14,25 +15,17 @@ import {
   industryTeaserChips,
 } from "@/lib/marketplace/industry-teaser";
 import type { Industry } from "@/lib/api/marketplace/types";
+import styles from "./tag-rail.module.css";
 
 /**
  * The map's browse rail — a short teaser of suggested tags floating over the
  * map, plus a "More" chip that opens the full catalog.
  *
- * Discovery only. It carries NO applied state: the search bar names the active
- * pick and refinements live behind the filters button, so a chip here is a jump
- * (it replaces the query), never a toggle. The parent hides the rail entirely
- * once a search is running — see `active` — because at that point the bar
- * already says what is being searched and the rail has nothing to add.
+ * Browse suggestions become a removable selection once a service, industry or
+ * text search is applied. The selection sits alone in the center of the row.
  *
  * Ported from the RN app's `CategoryChipRow`.
  */
-
-/** The rail teases this many tags; the full 70+ catalog lives behind "More". */
-const TEASER_COUNT = 5;
-/** The header's clock — rail, pill and filter button move together on it. */
-const TRANSITION_MS = 200;
-const EASE = "cubic-bezier(.23, 1, .32, 1)";
 
 export interface TagRailProps {
   industries: Industry[];
@@ -40,9 +33,10 @@ export interface TagRailProps {
   onPick: (industry: Industry, tagId: number) => void;
   /** Opens the full tag catalog. */
   onMore: () => void;
+  activeSelection?: { label: string; industrySlug?: string };
+  onClear: () => void;
   /**
-   * A search is running. The rail steps aside — height to 0, faded, lifted 8px
-   * — rather than sitting there competing with the query the user just made.
+   * The expanded mobile sheet owns the screen, so map controls step aside.
    */
   hidden?: boolean;
 }
@@ -51,10 +45,42 @@ export function TagRail({
   industries,
   onPick,
   onMore,
+  activeSelection,
+  onClear,
   hidden = false,
 }: TagRailProps) {
   const { dict, locale } = useTranslation();
   const t = dict.search;
+  const railRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const measurementRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const selectionRef = useRef<HTMLButtonElement>(null);
+  const selectFocusRef = useRef(false);
+  const restoreFocusRef = useRef(false);
+  const [visibleCount, setVisibleCount] = useState(0);
+  // Keep the last label for the outgoing visual layer. It becomes inert and
+  // leaves the accessibility tree as soon as the actual selection is cleared.
+  const [displaySelection, setDisplaySelection] = useState(activeSelection);
+  if (activeSelection && (
+    activeSelection.label !== displaySelection?.label
+    || activeSelection.industrySlug !== displaySelection?.industrySlug
+  )) setDisplaySelection(activeSelection);
+
+  useLayoutEffect(() => {
+    const target = !activeSelection && restoreFocusRef.current ? moreRef
+      : activeSelection && (selectFocusRef.current || rowRef.current?.contains(document.activeElement)) ? selectionRef
+      : null;
+    if (!target) return;
+    restoreFocusRef.current = false;
+    selectFocusRef.current = false;
+    // Let the browser apply the incoming layer's inert/visibility changes and
+    // finish the navigation's own focus handling before handing focus across.
+    const frame = requestAnimationFrame(() => {
+      if (!target.current?.closest("[inert]")) target.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeSelection]);
 
   // The shuffle is seeded on the day number, so a server rendering just before
   // midnight and a client hydrating just after would disagree. The server (and
@@ -68,51 +94,141 @@ export function TagRail({
   );
 
   const chips = useMemo(
-    () => industryTeaserChips(industries, daySeed).slice(0, TEASER_COUNT),
-    [industries, daySeed],
+    () => industryTeaserChips(industries, daySeed).map(({ industry, tag }) => ({
+      industry,
+      tag,
+      slug: resolveIndustrySlug(industry.slug),
+      label: taxonomyLabel(tag, locale, dict.industryTags),
+    })),
+    [industries, daySeed, locale, dict.industryTags],
   );
+  const hasRail = chips.length > 0 || !!activeSelection;
 
-  if (chips.length === 0) return null;
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    // Capture input from the catalog/header too. Keyboard changes are instant;
+    // pointer changes use interruptible CSS transitions, without render timers.
+    const pointer = () => { rail.dataset.input = "pointer"; };
+    const keyboard = () => { rail.dataset.input = "keyboard"; };
+    document.addEventListener("pointerdown", pointer, true);
+    document.addEventListener("keydown", keyboard, true);
+    return () => {
+      document.removeEventListener("pointerdown", pointer, true);
+      document.removeEventListener("keydown", keyboard, true);
+    };
+  }, [hasRail]);
+
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    const measurement = measurementRef.current;
+    if (!row || !measurement) return;
+    const measure = () => {
+      const style = getComputedStyle(row);
+      const available = row.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const gap = parseFloat(style.columnGap);
+      const widths = Array.from(measurement.children, child => child.getBoundingClientRect().width);
+      // Reserve More first, then expose a prefix of the same shuffled order.
+      // Measuring localized labels also handles zoom and late-loading fonts.
+      let used = widths[widths.length - 1] ?? 0;
+      let count = 0;
+      for (const width of widths.slice(0, -1)) {
+        if (used + gap + width > available) break;
+        used += gap + width;
+        count += 1;
+      }
+      const buttons = Array.from(row.querySelectorAll("button"));
+      const focusedIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+      if (focusedIndex >= count && focusedIndex < buttons.length - 1) {
+        buttons[buttons.length - 1]?.focus({ preventScroll: true });
+      }
+      setVisibleCount(previous => previous === count ? previous : count);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    observer.observe(measurement);
+    return () => observer.disconnect();
+  }, [chips, t.browseMore]);
+
+  if (!hasRail) return null;
 
   return (
     <div
-      // Collapsing the height (not just the opacity) is what lets whatever sits
-      // under the rail close the gap on the same clock.
-      style={{
-        maxHeight: hidden ? 0 : 48,
-        opacity: hidden ? 0 : 1,
-        transform: `translateY(${hidden ? -8 : 0}px)`,
-        overflow: "hidden",
-        transition: `max-height ${TRANSITION_MS}ms ${EASE}, opacity ${TRANSITION_MS}ms ${EASE}, transform ${TRANSITION_MS}ms ${EASE}`,
-        pointerEvents: hidden ? "none" : "auto",
-      }}
+      ref={railRef}
+      className={styles.rail}
+      data-service-rail
+      data-hidden={hidden}
+      role="group"
+      aria-label={dict.searchOverlay.browseByIndustry}
       aria-hidden={hidden}
+      inert={hidden}
     >
       <div
-        className="zw-scroll-x"
-        // Full-bleed: the rail scrolls off both edges rather than ending in a
-        // hard margin, so it reads as a strip over the map, not a boxed row.
-        style={{ gap: 8, padding: "6px 12px 8px" }}
+        ref={rowRef}
+        className={`${styles.layer} ${styles.suggestions}`}
+        data-active={!activeSelection}
+        aria-hidden={!!activeSelection}
+        inert={!!activeSelection}
       >
-        {chips.map(({ industry, tag }) => {
-          const slug = resolveIndustrySlug(industry.slug);
+        {chips.slice(0, visibleCount).map(({ industry, tag, slug, label }) => {
           return (
             <button
-              key={tag.id}
+              key={`${industry.id}-${tag.id}`}
               type="button"
               className="tap"
-              onClick={() => onPick(industry, tag.id)}
+              onClick={() => {
+                selectFocusRef.current = true;
+                onPick(industry, tag.id);
+              }}
               style={chipStyle}
             >
               <Icon name={industryIcon(slug)} size={14} color={industryAccent(slug)} />
-              {taxonomyLabel(tag, locale)}
+              {label}
             </button>
           );
         })}
-        <button type="button" className="tap" onClick={onMore} style={chipStyle}>
+        <button ref={moreRef} type="button" className="tap" aria-haspopup="dialog" onClick={onMore} style={chipStyle}>
           <Icon name="grid" size={14} color="var(--c-600)" />
           {t.browseMore}
         </button>
+      </div>
+      <div
+        className={`${styles.layer} ${styles.selection}`}
+        data-active={!!activeSelection}
+        aria-hidden={!activeSelection}
+        inert={!activeSelection}
+      >
+        {displaySelection && <button
+          ref={selectionRef}
+          type="button"
+          className={`tap ${styles.selectionButton}`}
+          data-selection-clear
+          aria-label={format(t.clearSelection, { selection: displaySelection.label })}
+          onClick={() => {
+            restoreFocusRef.current = true;
+            onClear();
+          }}
+          style={{ ...chipStyle, height: 44, minWidth: 0, maxWidth: "min(520px, 100%)", flexShrink: 1, fontWeight: 600, color: "var(--c-900)" }}
+        >
+          <Icon name={displaySelection.industrySlug ? industryIcon(displaySelection.industrySlug) : "search"} size={16} color={displaySelection.industrySlug ? industryAccent(displaySelection.industrySlug) : "var(--c-600)"} style={{ flexShrink: 0 }} />
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displaySelection.label}</span>
+          <Icon name="x" size={16} style={{ flexShrink: 0, marginLeft: 4 }} />
+        </button>}
+      </div>
+      <div
+        ref={measurementRef}
+        aria-hidden="true"
+        inert
+        style={{ position: "absolute", top: 0, left: 0, display: "flex", width: "max-content", gap: 8, visibility: "hidden", pointerEvents: "none" }}
+      >
+        {chips.map(({ industry, tag, slug, label }) => (
+          <span key={`${industry.id}-${tag.id}`} style={chipStyle}>
+            <Icon name={industryIcon(slug)} size={14} color={industryAccent(slug)} />
+            {label}
+          </span>
+        ))}
+        <span style={chipStyle}><Icon name="grid" size={14} />{t.browseMore}</span>
       </div>
     </div>
   );

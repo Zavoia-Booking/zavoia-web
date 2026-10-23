@@ -9,7 +9,7 @@ import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
-import { Button, Icon, SignedOutGate, Skeleton } from "@/components/ui";
+import { Button, Icon, InlineError, SignedOutGate, Skeleton } from "@/components/ui";
 import { ApiError } from "@/lib/api/http";
 import { getAppointment } from "@/lib/api/marketplace/appointments";
 import { useRebook } from "@/lib/booking";
@@ -29,8 +29,14 @@ import {
   AppointmentActionsProvider,
   useAppointmentActions,
 } from "../../_components/actions/actions-provider";
-import { canCancel, canLeaveReview, canReschedule } from "../../_components/actions/shared";
+import { canCancel, canLeaveReview, canReschedule, staffDisplayName, type AppointmentChange } from "../../_components/actions/shared";
+import { useAppointmentClock } from "../../_components/use-appointment-clock";
+import { downloadAppointmentCalendar } from "./calendar";
+import styles from "./detail.module.css";
 import {
+  appointmentProfessionals,
+  appointmentVenue,
+  locationHref,
   AboutCard,
   CloserBand,
   LiveStrip,
@@ -79,35 +85,29 @@ function relativeLabel(
 export function DetailLoadingState({ loadingLabel }: { loadingLabel: string }) {
   const { dict, locale } = useTranslation();
   const t = dict.appointmentDetail;
-  return (
-    <div className="zw-container" style={{ paddingTop: 22, width: "100%" }} aria-busy="true">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 22 }}><a href={localeHref(locale, "appointments")} className="tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13.5, fontWeight: 600, color: "var(--c-600)", padding: "4px 0" }}><Icon name="back" size={14} color="var(--c-600)" />{t.back}</a></div>
-      <div aria-hidden="true" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}><span style={{ display: "inline-flex", padding: "5px 11px 5px 9px", border: "1.5px solid transparent" }}><Skeleton w={78} h={10.5} r={4} /></span><Skeleton w={80} h={18} r={4} /></div>
-      <div aria-hidden="true" style={{ fontSize: "clamp(28px, 3.4vw, 44px)", lineHeight: 1.04, height: "1.04em", display: "flex", alignItems: "center" }}><Skeleton w="min(520px, 80%)" h="1em" /></div>
-      <div aria-hidden="true" style={{ marginTop: 16, height: 22.5, display: "flex", alignItems: "center", gap: 12 }}><Skeleton w="min(280px, 70%)" h={15} r={4} /><Skeleton w={60} h={18} r={4} /></div>
-      <div style={{ height: 28 }} /><div style={{ height: 1, background: "rgba(28,28,26,0.08)" }} />
-      <div data-biz-cols="1" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: "clamp(28px, 4vw, 56px)", alignItems: "start", marginTop: 4 }}>
-        <div style={{ minWidth: 0 }}>
-          <Section label={t.sections.where}><div aria-hidden="true" style={{ display: "flex", minHeight: 150, border: "1px solid rgba(28,28,26,0.07)", borderRadius: 18, overflow: "hidden", background: "#fff" }}><Skeleton w={150} h="auto" r={0} style={{ flexShrink: 0 }} /><div style={{ flex: 1, minWidth: 0, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}><Skeleton w="80%" h={22} /><Skeleton h={18} /><Skeleton w="65%" h={18} /></div></div></Section>
-          <Section label={t.sections.service}><div aria-hidden="true" style={{ border: "1px solid rgba(28,28,26,0.07)", borderRadius: 18, background: "#fff", padding: "21px 20px 18px", display: "flex", flexDirection: "column", gap: 14 }}><Skeleton w="75%" h={22} /><Skeleton w="35%" h={18} /><div style={{ paddingTop: 16, borderTop: "1px solid rgba(28,28,26,0.07)" }}><Skeleton w="40%" h={24} style={{ marginLeft: "auto" }} /></div></div></Section>
-          <div aria-hidden="true" style={{ marginTop: 36, paddingTop: 22, borderTop: "1px solid rgba(28,28,26,0.08)", display: "flex", justifyContent: "center" }}><Skeleton w="min(280px, 80%)" h={15.75} r={4} /></div>
-        </div>
-        <div className="zw-only-desktop" aria-hidden="true" style={{ position: "sticky", top: "calc(var(--nav-h) + 18px)" }}>
-          <div style={{ background: "#fff", border: "1px solid rgba(28,28,26,0.09)", borderRadius: 20, overflow: "hidden" }}>
-            <div style={{ padding: "18px 18px 16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}><Skeleton w={40} h={40} r={11} style={{ flexShrink: 0 }} /><div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 1 }}><Skeleton w="70%" h={22.5} r={4} /><Skeleton w="50%" h={18} r={4} /></div></div>
-              <Skeleton h={56} r={999} />
-            </div>
-            <div style={{ borderTop: "1px solid rgba(28,28,26,0.08)", padding: 6 }}>
-              {[0, 1].map((i) => <div key={i} style={{ padding: "12px 14px", display: "flex", gap: 12, alignItems: "center" }}><Skeleton w={16} h={16} r={4} style={{ flexShrink: 0 }} /><Skeleton w="60%" h={21} r={4} /></div>)}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="zw-only-mobile" style={{ height: 64 }} />
-      <p role="status" className="sr-only">{loadingLabel}</p>
+  const p = dict.appointmentPage;
+  return <div className={`zw-container ${styles.page}`} aria-busy="true">
+    <div className={styles.navigation}><a href={localeHref(locale, "appointments")} className={`tap ${styles.back}`}><Icon name="back" size={14} />{t.back}</a></div>
+    <div className={styles.hero}>
+      <div className={`${styles.kicker} ${styles.heroKicker}`}>{p.detailKicker}</div>
+      <div className={styles.heroTop} aria-hidden="true"><Skeleton w={100} h={19} r={4} /></div>
+      <div className={styles.title} aria-hidden="true"><Skeleton w="min(520px, 90%)" h="1.12em" /></div>
+      <div className={styles.heroMeta} aria-hidden="true"><Skeleton w="min(380px, 90%)" h={22} /><Skeleton w={130} h={18} /></div>
     </div>
-  );
+    <div className={styles.columns}>
+      <div className={styles.content}>
+        <Section label={t.sections.where}><div className={styles.venue} aria-hidden="true"><div className={styles.venuePhoto}><Skeleton h="100%" r={0} style={{ minHeight: "inherit" }} /></div><div className={styles.venueContent} style={{ flex: 1 }}><Skeleton w="70%" h={16} /><Skeleton w="90%" h={22} /><Skeleton w="80%" h={18} /></div></div></Section>
+        <Section label={t.sections.service}><div className={styles.surface} aria-hidden="true"><div className={styles.serviceList}><div className={styles.serviceItem}><Skeleton w="75%" h={22} /><Skeleton w="30%" h={17} style={{ marginTop: 10 }} /></div></div><div className={styles.total}><Skeleton w="45%" h={30} /><Skeleton w="25%" h={28} /></div></div></Section>
+      </div>
+      <div className={styles.rail} aria-hidden="true"><div className={styles.railCard}>
+        <div className={styles.railHeading}>{p.managementTitle}</div>
+        <div className={styles.railPrimary}><Skeleton h={49} r={999} /></div>
+        <div className={styles.railRows}>{[0, 1, 2].map((index) => <div className={styles.manageRow} key={index}><Skeleton w={16} h={16} r={4} /><Skeleton w="65%" h={20} /></div>)}</div>
+        <div className={styles.railSecondary}><div className={styles.manageRow}><Skeleton w={16} h={16} r={4} /><Skeleton w="55%" h={20} /></div></div>
+      </div></div>
+    </div>
+    <p role="status" className="sr-only">{loadingLabel}</p>
+  </div>;
 }
 
 // ── Error state (with retry) ─────────────────────────────────────────────────
@@ -183,636 +183,121 @@ function NotFoundState({ t, onBack }: { t: ApptDict; onBack: () => void }) {
   );
 }
 
-// ── Action rail + manage rows — MUST be rendered below the actions provider ──
-
-function RailButton({
-  kind,
-  icon,
-  children,
-  href,
-  onClick,
-  disabled,
-  loading = false,
-}: {
-  kind: "primary" | "secondary" | "accent";
-  icon: Parameters<typeof Icon>[0]["name"];
-  children: React.ReactNode;
-  href?: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  loading?: boolean;
+// A single management surface stays available at every viewport width.
+function ManageRow({ icon, label, hint, danger, disabled, onClick, href }: {
+  icon: Parameters<typeof Icon>[0]["name"]; label: string; hint?: string;
+  danger?: boolean; disabled?: boolean; onClick?: () => void; href?: string;
 }) {
-  const color = kind === "secondary" ? "var(--c-800)" : "#fff";
-  const content = (
-    <>
-      <Icon name={icon} size={16} color={color} />
-      {children}
-    </>
-  );
-  if (href) {
-    const look =
-      kind === "primary"
-        ? { background: "var(--c-ink)", color: "#fff", border: "1px solid var(--c-ink)" }
-        : kind === "accent"
-          ? { background: "var(--p-500)", color: "#fff", border: "1px solid var(--p-500)" }
-          : { background: "#fff", color: "var(--c-900)", border: "1px solid rgba(28,28,26,0.14)" };
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="tap zw-btn"
-        style={{
-          ...look,
-          width: "100%",
-          padding: "15px 28px",
-          fontSize: 16,
-          fontWeight: 600,
-          borderRadius: "var(--r-full)",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          textDecoration: "none",
-          letterSpacing: "-0.01em",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {content}
-      </a>
-    );
-  }
-  return (
-    <Button
-      kind={kind}
-      size="lg"
-      onClick={onClick}
-      disabled={disabled}
-      loading={loading}
-      style={{ width: "100%" }}
-    >
-      {content}
-    </Button>
-  );
+  const content = <><Icon name={icon} size={16} /><span className={styles.rowCopy}><span>{label}</span>{hint && <span className={styles.rowHint}>{hint}</span>}</span></>;
+  const className = `${styles.manageRow} ${danger ? styles.danger : ""} ${disabled ? "" : "tap zw-hover-row"}`;
+  return href ? <a href={href} className={className}>{content}</a> : <button type="button" className={className} disabled={disabled} onClick={onClick}>{content}</button>;
 }
 
-function ManageRow({
-  icon,
-  label,
-  hint,
-  danger,
-  disabled,
-  onClick,
-}: {
-  icon: Parameters<typeof Icon>[0]["name"];
-  label: string;
-  /** Secondary line under the label — used to point elsewhere when blocked. */
-  hint?: string;
-  danger?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
+function ActionRail({ t, appt, tense, tone, onBookAgain, bookingAgain }: {
+  t: ApptDict; appt: AppointmentDetail; tense: Tense; tone: StatusTone;
+  onBookAgain: () => void; bookingAgain: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      className={"tap" + (disabled ? "" : " zw-hover-row")}
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
-      style={{
-        display: "flex",
-        alignItems: hint ? "flex-start" : "center",
-        gap: 12,
-        width: "100%",
-        background: "transparent",
-        border: 0,
-        cursor: disabled ? "default" : "pointer",
-        textAlign: "left",
-        padding: "12px 14px",
-        borderRadius: 11,
-        fontSize: 14,
-        fontWeight: 500,
-        opacity: disabled ? 0.4 : 1,
-        color: danger ? "var(--s-warning-600)" : "var(--c-800)",
-        fontFamily: "inherit",
-      }}
-    >
-      <Icon
-        name={icon}
-        size={16}
-        color={danger ? "var(--s-warning-600)" : "var(--c-600)"}
-        style={{ flexShrink: 0, marginTop: hint ? 2 : 0 }}
-      />
-      <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-        <span>{label}</span>
-        {hint && (
-          <span
-            className="txt-pretty"
-            style={{
-              fontSize: 12.5,
-              fontWeight: 400,
-              lineHeight: 1.45,
-              color: "var(--c-600)",
-            }}
-          >
-            {hint}
-          </span>
-        )}
-      </span>
-    </button>
-  );
-}
-
-function ActionRail({
-  t,
-  appt,
-  locale,
-  tense,
-  tone,
-  onBookAgain,
-  bookingAgain,
-}: {
-  t: ApptDict;
-  appt: AppointmentDetail;
-  locale: Locale;
-  tense: Tense;
-  tone: StatusTone;
-  /** Opens the booking drawer pre-filled from this appointment (useRebook). */
-  onBookAgain: () => void;
-  bookingAgain: boolean;
-}) {
-  const { openReview, openReschedule, openCancel } = useAppointmentActions();
-  const loc = appt.location;
-  const biz = appt.business;
-  // A completed appointment is settled regardless of its slot time — the backend
-  // can mark it completed early, and it must then read as past (review + rebook),
-  // never as manageable (reschedule/cancel).
-  const completed = appt.status === "completed";
-  const upcomingOrLive =
-    (tense === "future" || tense === "today" || tense === "now") && !completed;
-  const isPast = tense === "past" || completed;
+  const p = useTranslation().dict.appointmentPage;
+  const { openReview, openReschedule, openCancel, openReport } = useAppointmentActions();
+  const venue = appointmentVenue(appt);
   const cancelled = tone === "warning" || tone === "error";
-
-  const address = loc?.address ?? null;
-  const directionsHref = address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-    : null;
-  const phone = loc?.phone ?? biz?.phone ?? null;
-  // "Book again" re-opens the booking drawer pre-filled from this appointment
-  // via useRebook (which re-fetches the live listing for authoritative pricing +
-  // the booking listingId/timezone). It falls back to the business detail page
-  // when the listing can't be loaded or no service still maps. Only offer it when
-  // there is a resolvable location id to rebook against.
-  const canBookAgain = loc?.id != null;
-
-  const canReview = canLeaveReview(appt);
-
-  const showManage = upcomingOrLive && !cancelled;
-  // Mirror the server-side notice windows so we don't offer an action that the
-  // API will only reject (APPOINTMENTS.E12 / E07). Advisory only — the server
-  // re-checks, and the modals surface it if the window lapses while one is open.
+  const upcoming = tense !== "past" && appt.status !== "completed" && !cancelled;
+  const directionsHref = venue.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.address)}` : null;
+  const canBookAgain = appt.location?.id != null;
   const rescheduleAllowed = canReschedule(appt);
   const cancelAllowed = canCancel(appt);
-
-  return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.09)",
-        borderRadius: 20,
-        boxShadow: "var(--sh-md)",
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ padding: "18px 18px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <span
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 11,
-              background: "var(--c-shade)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="cal" size={18} color="var(--p-600)" />
-          </span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--c-900)", letterSpacing: "-0.015em" }}>
-              {new Intl.DateTimeFormat(locale, {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-                timeZone: apptTimeZone(appt.location?.timezone, appt.business?.timezone),
-              }).format(new Date(appt.scheduled_at))}
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 12,
-                color: "var(--c-600)",
-                marginTop: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {apptTime(appt.scheduled_at, locale, apptTimeZone(appt.location?.timezone, appt.business?.timezone))}
-              {" – "}
-              {apptTime(appt.ends_at, locale, apptTimeZone(appt.location?.timezone, appt.business?.timezone))}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {upcomingOrLive && !cancelled && (
-            <>
-              {directionsHref && (
-                <RailButton kind="primary" icon="nav" href={directionsHref}>
-                  {t.getDirections}
-                </RailButton>
-              )}
-              {phone && (
-                <RailButton kind="secondary" icon="phone" href={`tel:${phone}`}>
-                  {t.callVenue}
-                </RailButton>
-              )}
-            </>
-          )}
-          {isPast && !cancelled && (
-            <>
-              {canReview && (
-                <RailButton kind="accent" icon="star" onClick={() => openReview(appt)}>
-                  {t.leaveReview}
-                </RailButton>
-              )}
-              {canBookAgain && (
-                <RailButton
-                  kind={canReview ? "secondary" : "accent"}
-                  icon="rebook"
-                  onClick={onBookAgain}
-                  disabled={bookingAgain}
-                  loading={bookingAgain}
-                >
-                  {t.bookAgain}
-                </RailButton>
-              )}
-            </>
-          )}
-          {cancelled && canBookAgain && (
-            <RailButton
-              kind="accent"
-              icon="rebook"
-              onClick={onBookAgain}
-              disabled={bookingAgain}
-              loading={bookingAgain}
-            >
-              {t.bookAgain}
-            </RailButton>
-          )}
-        </div>
-      </div>
-
-      {showManage && (
-        <>
-          <div style={{ height: 1, background: "rgba(28,28,26,0.08)" }} />
-          <div style={{ padding: 6 }}>
-            <ManageRow
-              icon="clock"
-              label={
-                !loc?.allowCustomerReschedule
-                  ? t.rescheduleUnavailable
-                  : rescheduleAllowed
-                    ? t.reschedule
-                    : t.rescheduleWindowPassed
-              }
-              hint={rescheduleAllowed ? undefined : t.contactBusinessDirectly}
-              disabled={!rescheduleAllowed}
-              onClick={() => openReschedule(appt)}
-            />
-            <ManageRow
-              icon="x"
-              label={
-                !loc?.allowCustomerCancellation
-                  ? t.cancelUnavailable
-                  : cancelAllowed
-                    ? t.cancelAppointment
-                    : t.cancelWindowPassed
-              }
-              hint={cancelAllowed ? undefined : t.contactBusinessDirectly}
-              danger
-              disabled={!cancelAllowed}
-              onClick={() => openCancel(appt)}
-            />
-          </div>
-        </>
-      )}
+  const showPrimary = upcoming ? !!directionsHref : canBookAgain;
+  const reviewAllowed = canLeaveReview(appt);
+  const showRows = reviewAllowed || !!venue.phone || upcoming;
+  const exportCalendar = () => downloadAppointmentCalendar({
+    uuid: appt.uuid, title: appt.bookedItemName, startsAt: appt.scheduled_at, endsAt: appt.ends_at,
+    updatedAt: appt.updatedAt, pending: appt.status === "pending", venue: venue.name, address: venue.address,
+  });
+  return <div className={styles.railCard}>
+    <h2 className={styles.railHeading}>{p.managementTitle}</h2>
+    {showPrimary && <div className={styles.railPrimary}>
+      {upcoming ? <a href={directionsHref!} target="_blank" rel="noopener noreferrer" className={`tap zw-btn ${styles.primaryLink}`}><Icon name="nav" size={16} />{t.getDirections}</a> : <Button kind="accent" size="lg" onClick={onBookAgain} loading={bookingAgain} disabled={bookingAgain}><Icon name="rebook" size={16} />{t.bookAgain}</Button>}
+    </div>}
+    {showRows && <div className={styles.railRows}>
+      {reviewAllowed && <ManageRow icon="star" label={t.leaveReview} onClick={() => openReview(appt)} />}
+      {venue.phone && <ManageRow icon="phone" label={t.callVenue} href={`tel:${venue.phone}`} />}
+      {upcoming && <>
+        <ManageRow icon="clock" label={!appt.location?.allowCustomerReschedule ? t.rescheduleUnavailable : rescheduleAllowed ? t.reschedule : t.rescheduleWindowPassed} hint={rescheduleAllowed ? undefined : t.contactBusinessDirectly} disabled={!rescheduleAllowed} onClick={() => openReschedule(appt)} />
+        <ManageRow icon="x" label={!appt.location?.allowCustomerCancellation ? t.cancelUnavailable : cancelAllowed ? t.cancelAppointment : t.cancelWindowPassed} hint={cancelAllowed ? undefined : t.contactBusinessDirectly} danger disabled={!cancelAllowed} onClick={() => openCancel(appt)} />
+      </>}
+    </div>}
+    <div className={styles.railSecondary}>
+      {upcoming && <ManageRow icon="cal" label={p.addToCalendar} onClick={exportCalendar} />}
+      <ManageRow icon="reply" label={p.reportIssue} onClick={() => openReport(appt)} />
     </div>
-  );
+  </div>;
 }
 
-// ── Detail body (rendered under the provider) ───────────────────────────────
-
-function DetailBody({
-  t,
-  appt,
-  locale,
-  onOpenApp,
-}: {
-  t: ApptDict;
-  appt: AppointmentDetail;
-  locale: Locale;
-  onOpenApp?: () => void;
+function DetailBody({ t, appt, locale, onOpenApp, refreshError, refreshing, onRefresh }: {
+  t: ApptDict; appt: AppointmentDetail; locale: Locale; onOpenApp?: () => void;
+  refreshError: boolean; refreshing: boolean; onRefresh: () => void;
 }) {
-  const router = useRouter();
-  // Owned here, not in ActionRail, so the desktop rail and the mobile sticky
-  // bar drive the SAME rebook call and share one pending state.
+  const p = useTranslation().dict.appointmentPage;
+  const now = useAppointmentClock();
   const { rebook, pending: rebooking } = useRebook();
-
   const tz = apptTimeZone(appt.location?.timezone, appt.business?.timezone);
-  const tense = deriveTense(appt.scheduled_at, appt.ends_at, appt.status, undefined, tz);
+  const tense = deriveTense(appt.scheduled_at, appt.ends_at, appt.status, now, tz);
   const tone = apptStatusTone(appt.status, tense);
-  const cancelled = tone === "warning" || tone === "error";
-
-  const services = [appt.primaryItemName, ...appt.additionalServices].filter(Boolean);
-  const time = apptTime(appt.scheduled_at, locale, tz);
-  const endTime = apptTime(appt.ends_at, locale, tz);
-  const dateLabel = new Intl.DateTimeFormat(locale, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: tz,
-  }).format(new Date(appt.scheduled_at));
-
-  const relLabel = relativeLabel(t, tense, appt.scheduled_at, tz);
-  const heroChip =
-    formatDuration(Number(appt.duration)) +
-    " · " +
-    formatApptPrice(appt.price, appt.currency, locale, t.free);
-
-  const bizName = appt.business?.name ?? "";
-  // Resolve via the location's numeric id (see ActionRail note); null when absent.
-  const bizHref =
-    appt.location?.id != null
-      ? localeHref(locale, "business", String(appt.location.id))
-      : undefined;
-
-  const directionsHref = appt.location?.address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appt.location.address)}`
-    : null;
-
-  const bizReview = appt.reviews.business;
-  const proReviews = appt.reviews.professionals.filter((p) => p.review);
-  const hasReviews = !!bizReview || proReviews.length > 0;
-
-  return (
-    <div className="zw-container" style={{ paddingTop: 22, width: "100%" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 22,
-        }}
-      >
-        <button
-          type="button"
-          className="tap"
-          onClick={() => router.push(localeHref(locale, "appointments"))}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            background: "transparent",
-            border: 0,
-            cursor: "pointer",
-            fontSize: 13.5,
-            fontWeight: 600,
-            color: "var(--c-600)",
-            padding: "4px 0",
-            fontFamily: "inherit",
-          }}
-        >
-          <Icon name="back" size={14} color="var(--c-600)" />
-          {t.back}
-        </button>
-        {onOpenApp && (
-          <Button kind="ghost" size="sm" onClick={onOpenApp}>
-            {t.openApp}
-          </Button>
-        )}
-      </div>
-
-      {/* HERO */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+  const services = [appt.primaryItemName || appt.bookedItemName, ...appt.additionalServices].filter(Boolean);
+  const date = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: tz }).format(new Date(appt.scheduled_at));
+  const relative = relativeLabel(t, tense, appt.scheduled_at, tz, now);
+  const venue = appointmentVenue(appt);
+  const venueHref = locationHref(locale, appt.location);
+  const directionsHref = venue.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.address)}` : null;
+  const professionals = appointmentProfessionals(appt);
+  const businessReview = appt.reviews.business;
+  const professionalReviews = appt.reviews.professionals.filter((professional) => professional.review);
+  const hasReviews = !!businessReview || professionalReviews.length > 0;
+  return <div className={`zw-container ${styles.page}`}>
+    <div className={styles.navigation}>
+      <a href={localeHref(locale, "appointments")} className={`tap ${styles.back}`}><Icon name="back" size={14} />{t.back}</a>
+      {onOpenApp && <Button kind="ghost" size="sm" onClick={onOpenApp}>{t.openApp}</Button>}
+    </div>
+    <header className={styles.hero}>
+      <div className={`${styles.kicker} ${styles.heroKicker}`}>{p.detailKicker}</div>
+      <div className={styles.heroTop}>
         <StampPill t={t} tone={tone} status={appt.status} />
-        {relLabel && (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--c-600)",
-              letterSpacing: "0.02em",
-            }}
-          >
-            {relLabel}
-          </span>
-        )}
-        <span style={{ flex: 1 }} />
-        {appt.business &&
-          (bizHref ? (
-            <a
-              href={bizHref}
-              className="tap"
-              style={{
-                background: "transparent",
-                border: 0,
-                cursor: "pointer",
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "var(--c-600)",
-                textDecoration: "none",
-              }}
-            >
-              {format(t.atBusiness, { business: bizName })}
-            </a>
-          ) : (
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "var(--c-600)",
-              }}
-            >
-              {format(t.atBusiness, { business: bizName })}
-            </span>
-          ))}
+        {relative && <span className={styles.relative}>{relative}</span>}
+        {appt.business?.name && (venueHref ? <a href={venueHref} className={styles.businessLink}>{format(t.atBusiness, { business: appt.business.name })}</a> : <span className={styles.businessLink}>{format(t.atBusiness, { business: appt.business.name })}</span>)}
       </div>
-      <h1
-        className="txt-balance"
-        style={{
-          margin: 0,
-          fontSize: "clamp(28px, 3.4vw, 44px)",
-          fontWeight: 600,
-          letterSpacing: "-0.038em",
-          lineHeight: 1.04,
-          color: cancelled ? "var(--c-700)" : "var(--c-900)",
-        }}
-      >
-        {services[0] ?? appt.bookedItemName}
-      </h1>
-      {services.slice(1).map((s, i) => (
-        <div
-          key={i}
-          style={{
-            fontSize: "clamp(19px, 2.2vw, 26px)",
-            fontWeight: 500,
-            letterSpacing: "-0.025em",
-            color: "var(--c-600)",
-            marginTop: 4,
-            lineHeight: 1.15,
-          }}
-        >
-          <span style={{ color: "var(--c-400)", fontWeight: 400 }}>+ </span>
-          {s}
-        </div>
-      ))}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            fontSize: 15,
-            fontWeight: 600,
-            color: "var(--c-900)",
-          }}
-        >
-          <Icon name="cal" size={16} color="var(--p-600)" />
-          {dateLabel} · {time} – {endTime}
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 12,
-            fontWeight: 600,
-            color: "var(--c-600)",
-            letterSpacing: "0.03em",
-            textTransform: "uppercase",
-          }}
-        >
-          {heroChip}
-        </span>
+      <h1 className={styles.title}>{services[0]}</h1>
+      {services.slice(1).map((service, index) => <div className={styles.additionalService} key={`${index}:${service}`}>+ {service}</div>)}
+      <div className={styles.heroMeta}>
+        <div className={styles.date}><Icon name="cal" size={16} color="var(--p-600)" /><time dateTime={appt.scheduled_at}>{date}</time><span>· {apptTime(appt.scheduled_at, locale, tz)} – {apptTime(appt.ends_at, locale, tz)}</span></div>
+        <span className={styles.meta}>{formatDuration(Number(appt.duration))} · {formatApptPrice(appt.price, appt.currency, locale, t.free)}</span>
       </div>
-
-      {tone === "pending" && <PendingBanner t={t} appt={appt} />}
+      {appt.status === "pending" && <PendingBanner t={t} appt={appt} tense={tense} />}
       {tense === "now" && <LiveStrip t={t} appt={appt} />}
       <RecurringNote t={t} appt={appt} />
-
-      <div style={{ height: 28 }} />
-      <div style={{ height: 1, background: "rgba(28,28,26,0.08)" }} />
-
-      {/* BODY */}
-      <div
-        data-biz-cols="1"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) 340px",
-          gap: "clamp(28px, 4vw, 56px)",
-          alignItems: "start",
-          marginTop: 4,
-        }}
-      >
-        <div style={{ minWidth: 0 }}>
-          <Section label={t.sections.where}>
-            <WhereCard t={t} appt={appt} locale={locale} tense={tense} tone={tone} />
-          </Section>
-
-          <Section label={services.length > 1 ? t.sections.services : t.sections.service}>
-            <ServiceCard t={t} appt={appt} locale={locale} />
-          </Section>
-
-          {appt.notes && (
-            <Section label={t.sections.note}>
-              <NotesCard notes={appt.notes} />
-            </Section>
-          )}
-
-          {appt.staff_users?.[0] && (
-            <Section label={t.sections.with}>
-              <WithCard
-                t={t}
-                staff={appt.staff_users}
-                location={appt.location}
-                locale={locale}
-              />
-            </Section>
-          )}
-
-          {hasReviews && (
-            <Section label={t.sections.yourReview}>
-              {bizReview && (
-                <ReviewCard
-                  rating={Number(bizReview.rating)}
-                  comment={bizReview.comment}
-                />
-              )}
-              {proReviews.map((p) => (
-                <ReviewCard
-                  key={p.staffId}
-                  rating={Number(p.review!.rating)}
-                  comment={p.review!.comment}
-                />
-              ))}
-            </Section>
-          )}
-
-          {appt.business?.description &&
-            (appt.business.logo || appt.location?.profileImage) && (
-              <Section label={t.sections.about}>
-                <AboutCard t={t} appt={appt} locale={locale} />
-              </Section>
-            )}
-
-          <CloserBand t={t} appt={appt} locale={locale} tone={tone} />
-        </div>
-
-        {/* Right rail — desktop sticky */}
-        <div className="zw-only-desktop" style={{ position: "sticky", top: "calc(var(--nav-h) + 18px)" }}>
-          <ActionRail
-            t={t}
-            appt={appt}
-            locale={locale}
-            tense={tense}
-            tone={tone}
-            onBookAgain={() => void rebook(appt)}
-            bookingAgain={rebooking}
-          />
-        </div>
+    </header>
+    {refreshError && <div className={styles.refreshError}><InlineError>{p.refreshError}</InlineError><Button kind="secondary" size="sm" loading={refreshing} onClick={onRefresh}>{p.refresh}</Button></div>}
+    <div className={styles.columns}>
+      <div className={styles.content}>
+        <Section label={t.sections.where}><WhereCard t={t} appt={appt} locale={locale} tense={tense} tone={tone} /></Section>
+        <Section label={services.length > 1 ? t.sections.services : t.sections.service}><ServiceCard t={t} appt={appt} locale={locale} /></Section>
+        {appt.notes && <Section label={t.sections.note}><NotesCard notes={appt.notes} /></Section>}
+        {professionals.length > 0 && <Section label={t.sections.with}><WithCard t={t} appt={appt} locale={locale} /></Section>}
+        {hasReviews && <Section label={t.sections.yourReview}>
+          {businessReview && <ReviewCard rating={Number(businessReview.rating)} comment={businessReview.comment} label={format(p.reviewForBusiness, { name: venue.name || appt.business?.name || p.venueUnavailable })} />}
+          {professionalReviews.map((professional) => {
+            const member = professionals.find((candidate) => candidate.teamMemberId === professional.staffId || candidate.uuid === professional.staffUuid);
+            return <ReviewCard key={professional.staffId} rating={Number(professional.review!.rating)} comment={professional.review!.comment} label={format(p.reviewForProfessional, { name: staffDisplayName(member) || p.professionalUnavailable })} />;
+          })}
+        </Section>}
+        {appt.business?.description && <Section label={t.sections.about}><AboutCard t={t} appt={appt} locale={locale} /></Section>}
+        <CloserBand t={t} appt={appt} locale={locale} tone={tone} />
       </div>
-
-      {/* Mobile sticky bar */}
-      <MobileBar
-        t={t}
-        appt={appt}
-        locale={locale}
-        tense={tense}
-        tone={tone}
-        directionsHref={directionsHref}
-        onBookAgain={() => void rebook(appt)}
-        bookingAgain={rebooking}
-      />
-      <div className="zw-only-mobile" style={{ height: 64 }} />
+      <aside className={styles.rail} aria-label={p.managementTitle}>
+        <ActionRail t={t} appt={appt} tense={tense} tone={tone} onBookAgain={() => void rebook(appt)} bookingAgain={rebooking} />
+      </aside>
     </div>
-  );
+    <MobileBar t={t} appt={appt} locale={locale} tense={tense} tone={tone} directionsHref={directionsHref} onBookAgain={() => void rebook(appt)} bookingAgain={rebooking} />
+  </div>;
 }
 
 // ── Top-level data + gating + provider mount ────────────────────────────────
@@ -914,6 +399,10 @@ function AppointmentDetailSession({
   const [phase, setPhase] = useState<Phase>("loading");
   const [retrying, setRetrying] = useState(false);
   const [enteredWithReview] = useState(reviewRequested);
+  const [refreshError, setRefreshError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const loadedRef = useRef(false);
+  const refreshingRef = useRef(false);
   const aliveRef = useRef(false);
   const requestRef = useRef(0);
 
@@ -924,7 +413,9 @@ function AppointmentDetailSession({
       setPhase("notFound");
       return;
     }
+    loadedRef.current = true;
     setAppt(data);
+    setRefreshError(false);
     setPhase("ready");
   }, []);
 
@@ -961,17 +452,45 @@ function AppointmentDetailSession({
     });
   }, []);
 
-  // Keep the loaded body mounted during the existing post-action background refresh.
-  const refetch = useCallback(async () => {
-    if (!aliveRef.current) return;
+  // Apply the mutation's authoritative result before the network refresh. A
+  // failed GET must never resurrect the old time/status after a successful write.
+  const refetch = useCallback(async (change?: AppointmentChange) => {
+    if (!aliveRef.current || !loadedRef.current) return;
+    if (change) setAppt((current) => current ? { ...current, ...change } : current);
+    refreshingRef.current = true;
+    setRefreshing(true);
     const request = ++requestRef.current;
     try {
       const data = await getAppointment(uuid);
-      if (aliveRef.current && request === requestRef.current) setAppt(data);
-    } catch {
-      // The action's success remains valid even if this background refresh fails.
+      if (!aliveRef.current || request !== requestRef.current) return;
+      if (!data) { setPhase("notFound"); return; }
+      setAppt(data);
+      setRefreshError(false);
+    } catch (error) {
+      if (!aliveRef.current || request !== requestRef.current) return;
+      if (error instanceof ApiError && error.status === 404) setPhase("notFound");
+      else setRefreshError(true);
+    } finally {
+      if (aliveRef.current && request === requestRef.current) {
+        refreshingRef.current = false;
+        setRefreshing(false);
+      }
     }
   }, [uuid]);
+
+  useEffect(() => {
+    const refreshVisible = () => {
+      if (document.visibilityState !== "hidden" && !refreshingRef.current) void refetch();
+    };
+    window.addEventListener("focus", refreshVisible);
+    window.addEventListener("online", refreshVisible);
+    document.addEventListener("visibilitychange", refreshVisible);
+    return () => {
+      window.removeEventListener("focus", refreshVisible);
+      window.removeEventListener("online", refreshVisible);
+      document.removeEventListener("visibilitychange", refreshVisible);
+    };
+  }, [refetch]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -1013,6 +532,9 @@ function AppointmentDetailSession({
         appt={appt}
         locale={locale}
         onOpenApp={enteredWithReview ? onOpenApp : undefined}
+        refreshError={refreshError}
+        refreshing={refreshing}
+        onRefresh={() => void refetch()}
       />
     </AppointmentActionsProvider>
   );

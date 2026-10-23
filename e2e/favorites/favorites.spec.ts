@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { API_URL, authHeader, signInAsFreshCustomer } from '../fixtures/customer-helpers'
-import { DEMO, getBusinessId, getLocationId, getUserIdByUuid } from '../fixtures/seed'
+import { DEMO, getLocationId, getUserIdByUuid } from '../fixtures/seed'
 
 // Business detail page (src/app/[locale]/business/_components/business-detail.tsx)
 // and /saved (src/app/[locale]/saved/_components/saved-content.tsx). No
@@ -8,17 +8,20 @@ import { DEMO, getBusinessId, getLocationId, getUserIdByUuid } from '../fixtures
 // exact visible English copy read straight off those components.
 
 test.describe('Favorites — business page heart', () => {
-  test('FAV-01 signed out: no favorite heart renders anywhere on the business page', async ({ page }) => {
+  test('FAV-01 signed out: the heart shows and asks to sign in instead of saving', async ({ page }) => {
     await page.goto(`/business/${DEMO.locationSlugs.glowCentru}`)
-    // Wait for the page to actually be rendered before asserting an absence,
-    // so a "count 0" pass can't just mean "nothing has painted yet".
     await expect(page.getByRole('button', { name: 'Share' })).toBeVisible()
 
-    // FavoriteHeart is proactively gated (`if (!canFavorite) return null`) —
-    // there is no button to click and no "sign in" prompt to see, the heart
-    // simply never exists in the DOM for a signed-out visitor.
-    await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Remove from saved' })).toHaveCount(0)
+    // Like the marketplace app, the heart shows for everyone. Signed out it
+    // saves nothing and offers sign-in instead.
+    const heart = page.getByRole('button', { name: 'Save', exact: true })
+    await expect(heart).toBeVisible()
+    await heart.click()
+    const prompt = page.getByRole('status').filter({ hasText: 'Sign in to save' })
+    await expect(prompt).toBeVisible()
+    await expect(heart).toHaveAttribute('aria-pressed', 'false')
+    await prompt.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/auth\b/)
   })
 
   test('FAV-02 toggle a location favorite from the business page, then manage it from /saved (incl. Undo)', async ({
@@ -41,11 +44,10 @@ test.describe('Favorites — business page heart', () => {
     await expect(page.getByText('Centrul Vechi', { exact: true })).toBeVisible()
     await expect(page.getByText('Atelier Glow', { exact: true })).toBeVisible()
 
-    // exact:true: the surrounding saved-item card is ITSELF a role="button"
-    // whose accessible name concatenates its visible text plus this same
-    // remove button's aria-label, so a substring match resolves to both.
+    // Removal hides the row at once; the delete waits for the Undo window,
+    // so Undo simply brings the row back.
     await page.getByRole('button', { name: 'Remove Centrul Vechi from saved', exact: true }).click()
-    const toast = page.getByRole('status')
+    const toast = page.getByRole('status').filter({ hasText: 'Removed · Centrul Vechi' })
     await expect(toast).toContainText('Removed · Centrul Vechi')
     await expect(page.getByText('Centrul Vechi', { exact: true })).toHaveCount(0)
 
@@ -56,14 +58,13 @@ test.describe('Favorites — business page heart', () => {
 })
 
 test.describe('Favorites — /saved filters', () => {
-  test('FAV-03 filter chips (All/Businesses/Locations/People) show the right subset, plus an empty-state for a chip with nothing left', async ({
+  test('FAV-03 filter chips (All/Locations/People) show the right subset, plus an empty-state for a chip with nothing left', async ({
     page,
   }) => {
     await signInAsFreshCustomer(page)
 
-    // Three DIFFERENT entities, one of each kind, favorited directly via the
-    // API (no single business-page path exercises all three kinds at once).
-    const businessId = await getBusinessId(DEMO.businesses.barber) // "Barber Bros"
+    // Customers save locations and people only. One of each, favorited
+    // directly via the API (no single page path saves both kinds at once).
     const locationId = await getLocationId(DEMO.locations.zenDorobanti) // "Dorobanți"
     const professionalId = await getUserIdByUuid(DEMO.staff.dan.uuid) // "Dan Mureșan"
 
@@ -72,7 +73,6 @@ test.describe('Favorites — /saved filters', () => {
     // endpoints need — mint one via the same silent-refresh dance the app uses.
     const headers = await authHeader(page)
     for (const res of await Promise.all([
-      page.request.post(`${API_URL}/marketplace/customer/favorite/business/${businessId}`, { headers }),
       page.request.post(`${API_URL}/marketplace/customer/favorite/location/${locationId}`, { headers }),
       page.request.post(`${API_URL}/marketplace/customer/favorite/professional/${professionalId}`, { headers }),
     ])) {
@@ -82,37 +82,28 @@ test.describe('Favorites — /saved filters', () => {
     await page.goto('/saved')
     await expect(page.getByRole('heading', { name: 'Saved' })).toBeVisible()
 
-    const businessRow = page.getByText('Barber Bros', { exact: true })
     const locationRow = page.getByText('Dorobanți', { exact: true })
     const personRow = page.getByText('Dan Mureșan', { exact: true })
 
-    // "All" — every kind visible.
-    await expect(businessRow).toBeVisible()
+    // "All" — every kind visible. No Businesses filter exists.
     await expect(locationRow).toBeVisible()
     await expect(personRow).toBeVisible()
-
-    // "Businesses" — only the business row.
-    await page.getByRole('button', { name: /^Businesses/ }).click()
-    await expect(businessRow).toBeVisible()
-    await expect(locationRow).toHaveCount(0)
-    await expect(personRow).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Businesses/ })).toHaveCount(0)
 
     // "Locations" — only the location row.
     await page.getByRole('button', { name: /^Locations/ }).click()
     await expect(locationRow).toBeVisible()
-    await expect(businessRow).toHaveCount(0)
     await expect(personRow).toHaveCount(0)
 
     // "People" — only the person row.
     await page.getByRole('button', { name: /^People/ }).click()
     await expect(personRow).toBeVisible()
-    await expect(businessRow).toHaveCount(0)
     await expect(locationRow).toHaveCount(0)
 
-    // Remove the only row in the currently-selected "People" filter — the
-    // chip itself disappears (its count drops to 0), but the filter
-    // selection is unchanged, so the category is now empty under it.
+    // Remove the only person in the selected filter. Its chip stays visible
+    // and selected at zero while the selected type shows its empty state.
     await page.getByRole('button', { name: 'Remove Dan Mureșan from saved', exact: true }).click()
-    await expect(page.getByText('Nothing saved in this category yet.')).toBeVisible()
+    await expect(page.getByText('No people saved yet.', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^People\s*0$/ })).toHaveAttribute('aria-pressed', 'true')
   })
 })

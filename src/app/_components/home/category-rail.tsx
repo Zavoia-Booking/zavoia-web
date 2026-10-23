@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Icon } from "@/components/ui/icon";
-import { useSearchOverlay } from "@/components/search/search-overlay-provider";
+import { useServiceCatalog } from "@/components/search/service-catalog-provider";
 import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { industryAccent, industryIcon } from "@/lib/marketplace/industry-visuals";
-import type { Industry } from "@/lib/api/marketplace/types";
+import type { Industry, IndustryTag } from "@/lib/api/marketplace/types";
 import { useHomeLocationSnapshot } from "./use-home-coords";
 import styles from "./category-rail.module.css";
 
@@ -18,7 +19,8 @@ export function CategoryRail({ locale, industries, featuredIndustryIds }: {
   featuredIndustryIds: number[];
 }) {
   const { dict } = useTranslation();
-  const { openSearch } = useSearchOverlay();
+  const router = useRouter();
+  const { openCatalog } = useServiceCatalog();
   const location = useHomeLocationSnapshot();
   const t = dict.searchOverlay;
   const featured = featuredIndustryIds.flatMap((id) => {
@@ -28,17 +30,22 @@ export function CategoryRail({ locale, industries, featuredIndustryIds }: {
 
   if (industries.length === 0) return null;
 
-  const browse = (industry: Industry) => openSearch({
-    step: "what",
-    browseIndustry: industry.slug,
+  const selectService = (industry: Industry, tag: IndustryTag) => {
+    const params = new URLSearchParams({
+      industry: industry.slug,
+      tagIds: String(tag.id),
+    });
+    if (location.city) params.set("city", location.city);
+    if (location.coords) {
+      params.set("lat", String(location.coords.lat));
+      params.set("lng", String(location.coords.lng));
+    }
+    router.push(`${localeHref(locale, "search")}?${params.toString()}`);
+  };
+  const browse = (industry?: Industry) => openCatalog({
     industries,
-    initial: {
-      where: {
-        label: location.city ?? undefined,
-        lat: location.coords?.lat,
-        lng: location.coords?.lng,
-      },
-    },
+    initialIndustry: industry?.slug,
+    onSelect: selectService,
   });
 
   return (
@@ -73,6 +80,11 @@ export function CategoryRail({ locale, industries, featuredIndustryIds }: {
             prefetch={false}
             title={t.seeAllIndustries}
             className={styles.tile}
+            aria-haspopup="dialog"
+            onNavigate={(event) => {
+              event.preventDefault();
+              browse();
+            }}
           >
             <span className={`${styles.glyph} ${styles.allGlyph}`}>
               <Icon name="grid" size={23} />

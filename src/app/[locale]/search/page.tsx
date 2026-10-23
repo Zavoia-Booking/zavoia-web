@@ -8,7 +8,8 @@ import type {
   SearchListingsParams,
   SearchListingsResult,
 } from "@/lib/api/marketplace/types";
-import { SEARCH_LIMIT, SEARCH_RADIUS_KM } from "@/components/search/constants";
+import { SEARCH_LIMIT } from "@/components/search/constants";
+import { deriveSearchParams, toSearchListingsParams } from "@/lib/search/query";
 import { SearchContent } from "./_components/search-content";
 
 // Live marketplace data: never statically prerender (the backend may be down
@@ -50,54 +51,21 @@ const EMPTY_RESULT: SearchListingsResult = {
   fallback: { applied: false, reason: null },
 };
 
-function one(v: string | string[] | undefined): string | undefined {
-  if (Array.isArray(v)) return v[0];
-  return v;
-}
-
-function num(v: string | string[] | undefined): number | undefined {
-  const s = one(v);
-  if (s == null || s.trim() === "") return undefined;
-  const n = Number(s);
-  return Number.isFinite(n) ? n : undefined;
-}
-
-function csvNums(v: string | string[] | undefined): number[] | undefined {
-  const s = one(v);
-  if (!s) return undefined;
-  const arr = s
-    .split(",")
-    .map((x) => Number(x.trim()))
-    .filter((x) => Number.isFinite(x));
-  return arr.length ? arr : undefined;
-}
-
 export default async function SearchPage({ params, searchParams }: Props) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
 
   const sp = await searchParams;
-  const lat = num(sp.lat);
-  const lng = num(sp.lng);
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    const first = Array.isArray(value) ? value[0] : value;
+    if (first != null) query.set(key, first);
+  }
 
   // Initial results from the URL params (build-safe: never throws; a failed
   // fetch resolves to EMPTY_RESULT below, with `initialResultFailed` telling
   // SearchContent it was a failure, not a genuine zero-result search).
-  const initialParams: SearchListingsParams = {
-    search: one(sp.search),
-    industrySlug: one(sp.industry),
-    tagIds: csvNums(sp.tagIds),
-    city: one(sp.city),
-    date: one(sp.date),
-    lat,
-    lng,
-    // Match the client search: never relax the requested city/service, and
-    // only apply the fixed radius when the URL supplies a complete point.
-    radius: lat != null && lng != null ? SEARCH_RADIUS_KM : undefined,
-    strict: true,
-    limit: SEARCH_LIMIT,
-    offset: 0,
-  };
+  const initialParams: SearchListingsParams = toSearchListingsParams(deriveSearchParams(query));
 
   // The filter taxonomy and the result set are independent, so both requests
   // go out together rather than one after the other. The result set also
@@ -111,7 +79,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
 
   const [{ industries, failed: initialIndustriesFailed }, { result: initialResult, failed: initialResultFailed }] =
     await Promise.all([
-      getIndustries().then(
+      getIndustries({ order: "api" }).then(
         industries => ({ industries, failed: false }),
         () => ({ industries: [] as Industry[], failed: true }),
       ),

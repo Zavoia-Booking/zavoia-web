@@ -1,27 +1,21 @@
 "use client";
 
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@/i18n/useTranslation";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
-import {
-  Avatar,
-  Button,
-  Icon,
-  Kicker,
-  SignedOutGate,
-  Skeleton,
-} from "@/components/ui";
-import { listAppointments } from "@/lib/api/marketplace/appointments";
+import { Avatar, Button, Icon, Img, SignedOutGate, Skeleton } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
+import { listAppointments } from "@/lib/api/marketplace/appointments";
 import type {
+  AppointmentList,
   AppointmentListItem,
-  AppointmentStatus,
   ListAppointmentsParams,
   PastAppointmentsGroup,
 } from "@/lib/api/marketplace/types";
@@ -29,683 +23,156 @@ import { formatDuration } from "@/lib/format/money-time";
 import {
   STATUS_DOT_COLOR,
   apptDateParts,
-  apptStamp,
   apptTime,
   deriveTense,
   formatApptPrice,
   timeUntil,
   wallDateKey,
-  type ApptStamp,
-  type Tense,
   type TimeUntil,
 } from "./vm";
+import { useAppointmentClock } from "./use-appointment-clock";
+import styles from "./appointments.module.css";
 
 type ApptDict = Dictionary["appointments"];
-
+type PageDict = Dictionary["appointmentPage"];
 type Filter = "all" | "upcoming" | "past" | "cancelled" | "no_show";
-
 const PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 50;
 
-// ─────────────────────────────────────────────
-// Status dot — colour by stored status (vm.STATUS_DOT_COLOR).
-// Ported from web-appointments.jsx:133-138.
-// ─────────────────────────────────────────────
-function SchedDot({ status }: { status: AppointmentStatus }) {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        flexShrink: 0,
-        background: STATUS_DOT_COLOR[status],
-      }}
-    />
-  );
-}
-
-// ─────────────────────────────────────────────
-// Date pill — terracotta today, ink upcoming, white past.
-// Ported from web-appointments.jsx:143-162.
-// ─────────────────────────────────────────────
-function DatePill({
-  dow,
-  mon,
-  day,
-  tense = "future",
-}: {
-  dow: string;
-  mon: string;
-  day: number;
-  tense?: Tense;
-}) {
-  const isToday = tense === "now" || tense === "today";
-  const isPast = tense === "past";
-  const pal = isToday
-    ? {
-        bg: "var(--p-500)",
-        fg: "#fff",
-        sub: "rgba(255,255,255,0.80)",
-        border: "none",
-        shadow:
-          "0 6px 18px rgba(201,74,42,0.22), 0 1px 2px rgba(28,28,26,0.06)",
-      }
-    : isPast
-      ? {
-          bg: "#fff",
-          fg: "var(--c-700)",
-          sub: "var(--c-500)",
-          border: "1px solid rgba(28,28,26,0.10)",
-          shadow: "none",
-        }
-      : {
-          bg: "var(--c-ink)",
-          fg: "#fff",
-          sub: "rgba(255,255,255,0.65)",
-          border: "none",
-          shadow: "0 1px 2px rgba(28,28,26,0.06)",
-        };
-  return (
-    <div
-      style={{
-        width: 50,
-        height: 64,
-        borderRadius: 13,
-        flexShrink: 0,
-        background: pal.bg,
-        color: pal.fg,
-        border: pal.border,
-        boxShadow: pal.shadow,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "4px 0",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 9,
-          fontWeight: 700,
-          letterSpacing: "0.12em",
-          color: pal.sub,
-          lineHeight: 1,
-        }}
-      >
-        {dow}
-      </span>
-      <span
-        style={{
-          fontSize: 20,
-          fontWeight: 600,
-          letterSpacing: "-0.03em",
-          lineHeight: 1.05,
-          marginTop: 3,
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {day}
-      </span>
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 9,
-          fontWeight: 700,
-          letterSpacing: "0.10em",
-          color: pal.sub,
-          lineHeight: 1,
-          marginTop: 3,
-        }}
-      >
-        {mon}
-      </span>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Right-hand time-until chip — maps the vm TimeUntil descriptor to dict text.
-// Ported from web-appointments.jsx:165-187.
-// ─────────────────────────────────────────────
 function timeUntilLabel(tu: TimeUntil, t: ApptDict): string {
   switch (tu.kind) {
-    case "live":
-      return t.timeUntil.live;
-    case "pending":
-      return t.timeUntil.awaiting;
-    case "soon":
-      if (tu.variant === "starting") return t.timeUntil.starting;
-      return format(t.timeUntil.inMinutes, { n: String(tu.value) });
-    case "today":
-      return format(t.timeUntil.inHours, { n: String(tu.value) });
-    case "future":
+    case "live": return t.timeUntil.live;
+    case "pending": return t.timeUntil.awaiting;
+    case "soon": return tu.variant === "starting"
+      ? t.timeUntil.starting
+      : format(t.timeUntil.inMinutes, { n: String(tu.value) });
+    case "today": return format(t.timeUntil.inHours, { n: String(tu.value) });
+    case "future": {
       if (tu.variant === "tomorrow") return t.timeUntil.tomorrow;
-      if (tu.variant === "days") {
-        return format(
-          tu.value === 1 ? t.timeUntil.inDaysOne : t.timeUntil.inDaysMany,
-          { n: String(tu.value) },
-        );
-      }
-      if (tu.variant === "weeks") {
-        return format(
-          tu.value === 1 ? t.timeUntil.inWeeksOne : t.timeUntil.inWeeksMany,
-          { n: String(tu.value) },
-        );
-      }
-      return format(
-        tu.value === 1 ? t.timeUntil.inMonthsOne : t.timeUntil.inMonthsMany,
-        { n: String(tu.value) },
-      );
+      const labels = tu.variant === "days"
+        ? [t.timeUntil.inDaysOne, t.timeUntil.inDaysMany]
+        : tu.variant === "weeks"
+          ? [t.timeUntil.inWeeksOne, t.timeUntil.inWeeksMany]
+          : [t.timeUntil.inMonthsOne, t.timeUntil.inMonthsMany];
+      return format(labels[tu.value === 1 ? 0 : 1], { n: String(tu.value) });
+    }
   }
 }
 
-function SchedChip({ tu, t }: { tu: TimeUntil; t: ApptDict }) {
-  const pal =
-    tu.kind === "live"
-      ? {
-          bg: "color-mix(in oklch, var(--s-success-600) 12%, #fff)",
-          fg: "var(--s-success-600)",
-        }
-      : tu.kind === "pending"
-        ? {
-            bg: "color-mix(in oklch, var(--c-900) 8%, #fff)",
-            fg: "var(--c-900)",
-          }
-        : { bg: "var(--c-100)", fg: "var(--c-700)" };
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        height: 22,
-        padding: "0 10px",
-        borderRadius: 999,
-        background: pal.bg,
-        color: pal.fg,
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "0.02em",
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-      }}
-    >
-      {tu.kind === "live" && (
-        <span
-          aria-hidden="true"
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: "currentColor",
-            position: "relative",
-          }}
-        >
-          <span
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "50%",
-              background: "currentColor",
-              animation: "zv-pulse 1.6s ease-out infinite",
-            }}
-          />
-        </span>
-      )}
-      {timeUntilLabel(tu, t)}
-    </span>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Rotated dashed ticket stamp. Ported from web-appointments.jsx:190-207.
-// ─────────────────────────────────────────────
-function TicketStamp({ stamp, t }: { stamp: ApptStamp; t: ApptDict }) {
-  return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "4px 9px",
-        border: `1.5px dashed ${stamp.color}`,
-        borderRadius: 4,
-        background: "#fff",
-        fontFamily: "var(--font-mono)",
-        fontSize: 9.5,
-        fontWeight: 800,
-        letterSpacing: "0.14em",
-        textTransform: "uppercase",
-        color: stamp.color,
-        transform: "rotate(-2deg)",
-        lineHeight: 1,
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-      }}
-    >
-      {stamp.pulse && (
-        <span
-          aria-hidden="true"
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: "currentColor",
-            position: "relative",
-          }}
-        >
-          <span
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "50%",
-              background: "currentColor",
-              animation: "zv-pulse 1.6s ease-out infinite",
-            }}
-          />
-        </span>
-      )}
-      {t.stamps[stamp.key]}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Receipt / ticket card — faithful port of ZwTicketCard (web-appointments.jsx:212-323).
-// ─────────────────────────────────────────────
-function TicketCard({
-  a,
-  locale,
-  t,
-  now,
-  onOpen,
-}: {
+function TicketCard({ a, locale, t, page, now }: {
   a: AppointmentListItem;
   locale: Locale;
   t: ApptDict;
+  page: PageDict;
   now: Date;
-  onOpen: (uuid: string) => void;
-}) {
-  const tz = a.location.timezone ?? undefined;
-  const tense = deriveTense(a.scheduledAt, a.endsAt, a.status, now, tz);
-  const isCancelled = a.status === "cancelled" || a.status === "no_show";
-
-  // Title: bundle → bookedItemName, else primaryItemName + "+ N more".
-  const title =
-    a.bookingType === "bundle"
-      ? a.bookedItemName
-      : a.additionalItemsCount > 0
-        ? `${a.primaryItemName} + ${a.additionalItemsCount} more`
-        : a.primaryItemName;
-
-  const stamp = apptStamp(a.status, tense);
-  const tu = timeUntil(a.scheduledAt, a.status, tense, now);
-
-  const startTime = apptTime(a.scheduledAt, locale, tz);
-  const endTime = apptTime(a.endsAt, locale, tz);
-
-  const businessName = a.location.name ?? "";
-  const businessLogo = a.location.profileImage;
-
-  const staff = a.staff;
-  const staffName = staff
-    ? `${staff.firstName ?? ""} ${staff.lastName ?? ""}`.trim()
-    : "";
-  const staffFirst = staff?.firstName ?? staffName;
-
-  const duration = Number(a.duration);
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      className="tap zw-hover-lift"
-      onClick={() => onOpen(a.uuid)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") onOpen(a.uuid);
-      }}
-      style={{
-        position: "relative",
-        flex: 1,
-        minWidth: 0,
-        background: isCancelled ? "var(--c-100)" : "#fff",
-        border: "1px solid rgba(28,28,26,0.07)",
-        borderRadius: 16,
-        boxShadow: "var(--sh-sm)",
-        cursor: "pointer",
-        overflow: "visible",
-      }}
-    >
-      {/* TOP — when + what */}
-      <div style={{ padding: "15px 18px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-            minWidth: 0,
-          }}
-        >
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              minWidth: 0,
-              flex: 1,
-            }}
-          >
-            <SchedDot status={a.status} />
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 13.5,
-                fontWeight: 600,
-                color: isCancelled ? "var(--c-500)" : "var(--c-900)",
-                letterSpacing: "-0.01em",
-                fontVariantNumeric: "tabular-nums",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {startTime} – {endTime}
-            </span>
-          </div>
-          {stamp ? (
-            <TicketStamp stamp={stamp} t={t} />
-          ) : a.status === "confirmed" && tu ? (
-            <SchedChip tu={tu} t={t} />
-          ) : null}
-        </div>
-
-        <div
-          style={{
-            marginTop: 9,
-            fontSize: 18,
-            fontWeight: 600,
-            letterSpacing: "-0.022em",
-            lineHeight: 1.22,
-            color: isCancelled ? "var(--c-600)" : "var(--c-900)",
-          }}
-        >
-          {title}
-        </div>
-
-        <div
-          style={{
-            marginTop: 7,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontFamily: "var(--font-mono)",
-            fontSize: 12,
-            fontWeight: 500,
-            color: "var(--c-600)",
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          <Icon name="clock" size={12} color="var(--c-500)" />
-          <span>{formatDuration(duration).toUpperCase()}</span>
-          <span style={{ color: "var(--c-400)" }}>·</span>
-          <span>
-            {formatApptPrice(a.price, a.currency, locale, t.free)}
-          </span>
-        </div>
-      </div>
-
-      {/* PERFORATION — dashed line + both notches share one zero-height
-          flow anchor at the top/stub boundary, so they stay centred on the
-          same axis at any card (title) height. */}
-      <div style={{ position: "relative", height: 0 }} aria-hidden="true">
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 14,
-            right: 14,
-            height: 1,
-            transform: "translateY(-50%)",
-            backgroundImage:
-              "radial-gradient(circle, rgba(28,28,26,0.22) 0.7px, transparent 0.7px)",
-            backgroundSize: "6px 1px",
-            backgroundRepeat: "repeat-x",
-            backgroundPosition: "left center",
-          }}
-        />
-        <span
-          style={{
-            position: "absolute",
-            top: 0,
-            left: -9,
-            transform: "translateY(-50%)",
-            width: 18,
-            height: 18,
-            borderRadius: "50%",
-            background: "var(--c-canvas)",
-            border: "1px solid rgba(28,28,26,0.10)",
-            clipPath: "inset(0 0 0 50%)",
-          }}
-        />
-        <span
-          style={{
-            position: "absolute",
-            top: 0,
-            right: -9,
-            transform: "translateY(-50%)",
-            width: 18,
-            height: 18,
-            borderRadius: "50%",
-            background: "var(--c-canvas)",
-            border: "1px solid rgba(28,28,26,0.10)",
-            clipPath: "inset(0 50% 0 0)",
-          }}
-        />
-      </div>
-
-      {/* STUB — who */}
-      <div
-        style={{
-          padding: "13px 18px 15px",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          minWidth: 0,
-        }}
-      >
-        <span
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 9,
-            background: "var(--c-200)",
-            border: "1px solid rgba(28,28,26,0.07)",
-            overflow: "hidden",
-            flexShrink: 0,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {businessLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={businessLogo}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          ) : (
-            <span
-              style={{ fontSize: 13, fontWeight: 700, color: "var(--c-700)" }}
-            >
-              {(businessName || "?").trim()[0]}
-            </span>
-          )}
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: "var(--c-800)",
-              letterSpacing: "-0.012em",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              display: "block",
-              lineHeight: 1.2,
-            }}
-          >
-            {businessName}
-          </span>
-        </div>
-        {staff && (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              flexShrink: 0,
-            }}
-          >
-            <Avatar
-              src={staff.profileImage ?? undefined}
-              name={staffName}
-              size={22}
-            />
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: "var(--c-700)",
-                whiteSpace: "nowrap",
-                maxWidth: 80,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {staffFirst}
-            </span>
-          </span>
-        )}
-        <Icon name="chevR" size={14} color="var(--c-400)" />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Timeline row: date pill + ticket. Ported from web-appointments.jsx:326-334.
-// ─────────────────────────────────────────────
-function TimelineRow({
-  a,
-  locale,
-  t,
-  now,
-  onOpen,
-}: {
-  a: AppointmentListItem;
-  locale: Locale;
-  t: ApptDict;
-  now: Date;
-  onOpen: (uuid: string) => void;
 }) {
   const tz = a.location.timezone ?? undefined;
   const tense = deriveTense(a.scheduledAt, a.endsAt, a.status, now, tz);
   const { dow, day, mon } = apptDateParts(a.scheduledAt, locale, tz);
+  const title = a.bookingType === "bundle"
+    ? a.bookedItemName
+    : [a.primaryItemName, a.additionalItemsCount > 0
+      ? format(page.moreItems, { n: String(a.additionalItemsCount) })
+      : null].filter(Boolean).join(" ");
+  const startTime = apptTime(a.scheduledAt, locale, tz);
+  const endTime = apptTime(a.endsAt, locale, tz);
+  const fullDate = new Intl.DateTimeFormat(locale, {
+    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: tz,
+  }).format(new Date(a.scheduledAt));
+  const brandName = a.business?.name?.trim();
+  const branchName = a.location.name?.trim();
+  const venueName = brandName || branchName || page.venueUnavailable;
+  const separateBranch = branchName && brandName && branchName.toLocaleLowerCase(locale) !== brandName.toLocaleLowerCase(locale);
+  const venueImage = brandName ? a.business?.logo : a.location.profileImage;
+  const staffName = a.staff
+    ? [a.staff.firstName, a.staff.lastName].filter(Boolean).join(" ").trim()
+    : "";
+  const statusLabel = tense === "now" ? page.statusLabels.live : page.statusLabels[a.status];
+  const countdown = timeUntil(a.scheduledAt, a.status, tense, now);
+  const showCountdown = a.status === "confirmed" && countdown && countdown.kind !== "live";
+  const price = formatApptPrice(a.price, a.currency, locale, t.free);
+  const accessibleLabel = [title, fullDate, `${startTime} – ${endTime}`, venueName,
+    separateBranch ? branchName : null, staffName, statusLabel, price].filter(Boolean).join(", ");
+
   return (
-    <div
-      style={{ display: "flex", alignItems: "stretch", gap: 14, minWidth: 0 }}
+    <Link
+      href={localeHref(locale, "appointments", a.uuid)}
+      prefetch={false}
+      className={`${styles.card} tap zw-hover-lift`}
+      aria-label={accessibleLabel}
     >
-      <div style={{ paddingTop: 4 }}>
-        <DatePill dow={dow} mon={mon} day={day} tense={tense} />
+      <div className={styles.cardBody}>
+        <div className={styles.when}>
+          <time dateTime={a.scheduledAt} className={styles.date} aria-label={fullDate}>
+            <span className={styles.dateMonth}>{mon}</span>
+            <span className={styles.dateDay}>{day}</span>
+          </time>
+          <div className={styles.whenDetails}>
+            <span className={styles.weekday}>{dow}</span>
+            <span className={styles.time}>{startTime} – {endTime}</span>
+            <span className={styles.status}>
+              <span aria-hidden="true" className={styles.statusDot} style={{ background: tense === "now" ? "var(--s-success-600)" : STATUS_DOT_COLOR[a.status] }} />
+              {statusLabel}
+              {showCountdown && <span className={styles.countdown}>{timeUntilLabel(countdown, t)}</span>}
+            </span>
+          </div>
+        </div>
+        <h3 className={styles.service} title={title}>{title}</h3>
+        <div className={styles.metadata}>
+          <span className={styles.duration}><Icon name="clock" size={13} color="var(--c-600)" />{formatDuration(Number(a.duration))}</span>
+          <span className={styles.price}><span aria-hidden="true" className={styles.separator}>·</span>{price}</span>
+        </div>
+        {staffName && (
+          <div className={styles.professional}>
+            <Avatar src={a.staff?.profileImage ?? undefined} name={staffName} size={20} />
+            <span title={staffName}>{staffName}</span>
+          </div>
+        )}
       </div>
-      <TicketCard a={a} locale={locale} t={t} now={now} onOpen={onOpen} />
-    </div>
+      <div className={styles.venue}>
+        <div className={`${styles.venueImage} zw-zoom-wrap`} aria-hidden="true">
+          {venueImage ? (
+            <Img src={venueImage} alt="" label={venueName.trim()[0]} style={{ width: "100%", height: "100%" }} />
+          ) : <span>{venueName.trim()[0]}</span>}
+        </div>
+        <span className={styles.venueIdentity}>
+          <span className={styles.venueName} title={venueName}>{venueName}</span>
+          {separateBranch && <span className={styles.branch} title={branchName}>{branchName}</span>}
+        </span>
+        <Icon name="chevR" size={16} color="var(--c-600)" />
+      </div>
+    </Link>
   );
 }
 
-// ─────────────────────────────────────────────
-// Section header (accordion). Ported from web-appointments.jsx:338-352.
-// ─────────────────────────────────────────────
-function SchedSection({
-  label,
-  count,
-  open,
-  onToggle,
-}: {
+function SchedSection({ label, count, open, onToggle, id }: {
   label: string;
   count: number | null;
   open: boolean;
   onToggle: () => void;
+  id: string;
 }) {
   return (
-    <button
-      type="button"
-      className="tap"
-      onClick={onToggle}
-      aria-expanded={open}
-      style={{
-        width: "100%",
-        boxSizing: "border-box",
-        cursor: "pointer",
-        background: "transparent",
-        border: 0,
-        padding: "6px 0 16px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 10,
-      }}
-    >
-      <span
-        style={{ display: "inline-flex", alignItems: "baseline", gap: 10 }}
-      >
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 600,
-            letterSpacing: "-0.026em",
-            color: "var(--c-900)",
-          }}
-        >
-          {label}
+    <h2 className={styles.sectionHeading}>
+      <button type="button" className={`${styles.sectionToggle} tap`} onClick={onToggle}
+        aria-expanded={open} aria-controls={id}>
+        <span className={styles.sectionTitle}>{label}
+          <span className={styles.sectionCount}>{count === null
+            ? <span aria-hidden="true"><Skeleton w="2ch" h={12} r={3} /></span>
+            : count}</span>
         </span>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 13,
-            fontWeight: 500,
-            color: "var(--c-500)",
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {count === null ? <span aria-hidden="true"><Skeleton w="2ch" h={12} r={3} /></span> : count}
-        </span>
-      </span>
-      <Icon name={open ? "chevU" : "chevD"} size={16} color="var(--c-600)" />
-    </button>
+        <Icon name={open ? "chevU" : "chevD"} size={16} color="var(--c-600)" />
+      </button>
+    </h2>
   );
 }
 
-// ─────────────────────────────────────────────
-// Filter chips with mono counts. Ported from web-appointments.jsx:355-386.
-// All five chips stay visible (live counts aren't all known up front).
-// ─────────────────────────────────────────────
-function SchedFilters({
-  value,
-  onChange,
-  counts,
-  t,
-  loading = false,
-}: {
+function SchedFilters({ value, onChange, counts, t, page, loading = false }: {
   value: Filter;
   onChange: (f: Filter) => void;
   counts: Partial<Record<Filter, number>>;
   t: ApptDict;
+  page: PageDict;
   loading?: boolean;
 }) {
   const tabs: { id: Filter; label: string }[] = [
@@ -716,59 +183,16 @@ function SchedFilters({
     { id: "no_show", label: t.filters.noShow },
   ];
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 8,
-        flexWrap: "wrap",
-        marginTop: 24,
-        marginBottom: 28,
-      }}
-    >
+    <div className={styles.filters} role="group" aria-label={page.filtersLabel}>
       {tabs.map((tab) => {
         const active = tab.id === value;
         const count = counts[tab.id];
         return (
-          <button
-            key={tab.id}
-            type="button"
-            className="tap"
-            onClick={() => onChange(tab.id)}
-            aria-pressed={active}
-            disabled={loading}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              height: 36,
-              padding: "0 15px",
-              borderRadius: 999,
-              cursor: "pointer",
-              background: active ? "var(--c-ink)" : "#fff",
-              color: active ? "#fff" : "var(--c-700)",
-              border:
-                "1px solid " +
-                (active ? "transparent" : "rgba(28,28,26,0.12)"),
-              fontSize: 13.5,
-              fontWeight: 600,
-              letterSpacing: "-0.005em",
-              transition:
-                "background-color .2s var(--ease-soft), color .2s var(--ease-soft)",
-            }}
-          >
+          <button key={tab.id} type="button" className={`${styles.filter} tap`}
+            onClick={() => onChange(tab.id)} aria-pressed={active} disabled={loading}>
             {tab.label}
-            <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: active ? "rgba(255,255,255,0.6)" : "var(--c-500)",
-                  fontVariantNumeric: "tabular-nums",
-                  minWidth: "2ch",
-                }}
-              >
-                {count ?? (loading ? <span aria-hidden="true"><Skeleton w="2ch" h={11} r={3} /></span> : null)}
-              </span>
+            {count !== undefined && <span className={styles.filterCount}>{count}</span>}
+            {loading && <span aria-hidden="true"><Skeleton w="2ch" h={11} r={3} /></span>}
           </button>
         );
       })}
@@ -776,221 +200,82 @@ function SchedFilters({
   );
 }
 
-// ─────────────────────────────────────────────
-// Year separator. Ported from web-appointments.jsx:389-396.
-// ─────────────────────────────────────────────
 function YearSep({ year }: { year: number }) {
-  return (
-    <div
-      style={{
-        gridColumn: "1 / -1",
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        padding: "8px 0 2px",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.14em",
-          color: "var(--c-500)",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {year}
-      </span>
-      <span
-        aria-hidden="true"
-        style={{ flex: 1, height: 1, background: "rgba(28,28,26,0.08)" }}
-      />
-    </div>
-  );
+  return <div className={styles.year}><span>{year}</span><span aria-hidden="true" /></div>;
 }
 
-// ─────────────────────────────────────────────
-// Grid of timeline rows (optionally with year separators).
-// Ported from web-appointments.jsx:399-415.
-// ─────────────────────────────────────────────
-function SchedGrid({
-  items,
-  locale,
-  t,
-  now,
-  onOpen,
-  withYears,
-}: {
+function SchedGrid({ items, locale, t, page, now, withYears = false }: {
   items: AppointmentListItem[];
   locale: Locale;
   t: ApptDict;
+  page: PageDict;
   now: Date;
-  onOpen: (uuid: string) => void;
   withYears?: boolean;
 }) {
-  const nodes: React.ReactNode[] = [];
+  const nodes: ReactNode[] = [];
   let lastYear = now.getFullYear();
-  items.forEach((a) => {
+  for (const a of items) {
     if (withYears) {
-      const y = Number(
-        wallDateKey(new Date(a.scheduledAt), a.location.timezone ?? undefined).slice(0, 4),
-      );
-      if (y !== lastYear) {
-        nodes.push(<YearSep key={`sep-${y}-${a.uuid}`} year={y} />);
-        lastYear = y;
-      }
+      const year = Number(wallDateKey(new Date(a.scheduledAt), a.location.timezone ?? undefined).slice(0, 4));
+      if (year !== lastYear) nodes.push(<YearSep key={`year-${year}-${a.uuid}`} year={year} />);
+      lastYear = year;
     }
-    nodes.push(
-      <TimelineRow
-        key={a.uuid}
-        a={a}
-        locale={locale}
-        t={t}
-        now={now}
-        onOpen={onOpen}
-      />,
-    );
-  });
+    nodes.push(<TicketCard key={a.uuid} a={a} locale={locale} t={t} page={page} now={now} />);
+  }
+  return <div className={styles.grid}>{nodes}</div>;
+}
+
+function SchedEmpty({ t, onExplore }: { t: ApptDict; onExplore: () => void }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(min(440px, 100%), 1fr))",
-        gap: 18,
-        paddingBottom: 8,
-      }}
-    >
-      {nodes}
+    <div className={styles.empty}>
+      <span className={styles.emptyIcon}><Icon name="cal" size={24} color="var(--c-600)" /></span>
+      <h2>{t.empty.title}</h2>
+      <p className="txt-pretty">{t.empty.body}</p>
+      <Button kind="accent" size="md" onClick={onExplore}>{t.empty.cta}</Button>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// Dashed empty-section note. Ported from web-appointments.jsx:517-524.
-// ─────────────────────────────────────────────
-function SchedNote({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        padding: "20px 18px",
-        background: "#fff",
-        border: "1px dashed rgba(28,28,26,0.14)",
-        borderRadius: 14,
-        fontSize: 13.5,
-        color: "var(--c-600)",
-        lineHeight: 1.5,
-        maxWidth: 520,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Full empty state. Ported from web-appointments.jsx:526-542.
-// ─────────────────────────────────────────────
-function SchedEmpty({
-  t,
-  onExplore,
-}: {
+function AppointmentsHeading({ t, upcoming, past, loading }: {
   t: ApptDict;
-  onExplore: () => void;
+  upcoming: number | null;
+  past: number | null;
+  loading: boolean;
 }) {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px dashed rgba(28,28,26,0.16)",
-        borderRadius: 22,
-        padding: "64px 28px",
-        textAlign: "center",
-        maxWidth: 560,
-        margin: "0 auto",
-      }}
-    >
-      <span
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          background: "var(--c-shade)",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 18,
-        }}
-      >
-        <Icon name="cal" size={24} color="var(--c-600)" />
-      </span>
-      <div
-        style={{
-          fontSize: 19,
-          fontWeight: 600,
-          letterSpacing: "-0.02em",
-          color: "var(--c-900)",
-          marginBottom: 8,
-        }}
-      >
-        {t.empty.title}
+  const count = (n: number | null) => n !== null ? n : loading
+    ? <span aria-hidden="true"><Skeleton w="2ch" h={12} r={3} /></span>
+    : null;
+  return <header className={styles.heading}>
+    <h1>{t.title}</h1>
+    {(loading || upcoming !== null || past !== null) && (
+      <div className={styles.summary}>
+        {(loading || upcoming !== null) && <span>{count(upcoming)} {t.upcomingWord}</span>}
+        {(loading || past !== null) && <span>{count(past)} {t.pastWord}</span>}
       </div>
-      <p
-        className="txt-pretty"
-        style={{
-          margin: "0 auto 24px",
-          fontSize: 14.5,
-          lineHeight: 1.55,
-          color: "var(--c-600)",
-          maxWidth: 360,
-        }}
-      >
-        {t.empty.body}
-      </p>
-      <Button kind="accent" size="lg" onClick={onExplore}>
-        {t.empty.cta}
-      </Button>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Loading skeleton — a few ticket-row placeholders.
-// ─────────────────────────────────────────────
-function AppointmentsHeading({ t, locale, now, upcoming, past, loading }: { t: ApptDict; locale: Locale; now: Date; upcoming: number | null; past: number | null; loading: boolean }) {
-  const count = (n: number | null) => <span style={{ display: "inline-flex", alignItems: "center", minWidth: "2ch", height: "1.5em", verticalAlign: "bottom", fontVariantNumeric: "tabular-nums" }}>{n !== null ? n : loading ? <span aria-hidden="true"><Skeleton w="2ch" h={12} r={3} /></span> : "—"}</span>;
-  return <>
-    <Kicker style={{ marginBottom: 10 }}>{t.kicker}</Kicker>
-    <h1 style={{ margin: 0, fontSize: "clamp(28px, 3.4vw, 40px)", fontWeight: 600, letterSpacing: "-0.035em", color: "var(--c-900)" }}>{t.title}</h1>
-    <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", color: "var(--c-500)" }}>
-      {new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(now).toUpperCase()} · {count(upcoming)} {t.upcomingWord} · {count(past)} {t.pastWord}
-    </div>
-  </>;
-}
-
-function LoadingState({ t, locale }: { t: ApptDict; locale: Locale }) {
-  return <div className="zw-container" style={{ paddingTop: 44, paddingBottom: 56, width: "100%" }} aria-busy="true">
-    <AppointmentsHeading t={t} locale={locale} now={new Date()} upcoming={null} past={null} loading />
-    <SchedFilters value="all" onChange={() => {}} counts={{}} t={t} loading />
-    <ListLoading t={t} />
-  </div>;
+    )}
+  </header>;
 }
 
 function ListLoading({ t, label = t.sectionUpcoming }: { t: ApptDict; label?: string }) {
   return <div aria-busy="true">
     <div aria-hidden="true" inert>
-      <SchedSection label={label} count={null} open onToggle={() => {}} />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(440px, 100%), 1fr))", gap: 18, paddingBottom: 8 }}>
-        {[0, 1, 2].map((i) => <div key={i} style={{ display: "flex", alignItems: "stretch", gap: 14, minWidth: 0 }}>
-          <Skeleton w={50} h={64} r={13} style={{ flexShrink: 0, marginTop: 4 }} />
-          <div style={{ flex: 1, minWidth: 0, border: "1px solid rgba(28,28,26,0.07)", borderRadius: 16, background: "#fff" }}>
-            <div style={{ padding: "15px 18px" }}>
-              <div style={{ height: 22, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><Skeleton w="48%" h={20.25} r={4} /><Skeleton w={66} h={22} r={999} /></div>
-              <div style={{ marginTop: 9 }}><Skeleton w="78%" h={21.96} r={4} /></div>
-              <div style={{ marginTop: 7, height: 22, display: "flex", alignItems: "center" }}><Skeleton w="50%" h={18} r={4} /></div>
+      <SchedSection label={label} count={null} open onToggle={() => {}} id="appointments-loading" />
+      <div id="appointments-loading" className={styles.grid}>
+        {[0, 1, 2].map((i) => <div key={i} className={styles.card}>
+          <div className={styles.cardBody}>
+            <div className={styles.when}>
+              <Skeleton w={48} h={62} r={10} style={{ flexShrink: 0 }} />
+              <div className={styles.whenDetails}>
+                <Skeleton w={36} h={11} r={3} />
+                <Skeleton w={140} h={19} r={4} />
+                <Skeleton w={94} h={14} r={4} />
+              </div>
             </div>
-            <div style={{ padding: "13px 18px 15px", display: "flex", alignItems: "center", gap: 12 }}><Skeleton w={36} h={36} r={9} style={{ flexShrink: 0 }} /><Skeleton w="60%" h={16.8} r={4} /></div>
+            <div className={styles.service}><Skeleton w="82%" h={22} r={4} /></div>
+            <div className={styles.metadata}><Skeleton w="52%" h={18} r={4} /></div>
+            <div className={styles.professional}><Skeleton w={20} h={20} r={999} /><Skeleton w={90} h={15} r={4} /></div>
           </div>
+          <div className={styles.venue}><Skeleton w={36} h={36} r={10} /><Skeleton w="56%" h={18} r={4} /></div>
         </div>)}
       </div>
     </div>
@@ -998,129 +283,155 @@ function ListLoading({ t, label = t.sectionUpcoming }: { t: ApptDict; label?: st
   </div>;
 }
 
-// ─────────────────────────────────────────────
-// Inline fetch-error state.
-// ─────────────────────────────────────────────
-function ErrorState({ t, onRetry, retrying }: { t: ApptDict; onRetry: () => void; retrying: boolean }) {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.08)",
-        borderRadius: 16,
-        boxShadow: "var(--sh-sm)",
-        padding: "32px 28px",
-        textAlign: "center",
-        maxWidth: 520,
-        margin: "0 auto",
-      }}
-    >
-      <p
-        className="txt-pretty"
-        style={{
-          margin: "0 0 18px",
-          fontSize: 14.5,
-          lineHeight: 1.55,
-          color: "var(--c-600)",
-        }}
-      >
-        {t.errorLoading}
-      </p>
-      <Button kind="primary" size="md" onClick={onRetry} loading={retrying}>
-        {t.retry}
-      </Button>
-    </div>
-  );
+function LoadingState({ t, page }: { t: ApptDict; page: PageDict }) {
+  return <div className={`zw-container ${styles.page}`} aria-busy="true">
+    <AppointmentsHeading t={t} upcoming={null} past={null} loading />
+    <SchedFilters value="all" onChange={() => {}} counts={{}} t={t} page={page} loading />
+    <ListLoading t={t} />
+  </div>;
 }
 
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
+function ErrorState({ t, onRetry, retrying }: { t: ApptDict; onRetry: () => void; retrying: boolean }) {
+  return <div className={styles.errorState}>
+    <InlineError className="txt-pretty">{t.errorLoading}</InlineError>
+    <Button kind="primary" size="md" onClick={onRetry} loading={retrying}>{t.retry}</Button>
+  </div>;
+}
+
+/** Re-fetch every loaded history page so refreshing never drops paginated rows. */
+async function fetchAppointments(filter: Filter, loadedCount: number): Promise<AppointmentList> {
+  const wanted = Math.max(PAGE_SIZE, loadedCount);
+  const limit = Math.min(MAX_PAGE_SIZE, wanted);
+  const params: ListAppointmentsParams = { ...(filter === "all" ? {} : { status: filter }), limit };
+  const first = await listAppointments(params);
+  if (!first.past) return first;
+  const remaining: Promise<AppointmentList>[] = [];
+  const count = Math.min(wanted, first.past.total);
+  for (let offset = limit; offset < count; offset += MAX_PAGE_SIZE) {
+    remaining.push(listAppointments({ ...params, offset, limit: Math.min(MAX_PAGE_SIZE, count - offset) }));
+  }
+  const rest = await Promise.all(remaining);
+  const rows = [...first.past.items, ...rest.flatMap((res) => res.past?.items ?? [])];
+  const items = [...new Map(rows.map((a) => [a.uuid, a])).values()];
+  return { ...first, past: { ...first.past, items, offset: 0, limit: PAGE_SIZE, hasMore: items.length < first.past.total } };
+}
+
 export function AppointmentsContent({ locale }: { locale: Locale }) {
   const { user } = useAuth();
   return <AppointmentsSessionContent key={user?.uuid ?? "anonymous"} locale={locale} />;
 }
 
 function AppointmentsSessionContent({ locale }: { locale: Locale }) {
-  const dictionary = useTranslation().dict;
-  const t = dictionary.appointments;
+  const { dict } = useTranslation();
+  const t = dict.appointments;
+  const page = dict.appointmentPage;
   const router = useRouter();
   const { status } = useAuth();
   const { openAuthModal } = useAuthModal();
-
-  // `now` is captured per data load so all tense/time-until derivations are
-  // consistent within a render pass. Initialised at mount; refreshed on fetch.
-  const [now, setNow] = useState(() => new Date());
-
+  const now = useAppointmentClock();
   const [filter, setFilter] = useState<Filter>("all");
   const [upcomingOpen, setUpcomingOpen] = useState(true);
   const [pastOpen, setPastOpen] = useState(true);
-
   const [upcoming, setUpcoming] = useState<AppointmentListItem[]>([]);
   const [past, setPast] = useState<PastAppointmentsGroup | null>(null);
-
   const [loading, setLoading] = useState(true);
-  // True once the first fetch has resolved (success OR failure). Distinguishes
-  // the initial full-page skeleton from a filter REFETCH: after chrome has been
-  // shown once, a filter switch shows an in-region indicator instead of
-  // unmounting the whole page.
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [errored, setErrored] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [loadedFilter, setLoadedFilter] = useState<Filter | null>(null);
   const [counts, setCounts] = useState<Partial<Record<Filter, number>>>({});
+  const [loadMoreErrored, setLoadMoreErrored] = useState(false);
   const requestRef = useRef(0);
   const moreRequestRef = useRef(0);
-  const [loadMoreErrored, setLoadMoreErrored] = useState(false);
-
+  const busyRef = useRef(false);
+  const moreBusyRef = useRef(false);
+  const lastStartedRef = useRef(0);
+  const snapshotRef = useRef<{ filter: Filter; count: number } | null>(null);
   const authed = status === "authenticated";
 
   useEffect(() => {
     if (!authed) return;
     let alive = true;
     const request = ++requestRef.current;
-    const pendingPagination = moreRequestRef;
-    ++pendingPagination.current;
-    const params: ListAppointmentsParams =
-      filter === "all" ? {} : { status: filter };
-    listAppointments(params)
-      .then((res) => {
-        if (!alive || request !== requestRef.current) return;
-        setLoadedFilter(filter);
-        setCounts((known) => filter === "all" ? { ...known, all: (res.upcoming?.length ?? 0) + (res.past?.total ?? 0), upcoming: res.upcoming?.length ?? 0, past: res.past?.total ?? 0 } : { ...known, [filter]: filter === "upcoming" ? res.upcoming?.length ?? 0 : res.past?.total ?? 0 });
-        setNow(new Date());
-        setUpcoming(res.upcoming ?? []);
-        setPast(res.past);
-        setErrored(false);
-      })
-      .catch(() => {
-        if (!alive || request !== requestRef.current) return;
-        setErrored(true);
-      })
-      .finally(() => {
-        if (!alive || request !== requestRef.current) return;
-        setLoading(false);
-        setHasLoadedOnce(true);
+    const paginationRequest = moreRequestRef;
+    ++moreRequestRef.current;
+    moreBusyRef.current = false;
+    busyRef.current = true;
+    lastStartedRef.current = Date.now();
+    const previous = snapshotRef.current;
+    const main = fetchAppointments(filter, previous?.filter === filter ? previous.count : 0);
+    // The all-response is the authoritative source for the summary totals.
+    const summary = filter === "all" ? null : listAppointments({ limit: 1 }).catch(() => null);
+    Promise.all([main, summary]).then(([res, totals]) => {
+      if (!alive || request !== requestRef.current) return;
+      setLoadedFilter(filter);
+      setUpcoming(res.upcoming ?? []);
+      setPast(res.past);
+      snapshotRef.current = { filter, count: res.past?.items.length ?? 0 };
+      setCounts((known) => {
+        const all = filter === "all" ? res : totals;
+        return {
+          ...known,
+          ...(all ? {
+            all: (all.upcoming?.length ?? 0) + (all.past?.total ?? 0),
+            upcoming: all.upcoming?.length ?? 0,
+            past: all.past?.total ?? 0,
+          } : {}),
+          [filter]: filter === "all"
+            ? (res.upcoming?.length ?? 0) + (res.past?.total ?? 0)
+            : filter === "upcoming" ? res.upcoming?.length ?? 0 : res.past?.total ?? 0,
+        };
       });
+      setErrored(false);
+    }).catch(() => {
+      if (alive && request === requestRef.current) setErrored(true);
+    }).finally(() => {
+      if (!alive || request !== requestRef.current) return;
+      busyRef.current = false;
+      setLoading(false);
+      setLoadingMore(false);
+      setHasLoadedOnce(true);
+    });
     return () => {
       alive = false;
-      ++pendingPagination.current;
+      ++paginationRequest.current;
+      moreBusyRef.current = false;
     };
   }, [authed, filter, attempt]);
 
-  const onFilter = useCallback(
-    (next: Filter) => {
-      if (next === filter) return;
-      ++moreRequestRef.current;
-      setLoadingMore(false);
-      setLoading(true);
-      setErrored(false);
-      setLoadMoreErrored(false);
-      setFilter(next);
-    },
-    [filter],
-  );
+  useEffect(() => {
+    if (!authed) return;
+    const refresh = () => {
+      if (document.visibilityState === "hidden" || navigator.onLine === false || busyRef.current || moreBusyRef.current) return;
+      // Focus and visibility events often arrive together.
+      if (Date.now() - lastStartedRef.current < 10_000) return;
+      lastStartedRef.current = Date.now();
+      setAttempt((n) => n + 1);
+    };
+    const interval = window.setInterval(refresh, 60_000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [authed]);
+
+  const onFilter = useCallback((next: Filter) => {
+    if (next === filter) return;
+    ++requestRef.current;
+    ++moreRequestRef.current;
+    moreBusyRef.current = false;
+    setLoadingMore(false);
+    setLoading(true);
+    setErrored(false);
+    setLoadMoreErrored(false);
+    setFilter(next);
+  }, [filter]);
 
   const onRetry = useCallback(() => {
     setLoading(true);
@@ -1128,208 +439,99 @@ function AppointmentsSessionContent({ locale }: { locale: Locale }) {
   }, []);
 
   const onLoadMore = useCallback(async () => {
-    if (!past || !past.hasMore || loadingMore) return;
+    if (!past?.hasMore || moreBusyRef.current || busyRef.current) return;
     const request = ++moreRequestRef.current;
+    moreBusyRef.current = true;
     setLoadingMore(true);
     setLoadMoreErrored(false);
     try {
-      const params: ListAppointmentsParams = {
-        status: filter === "all" ? "past" : (filter as ListAppointmentsParams["status"]),
-        limit: past.limit || PAGE_SIZE,
-        offset: past.offset + (past.limit || PAGE_SIZE),
-      };
-      const res = await listAppointments(params);
+      const res = await listAppointments({
+        status: filter === "all" ? "past" : filter,
+        limit: PAGE_SIZE,
+        offset: past.items.length,
+      });
       if (request !== moreRequestRef.current) return;
-      const more = res.past;
-      if (more) {
-        setPast((prev) =>
-          prev
-            ? {
-                ...more,
-                items: [...prev.items, ...more.items],
-              }
-            : more,
-        );
+      if (res.past) {
+        const seen = new Set(past.items.map((a) => a.uuid));
+        const items = [...past.items, ...res.past.items.filter((a) => !seen.has(a.uuid))];
+        setPast({ ...res.past, items });
+        snapshotRef.current = { filter, count: items.length };
       }
     } catch {
-      // Leave the existing list intact — surface an inline retry instead of
-      // failing silently.
       if (request === moreRequestRef.current) setLoadMoreErrored(true);
     } finally {
-      if (request === moreRequestRef.current) setLoadingMore(false);
+      if (request === moreRequestRef.current) {
+        moreBusyRef.current = false;
+        setLoadingMore(false);
+      }
     }
-  }, [past, loadingMore, filter]);
+  }, [past, filter]);
 
-  const onOpen = useCallback(
-    (uuid: string) => {
-      router.push(localeHref(locale, "appointments", uuid));
-    },
-    [router, locale],
-  );
-
-  // ── Auth gating (mirrors account-content) ──
-  if (status === "idle" || status === "loading") {
-    return <LoadingState t={t} locale={locale} />;
-  }
-
+  if (status === "idle" || status === "loading") return <LoadingState t={t} page={page} />;
   if (status === "unauthenticated" || status === "error") {
-    return (
-      <SignedOutGate
-        icon="cal"
-        title={t.gate.title}
-        body={t.gate.body}
-        onCta={() => openAuthModal("signin")}
-        secondaryLabel={t.gate.secondary}
-        onSecondary={() => router.push(localeHref(locale, "search"))}
-      />
-    );
+    return <SignedOutGate icon="cal" title={t.gate.title} body={t.gate.body}
+      onCta={() => openAuthModal("signin")} secondaryLabel={t.gate.secondary}
+      onSecondary={() => router.push(localeHref(locale, "search"))} />;
   }
+  if (loading && !hasLoadedOnce) return <LoadingState t={t} page={page} />;
 
-  // Authenticated but the FIRST data load hasn't resolved yet — show the
-  // full-page skeleton. Once chrome has been shown once, a filter refetch
-  // keeps the chrome mounted and shows an in-region indicator instead.
-  if (loading && !hasLoadedOnce) {
-    return <LoadingState t={t} locale={locale} />;
-  }
-
-  // A filter switch (or post-first-load retry) is refetching: keep header,
-  // title, sub-line and filter chips mounted; show loading only in the list.
-  const refetching = loading;
   const hasCurrentData = loadedFilter === filter;
-
-  // Section visibility per active filter (web-appointments.jsx:472-473).
   const showUpcoming = filter === "all" || filter === "upcoming";
-  const showFinished =
-    filter === "all" ||
-    filter === "past" ||
-    filter === "cancelled" ||
-    filter === "no_show";
-
+  const showFinished = filter !== "upcoming";
   const finishedItems = past?.items ?? [];
-  const finishedTotal = past?.total ?? 0;
-
-  // Finished header label per active filter (web-appointments.jsx:474).
-  const finishedLabel =
-    filter === "cancelled"
-      ? t.finishedLabels.cancelled
-      : filter === "no_show"
-        ? t.finishedLabels.noShow
-        : filter === "past"
-          ? t.finishedLabels.completed
-          : t.finishedLabels.past;
-
-  // Per-section empty note keyed off the active filter.
-  const finishedEmptyNote =
-    filter === "cancelled"
-      ? t.notes.cancelledEmpty
-      : filter === "no_show"
-        ? t.notes.noShowEmpty
-        : t.notes.pastEmpty;
-
-  const totallyEmpty = upcoming.length === 0 && finishedItems.length === 0;
+  const finishedLabel = filter === "cancelled" ? t.finishedLabels.cancelled
+    : filter === "no_show" ? t.finishedLabels.noShow : t.finishedLabels.past;
+  const finishedEmptyNote = filter === "cancelled" ? t.notes.cancelledEmpty
+    : filter === "no_show" ? t.notes.noShowEmpty : page.historyEmpty;
+  const currentEmpty = upcoming.length === 0 && finishedItems.length === 0;
+  const trulyEmpty = filter === "all" && currentEmpty;
 
   return (
-    <div
-      className="zw-container"
-      style={{ paddingTop: 44, paddingBottom: 56, width: "100%" }}
-    >
-      <AppointmentsHeading t={t} locale={locale} now={now} upcoming={counts.upcoming ?? null} past={counts.past ?? null} loading={loading} />
-
-      <SchedFilters value={filter} onChange={onFilter} counts={counts} t={t} />
-
+    <div className={`zw-container ${styles.page}`}>
+      <AppointmentsHeading t={t} upcoming={counts.upcoming ?? null} past={counts.past ?? null} loading={loading && !hasLoadedOnce} />
+      <SchedFilters value={filter} onChange={onFilter} counts={counts} t={t} page={page} />
       <span role="status" className="sr-only">{loading ? t.loading : ""}</span>
-      {errored && <ErrorState t={t} onRetry={onRetry} retrying={loading} />}
-      {refetching && !hasCurrentData && !errored ? (
-        <ListLoading t={t} label={showUpcoming ? t.sectionUpcoming : finishedLabel} />
-      ) : !hasCurrentData ? null : totallyEmpty ? (
-        <SchedEmpty
-          t={t}
-          onExplore={() => router.push(localeHref(locale, "search"))}
-        />
-      ) : (
-        <>
-          {showUpcoming && (
-            <section style={{ marginBottom: 14 }}>
-              <SchedSection
-                label={t.sectionUpcoming}
-                count={upcoming.length}
-                open={upcomingOpen}
-                onToggle={() => setUpcomingOpen((o) => !o)}
-              />
-              {upcomingOpen &&
-                (upcoming.length === 0 ? (
-                  <SchedNote>{t.notes.upcomingEmpty}</SchedNote>
-                ) : (
-                  <SchedGrid
-                    items={upcoming}
-                    locale={locale}
-                    t={t}
-                    now={now}
-                    onOpen={onOpen}
-                  />
-                ))}
-            </section>
-          )}
-
-          {showFinished && (
-            <section
-              style={{
-                marginTop: showUpcoming ? 18 : 0,
-                paddingTop: showUpcoming ? 18 : 0,
-                borderTop: showUpcoming
-                  ? "1px solid rgba(28,28,26,0.07)"
-                  : "none",
-              }}
-            >
-              <SchedSection
-                label={finishedLabel}
-                count={finishedTotal}
-                open={pastOpen}
-                onToggle={() => setPastOpen((o) => !o)}
-              />
-              {pastOpen &&
-                (finishedItems.length === 0 ? (
-                  <SchedNote>{finishedEmptyNote}</SchedNote>
-                ) : (
-                  <>
-                    <SchedGrid
-                      items={finishedItems}
-                      locale={locale}
-                      t={t}
-                      now={now}
-                      onOpen={onOpen}
-                      withYears
-                    />
-                    {past?.hasMore && (
-                      <div style={{ marginTop: 18 }}>
-                        <Button
-                          kind="secondary"
-                          size="sm"
-                          loading={loadingMore}
-                          spinnerSize={15}
-                          className="zw-pag-btn"
-                          onClick={() => void onLoadMore()}
-                          disabled={loadingMore}
-                          style={{ padding: "0 18px" }}
-                        >
-                          {t.loadMore}
-                        </Button>
-                        {loadMoreErrored && (
-                          <InlineError
-                            className="txt-pretty"
-                            style={{ margin: "10px 0 0" }}
-                          >
-                            {t.loadMoreError}
-                          </InlineError>
-                        )}
-                      </div>
-                    )}
-                  </>
-                ))}
-            </section>
-          )}
-        </>
-      )}
+      {errored && (hasCurrentData ? (
+        <div className={styles.refreshError}>
+          <InlineError>{page.refreshError}</InlineError>
+          <Button kind="secondary" size="sm" loading={loading} onClick={onRetry}>{page.refresh}</Button>
+        </div>
+      ) : <ErrorState t={t} onRetry={onRetry} retrying={loading} />)}
+      {loading && !hasCurrentData && !errored ? <ListLoading t={t} label={showUpcoming ? t.sectionUpcoming : finishedLabel} />
+        : !hasCurrentData ? null
+        : trulyEmpty ? <SchedEmpty t={t} onExplore={() => router.push(localeHref(locale, "search"))} />
+        : <>
+          {currentEmpty ? (
+            <div className={styles.filteredEmpty}>
+              <h2>{page.filterEmptyTitle}</h2>
+              <p>{showUpcoming ? t.notes.upcomingEmpty : finishedEmptyNote}</p>
+              <Button kind="secondary" size="md" onClick={() => onFilter("all")}>{page.clearFilter}</Button>
+            </div>
+          ) : <>
+            {showUpcoming && <section className={styles.upcoming}>
+              <SchedSection label={t.sectionUpcoming} count={upcoming.length} open={upcomingOpen}
+                onToggle={() => setUpcomingOpen((o) => !o)} id="appointments-upcoming" />
+              <div id="appointments-upcoming" hidden={!upcomingOpen}>
+                {upcoming.length === 0 ? <div className={styles.note}>{t.notes.upcomingEmpty}</div>
+                  : <SchedGrid items={upcoming} locale={locale} t={t} page={page} now={now} />}
+              </div>
+            </section>}
+            {showFinished && <section className={showUpcoming ? styles.history : undefined}>
+              <SchedSection label={finishedLabel} count={past?.total ?? 0} open={pastOpen}
+                onToggle={() => setPastOpen((o) => !o)} id="appointments-history" />
+              <div id="appointments-history" hidden={!pastOpen}>
+                {finishedItems.length === 0 ? <div className={styles.note}>{finishedEmptyNote}</div> : <>
+                  <SchedGrid items={finishedItems} locale={locale} t={t} page={page} now={now} withYears />
+                  {past?.hasMore && <div className={styles.pagination}>
+                    <Button kind="secondary" size="md" loading={loadingMore} spinnerSize={15}
+                      onClick={() => void onLoadMore()} disabled={loadingMore}>{t.loadMore}</Button>
+                    {loadMoreErrored && <InlineError className="txt-pretty" style={{ marginTop: 10 }}>{t.loadMoreError}</InlineError>}
+                  </div>}
+                </>}
+              </div>
+            </section>}
+          </>}
+        </>}
     </div>
   );
 }

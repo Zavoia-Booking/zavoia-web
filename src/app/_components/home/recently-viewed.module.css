@@ -22,10 +22,24 @@
   box-shadow: var(--sh-sm);
 }
 
+/* The heart is a sibling of the link, so the wrapper owns the hover lift. */
+.item {
+  position: relative;
+  min-width: 0;
+  transition: transform 200ms var(--ease-out);
+}
+
+.heart {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+}
+
 .link {
   color: inherit;
   text-decoration: none;
-  transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+  transition: box-shadow 200ms var(--ease-out);
 }
 
 .link:focus-visible {
@@ -108,21 +122,25 @@
 }
 
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .link:hover {
+  .item:hover {
     transform: translateY(-3px);
+  }
+
+  .item:hover .link {
     box-shadow: var(--sh-lg);
   }
 
-  .link:hover .media img {
+  .item:hover .media img {
     transform: scale(1.045);
   }
 
-  .link:active {
+  .item:active {
     transform: translateY(-1px) scale(0.995);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .item,
   .link,
   .media img {
     transition: none;

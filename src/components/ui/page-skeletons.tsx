@@ -1,13 +1,17 @@
 "use client";
 
+import { useLayoutEffect, useRef } from "react";
 import { MapSkeleton } from "@/components/search/map-skeleton";
 import { RowSkeleton } from "@/components/business/row-skeleton";
+import detailStyles from "@/app/[locale]/business/_components/business-detail.module.css";
+import galleryStyles from "@/app/[locale]/business/_components/location-gallery.module.css";
 import searchStyles from "@/components/search/search-layout.module.css";
 
 import { Skeleton } from "./skeleton";
 import { Icon } from "./icon";
 import { Breadcrumb } from "./breadcrumb";
 import { Button } from "./button";
+import { Kicker } from "./kicker";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { BlogList } from "@/app/_components/blog/blog-list";
@@ -21,36 +25,33 @@ import { BlogList } from "@/app/_components/blog/blog-list";
 export function DetailPageSkeleton() {
   const { dict } = useTranslation();
   const t = dict.business;
-  return (
-    <main className="zw-container" style={{ paddingTop: 22 }} aria-busy="true">
-      <div aria-hidden="true">
-        <button disabled style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 16, background: "transparent", border: 0, padding: "4px 0", fontSize: 13.5, fontWeight: 600, color: "var(--c-600)" }}>
-          <Icon name="back" size={14} />{t.back}
-        </button>
-        <Skeleton h="clamp(280px, 36vw, 440px)" r={24} />
-        <div data-biz-cols="1" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 372px", gap: "clamp(28px, 4vw, 56px)", marginTop: 30, alignItems: "start" }}>
-          <div style={{ minWidth: 0 }}>
-            <Skeleton w="65%" h="calc(clamp(26px, 3vw, 36px) * 1.05)" />
-            <Skeleton w="54%" h={21} style={{ marginTop: 12 }} />
-            <div style={{ display: "flex", gap: 26, marginTop: 28, borderBottom: "1px solid rgba(28,28,26,0.08)" }}>
-              {[t.tabServices, t.tabTeam, t.tabReviews, t.tabAbout].map((label) => <span key={label} style={{ padding: "12px 2px 13px", fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em" }}>{label}</span>)}
+  return <main className={`zw-container ${detailStyles.page}`} aria-busy="true">
+    <div aria-hidden="true">
+      <span className={detailStyles.back}><Icon name="back" size={15} />{t.back}</span>
+      <div className={galleryStyles.gallery}><Skeleton h="100%" r="inherit" /></div>
+      <div className={detailStyles.columns}>
+        <div className={detailStyles.content}>
+          <div className={detailStyles.identity}>
+            <div className={detailStyles.identityTop}>
+              <div className={detailStyles.identityText} style={{ flex: 1 }}>
+                <span className={detailStyles.brandLink}><Skeleton w={22} h={22} r={999} /><Skeleton w={123} h={16} /></span>
+                <div className={detailStyles.titleSkeleton}><Skeleton w="70%" h="100%" /></div>
+              </div>
+              <div className={detailStyles.identityActions}><Skeleton w={44} h={44} r={999} /><Skeleton w={44} h={44} r={999} /></div>
             </div>
-            <div style={{ paddingTop: 24 }}>
-              {Array.from({ length: 3 }, (_, i) => <div key={i} style={{ padding: "18px 0", display: "flex", alignItems: "center", gap: 16, borderBottom: "1px solid rgba(28,28,26,0.08)" }}>
-                <div style={{ flex: 1 }}><Skeleton w="65%" h={22} /><Skeleton w="42%" h={19} style={{ marginTop: 5 }} /></div>
-                <Skeleton w={38} h={38} r={999} />
-              </div>)}
-            </div>
+            <div className={detailStyles.meta}><Skeleton w={70} h={24} /><Skeleton w={55} h={18} /><Skeleton w={110} h={18} /></div>
+            <div className={detailStyles.addressLine}><Skeleton w={240} h={18} /></div>
           </div>
-          <div className="zw-only-desktop" style={{ padding: "22px 22px 20px", border: "1px solid rgba(28,28,26,0.08)", borderRadius: 22, display: "flex", flexDirection: "column", gap: 14, background: "#fff" }}>
-            <div style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-900)" }}>{t.bookHeading}</div>
-            <div style={{ fontSize: 13.5, color: "var(--c-600)", lineHeight: 1.5, background: "var(--c-50)", border: "1px dashed rgba(28,28,26,0.14)", borderRadius: 14, padding: "14px 16px" }}>{t.bookRailEmpty}</div>
-            <Button kind="accent" size="lg" disabled style={{ width: "100%" }}>{t.bookNow}</Button>
+          <div className={detailStyles.tabs}>{[t.tabServices, t.tabTeam, t.tabReviews, t.tabAbout].map(label => <button type="button" disabled tabIndex={-1} key={label}>{label}</button>)}</div>
+          <div className={detailStyles.tabPanel}>
+            <div className={detailStyles.serviceToolbar}><div className={detailStyles.serviceSearch}><Skeleton w="80%" h={16} /></div><div className={detailStyles.categoryFilters}>{[65, 90, 115].map(width => <Skeleton key={width} w={width} h="var(--location-filter-height)" r={999} />)}</div></div>
+            <div className={detailStyles.serviceGroup}><Skeleton w={130} h={17} style={{ marginBottom: 8 }} />{[0, 1, 2].map(index => <div className={detailStyles.serviceRow} key={index}><div className={detailStyles.serviceContent}><Skeleton w="50%" h={20} /><Skeleton w="78%" h={19} /><Skeleton w="32%" h={19} /></div><Skeleton w={80} h={44} r={999} /></div>)}</div>
           </div>
         </div>
+        <div className={detailStyles.bookingRail}><div className={detailStyles.railIdentity}><span className={detailStyles.eyebrow}>{dict.locationPage.selectionTitle}</span><Skeleton w="70%" h={25} style={{ marginTop: 9 }} /></div><p className={detailStyles.bookingIntro}>{dict.locationPage.bookingIntro}</p><Button kind="accent" size="lg" disabled>{t.bookNow}</Button></div>
       </div>
-    </main>
-  );
+    </div>
+  </main>;
 }
 
 /** Brand pages open with identity and locations, never the location gallery. */
@@ -77,24 +78,59 @@ export function BrandPageSkeleton() {
 }
 
 // The full-bleed /search route: filter chrome, then the map/list split.
-export function SearchPageSkeleton({ showRail = true, desktopControlsBottom = 24 }: { showRail?: boolean; desktopControlsBottom?: number }) {
+export function SearchPageSkeleton({ showRail = true, desktopControlsBottom = 24, activeFilterCount = 0 }: { showRail?: boolean; desktopControlsBottom?: number; activeFilterCount?: number }) {
+  const { dict } = useTranslation();
+  const shellRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    const header = headerRef.current;
+    const handle = handleRef.current;
+    if (!panel || !header || !handle) return;
+    const measure = () => {
+      const peek = header.getBoundingClientRect().height + handle.getBoundingClientRect().height;
+      shellRef.current?.style.setProperty("--zv-search-placeholder-peek-h", `${peek}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    observer.observe(handle);
+    return () => observer.disconnect();
+  }, []);
   return (
-    <main className={searchStyles.shell} aria-hidden="true" inert>
-      <div className={`${searchStyles.mapPlaceholder} ${searchStyles.desktopMapPlaceholder}`}><MapSkeleton railInsetLeft="32px + min(424px, 36vw)" controlsBottom={desktopControlsBottom} showRail={showRail} /></div>
-      <div className={`${searchStyles.mapPlaceholder} ${searchStyles.mobileMapPlaceholder}`}><MapSkeleton controlsBottom={200} showRail={showRail} /></div>
-      <div className={`${searchStyles.panel} ${searchStyles.placeholderPanel}`}>
-        <div className={searchStyles.handle}><Skeleton w={36} h={4} r={2} /></div>
-        <div className={searchStyles.header}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
-            <div><Skeleton w={100} h={17.25} /><div style={{ marginTop: 5, height: 31.5, display: "flex", alignItems: "center" }}><Skeleton w={144} h={21} /></div></div>
-            <Skeleton w={70} h={19.5} />
+    <main ref={shellRef} className={`${searchStyles.shell} ${searchStyles.placeholderShell}`} aria-busy="true">
+      <span role="status" className="sr-only">{dict.search.updating}</span>
+      <div aria-hidden="true" inert>
+        <div className={`${searchStyles.mapPlaceholder} ${searchStyles.desktopMapPlaceholder}`}><MapSkeleton railInsetLeft="32px + min(424px, 36vw)" controlsBottom={desktopControlsBottom} showRail={showRail} /></div>
+        <div className={`${searchStyles.mapPlaceholder} ${searchStyles.mobileMapPlaceholder}`}><MapSkeleton controlsBottom="calc(100% - var(--zv-search-placeholder-sheet-top) + 12px)" showRail={showRail} /></div>
+        <div ref={panelRef} className={`${searchStyles.panel} ${searchStyles.placeholderPanel}`}>
+          <div ref={handleRef} className={searchStyles.handle} style={{ paddingTop: 2 }}><div style={{ width: 44, height: 20, display: "flex", alignItems: "center", justifyContent: "center" }}><Skeleton w={36} h={4} r={2} /></div></div>
+          <div ref={headerRef} className={searchStyles.header}>
+            <div className={searchStyles.headerRow}>
+              <div className={searchStyles.summary}>
+                <Kicker style={{ marginBottom: 5 }}>{dict.search.inThisArea}</Kicker>
+                <div className={searchStyles.resultLine}>
+                  <div className={searchStyles.count}>
+                    <div style={{ height: "1.5em", display: "flex", alignItems: "center" }}><Skeleton w={114} h={21} /></div>
+                    <span style={{ width: 14, height: 14, flexShrink: 0 }} />
+                  </div>
+                  {activeFilterCount > 0 && <span className={searchStyles.clearButton}>{dict.search.clearFilters}</span>}
+                </div>
+              </div>
+              <span className={searchStyles.filtersButton}>
+                <Icon name="sliders" size={16} />
+                {dict.search.filters.title}
+                {activeFilterCount > 0 && <span className={searchStyles.filterCount}>{activeFilterCount}</span>}
+              </span>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 8, padding: "2px 2px 4px", overflow: "hidden" }}>
-            {[60, 104, 88].map(w => <Skeleton key={w} w={w} h={38.25} r={999} style={{ flexShrink: 0 }} />)}
+          <div className={`${searchStyles.resultsFrame} ${searchStyles.placeholderResults}`}>
+            <div className={searchStyles.resultItems}>
+              {[0, 1, 2, 3, 4].map(row => <RowSkeleton key={row} />)}
+            </div>
           </div>
-        </div>
-        <div style={{ flex: 1, padding: "4px 10px 16px", overflow: "hidden" }}>
-          {[0, 1, 2, 3, 4].map(row => <RowSkeleton key={row} />)}
         </div>
       </div>
     </main>

@@ -1961,24 +1961,6 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 }
 
 /* ─────────────────────────────────────────────
-   Map loading indicator — the three-dot pill that floats over the /search map
-   while results are in flight. The panel's own "Updating…" pulse is not visible
-   on the mobile map view, so the map has to say it itself. Geometry and colour
-   are inline on the element (mapbox-surface.tsx styles everything that way);
-   only the keyframes have to live here. Ported from the RN app's LoadingDots.
-   ───────────────────────────────────────────── */
-.zv-map-dot {
-  animation: zv-map-dot 0.98s ease-in-out infinite;
-}
-@keyframes zv-map-dot {
-  0%, 55%, 100% { transform: translateY(0); opacity: 0.35; }
-  27% { transform: translateY(-5px); opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .zv-map-dot { animation: none; opacity: 0.7; }
-}
-
-/* ─────────────────────────────────────────────
    Mobile pass (phones ≤ 640px). Everything here refines layouts that are
    already responsive but read poorly on a narrow viewport.
    ───────────────────────────────────────────── */

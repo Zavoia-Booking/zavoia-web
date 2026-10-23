@@ -394,9 +394,8 @@ async function ensureFreshToken(path: string): Promise<void> {
 
 /**
  * A tagged / revalidated response is stored in a cache SHARED by every visitor.
- * Some public endpoints are optional-auth — `getListing` populates
- * `isFavorited` when a token is present — so caching a token-bearing response
- * would serve one user's state to everyone. Server-side there is no token
+ * A token-bearing response may carry one user's state, so caching it could
+ * serve that state to everyone. Server-side there is no token
  * store, which is what makes the listing pages cacheable at all; this strips
  * the cache hints if that ever stops being true.
  */

@@ -1,941 +1,549 @@
 "use client";
 
-import { useTranslation } from "@/i18n/useTranslation";
-import type { Dictionary } from "@/i18n/dictionaries";
 import {
   useCallback,
-  useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
+  type Ref,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/i18n/useTranslation";
+import type { Dictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
-import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
 import { InlineError } from "@/components/ui/inline-error";
 import {
-  customerErrorMessage,
-  isBenignCustomerError,
-} from "@/lib/api/customer-error-messages";
-import {
-  Avatar,
   Button,
+  HeartButton,
   Icon,
   Img,
-  Kicker,
-  SignedOutGate,
+  Rating,
   Skeleton,
-  useToast,
 } from "@/components/ui";
-import {
-  addFavoriteBusiness,
-  addFavoriteLocation,
-  addFavoriteProfessional,
-  getFavorites,
-  removeFavoriteBusiness,
-  removeFavoriteLocation,
-  removeFavoriteProfessional,
-} from "@/lib/api/marketplace/customer";
-import type { AllFavorites } from "@/lib/api/marketplace/types";
-import { getAuthenticatedSessionId } from "@/lib/auth/session-store";
-import { recordFavoriteChange } from "@/lib/favorites/store";
+import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
+import { industryVisual } from "@/lib/marketplace/industry-visuals";
 import {
   TeamMemberProfileModal,
   type TeamMemberSeed,
 } from "@/app/[locale]/business/_components/team-member-profile-modal";
+import type { SavedFilter, SavedItem, SavedKind } from "./saved-model";
+import { useGridMotion } from "./use-grid-motion";
+import { useSavedFavorites } from "./use-saved-favorites";
+import { SavedCollectionArt } from "./saved-collection-art";
+import { SavedSignInArt } from "./saved-sign-in-art";
+import styles from "./saved-content.module.css";
 
 type SavedDict = Dictionary["saved"];
+type Counts = Record<SavedFilter, number>;
+const KINDS: SavedKind[] = ["location", "person"];
+const TAB_KEYS = {
+  all: "all",
+  location: "locations",
+  person: "people",
+} as const;
 
-type RowKind = "business" | "location" | "person";
-type FilterKind = "all" | RowKind;
-
-// One unified row model shared by businesses, locations and professionals so
-// the editorial list never resolves a reference at render time.
-interface SavedRow {
-  kind: RowKind;
-  /** Stable list key (kind-prefixed entity id). */
-  key: string;
-  /** ENTITY id used for add/remove mutations (NOT the favorite-row id). */
-  entityId: number;
-  media: string | null;
-  /** Round avatar (person) vs. square thumb (business / location). */
-  round: boolean;
-  eyebrow: string;
-  title: string;
-  rating: number | null;
-  subtitle: string;
-  /** Show a pin glyph before the subtitle (locations only). */
-  pinSubtitle: boolean;
-  /** Detail-route href, or null for non-navigating rows. */
-  href: string | null;
-  /** ISO datetime (locations & professionals); null for businesses. */
-  createdAt: string | null;
-  /** Coordinates (locations only) for distance display; null otherwise. */
-  lat?: number | null;
-  lng?: number | null;
-  /** Person rows only: lean identity seed for the profile modal. */
-  person?: TeamMemberSeed;
-}
-
-// Haversine distance in km between two {lat,lng} points.
-function haversineKm(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): number {
-  const R = 6371; // Earth radius (km)
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-// ─────────────────────────────────────────────
-// Normalise the three favorite groups into one ordered SavedRow[].
-// Order: businesses (API order) → locations (newest first) → professionals
-// (newest first). Businesses carry no createdAt, so their API order is kept.
-// ─────────────────────────────────────────────
-
-// The API may return averageRating as a numeric string (e.g. "4.80") at
-// runtime even though its type says number | null. Coerce to a real number
-// so render code can safely call .toFixed.
-function toRating(v: unknown): number | null {
-  const n =
-    typeof v === "number" ? v : typeof v === "string" ? parseFloat(v) : NaN;
-  return Number.isFinite(n) ? n : null;
-}
-
-// Coordinates may likewise arrive as numeric strings at runtime; coerce so
-// haversine math never receives a string.
-function toNum(v: unknown): number | null {
-  const n =
-    typeof v === "number" ? v : typeof v === "string" ? parseFloat(v) : NaN;
-  return Number.isFinite(n) ? n : null;
-}
-
-function buildRows(fav: AllFavorites, locale: Locale): SavedRow[] {
-  const businessRows: SavedRow[] = fav.businesses.map((f) => {
-    const navigable =
-      f.marketplace.primaryLocationId != null && f.marketplace.isListed;
-    return {
-      kind: "business",
-      key: "b-" + f.business.id,
-      entityId: f.business.id,
-      media: f.marketplace.featuredImage,
-      round: false,
-      eyebrow: f.business.industry
-        ? taxonomyLabel(f.business.industry, locale)
-        : "",
-      title: f.business.name,
-      rating: toRating(f.business.averageRating),
-      subtitle: "",
-      pinSubtitle: false,
-      href: navigable
-        ? localeHref(
-            locale,
-            "business",
-            String(f.marketplace.primaryLocationId),
-          )
-        : null,
-      createdAt: null,
-    };
-  });
-
-  const byNewest = (a: { createdAt: string }, b: { createdAt: string }) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-
-  const locationRows: SavedRow[] = [...fav.locations]
-    .sort(byNewest)
-    .map((f) => {
-      const subtitle = f.location.address ?? f.location.city ?? "";
-      return {
-        kind: "location",
-        key: "l-" + f.location.id,
-        entityId: f.location.id,
-        media: f.location.featuredImage,
-        round: false,
-        eyebrow: f.location.business?.name ?? "",
-        title: f.location.name,
-        rating: toRating(f.location.averageRating),
-        subtitle,
-        pinSubtitle: subtitle !== "",
-        href: localeHref(locale, "business", String(f.location.id)),
-        createdAt: f.createdAt,
-        lat: toNum(f.location.latitude),
-        lng: toNum(f.location.longitude),
-      };
-    });
-
-  const personRows: SavedRow[] = [...fav.professionals]
-    .sort(byNewest)
-    .map((f) => {
-      const p = f.professional;
-      const title =
-        p.displayName ??
-        [p.firstName, p.lastName].filter(Boolean).join(" ");
-      return {
-        kind: "person",
-        key: "p-" + p.id,
-        entityId: p.id,
-        media: p.profileImage,
-        round: true,
-        eyebrow: p.professionalTitle ?? p.displayName ?? "",
-        title,
-        rating: toRating(p.averageRating),
-        subtitle: "",
-        pinSubtitle: false,
-        href: null,
-        createdAt: f.createdAt,
-        person: {
-          id: p.id,
-          firstName: p.firstName,
-          lastName: p.lastName,
-          displayName: p.displayName,
-          profileImage: p.profileImage,
-          professionalTitle: p.professionalTitle,
-          averageRating: toRating(p.averageRating),
-          totalReviews: p.totalReviews ?? 0,
-        },
-      };
-    });
-
-  return [...businessRows, ...locationRows, ...personRows];
-}
-
-// ─────────────────────────────────────────────
-// Locale-aware "saved … ago" stamp — largest of days / weeks / months.
-// ─────────────────────────────────────────────
-
-function savedAgo(locale: Locale, createdAt: string, now: number): string {
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
-  const diffMs = now - new Date(createdAt).getTime();
-  const days = Math.floor(diffMs / 86_400_000);
-  if (days < 7) return rtf.format(-Math.max(days, 0), "day");
-  if (days < 30) return rtf.format(-Math.floor(days / 7), "week");
-  return rtf.format(-Math.floor(days / 30), "month");
-}
-
-// ─────────────────────────────────────────────
-// Local skeleton loading state (mirrors account-content's LoadingState).
-// ─────────────────────────────────────────────
-
-function SavedHeader({ t, total, loading = false }: { t: SavedDict; total: number | null; loading?: boolean }) {
-  return <>
-    <Kicker style={{ marginBottom: 10 }}>{t.kicker}</Kicker>
-    <h1 style={{ margin: 0, fontSize: "clamp(28px, 3.4vw, 40px)", fontWeight: 600, letterSpacing: "-0.035em", color: "var(--c-900)" }}>{t.heading}</h1>
-    <div style={{ marginTop: 9, fontSize: 13.5, color: "var(--c-600)", display: "flex", alignItems: "center", gap: 4 }}>
-      <span style={{ minWidth: "2ch", fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--c-800)", fontVariantNumeric: "tabular-nums" }}>
-        {total !== null ? total : loading ? <span aria-hidden="true"><Skeleton w="2ch" h={13.5} r={4} /></span> : "—"}
-      </span> {t.countSuffix}
-    </div>
-  </>;
-}
-
-function LoadingState({ t }: { t: SavedDict }) {
+// The account-page header, shared with Appointments.
+function SavedHeader({
+  t,
+  total,
+  loading,
+  locale,
+}: {
+  t: SavedDict;
+  total: number | null;
+  loading: boolean;
+  locale: Locale;
+}) {
   return (
-    <div className="zw-container" style={{ paddingTop: 44, paddingBottom: 56, width: "100%" }} aria-busy="true">
-      <SavedHeader t={t} total={null} loading />
-      <div style={{ marginTop: 26, marginBottom: 18 }}><Filters value="all" onChange={() => {}} counts={null} t={t} /></div>
-      <div aria-hidden="true" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(400px, 100%), 1fr))", columnGap: 40, rowGap: 0, paddingBottom: 10 }}>
-        {[0, 1, 2].map((i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 15, padding: "17px 8px", borderBottom: "1px solid rgba(28,28,26,0.08)" }}>
-          <Skeleton w={64} h={64} r={15} style={{ flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}><Skeleton w={80} h={14.25} r={4} /><Skeleton w="min(260px, 80%)" h={19.04} r={4} /><Skeleton w="min(200px, 65%)" h={18.75} r={4} /></div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 9, flexShrink: 0 }}><Skeleton w={18} h={18} r={4} /><Skeleton w={72} h={15} r={4} /></div>
-        </div>)}
-      </div>
-      <p role="status" className="sr-only">{t.loading}</p>
-    </div>
+    <header>
+      <h1 className={styles.heading}>{t.heading}</h1>
+      {(total === null ? loading : total > 0) && (
+        <div className={styles.summary}>
+          {total !== null ? (
+            new Intl.NumberFormat(locale).format(total)
+          ) : (
+            <span aria-hidden="true">
+              <Skeleton w="2ch" h={14} r={3} />
+            </span>
+          )}{" "}
+          {t.countSuffix}
+        </div>
+      )}
+    </header>
   );
 }
-
-// ─────────────────────────────────────────────
-// Filter pills (All · Businesses · Locations · People) with live counts.
-// ─────────────────────────────────────────────
 
 function Filters({
   value,
   onChange,
   counts,
   t,
+  locale,
 }: {
-  value: FilterKind;
-  onChange: (k: FilterKind) => void;
-  counts: Record<FilterKind, number> | null;
+  value: SavedFilter;
+  onChange: (value: SavedFilter) => void;
+  counts: Counts | null;
   t: SavedDict;
+  locale: Locale;
 }) {
-  const allTabs: { id: FilterKind; label: string }[] = [
-    { id: "all", label: t.tabs.all },
-    { id: "business", label: t.tabs.businesses },
-    { id: "location", label: t.tabs.locations },
-    { id: "person", label: t.tabs.people },
-  ];
-  const tabs = allTabs;
-
+  // Like the app, only types you have are offered. A selected type that empties
+  // stays visible, so the current choice can still be seen and changed.
+  const kinds = (["all", ...KINDS] as SavedFilter[]).filter(
+    (kind) => !counts || kind === "all" || counts[kind] > 0 || kind === value,
+  );
   return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      {tabs.map((tab) => {
-        const active = tab.id === value;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            className="tap"
-            onClick={() => onChange(tab.id)}
-            disabled={!counts || (tab.id !== "all" && counts[tab.id] === 0)}
-            aria-pressed={active}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              height: 36,
-              padding: "0 15px",
-              borderRadius: 999,
-              cursor: !counts || (tab.id !== "all" && counts[tab.id] === 0) ? "default" : "pointer",
-              opacity: counts && tab.id !== "all" && counts[tab.id] === 0 ? 0.6 : 1,
-              background: active ? "var(--c-ink)" : "#fff",
-              color: active ? "#fff" : "var(--c-700)",
-              border:
-                "1px solid " + (active ? "transparent" : "rgba(28,28,26,0.12)"),
-              fontSize: 13.5,
-              fontWeight: 600,
-              letterSpacing: "-0.005em",
-              transition:
-                "background-color .2s var(--ease-soft), color .2s var(--ease-soft)",
-            }}
-          >
-            {tab.label}
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                fontWeight: 600,
-                color: active ? "rgba(255,255,255,0.6)" : "var(--c-500)",
-                fontVariantNumeric: "tabular-nums",
-                minWidth: "2ch",
-              }}
-            >
-              {counts ? counts[tab.id] : <span aria-hidden="true"><Skeleton w="2ch" h={11} r={3} /></span>}
-            </span>
-          </button>
-        );
-      })}
+    <div className={styles.filters} role="group" aria-label={t.filtersLabel}>
+      {kinds.map((kind) => (
+        <button
+          key={kind}
+          type="button"
+          className={`tap ${styles.filter}`}
+          aria-pressed={value === kind}
+          disabled={!counts}
+          onClick={() => onChange(kind)}
+        >
+          {t.tabs[TAB_KEYS[kind]]}
+          <span className={styles.filterCount}>
+            {counts ? (
+              new Intl.NumberFormat(locale).format(counts[kind])
+            ) : (
+              <span aria-hidden="true">
+                <Skeleton w="2ch" h={14} r={4} />
+              </span>
+            )}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// One editorial row.
-// ─────────────────────────────────────────────
+function monogram(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const ends = words.length > 1 ? [words[0], words[words.length - 1]] : words;
+  return ends.map((word) => Array.from(word)[0]).join("").toUpperCase() || "?";
+}
 
-function Row({
-  row,
-  locale,
-  now,
-  distance,
+// Profile photos are often small avatars, so a framed circle keeps them crisp.
+// The initials stand in when there is no photo or it fails to load.
+function PersonAvatar({ item }: { item: SavedItem }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const initials = monogram(item.title);
+  const photo = item.media !== failed ? item.media : null;
+  return (
+    <div className={styles.avatar} aria-hidden="true">
+      {photo ? (
+        <Img
+          src={photo}
+          alt=""
+          sizes="112px"
+          label={initials}
+          onError={() => setFailed(photo)}
+          style={{ width: "100%", height: "100%" }}
+        />
+      ) : (
+        <span className={styles.monogram}>{initials}</span>
+      )}
+    </div>
+  );
+}
+
+// A person: the portrait, with their name, role and rating beside it.
+function PersonContent({ item, id }: { item: SavedItem; id: string }) {
+  const role = item.person?.professionalTitle;
+  return (
+    <>
+      <PersonAvatar item={item} />
+      <div className={styles.profile}>
+        <h2 id={`${id}-name`} className={styles.profileName}>
+          {item.title}
+        </h2>
+        <div id={`${id}-meta`}>
+          {role && <p className={styles.role}>{role}</p>}
+          {item.rating !== null && (
+            <div className={styles.profileRating}>
+              <Rating
+                rating={item.rating}
+                reviews={item.reviews || undefined}
+                size={14}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// A place: the homepage "Near you" ticket. The name sits on the photo, then a
+// dashed seam leads to the category, address and a footer with the rating;
+// Saved has no distance or opening hours to put beside it.
+function LocationContent({ item, id }: { item: SavedItem; id: string }) {
+  const { dict, locale } = useTranslation();
+  const industry = industryVisual(item.industry?.slug);
+  return (
+    <>
+      <div className={styles.media}>
+        <div className={styles.photo} aria-hidden="true">
+          <Img
+            src={item.media ?? undefined}
+            alt=""
+            sizes="150px"
+            label={<Icon name={industry.icon} size={28} color="var(--c-600)" />}
+            style={{ width: "100%", height: "100%" }}
+          />
+        </div>
+        <div className={styles.identity}>
+          <h2 id={`${id}-name`} className={styles.name}>
+            {item.title}
+          </h2>
+          {item.brand && (
+            <p id={`${id}-brand`} className={styles.brand}>
+              {item.brand}
+            </p>
+          )}
+        </div>
+      </div>
+      <div id={`${id}-meta`} className={styles.details}>
+        {item.industry && (
+          <p className={styles.category}>
+            <Icon name={industry.icon} size={16} color={industry.accent} />
+            <span>{taxonomyLabel(item.industry, locale, dict.industries)}</span>
+          </p>
+        )}
+        {item.subtitle && <p className={styles.address}>{item.subtitle}</p>}
+        <div className={styles.footer}>
+          {item.rating !== null && (
+            <Rating
+              rating={item.rating}
+              reviews={item.reviews || undefined}
+              size={14}
+            />
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function SavedCard({
+  item,
+  pending,
   onRemove,
-  onOpen,
   onOpenPerson,
   t,
 }: {
-  row: SavedRow;
-  locale: Locale;
-  now: number;
-  /** "X.X km" for location rows once geolocation resolves; else undefined. */
-  distance?: string;
-  onRemove: (row: SavedRow) => void;
-  onOpen: (href: string) => void;
-  /** Person rows navigate to a modal, not a route. */
+  item: SavedItem;
+  pending: boolean;
+  onRemove: (item: SavedItem) => void;
   onOpenPerson: (person: TeamMemberSeed) => void;
   t: SavedDict;
 }) {
-  const navigable = row.href != null || row.person != null;
-  const mediaSize = row.round ? 60 : 64;
-  const stamp = row.createdAt ? savedAgo(locale, row.createdAt, now) : null;
-
-  const open = () => {
-    if (row.href) onOpen(row.href);
-    else if (row.person) onOpenPerson(row.person);
-  };
-
+  const id = useId();
+  const isPerson = item.kind === "person";
+  const described = item.brand ? `${id}-brand ${id}-meta` : `${id}-meta`;
+  const removeLabel = format(t.removeAria, { name: item.title });
   return (
-    <div
-      role={navigable ? "button" : undefined}
-      tabIndex={navigable ? 0 : undefined}
-      onClick={navigable ? open : undefined}
-      onKeyDown={
-        navigable
-          ? (e) => {
-              if (e.key === "Enter") open();
-            }
-          : undefined
-      }
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 15,
-        padding: "17px 8px",
-        cursor: navigable ? "pointer" : "default",
-        borderBottom: "1px solid rgba(28,28,26,0.08)",
-        borderRadius: 12,
-      }}
-    >
-      <div
-        style={{
-          width: mediaSize,
-          height: mediaSize,
-          borderRadius: row.round ? "50%" : 15,
-          overflow: "hidden",
-          flexShrink: 0,
-          background: "var(--c-300)",
-          position: "relative",
-          boxShadow: row.round
-            ? "none"
-            : "inset 0 0 0 1px rgba(28,28,26,0.07)",
-        }}
-      >
-        {row.round ? (
-          <Avatar src={row.media ?? undefined} name={row.title} size={mediaSize} />
-        ) : (
-          <Img
-            src={row.media ?? undefined}
-            alt={row.title}
-            label={row.eyebrow || undefined}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-            }}
-          />
-        )}
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {row.eyebrow && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontFamily: "var(--font-mono)",
-              fontSize: 9.5,
-              fontWeight: 700,
-              letterSpacing: "0.13em",
-              textTransform: "uppercase",
-              color: "var(--c-500)",
-              marginBottom: 5,
-            }}
-          >
-            <span
-              style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {row.eyebrow}
-            </span>
-          </div>
-        )}
-        <div
-          style={{
-            fontSize: 17,
-            fontWeight: 600,
-            color: "var(--c-900)",
-            letterSpacing: "-0.024em",
-            lineHeight: 1.12,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {row.title}
-        </div>
-        {(row.rating != null || row.subtitle) && (
-          <div
-            style={{
-              marginTop: 5,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 12.5,
-              color: "var(--c-600)",
-              minWidth: 0,
-            }}
-          >
-            {row.rating != null && (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 3.5,
-                  fontWeight: 600,
-                  color: "var(--c-800)",
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name="star" size={11} color="var(--p-500)" />
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {row.rating.toFixed(1)}
-                </span>
-              </span>
-            )}
-            {row.rating != null && row.subtitle && (
-              <span style={{ color: "var(--c-300)", flexShrink: 0 }}>·</span>
-            )}
-            {row.subtitle && (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  minWidth: 0,
-                  overflow: "hidden",
-                }}
-              >
-                {row.pinSubtitle && (
-                  <Icon name="pin" size={11} color="var(--c-500)" />
-                )}
-                <span
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {row.subtitle}
-                  {distance ? ` · ${distance}` : ""}
-                </span>
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: 9,
-          flexShrink: 0,
-        }}
-      >
+    <article className={`${styles.card} ${isPerson ? styles.personCard : ""}`}>
+      {isPerson ? (
+        <PersonContent item={item} id={id} />
+      ) : (
+        <LocationContent item={item} id={id} />
+      )}
+      {item.href ? (
+        <Link
+          href={item.href}
+          prefetch={false}
+          title={item.title}
+          className={styles.primaryAction}
+          aria-labelledby={`${id}-name`}
+          aria-describedby={described}
+          data-primary
+        />
+      ) : item.person ? (
         <button
           type="button"
-          className="tap"
-          aria-label={format(t.removeAria, { name: row.title })}
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove(row);
-          }}
-          style={{
-            display: "inline-flex",
-            border: 0,
-            background: "transparent",
-            padding: 0,
-            color: "var(--p-500)",
-            cursor: "pointer",
-          }}
-        >
-          <Icon name="heart" size={18} color="currentColor" />
-        </button>
-        {stamp && (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              color: "var(--c-400)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {stamp}
-          </span>
-        )}
-      </div>
+          title={item.title}
+          className={styles.primaryAction}
+          aria-labelledby={`${id}-name`}
+          aria-describedby={described}
+          data-primary
+          onClick={() => onOpenPerson(item.person!)}
+        />
+      ) : null}
+      {/* A sibling of the card link, so removing never opens the card. */}
+      <span className={styles.heart} title={removeLabel}>
+        <HeartButton
+          active
+          size={38}
+          iconSize={20}
+          floating={false}
+          ariaLabel={removeLabel}
+          loading={pending}
+          onClick={() => onRemove(item)}
+        />
+      </span>
+    </article>
+  );
+}
+
+function CollectionSkeleton() {
+  return (
+    <div className={styles.grid} aria-hidden="true">
+      {Array.from({ length: 6 }, (_, index) => (
+        <Skeleton key={index} h={168} r={18} />
+      ))}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
+/** The empty collection becomes the page's centered heading and next action. */
+function SavedEmpty({
+  t,
+  locale,
+  enter,
+  actionRef,
+}: {
+  t: SavedDict;
+  locale: Locale;
+  enter: boolean;
+  actionRef: Ref<HTMLAnchorElement>;
+}) {
+  const id = useId();
+  return (
+    <section
+      className={styles.empty}
+      aria-labelledby={id}
+      data-enter={enter || undefined}
+    >
+      <div className={`zw-container ${styles.emptyInner}`}>
+        <SavedCollectionArt className={styles.emptyArtwork} />
+        <div className={styles.emptyCopy}>
+          <h1 id={id}>{t.empty.title}</h1>
+          <p>{t.empty.body}</p>
+        </div>
+        <Link
+          ref={actionRef}
+          href={localeHref(locale, "search")}
+          className={styles.emptyAction}
+        >
+          {t.empty.cta}
+          <Icon name="arrowR" size={18} />
+        </Link>
+      </div>
+    </section>
+  );
+}
 
 export function SavedContent({ locale }: { locale: Locale }) {
   const { user } = useAuth();
-  return <SavedSessionContent key={user?.uuid ?? "anonymous"} locale={locale} />;
+  return (
+    <SavedSessionContent key={user?.uuid ?? "anonymous"} locale={locale} />
+  );
 }
 
 function SavedSessionContent({ locale }: { locale: Locale }) {
-  const dictionary = useTranslation().dict;
-  const t = dictionary.saved;
-  const errorsDict = dictionary.errors;
-  const router = useRouter();
-  const toast = useToast();
-  const { status } = useAuth();
+  const { dict } = useTranslation();
+  const t = dict.saved;
+  const { status, refresh: refreshSession } = useAuth();
   const { openAuthModal } = useAuthModal();
-
-  const [favorites, setFavorites] = useState<AllFavorites | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const [retrying, setRetrying] = useState(false);
-
-  // Live working list — derived from `favorites`, then mutated by remove/undo.
-  const [rows, setRows] = useState<SavedRow[]>([]);
-  const [kind, setKind] = useState<FilterKind>("all");
-  // "now" is captured client-side once on mount so relative stamps are stable.
-  const [now] = useState(() => Date.now());
-  // Device coordinates for location-row distance. null = pending / denied /
-  // unavailable. Purely optional — never blocks render.
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
-    null,
-  );
-
-  const authed = status === "authenticated";
-
-  // Ask for geolocation once. Optional — on denial/error/unavailable we keep
-  // `coords` null and location rows simply omit the distance suffix.
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) return;
-    let cancelled = false;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (cancelled) return;
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      },
-      () => {
-        /* denied / unavailable → leave distance off */
-      },
-      { timeout: 8000, maximumAge: 5 * 60 * 1000 },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!authed) return;
-    let alive = true;
-    getFavorites()
-      .then((fav) => {
-        if (!alive) return;
-        setError(false);
-        setRetrying(false);
-        setFavorites(fav);
-        setRows(buildRows(fav, locale));
-        setLoading(false);
-      })
-      .catch(() => {
-        if (!alive) return;
-        setRetrying(false);
-        setError(true);
-        setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [authed, locale, attempt]);
-
-  const counts = useMemo<Record<FilterKind, number>>(() => {
-    const c: Record<FilterKind, number> = {
-      all: rows.length,
-      business: 0,
+  const router = useRouter();
+  const {
+    items,
+    loading,
+    error,
+    retrying,
+    retry,
+    remove,
+    pendingKeys,
+    refreshing,
+    offline,
+  } = useSavedFavorites(locale);
+  const [authRetrying, setAuthRetrying] = useState(false);
+  const [kind, setKind] = useState<SavedFilter>("all");
+  const [openPerson, setOpenPerson] = useState<TeamMemberSeed | null>(null);
+  const authenticated = status === "authenticated";
+  const counts = useMemo<Counts>(() => {
+    const next: Counts = {
+      all: items?.length ?? 0,
       location: 0,
       person: 0,
     };
-    for (const r of rows) c[r.kind] += 1;
-    return c;
-  }, [rows]);
-
+    for (const item of items ?? []) next[item.kind]++;
+    return next;
+  }, [items]);
+  const busy = status === "idle" || status === "loading" || loading;
+  const empty = items?.length === 0;
+  const initialOffline = authenticated && items === null && offline;
   const visible = useMemo(
-    () => (kind === "all" ? rows : rows.filter((r) => r.kind === kind)),
-    [rows, kind],
+    () => items?.filter((item) => kind === "all" || item.kind === kind) ?? [],
+    [items, kind],
   );
-
-  const openHref = useCallback(
-    (href: string) => router.push(href),
-    [router],
-  );
-
-  // Person rows open the shared team-member profile modal in its favorites
-  // (unscoped) mode — venues + menus resolve from the booking context.
-  const [openPerson, setOpenPerson] = useState<TeamMemberSeed | null>(null);
-
-  const changeFavorite = useCallback(async (row: SavedRow, present: boolean) => {
-    const session = getAuthenticatedSessionId();
-    const kind = row.kind === "person" ? "professional" : row.kind;
-    const action = present
-      ? { business: addFavoriteBusiness, location: addFavoriteLocation, professional: addFavoriteProfessional }[kind]
-      : { business: removeFavoriteBusiness, location: removeFavoriteLocation, professional: removeFavoriteProfessional }[kind];
-    try {
-      await action(row.entityId);
-    } catch (error) {
-      if (isBenignCustomerError(error)) recordFavoriteChange(kind, row.entityId, present, session);
-      throw error;
-    }
-    recordFavoriteChange(kind, row.entityId, present, session);
-  }, []);
-  const removeApi = useCallback((row: SavedRow) => changeFavorite(row, false), [changeFavorite]);
-  const addApi = useCallback((row: SavedRow) => changeFavorite(row, true), [changeFavorite]);
-
-  // Rows with a remove/undo mutation in flight, keyed by `row.key` — guards
-  // against a rapid double-click (or a remove/undo race) firing two
-  // mutations against the same entity. Optimistic update + rollback below is
-  // unchanged; this only gates re-entrancy.
-  const inFlightRef = useRef<Set<string>>(new Set());
-
+  const keys = useMemo(() => visible.map((item) => item.key), [visible]);
+  // Removing the last item, or undoing that, swaps the grid and the empty
+  // state with a short settle. The first load and filter switches render at
+  // once.
+  const total = items === null ? null : counts.all;
+  const [last, setLast] = useState({ total, kind, swapped: false });
+  if (last.total !== total || last.kind !== kind) {
+    setLast({
+      total,
+      kind,
+      swapped:
+        last.kind === kind &&
+        last.total !== null &&
+        total !== null &&
+        (last.total === 0) !== (total === 0),
+    });
+  }
+  const emptyAction = useRef<HTMLAnchorElement>(null);
+  const { ref: gridRef, leave } = useGridMotion(keys, {
+    appear: last.swapped,
+    fallbackFocus: emptyAction,
+  });
   const handleRemove = useCallback(
-    (row: SavedRow) => {
-      if (inFlightRef.current.has(row.key)) return;
-      inFlightRef.current.add(row.key);
-
-      // Remember the row's position so Undo restores original ordering.
-      const index = rows.findIndex((r) => r.key === row.key);
-
-      const undo = () => {
-        if (inFlightRef.current.has(row.key)) return;
-        inFlightRef.current.add(row.key);
-        setRows((prev) => {
-          if (prev.some((r) => r.key === row.key)) return prev;
-          const next = [...prev];
-          next.splice(Math.min(index, next.length), 0, row);
-          return next;
-        });
-        addApi(row)
-          .catch((e) => {
-            // "Already a favorite" means the restore already landed — the
-            // row being back in the list is exactly what Undo wanted.
-            if (isBenignCustomerError(e)) return;
-            // Re-add failed → revert the optimistic restore.
-            setRows((prev) => prev.filter((r) => r.key !== row.key));
-            toast(customerErrorMessage(e, errorsDict, t.removeError), "heartO");
-          })
-          .finally(() => {
-            inFlightRef.current.delete(row.key);
-          });
-      };
-
-      // Optimistic remove.
-      setRows((prev) => prev.filter((r) => r.key !== row.key));
-
-      removeApi(row)
-        .then(() => {
-          toast(format(t.removed, { name: row.title }), "heartO", {
-            label: t.undo,
-            onClick: undo,
-          });
-        })
-        .catch((e) => {
-          // "Favorite not found" means it's already gone — the optimistic
-          // removal already shows what the user wanted, so leave it be.
-          if (isBenignCustomerError(e)) return;
-          // Revert the optimistic remove.
-          setRows((prev) => {
-            if (prev.some((r) => r.key === row.key)) return prev;
-            const next = [...prev];
-            next.splice(Math.min(index, next.length), 0, row);
-            return next;
-          });
-          toast(customerErrorMessage(e, errorsDict, t.removeError), "heartO");
-        })
-        .finally(() => {
-          inFlightRef.current.delete(row.key);
-        });
-    },
-    [rows, removeApi, addApi, toast, t, errorsDict],
+    (item: SavedItem) => leave(item.key, () => remove(item)),
+    [leave, remove],
   );
 
-  // ── Auth gating ──
-  if (status === "idle" || status === "loading") {
-    return <LoadingState t={t} />;
-  }
-
-  if (status === "unauthenticated" || status === "error") {
+  if (status === "unauthenticated")
     return (
-      <SignedOutGate
-        icon="heartO"
-        title={t.gate.title}
-        body={t.gate.body}
-        onCta={() => openAuthModal("signin")}
-        secondaryLabel={t.gate.secondary}
-        onSecondary={() => router.push(localeHref(locale, "search"))}
-      />
-    );
-  }
-
-  if (loading) {
-    return <LoadingState t={t} />;
-  }
-
-  const total = rows.length;
-
-  return (
-    <div
-      className="zw-container"
-      style={{ paddingTop: 44, paddingBottom: 56, width: "100%" }}
-    >
-      <SavedHeader t={t} total={favorites === null ? null : total} />
-
-      {error && favorites !== null && <div style={{ marginTop: 18 }}>
-        <InlineError>{t.sectionError}</InlineError>
-        <Button kind="secondary" size="sm" loading={retrying} onClick={() => { setRetrying(true); setAttempt((n) => n + 1); }} style={{ marginTop: 16 }}>{errorsDict.retry}</Button>
-        <span role="status" className="sr-only">{retrying ? t.loading : ""}</span>
-      </div>}
-      {favorites === null && error ? (
-        <div
-          style={{
-            marginTop: 28,
-            padding: "22px 18px",
-            background: "#fff",
-            border: "1px solid rgba(28,28,26,0.08)",
-            borderRadius: 16,
-            boxShadow: "var(--sh-sm)",
-            fontSize: 13.5,
-            color: "var(--s-error-600)",
-          }}
-        >
-          <InlineError>{t.sectionError}</InlineError>
-          <Button kind="secondary" size="sm" loading={retrying} onClick={() => { setRetrying(true); setAttempt((n) => n + 1); }} style={{ marginTop: 16 }}>{errorsDict.retry}</Button>
-          <span role="status" className="sr-only">{retrying ? t.loading : ""}</span>
-        </div>
-      ) : total === 0 ? (
-        <div
-          style={{
-            background: "#fff",
-            border: "1px dashed rgba(28,28,26,0.16)",
-            borderRadius: 22,
-            padding: "60px 28px",
-            textAlign: "center",
-            marginTop: 28,
-            maxWidth: 560,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
-          <span
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: "50%",
-              background: "var(--c-shade)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 18,
-            }}
-          >
-            <Icon name="heartO" size={24} color="var(--c-600)" />
-          </span>
-          <div
-            style={{
-              fontSize: 19,
-              fontWeight: 600,
-              letterSpacing: "-0.02em",
-              color: "var(--c-900)",
-              marginBottom: 8,
-            }}
-          >
-            {t.empty.title}
+      <main className={styles.empty}>
+        <div className={`zw-container ${styles.emptyInner}`}>
+          <SavedSignInArt className={styles.emptyArtwork} />
+          <div className={styles.emptyCopy}>
+            <h1>{t.gate.title}</h1>
+            <p>{t.gate.body}</p>
           </div>
-          <p
-            className="txt-pretty"
-            style={{
-              margin: "0 auto 24px",
-              fontSize: 14.5,
-              lineHeight: 1.55,
-              color: "var(--c-600)",
-              maxWidth: 360,
+          <div className={styles.gateActions}>
+            <Button kind="primary" size="lg" onClick={() => openAuthModal("signin")}>
+              {t.gate.cta}
+            </Button>
+            <Button
+              kind="secondary"
+              size="lg"
+              onClick={() => router.push(localeHref(locale, "search"))}
+            >
+              {t.gate.secondary}
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+
+  if (status === "error")
+    return (
+      <main className={`zw-container ${styles.page}`}>
+        <SavedHeader t={t} total={null} loading={false} locale={locale} />
+        <div className={styles.error}>
+          <InlineError>{dict.accountMenu.sessionError}</InlineError>
+          <Button
+            kind="secondary"
+            loading={authRetrying}
+            onClick={async () => {
+              if (authRetrying) return;
+              setAuthRetrying(true);
+              try {
+                await refreshSession();
+              } finally {
+                setAuthRetrying(false);
+              }
             }}
           >
-            {t.empty.body}
-          </p>
-          <Button
-            kind="accent"
-            size="lg"
-            onClick={() => router.push(localeHref(locale, "search"))}
-          >
-            {t.empty.cta}
+            {dict.errors.retry}
           </Button>
         </div>
-      ) : (
-        <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginTop: 26,
-              marginBottom: 18,
-              flexWrap: "wrap",
-            }}
-          >
-            <Filters value={kind} onChange={setKind} counts={counts} t={t} />
-          </div>
+      </main>
+    );
 
-          {visible.length === 0 ? (
-            <div
-              style={{
-                padding: "22px 18px",
-                background: "#fff",
-                border: "1px dashed rgba(28,28,26,0.14)",
-                borderRadius: 14,
-                fontSize: 13.5,
-                color: "var(--c-600)",
-                textAlign: "center",
-                maxWidth: 460,
-              }}
-            >
-              {t.filteredEmpty}
-            </div>
-          ) : (
-            <div
-              key={kind}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(min(400px, 100%), 1fr))",
-                columnGap: 40,
-                rowGap: 0,
-                paddingBottom: 10,
-              }}
-            >
-              {visible.map((row) => {
-                const distance =
-                  coords && row.lat != null && row.lng != null
-                    ? `${haversineKm(coords, {
-                        lat: row.lat,
-                        lng: row.lng,
-                      }).toFixed(1)} km`
-                    : undefined;
-                return (
-                  <Row
-                    key={row.key}
-                    row={row}
-                    locale={locale}
-                    now={now}
-                    distance={distance}
-                    onRemove={handleRemove}
-                    onOpen={openHref}
-                    onOpenPerson={setOpenPerson}
-                    t={t}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </>
+  return (
+    <main
+      className={styles.page}
+      data-empty={empty || undefined}
+      aria-busy={(busy && !initialOffline) || undefined}
+    >
+      <div className="zw-container">
+        {!empty && (
+          <SavedHeader
+            t={t}
+            total={items === null ? null : counts.all}
+            loading={busy && !initialOffline}
+            locale={locale}
+          />
+        )}
+        {offline && authenticated && (
+          <p role="status" className={styles.notice}>
+            <Icon name="warn" size={16} color="var(--c-600)" />
+            {initialOffline ? t.offlineEmpty : t.offline}
+          </p>
+        )}
+        {((busy && !initialOffline) || !!items?.length) && (
+          <Filters
+            value={kind}
+            onChange={setKind}
+            counts={items === null ? null : counts}
+            t={t}
+            locale={locale}
+          />
+        )}
+        {busy && items === null && !initialOffline ? (
+          <CollectionSkeleton />
+        ) : (
+          <>
+            {error && !offline && (
+              <div className={styles.error}>
+                <InlineError>
+                  {items === null ? t.sectionError : t.refreshError}
+                </InlineError>
+                <Button
+                  kind="secondary"
+                  size="sm"
+                  loading={retrying || refreshing}
+                  onClick={retry}
+                >
+                  {dict.errors.retry}
+                </Button>
+              </div>
+            )}
+            {!!items?.length &&
+              (visible.length === 0 && kind !== "all" ? (
+                <p className={styles.filteredEmpty}>{t.filteredEmpty[kind]}</p>
+              ) : (
+                <ul ref={gridRef} className={styles.grid} aria-label={t.heading}>
+                  {visible.map((item) => (
+                    <li key={item.key} data-key={item.key} className={styles.item}>
+                      <SavedCard
+                        item={item}
+                        pending={pendingKeys.has(item.key)}
+                        onRemove={handleRemove}
+                        onOpenPerson={setOpenPerson}
+                        t={t}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ))}
+          </>
+        )}
+      </div>
+      {empty && (
+        <SavedEmpty
+          t={t}
+          locale={locale}
+          enter={last.swapped}
+          actionRef={emptyAction}
+        />
       )}
-
+      <span role="status" className="sr-only">
+        {/* Background refreshes on return to the tab stay silent. */}
+        {busy || retrying ? t.loading : ""}
+      </span>
       {openPerson && (
         <TeamMemberProfileModal
           member={openPerson}
@@ -943,6 +551,6 @@ function SavedSessionContent({ locale }: { locale: Locale }) {
           onClose={() => setOpenPerson(null)}
         />
       )}
-    </div>
+    </main>
   );
 }

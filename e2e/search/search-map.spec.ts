@@ -1,50 +1,40 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * SRCH-08, adapted for the no-Mapbox-token test env (playwright.config.ts sets
- * NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN='' on purpose). Read from
- * src/components/search/mapbox-surface.tsx: with no token, `<Map>` (react-map-gl)
- * is never instantiated at all — the component early-returns a plain
- * `<div>Map unavailable</div>` fallback (plus the recenter control + any
- * children, e.g. the location-permission modal). There is NO pin/marker DOM
- * in this state (no `aria-label={location name}` spans — those only exist
- * inside the real `<Map>`'s `<Marker>` children), so true pin-to-list sync
- * (matching a specific pin's aria-label to its `[data-biz]` row) is NOT
- * testable without a real Mapbox token in a separate, dedicated run.
+ * The default suite intentionally starts web without a Mapbox token. Its map
+ * fallback can be verified here; real camera, marker and selection behavior
+ * belongs to the separate Explore suite with a real renderer.
  *
- * What IS testable here, and is exactly what this spec checks: the map
- * degrades to its fallback without crashing the page, and the LIST panel
- * (the `[data-biz]` rows) keeps working fully — filtering still reduces the
- * row set — even while the map itself shows nothing useful.
+ * Use a strict city query with known seed locations. A nonsense search now
+ * correctly returns no matches because /search always requests strict results.
  */
-test.describe('Search — map (no-token fallback) + list interplay', () => {
-  test('SRCH-08 map shows its "Map unavailable" fallback without crashing; the list still filters normally', async ({
-    page,
-  }) => {
-    // A nonsense free-text query with no city/geo constraint: the backend's
-    // relaxation ladder falls back to generic top-rated locations across BOTH
-    // seeded industries (Beauty + Dental) — see search-text-matching.spec.ts
-    // for the full reasoning. This also sidesteps the empty-landing
-    // geolocation-priming modal (derived.search is truthy).
-    await page.goto('/search?search=' + encodeURIComponent('nonsensequeryxyz123'))
-
-    await expect(page.getByText('Map unavailable')).toBeVisible()
+test.describe('Search — map fallback + list filtering', () => {
+  test('SRCH-08 the no-token map fallback keeps the list and Filters usable', async ({ page }) => {
+    await page.goto('/search?city=Bucuresti')
+    await expect(page.getByText('Map unavailable', { exact: true })).toBeVisible()
 
     const rows = page.locator('[data-biz]')
     await expect(rows.first()).toBeVisible({ timeout: 15_000 })
     const before = await rows.count()
+    expect(before).toBeGreaterThan(1)
 
-    // Filter down to the "Dental" industry (the demo seed's only dental
-    // business, Smile Dental in Cluj) — a real, verifiable narrowing of the
-    // row set, proving the list panel is fully interactive.
-    await page.getByRole('button', { name: 'Dental', exact: true }).click()
-    await expect(page).toHaveURL(/[?&]industry=baseline-dental(&|$)/)
-    await expect(rows.first()).toBeVisible({ timeout: 15_000 })
-    await expect
-      .poll(() => rows.count(), { timeout: 15_000 })
-      .toBeLessThan(before)
+    // The Bucharest seed has ratings both below and at/above 4.8. A rating
+    // filter exercises the current dialog without relying on removed industry
+    // chips or the server's recommendation relaxation ladder.
+    await page.getByRole('button', { name: 'Filters', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Filters', exact: true })
+    await dialog.getByRole('button', { name: '4.8+', exact: true }).click()
+    expect(new URL(page.url()).searchParams.has('minRating')).toBe(false)
+    await dialog.getByRole('button', { name: /^Show \d+ places?$/ }).click()
+    await expect(dialog).toHaveCount(0)
+    await expect(page).toHaveURL(/[?&]minRating=4\.8(&|$)/)
+    await expect(rows.first()).toBeVisible()
+    await expect.poll(() => rows.count(), { timeout: 15_000 }).toBeLessThan(before)
 
-    // The map is still degraded (never attempted, never crashed) throughout.
-    await expect(page.getByText('Map unavailable')).toBeVisible()
+    for (const row of await rows.all()) {
+      const rating = Number(await row.getByText(/^[0-5]\.\d$/).textContent())
+      expect(rating).toBeGreaterThanOrEqual(4.8)
+    }
+    await expect(page.getByText('Map unavailable', { exact: true })).toBeVisible()
   })
 })

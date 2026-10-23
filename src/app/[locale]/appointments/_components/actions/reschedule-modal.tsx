@@ -4,12 +4,11 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
 } from "react";
-import { Button, Icon, Skeleton, Spinner, useToast } from "@/components/ui";
+import { Button, Icon, Skeleton, useToast } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
@@ -24,14 +23,21 @@ import type {
   BookingCalendar,
   BookingCalendarDay,
   BookingDaySlots,
-  ServiceSelection,
   TimeSlot,
 } from "@/lib/api/marketplace/types";
 import { todayInTz, zonedWallTimeToUtcISO } from "@/lib/booking";
 import { ActionModal, ApptMini } from "./action-modal";
-import { apptMiniProps, primaryStaff } from "./shared";
+import { apptMiniProps, type AppointmentChange } from "./shared";
+import styles from "./action-fields.module.css";
+import { useAppointmentClock } from "../use-appointment-clock";
 
 const CAL_DAYS_TO_CHECK = 30;
+
+function addDays(date: string, days: number): string {
+  const value = new Date(`${date}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
 
 type SlotGroup = "morning" | "afternoon" | "evening";
 
@@ -43,14 +49,14 @@ function groupForTime(start: string): SlotGroup {
 }
 
 /** Localized "Mon, Jan 5"-style label, anchored at noon UTC to avoid drift. */
-function fmtDateLabel(date: string, locale: string, timeZone: string): string {
+function fmtDateLabel(date: string, locale: string): string {
   const [y, mo, d] = date.split("-").map(Number);
   const dt = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
   return new Intl.DateTimeFormat(locale, {
     weekday: "short",
     month: "short",
     day: "numeric",
-    timeZone,
+    timeZone: "UTC",
   }).format(dt);
 }
 
@@ -71,7 +77,7 @@ function fmtTimeLabel(
 
 /** Combined "Mon, Jan 5 · 2:30 PM" descriptor for the footer / current note. */
 function fmtWhen(date: string, time: string, locale: string, timeZone: string) {
-  return `${fmtDateLabel(date, locale, timeZone)} · ${fmtTimeLabel(date, time, locale, timeZone)}`;
+  return `${fmtDateLabel(date, locale)} · ${fmtTimeLabel(date, time, locale, timeZone)}`;
 }
 
 /** Localized "Mon, Jan 5 · 2:30 PM" for an absolute ISO instant. */
@@ -138,15 +144,13 @@ function availabilityErrorLabel(
  * (web-appointment-actions.jsx:170-227), using authenticated reschedule
  * availability and BookingDrawer's date-strip → grouped-slot UX.
  *
- * Preserve the existing item-identity guard for incomplete appointment data.
- * Availability itself uses the owned appointment's server-side snapshots.
- *
- * Reschedule window note: API window is in MINUTES → converted to hours.
+ * Availability uses the owned appointment's saved staff and duration. Catalog
+ * identities may have changed since booking and are not required by the API.
  */
 type RescheduleModalProps = {
   appointment: AppointmentDetail;
   onClose: () => void;
-  onChanged?: () => void | Promise<void>;
+  onChanged?: (change?: AppointmentChange) => void | Promise<void>;
 };
 
 export function RescheduleModal(props: RescheduleModalProps) {
@@ -162,37 +166,11 @@ function RescheduleSession({
   const t = dict.appointmentActions.reschedule;
   const tb = dict.booking;
   const toast = useToast();
+  const now = useAppointmentClock();
 
   const mini = apptMiniProps(appointment, dict.common.photo);
 
-  const serviceId = appointment.service?.id ?? null;
-  const businessId = appointment.business?.id ?? null;
-  const locationId = appointment.location?.id ?? null;
-  const pinnedStaffId = primaryStaff(appointment)?.teamMemberId;
-  const items = appointment.items;
-
-  // Preserve the existing supported-item guard: a numeric serviceId or
-  // numeric ids on every breakdown item. Requests now use the appointment UUID.
-  const services: ServiceSelection[] | null = useMemo(() => {
-    const staff = pinnedStaffId != null ? { teamMemberId: pinnedStaffId } : {};
-    if (serviceId != null) return [{ serviceId, ...staff }];
-    if (!items?.length) return null;
-    const selections: ServiceSelection[] = [];
-    for (const item of items) {
-      if (item.type === "bundle") {
-        if (typeof item.bundleId !== "number") return null;
-        selections.push({ bundleId: item.bundleId, ...staff });
-      } else if (typeof item.serviceId === "number") {
-        selections.push({ serviceId: item.serviceId, ...staff });
-      } else {
-        return null;
-      }
-    }
-    return selections;
-  }, [serviceId, items, pinnedStaffId]);
-
-  const supported =
-    services != null && businessId != null && locationId != null;
+  const supported = !!appointment.uuid;
 
   // ── Flow state ──
   const [calendar, setCalendar] = useState<BookingCalendar | null>(null);
@@ -216,6 +194,9 @@ function RescheduleSession({
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
+  const closingRef = useRef(false);
+  const handleClosing = useCallback(() => { closingRef.current = true; }, []);
 
   // Slot times are wall-clock in the LOCATION's zone (business is only its
   // fallback). The calendar response is authoritative once loaded; before
@@ -227,18 +208,21 @@ function RescheduleSession({
     Intl.DateTimeFormat().resolvedOptions().timeZone ??
     "UTC";
   const timeZone = calendar?.timezone ?? requestTimeZone;
+  const [rangeStart, setRangeStart] = useState(() => todayInTz(requestTimeZone));
+  const rangeEnd = addDays(rangeStart, CAL_DAYS_TO_CHECK - 1);
+  const nextRangeStart = addDays(rangeStart, CAL_DAYS_TO_CHECK);
+  const maxAdvance = calendar?.bookingSettings.maxAdvanceBookingMinutes;
+  const lastBookableDate = maxAdvance == null ? null : new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", day: "2-digit", timeZone,
+  }).format(new Date(now.getTime() + maxAdvance * 60_000));
 
-  const windowHours = Math.round(
-    (appointment.location?.rescheduleWindowMinutes ?? 1440) / 60,
-  );
-  const currentNote = format(t.currentNote, {
+  const currentNote = format(dict.appointmentPage.currentAppointment, {
     when: fmtIsoWhen(appointment.scheduled_at, locale, timeZone),
-    hours: String(windowHours),
   });
 
   // ── Step 1: fetch calendar. ──
   const loadCalendar = useCallback(async (retry = false) => {
-    if (!supported || businessId == null || locationId == null || !services) {
+    if (!supported) {
       return;
     }
     const requestId = ++calendarRequestId.current;
@@ -247,7 +231,7 @@ function RescheduleSession({
     try {
       const res = await getRescheduleCalendar({
         uuid: appointment.uuid,
-        startDate: todayInTz(requestTimeZone),
+        startDate: rangeStart,
         daysToCheck: CAL_DAYS_TO_CHECK,
       });
       if (requestId !== calendarRequestId.current) return;
@@ -259,12 +243,12 @@ function RescheduleSession({
     } finally {
       if (requestId === calendarRequestId.current) setCalLoading(false);
     }
-  }, [supported, businessId, locationId, services, requestTimeZone, appointment.uuid, t, tb]);
+  }, [supported, rangeStart, appointment.uuid, t, tb]);
 
   // ── Step 2: fetch slots for a chosen date. ──
   const loadSlots = useCallback(
     async (date: string, retry = false) => {
-      if (!supported || businessId == null || locationId == null || !services) {
+      if (!supported) {
         return;
       }
       const requestId = ++slotsRequestId.current;
@@ -286,7 +270,7 @@ function RescheduleSession({
         if (requestId === slotsRequestId.current) setSlotsLoading(false);
       }
     },
-    [supported, businessId, locationId, services, appointment.uuid, setSelectedSlot, t, tb],
+    [supported, appointment.uuid, t, tb],
   );
 
   // ── On mount: fetch the calendar (microtask, matching the codebase idiom). ──
@@ -303,14 +287,33 @@ function RescheduleSession({
   }, [supported, loadCalendar]);
 
   const onPickDate = (date: string) => {
+    if (submitting || calLoading) return;
     setSelectedDate(date);
+    setSubmitError(null);
     void loadSlots(date);
+  };
+
+  const changeRange = (days: number) => {
+    if (calLoading || submitting) return;
+    ++calendarRequestId.current;
+    ++slotsRequestId.current;
+    setSelectedDate(null);
+    setSelectedSlot(null);
+    setDaySlots(null);
+    setSlotsLoading(false);
+    setSlotsError(null);
+    setSubmitError(null);
+    setCalError(null);
+    setCalendar(null);
+    setCalLoading(true);
+    setRangeStart(addDays(rangeStart, days));
   };
 
   const ready = !!selectedSlot && !!selectedDate && !slotsLoading && !slotsError && daySlots?.date === selectedDate;
 
   const confirm = async () => {
-    if (!ready || submitting || !selectedDate || !selectedSlot) return;
+    if (!ready || inFlightRef.current || closingRef.current || !selectedDate || !selectedSlot) return;
+    inFlightRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -319,7 +322,7 @@ function RescheduleSession({
         selectedSlot.startTime,
         timeZone,
       );
-      await rescheduleAppointment({
+      const result = await rescheduleAppointment({
         uuid: appointment.uuid,
         newScheduledAt,
       });
@@ -329,8 +332,8 @@ function RescheduleSession({
         }),
         "cal",
       );
-      await onChanged?.();
       onClose();
+      void onChanged?.({ status: result.status, scheduled_at: result.scheduledAt, ends_at: result.endsAt });
     } catch (e) {
       // Codes arrive NAMESPACED ("APPOINTMENTS.E12"), and the two namespaces
       // collide on bare suffixes — APPOINTMENTS.E08 is "reschedule disabled"
@@ -348,6 +351,7 @@ function RescheduleSession({
         setSubmitError(rescheduleErrorMessage(code, t, tb.errors));
       }
       setSubmitting(false);
+      inFlightRef.current = false;
     }
   };
 
@@ -372,7 +376,7 @@ function RescheduleSession({
             </div>
           </>
         ) : (
-          <span style={{ fontSize: 13, color: "var(--c-500)" }}>
+          <span style={{ fontSize: 13, color: "var(--c-600)" }}>
             {t.pickSlot}
           </span>
         )}
@@ -380,20 +384,11 @@ function RescheduleSession({
       <Button
         kind="primary"
         size="lg"
+        loading={submitting}
         disabled={!ready || submitting}
-        aria-label={t.confirm}
-        aria-busy={submitting}
-        style={{ position: "relative" }}
         onClick={() => void confirm()}
       >
-        <span aria-hidden="true" style={{ visibility: submitting ? "hidden" : "visible" }}>
-          {t.confirm}
-        </span>
-        {submitting && (
-          <span aria-hidden="true" style={{ position: "absolute" }}>
-            <Spinner size={16} color="currentColor" />
-          </span>
-        )}
+        {t.confirm}
       </Button>
     </>
   );
@@ -404,6 +399,8 @@ function RescheduleSession({
       subtitle={format(t.sub, { business: mini.business })}
       onClose={onClose}
       width={520}
+      dismissible={!submitting}
+      onClosing={handleClosing}
       footer={supported ? footer : undefined}
     >
       <ApptMini {...mini} />
@@ -445,6 +442,24 @@ function RescheduleSession({
           {/* Date section */}
           <div style={{ marginTop: 22 }}>
             <div style={dateSectionLabel}>{t.dateLabel}</div>
+            <div className={styles.calendarNavigation}>
+              <Button kind="secondary" size="sm" aria-label={dict.appointmentPage.previousDates}
+                disabled={submitting || calLoading || rangeStart <= todayInTz(timeZone)}
+                onClick={() => changeRange(-CAL_DAYS_TO_CHECK)} style={{ minHeight: 44 }}>
+                <Icon name="back" size={16} />
+              </Button>
+              <span className={styles.calendarRange} aria-live="polite">
+                {format(dict.appointmentPage.dateRange, {
+                  from: fmtDateLabel(rangeStart, locale),
+                  to: fmtDateLabel(rangeEnd, locale),
+                })}
+              </span>
+              <Button kind="secondary" size="sm" aria-label={dict.appointmentPage.nextDates}
+                disabled={submitting || calLoading || (lastBookableDate != null && nextRangeStart > lastBookableDate)}
+                onClick={() => changeRange(CAL_DAYS_TO_CHECK)} style={{ minHeight: 44 }}>
+                <Icon name="chevR" size={16} />
+              </Button>
+            </div>
             {calError && !calendar ? (
               <ErrorBlock
                 label={calError}
@@ -459,9 +474,9 @@ function RescheduleSession({
                 days={calendar.calendar}
                 selectedDate={selectedDate}
                 locale={locale}
-                timeZone={timeZone}
                 noAvailability={tb.noAvailability}
                 onPick={onPickDate}
+                disabled={submitting}
               />
             ) : null}
           </div>
@@ -470,7 +485,7 @@ function RescheduleSession({
           {selectedDate && (
             <div style={{ marginTop: 20 }}>
               <div style={dateSectionLabel}>
-                {fmtDateLabel(selectedDate, locale, timeZone)}
+                {fmtDateLabel(selectedDate, locale)}
               </div>
               {slotsError ? (
                 <ErrorBlock
@@ -494,6 +509,7 @@ function RescheduleSession({
                     afternoon: tb.afternoon,
                     evening: tb.evening,
                   }}
+                  disabled={submitting}
                   onPick={(slot) => {
                     if (!slotsLoading && !slotsError && daySlots?.date === selectedDate) setSelectedSlot(slot);
                   }}
@@ -520,16 +536,16 @@ function DateGrid({
   days,
   selectedDate,
   locale,
-  timeZone,
   noAvailability,
   onPick,
+  disabled,
 }: {
   days: BookingCalendarDay[];
   selectedDate: string | null;
   locale: string;
-  timeZone: string;
   noAvailability: string;
   onPick: (date: string) => void;
+  disabled: boolean;
 }) {
   const hasAvailable = days.some((d) => d.status === "available");
   if (!hasAvailable) {
@@ -563,18 +579,20 @@ function DateGrid({
         const dt = new Date(Date.UTC(y, mo - 1, dd, 12, 0, 0));
         const dow = new Intl.DateTimeFormat(locale, {
           weekday: "short",
-          timeZone,
+          timeZone: "UTC",
         }).format(dt);
         const dayNum = new Intl.DateTimeFormat(locale, {
           day: "numeric",
-          timeZone,
+          timeZone: "UTC",
         }).format(dt);
         return (
           <button
             key={d.date}
             type="button"
             className="tap"
-            disabled={!available}
+            disabled={disabled || !available}
+            aria-pressed={on}
+            aria-label={fmtDateLabel(d.date, locale)}
             onClick={() => onPick(d.date)}
             title={!available ? d.reason ?? d.status : undefined}
             style={{
@@ -600,7 +618,7 @@ function DateGrid({
                 fontWeight: 600,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                color: on ? "rgba(255,255,255,0.7)" : "var(--c-500)",
+                color: on ? "rgba(255,255,255,0.85)" : "var(--c-600)",
               }}
             >
               {dow}
@@ -634,6 +652,7 @@ function SlotGrid({
   fullyBooked,
   labels,
   onPick,
+  disabled,
 }: {
   daySlots: BookingDaySlots | null;
   selectedDate: string;
@@ -643,6 +662,7 @@ function SlotGrid({
   fullyBooked: string;
   labels: Record<SlotGroup, string>;
   onPick: (slot: TimeSlot) => void;
+  disabled: boolean;
 }) {
   if (!daySlots) return null;
   const slots = daySlots.slots ?? [];
@@ -684,11 +704,13 @@ function SlotGrid({
                   <button
                     key={`${s.startTime}-${s.endTime}`}
                     type="button"
+                    disabled={disabled}
+                    aria-pressed={on}
                     className="tap zv-slot"
                     onClick={() => onPick(s)}
                     style={{
                       padding: "10px 0",
-                      height: 41,
+                      height: 44,
                       borderRadius: 11,
                       cursor: "pointer",
                       fontFamily: "var(--font-mono)",
@@ -729,7 +751,7 @@ function LoadingBlock({ label, kind }: { label: string; kind: "dates" | "slots" 
           }}
         >
           {Array.from({ length: kind === "dates" ? CAL_DAYS_TO_CHECK : 8 }, (_, index) => (
-            <Skeleton key={index} h={kind === "dates" ? 62 : 41} r={kind === "dates" ? 14 : 11} />
+            <Skeleton key={index} h={kind === "dates" ? 62 : 44} r={kind === "dates" ? 14 : 11} />
           ))}
         </div>
       </div>
@@ -760,18 +782,17 @@ function ErrorBlock({
         textAlign: "center",
       }}
     >
-      <p
+      <InlineError
         className="txt-pretty"
         style={{
           margin: 0,
           fontSize: 14,
           lineHeight: 1.5,
-          color: "var(--c-600)",
           maxWidth: 280,
         }}
       >
         {label}
-      </p>
+      </InlineError>
       <Button kind="secondary" size="md" onClick={onRetry} loading={loading}>
         {retry}
       </Button>

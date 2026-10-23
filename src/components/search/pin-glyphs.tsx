@@ -47,6 +47,8 @@ export function pinGlyphKey(slug: string): string {
   return `pin-${slug}`;
 }
 
+export const SAVED_PIN_GLYPH = "zv-saved-heart";
+
 /** slug → decoded bitmap, for the page's lifetime. */
 const decoded = new Map<string, HTMLImageElement>();
 
@@ -105,7 +107,7 @@ export function PinGlyphs({ mapRef, mapReady }: PinGlyphsProps) {
 
     const register = (slug: string) => {
       const img = decoded.get(slug);
-      const key = pinGlyphKey(slug);
+      const key = slug === "saved-heart" ? SAVED_PIN_GLYPH : pinGlyphKey(slug);
       if (!img || map.hasImage(key)) return;
       try {
         map.addImage(key, img, { pixelRatio: PIXEL_RATIO });
@@ -126,6 +128,7 @@ export function PinGlyphs({ mapRef, mapReady }: PinGlyphsProps) {
     const onMissing = (e: { id: string }) => {
       const slug = e.id.startsWith("pin-") ? e.id.slice(4) : null;
       if (slug) register(slug);
+      else if (e.id === SAVED_PIN_GLYPH) register("saved-heart");
     };
     map.on("styleimagemissing", onMissing);
     // A style swap re-runs the whole registration, not just the missing ones.
@@ -162,6 +165,7 @@ export function PinGlyphs({ mapRef, mapReady }: PinGlyphsProps) {
           data-slug={slug}
         />
       ))}
+      <Icon name="heart" size={GLYPH_PX} color={GLYPH_COLOR} data-slug="saved-heart" />
     </div>
   );
 }

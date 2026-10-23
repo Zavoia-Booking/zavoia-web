@@ -87,11 +87,11 @@ export function formatServiceSpread(
           service.durationMinMinutes ?? service.duration,
           service.durationMaxMinutes ?? service.duration,
         )
-      : formatDuration(service.duration),
+      : formatDuration(service.durationMinMinutes ?? service.duration),
     price: formatMoney(
-      priceVaries
-        ? (service.priceFromMinor ?? service.priceAmountMinor)
-        : service.priceAmountMinor,
+      // Staff bounds remain authoritative when all capable staff have the
+      // same override. The base can differ even when priceVaries is false.
+      service.priceFromMinor ?? service.priceAmountMinor,
       currency,
       locale,
     ),
@@ -129,14 +129,13 @@ export function sumServiceSpreads(items: ServiceSpread[]): SelectionSpread {
 
   for (const it of items) {
     const varies = it.priceVariesByStaff === true;
-    priceMinor += varies
-      ? (it.priceFromMinor ?? it.priceAmountMinor)
-      : it.priceAmountMinor;
+    priceMinor += it.priceFromMinor ?? it.priceAmountMinor;
     priceVaries ||= varies;
 
     const dv = it.durationVariesByStaff === true;
-    durationMinMinutes += dv ? (it.durationMinMinutes ?? it.duration) : it.duration;
-    durationMaxMinutes += dv ? (it.durationMaxMinutes ?? it.duration) : it.duration;
+    const minimum = it.durationMinMinutes ?? it.duration;
+    durationMinMinutes += minimum;
+    durationMaxMinutes += dv ? (it.durationMaxMinutes ?? it.duration) : minimum;
     durationVaries ||= dv;
   }
 

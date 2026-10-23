@@ -1,10 +1,14 @@
 import type { Locale } from "../locales";
+import { locationPageEn } from "./location-page";
+import { appointmentPageEn } from "./appointment-page";
 
 // English dictionary — the source of truth for the `Dictionary` type
 // (`type Dictionary = typeof en`). Add new keys here first, then mirror
 // them in ./ro.ts (TypeScript enforces that ro matches this shape).
 // Note: no `as const` — values stay `string` so ro can hold different text.
 export const en: {
+  locationPage: typeof locationPageEn;
+  appointmentPage: typeof appointmentPageEn;
   preposition: string;
   home: {
     title: string;
@@ -605,12 +609,15 @@ export const en: {
   };
   saved: {
     title: string;
-    kicker: string;
     heading: string;
     countSuffix: string;
+    filtersLabel: string;
+    unnamedPerson: string;
+    refreshError: string;
+    offline: string;
+    offlineEmpty: string;
     tabs: {
       all: string;
-      businesses: string;
       locations: string;
       people: string;
     };
@@ -619,7 +626,10 @@ export const en: {
       body: string;
       cta: string;
     };
-    filteredEmpty: string;
+    filteredEmpty: {
+      location: string;
+      person: string;
+    };
     removed: string;
     undo: string;
     removeError: string;
@@ -627,6 +637,7 @@ export const en: {
     gate: {
       title: string;
       body: string;
+      cta: string;
       secondary: string;
     };
     loading: string;
@@ -690,6 +701,10 @@ export const en: {
     memberSelectPrompt: string;
     memberBookWith: string;
     memberLoadError: string;
+    memberUnavailable: string;
+    memberContextLoadError: string;
+    memberChooseVenuePrompt: string;
+    memberBookingDetailsUnavailable: string;
     memberRetry: string;
     memberPhotoAria: string;
     memberClosePhotoAria: string;
@@ -852,6 +867,17 @@ export const en: {
     defaultWhere: string;
     searchAria: string;
   };
+  serviceCatalog: {
+    title: string;
+    close: string;
+    description: string;
+    industries: string;
+    allIndustries: string;
+    services: string;
+    emptyTitle: string;
+    emptyBody: string;
+    loadError: string;
+  };
   searchOverlay: {
     previewError: string;
     industriesError: string;
@@ -906,6 +932,8 @@ export const en: {
     resultCountOne: string;
     updating: string;
     allServices: string;
+    clearSelection: string;
+    selectedServices: string;
     sortLabel: string;
     sortTopRated: string;
     sortNearest: string;
@@ -934,6 +962,8 @@ export const en: {
     pinListLabel: string;
     browseMore: string;
     sheetHandleAria: string;
+    matchingBusinesses: string;
+    resultsLimited: string;
     filters: {
       loadError: string;
       title: string;
@@ -1387,7 +1417,6 @@ export const en: {
     };
   };
   appointments: {
-    kicker: string;
     title: string;
     upcomingWord: string;
     pastWord: string;
@@ -1648,6 +1677,8 @@ export const en: {
 
   };
 } = {
+  locationPage: locationPageEn,
+  appointmentPage: appointmentPageEn,
   preposition: "in",
   home: {
     title: "Zavoia — Discover Local Services & Book Online",
@@ -2319,29 +2350,36 @@ export const en: {
   },
   saved: {
     title: "Saved",
-    kicker: "Your shortlist",
     heading: "Saved",
     countSuffix: "saved",
+    filtersLabel: "Filter saved items",
+    unnamedPerson: "Professional",
+    refreshError: "Couldn't refresh your saved items. Your last saved list is still shown.",
+    offline: "You’re offline. Your saved items will refresh when you reconnect.",
+    offlineEmpty: "Connect to the internet to see your saved items.",
     tabs: {
       all: "All",
-      businesses: "Businesses",
       locations: "Locations",
       people: "People",
     },
     empty: {
       title: "Nothing saved yet",
-      body: "Tap the heart on any place, venue or team member — your favourites collect here for next time.",
-      cta: "Browse places",
+      body: "Save any place or professional with the heart and it stays here for your next booking.",
+      cta: "Explore places",
     },
-    filteredEmpty: "Nothing saved in this category yet.",
+    filteredEmpty: {
+      location: "No locations saved yet.",
+      person: "No people saved yet.",
+    },
     removed: "Removed · {name}",
     undo: "Undo",
     removeError: "Something went wrong. Please try again.",
     removeAria: "Remove {name} from saved",
     gate: {
-      title: "Your shortlist, saved.",
-      body: "Sign in to keep the places, venues and people you love in one tap-to-rebook list.",
-      secondary: "Explore places",
+      title: "Saved",
+      body: "Sign in to see what you’ve saved.",
+      cta: "Sign in",
+      secondary: "Explore",
     },
     loading: "Loading your saved items…",
     sectionError: "Couldn't load your saved items.",
@@ -2407,6 +2445,10 @@ export const en: {
     memberSelectPrompt: "Select a service to book",
     memberBookWith: "Book with {name}",
     memberLoadError: "Couldn't load the full profile.",
+    memberUnavailable: "This profile is no longer available.",
+    memberContextLoadError: "Couldn't load booking options.",
+    memberChooseVenuePrompt: "Choose a location to see its services.",
+    memberBookingDetailsUnavailable: "Booking details are unavailable for this location.",
     memberRetry: "Try again",
     memberPhotoAria: "View photo",
     memberClosePhotoAria: "Close photo",
@@ -2586,6 +2628,17 @@ export const en: {
     defaultWhere: "Anywhere",
     searchAria: "Search",
   },
+  serviceCatalog: {
+    title: "Explore services",
+    close: "Close catalog",
+    description: "Choose an industry, then select a service to explore.",
+    industries: "Industries",
+    allIndustries: "All industries",
+    services: "Services",
+    emptyTitle: "No services to show",
+    emptyBody: "Try another industry or come back later.",
+    loadError: "We couldn’t load the services. Try again.",
+  },
   searchOverlay: {
     previewError: "We couldn’t load suggestions.",
     industriesError: "We couldn’t load service categories.",
@@ -2640,6 +2693,8 @@ export const en: {
     resultCountOne: "{count} place",
     updating: "Updating…",
     allServices: "All services",
+    clearSelection: "Clear {selection}",
+    selectedServices: "Selected services",
     sortLabel: "Sort",
     sortTopRated: "Top rated",
     sortNearest: "Nearest",
@@ -2668,7 +2723,9 @@ export const en: {
     mapUnavailable: "Map unavailable",
     pinListLabel: "Places on the map",
     browseMore: "More",
-    sheetHandleAria: "Drag to resize the results panel",
+    sheetHandleAria: "Resize the results panel. Use Up and Down arrows, Home or End.",
+    matchingBusinesses: "Matching businesses",
+    resultsLimited: "Results are limited to {count} of {total} places. Narrow your search for more relevant results.",
     filters: {
       loadError: "We couldn’t load the available features.",
       title: "Filters",
@@ -3486,7 +3543,6 @@ export const en: {
     },
   },
   appointments: {
-    kicker: "Your appointments",
     title: "Appointments",
     upcomingWord: "UPCOMING",
     pastWord: "PAST",
@@ -3568,7 +3624,7 @@ export const en: {
     free: "Free",
     awaitingConfirmation: "Awaiting confirmation",
     awaitingConfirmationBody:
-      "{business} usually confirms within a few hours. We'll notify you the moment they do — nothing's charged until then.",
+      "Your appointment is awaiting confirmation from {business}.",
     inProgress: "In progress",
     endingNow: "Ending now",
     oneMinLeft: "1 min left",

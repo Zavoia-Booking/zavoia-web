@@ -40,6 +40,9 @@ export {
   ToastProvider,
   ToastHost,
   useToast,
+  ACTION_TOAST_HOLD_MS,
   type ToastApi,
   type ToastAction,
+  type ToastHandle,
+  type ToastOptions,
 } from "./toast";
