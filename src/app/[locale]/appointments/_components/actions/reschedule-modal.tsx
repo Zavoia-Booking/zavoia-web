@@ -6,10 +6,8 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
-import { Button, Icon, Skeleton, useToast } from "@/components/ui";
-import { InlineError } from "@/components/ui/inline-error";
+import { Avatar, Button, Icon, Img, Skeleton, useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { ApiError } from "@/lib/api/http";
@@ -26,12 +24,15 @@ import type {
   TimeSlot,
 } from "@/lib/api/marketplace/types";
 import { todayInTz, zonedWallTimeToUtcISO } from "@/lib/booking";
-import { ActionModal, ApptMini } from "./action-modal";
-import { apptMiniProps, type AppointmentChange } from "./shared";
-import styles from "./action-fields.module.css";
+import { ActionModal } from "./action-modal";
+import { apptMiniProps, staffDisplayName, type AppointmentChange } from "./shared";
+import styles from "./reschedule-modal.module.css";
 import { useAppointmentClock } from "../use-appointment-clock";
+import { apptTime } from "../vm";
 
 const CAL_DAYS_TO_CHECK = 30;
+const VISIBLE_DAYS = 7;
+const LAST_DATE_PAGE = Math.floor((CAL_DAYS_TO_CHECK - 1) / VISIBLE_DAYS) * VISIBLE_DAYS;
 
 function addDays(date: string, days: number): string {
   const value = new Date(`${date}T12:00:00Z`);
@@ -68,28 +69,22 @@ function fmtTimeLabel(
   timeZone: string,
 ): string {
   const iso = zonedWallTimeToUtcISO(date, time, timeZone);
-  return new Intl.DateTimeFormat(locale, {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone,
-  }).format(new Date(iso));
+  return apptTime(iso, locale, timeZone);
 }
 
-/** Combined "Mon, Jan 5 · 2:30 PM" descriptor for the footer / current note. */
+/** Combined date and 24-hour time for the footer / current note. */
 function fmtWhen(date: string, time: string, locale: string, timeZone: string) {
   return `${fmtDateLabel(date, locale)} · ${fmtTimeLabel(date, time, locale, timeZone)}`;
 }
 
-/** Localized "Mon, Jan 5 · 2:30 PM" for an absolute ISO instant. */
+/** Localized date and 24-hour time for an absolute ISO instant. */
 function fmtIsoWhen(iso: string, locale: string, timeZone: string): string {
   return new Intl.DateTimeFormat(locale, {
     weekday: "short",
     month: "short",
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
     timeZone,
-  }).format(new Date(iso));
+  }).format(new Date(iso)) + ` · ${apptTime(iso, locale, timeZone)}`;
 }
 
 /**
@@ -101,13 +96,14 @@ function rescheduleErrorMessage(
   code: string | undefined,
   t: Dictionary["appointmentActions"]["reschedule"],
   bookingErrors: Dictionary["booking"]["errors"],
+  businessName: string,
 ): string {
   switch (code) {
     // The notice window lapsed — most likely while this modal sat open.
     case "APPOINTMENTS.E12":
-      return t.windowPassed;
+      return format(t.windowPassed, { businessName });
     case "APPOINTMENTS.E08":
-      return t.notAllowed;
+      return format(t.notAllowed, { businessName });
     case "APPOINTMENTS.E09":
       return t.alreadyStarted;
     case "APPOINTMENTS.E10":
@@ -132,10 +128,11 @@ function availabilityErrorLabel(
   e: unknown,
   t: Dictionary["appointmentActions"]["reschedule"],
   tb: Dictionary["booking"],
+  businessName: string,
 ): string {
   const code = e instanceof ApiError ? e.code : undefined;
   return code?.startsWith("APPOINTMENTS.")
-    ? rescheduleErrorMessage(code, t, tb.errors)
+    ? rescheduleErrorMessage(code, t, tb.errors, businessName)
     : tb.loadError;
 }
 
@@ -169,13 +166,17 @@ function RescheduleSession({
   const now = useAppointmentClock();
 
   const mini = apptMiniProps(appointment, dict.common.photo);
+  const businessName = appointment.business?.name?.trim()
+    || appointment.location?.name?.trim()
+    || dict.appointmentPage.contactBusinessFallback;
 
   const supported = !!appointment.uuid;
 
   // ── Flow state ──
   const [calendar, setCalendar] = useState<BookingCalendar | null>(null);
   const [calLoading, setCalLoading] = useState(true);
-  // Error copy for the date/slot sections; null = no error.
+  // Failed availability stays unavailable until its explicit retry succeeds.
+  // Request feedback is announced once per failed request in the toast.
   const [calError, setCalError] = useState<string | null>(null);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -193,7 +194,6 @@ function RescheduleSession({
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const inFlightRef = useRef(false);
   const closingRef = useRef(false);
   const handleClosing = useCallback(() => { closingRef.current = true; }, []);
@@ -209,8 +209,14 @@ function RescheduleSession({
     "UTC";
   const timeZone = calendar?.timezone ?? requestTimeZone;
   const [rangeStart, setRangeStart] = useState(() => todayInTz(requestTimeZone));
-  const rangeEnd = addDays(rangeStart, CAL_DAYS_TO_CHECK - 1);
-  const nextRangeStart = addDays(rangeStart, CAL_DAYS_TO_CHECK);
+  // Presentation pages stay inside the server's authoritative 30-day window.
+  const [datePage, setDatePage] = useState(0);
+  const [weekDirection, setWeekDirection] = useState<-1 | 1 | null>(null);
+  const timeAreaRef = useRef<HTMLDivElement>(null);
+  const visibleStart = addDays(rangeStart, datePage);
+  const visibleEnd = addDays(rangeStart, Math.min(datePage + VISIBLE_DAYS - 1, CAL_DAYS_TO_CHECK - 1));
+  const nextVisibleStart = addDays(rangeStart, Math.min(datePage + VISIBLE_DAYS, CAL_DAYS_TO_CHECK));
+  const visibleDays = calendar?.calendar.filter((day) => day.date >= visibleStart && day.date <= visibleEnd) ?? [];
   const maxAdvance = calendar?.bookingSettings.maxAdvanceBookingMinutes;
   const lastBookableDate = maxAdvance == null ? null : new Intl.DateTimeFormat("en-CA", {
     year: "numeric", month: "2-digit", day: "2-digit", timeZone,
@@ -218,6 +224,12 @@ function RescheduleSession({
 
   const currentNote = format(dict.appointmentPage.currentAppointment, {
     when: fmtIsoWhen(appointment.scheduled_at, locale, timeZone),
+  });
+  const places = [mini.business, appointment.location?.name]
+    .filter((name, index, values) => name && values.indexOf(name) === index);
+  const professionals = (appointment.staff_users ?? []).flatMap((member) => {
+    const name = staffDisplayName(member);
+    return name ? [{ ...member, name }] : [];
   });
 
   // ── Step 1: fetch calendar. ──
@@ -239,11 +251,15 @@ function RescheduleSession({
       setCalError(null);
     } catch (e) {
       if (requestId !== calendarRequestId.current) return;
-      setCalError(availabilityErrorLabel(e, t, tb));
+      const message = availabilityErrorLabel(e, t, tb, businessName);
+      setCalError(message);
+      if (!closingRef.current) {
+        toast(message, "warn", undefined, "error");
+      }
     } finally {
       if (requestId === calendarRequestId.current) setCalLoading(false);
     }
-  }, [supported, rangeStart, appointment.uuid, t, tb]);
+  }, [supported, rangeStart, appointment.uuid, t, tb, businessName, toast]);
 
   // ── Step 2: fetch slots for a chosen date. ──
   const loadSlots = useCallback(
@@ -265,12 +281,16 @@ function RescheduleSession({
         setSlotsError(null);
       } catch (e) {
         if (requestId !== slotsRequestId.current) return;
-        setSlotsError(availabilityErrorLabel(e, t, tb));
+        const message = availabilityErrorLabel(e, t, tb, businessName);
+        setSlotsError(message);
+        if (!closingRef.current) {
+          toast(message, "warn", undefined, "error");
+        }
       } finally {
         if (requestId === slotsRequestId.current) setSlotsLoading(false);
       }
     },
-    [supported, appointment.uuid, t, tb],
+    [supported, appointment.uuid, t, tb, businessName, toast],
   );
 
   // ── On mount: fetch the calendar (microtask, matching the codebase idiom). ──
@@ -289,33 +309,58 @@ function RescheduleSession({
   const onPickDate = (date: string) => {
     if (submitting || calLoading) return;
     setSelectedDate(date);
-    setSubmitError(null);
     void loadSlots(date);
   };
 
-  const changeRange = (days: number) => {
-    if (calLoading || submitting) return;
-    ++calendarRequestId.current;
+  const clearDateSelection = () => {
     ++slotsRequestId.current;
     setSelectedDate(null);
     setSelectedSlot(null);
     setDaySlots(null);
     setSlotsLoading(false);
     setSlotsError(null);
-    setSubmitError(null);
+  };
+
+  const changeRange = (days: number) => {
+    if (calLoading || submitting) return;
+    ++calendarRequestId.current;
+    clearDateSelection();
     setCalError(null);
     setCalendar(null);
     setCalLoading(true);
     setRangeStart(addDays(rangeStart, days));
+    setDatePage(days < 0 ? LAST_DATE_PAGE : 0);
+  };
+
+  const changeDatePage = (direction: -1 | 1) => {
+    if (calLoading || submitting) return;
+    // Reserve the visible space before clearing slots so the body retains its
+    // scroll position while the next week renders.
+    const timeArea = timeAreaRef.current;
+    const body = timeArea?.closest<HTMLElement>(".zw-scroll-y");
+    if (timeArea && body) {
+      const minHeight = Math.max(0,
+        body.getBoundingClientRect().bottom - timeArea.getBoundingClientRect().top,
+      );
+      timeArea.style.minHeight = `${minHeight}px`;
+    }
+    setWeekDirection(direction);
+    const nextPage = datePage + direction * VISIBLE_DAYS;
+    if (nextPage < 0 || nextPage >= CAL_DAYS_TO_CHECK) {
+      changeRange(direction * CAL_DAYS_TO_CHECK);
+      return;
+    }
+    clearDateSelection();
+    setDatePage(nextPage);
   };
 
   const ready = !!selectedSlot && !!selectedDate && !slotsLoading && !slotsError && daySlots?.date === selectedDate;
+  const weekContentKey = `${visibleStart}:${!calendar ? calError ? "error" : "loading" : "dates"}`;
 
   const confirm = async () => {
     if (!ready || inFlightRef.current || closingRef.current || !selectedDate || !selectedSlot) return;
     inFlightRef.current = true;
     setSubmitting(true);
-    setSubmitError(null);
     try {
       const newScheduledAt = zonedWallTimeToUtcISO(
         selectedDate,
@@ -344,11 +389,11 @@ function RescheduleSession({
         (code === "MARKETPLACE_BOOKING.E10" || code === "MARKETPLACE_BOOKING.E14") &&
         selectedDate
       ) {
-        setSubmitError(tb.errors.slotConflict);
+        toast(tb.errors.slotConflict, "warn", undefined, "error");
         setSelectedSlot(null);
         void loadSlots(selectedDate);
       } else {
-        setSubmitError(rescheduleErrorMessage(code, t, tb.errors));
+        toast(rescheduleErrorMessage(code, t, tb.errors, businessName), "warn", undefined, "error");
       }
       setSubmitting(false);
       inFlightRef.current = false;
@@ -357,172 +402,169 @@ function RescheduleSession({
 
   // ── Footer ──
   const footer = (
-    <>
-      <div style={{ flex: 1, minWidth: 0 }}>
+    <div className={styles.footer}>
+      <div className={styles.selection} role="status" aria-live="polite" aria-atomic="true">
         {ready && selectedDate && selectedSlot ? (
           <>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--c-900)" }}>
+            <span className={styles.selectionLabel}>{t.newTimeLabel}</span>
+            <span className={styles.selectionValue}>
               {fmtWhen(selectedDate, selectedSlot.startTime, locale, timeZone)}
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 10.5,
-                color: "var(--c-600)",
-                marginTop: 1,
-              }}
-            >
-              {t.newTimeLabel}
-            </div>
+            </span>
           </>
         ) : (
-          <span style={{ fontSize: 13, color: "var(--c-600)" }}>
-            {t.pickSlot}
-          </span>
+          <span className={styles.selectionHint}>{t.pickSlot}</span>
         )}
       </div>
       <Button
-        kind="primary"
+        kind="accent"
         size="lg"
+        className={styles.confirm}
+        style={{ border: "none", color: "var(--c-50)" }}
         loading={submitting}
         disabled={!ready || submitting}
         onClick={() => void confirm()}
       >
         {t.confirm}
       </Button>
-    </>
+    </div>
   );
 
   return (
     <ActionModal
       title={t.title}
-      subtitle={format(t.sub, { business: mini.business })}
       onClose={onClose}
-      width={520}
+      width={540}
+      className={styles.modal}
       dismissible={!submitting}
       onClosing={handleClosing}
       footer={supported ? footer : undefined}
     >
-      <ApptMini {...mini} />
+      <div className={styles.booking}>
+        <Img src={mini.photo ?? undefined} alt="" className={styles.photo}
+          label={<Icon name="pin" size={24} color="var(--c-600)" />} />
+        <div className={styles.summary}>
+          <h2>{mini.serviceLine}</h2>
+          {appointment.additionalItemsCount > 0 && <p className={styles.more}>
+            {format(dict.appointmentPage.moreItems, { n: String(appointment.additionalItemsCount) })}
+          </p>}
+          {places.map((name, index) => <p className={index === 0 ? styles.business : undefined} key={name}>{name}</p>)}
+        </div>
+      </div>
+
+      {professionals.length > 0 && (
+        <ul className={styles.professionals} aria-label={dict.appointmentDetail.sections.with}>
+          {professionals.map((member) => (
+            <li key={member.teamMemberId}>
+              <Avatar src={member.profileImage ?? undefined} name={member.name} size={44} />
+              <div className={styles.professionalDetails}>
+                <span className={styles.professionalName}>{member.name}</span>
+                {member.professionalTitle?.trim() && <span className={styles.professionalTitle}>{member.professionalTitle}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {!supported ? (
         // Missing item identity cannot be recovered by retrying availability.
-        <p
-          className="txt-pretty"
-          style={{
-            margin: "18px 0 0",
-            fontSize: 14,
-            lineHeight: 1.55,
-            color: "var(--c-600)",
-          }}
-        >
+        <p className={`txt-pretty ${styles.unsupported}`}>
           {t.unsupported}
         </p>
       ) : (
         <>
-          {/* Current-time pill */}
-          <div
-            style={{
-              marginTop: 16,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 12.5,
-              color: "var(--c-600)",
-              background: "var(--c-50)",
-              border: "1px solid rgba(28,28,26,0.07)",
-              borderRadius: 999,
-              padding: "7px 13px",
-            }}
-          >
-            <Icon name="clock" size={13} color="var(--c-500)" />
-            {currentNote}
-          </div>
+          <p className={styles.current}>
+            <Icon name="cal" size={16} />
+            <span>{currentNote}</span>
+          </p>
 
           {/* Date section */}
-          <div style={{ marginTop: 22 }}>
-            <div style={dateSectionLabel}>{t.dateLabel}</div>
+          <section className={styles.dateSection} aria-label={t.dateLabel}>
+            <h3 className={styles.sectionLabel}>{t.dateLabel}</h3>
             <div className={styles.calendarNavigation}>
               <Button kind="secondary" size="sm" aria-label={dict.appointmentPage.previousDates}
-                disabled={submitting || calLoading || rangeStart <= todayInTz(timeZone)}
-                onClick={() => changeRange(-CAL_DAYS_TO_CHECK)} style={{ minHeight: 44 }}>
+                disabled={submitting || calLoading || (datePage === 0 && rangeStart <= todayInTz(timeZone))}
+                onClick={() => changeDatePage(-1)} className={styles.calendarArrow}>
                 <Icon name="back" size={16} />
               </Button>
               <span className={styles.calendarRange} aria-live="polite">
-                {format(dict.appointmentPage.dateRange, {
-                  from: fmtDateLabel(rangeStart, locale),
-                  to: fmtDateLabel(rangeEnd, locale),
-                })}
+                <span key={visibleStart} className={styles.weekMotion} data-week-direction={weekDirection ?? undefined}>
+                  {format(dict.appointmentPage.dateRange, {
+                    from: fmtDateLabel(visibleStart, locale),
+                    to: fmtDateLabel(visibleEnd, locale),
+                  })}
+                </span>
               </span>
               <Button kind="secondary" size="sm" aria-label={dict.appointmentPage.nextDates}
-                disabled={submitting || calLoading || (lastBookableDate != null && nextRangeStart > lastBookableDate)}
-                onClick={() => changeRange(CAL_DAYS_TO_CHECK)} style={{ minHeight: 44 }}>
+                disabled={submitting || calLoading || (lastBookableDate != null && nextVisibleStart > lastBookableDate)}
+                onClick={() => changeDatePage(1)} className={styles.calendarArrow}>
                 <Icon name="chevR" size={16} />
               </Button>
             </div>
-            {calError && !calendar ? (
-              <ErrorBlock
-                label={calError}
-                retry={tb.retry}
-                onRetry={() => void loadCalendar(true)}
-                loading={calLoading}
-              />
-            ) : calLoading && !calendar ? (
-              <LoadingBlock label={tb.loading} kind="dates" />
-            ) : calendar ? (
-              <DateGrid
-                days={calendar.calendar}
-                selectedDate={selectedDate}
-                locale={locale}
-                noAvailability={tb.noAvailability}
-                onPick={onPickDate}
-                disabled={submitting}
-              />
-            ) : null}
-          </div>
+            <div className={styles.weekViewport}>
+              <div key={weekContentKey} className={styles.weekMotion} data-week-direction={weekDirection ?? undefined}>
+                {calError && !calendar ? (
+                  <RetryBlock
+                    retry={tb.retry}
+                    onRetry={() => void loadCalendar(true)}
+                    loading={calLoading}
+                  />
+                ) : calLoading && !calendar ? (
+                  <LoadingBlock label={tb.loading} kind="dates" />
+                ) : calendar ? (
+                  <DateGrid
+                    days={visibleDays}
+                    selectedDate={selectedDate}
+                    locale={locale}
+                    noAvailability={dict.appointmentPage.noDatesInRange}
+                    onPick={onPickDate}
+                    disabled={submitting}
+                  />
+                ) : null}
+              </div>
+            </div>
+          </section>
 
           {/* Slot section */}
-          {selectedDate && (
-            <div style={{ marginTop: 20 }}>
-              <div style={dateSectionLabel}>
-                {fmtDateLabel(selectedDate, locale)}
-              </div>
-              {slotsError ? (
-                <ErrorBlock
-                  label={slotsError}
-                  retry={tb.retry}
-                  onRetry={() => void loadSlots(selectedDate, true)}
-                  loading={slotsLoading}
-                />
-              ) : slotsLoading ? (
-                <LoadingBlock label={tb.loading} kind="slots" />
-              ) : (
-                <SlotGrid
-                  daySlots={daySlots?.date === selectedDate ? daySlots : null}
-                  selectedDate={selectedDate}
-                  selectedSlot={selectedSlot}
-                  locale={locale}
-                  timeZone={timeZone}
-                  fullyBooked={tb.fullyBookedDay}
-                  labels={{
-                    morning: tb.morning,
-                    afternoon: tb.afternoon,
-                    evening: tb.evening,
-                  }}
-                  disabled={submitting}
-                  onPick={(slot) => {
-                    if (!slotsLoading && !slotsError && daySlots?.date === selectedDate) setSelectedSlot(slot);
-                  }}
-                />
-              )}
-            </div>
-          )}
+          <div ref={timeAreaRef} className={styles.timeArea}>
+            {!selectedDate && !calLoading && calendar && visibleDays.some((day) => day.status === "available") && (
+              <p className={styles.hint}>{dict.appointmentPage.chooseDateHint}</p>
+            )}
+            {selectedDate && (
+              <section className={styles.timeSection} aria-label={fmtDateLabel(selectedDate, locale)}>
+                <h3 className={styles.sectionLabel}>
+                  {fmtDateLabel(selectedDate, locale)}
+                </h3>
+                {slotsError ? (
+                  <RetryBlock
+                    retry={tb.retry}
+                    onRetry={() => void loadSlots(selectedDate, true)}
+                    loading={slotsLoading}
+                  />
+                ) : slotsLoading ? (
+                  <LoadingBlock label={tb.loading} kind="slots" />
+                ) : (
+                  <SlotGrid
+                    daySlots={daySlots?.date === selectedDate ? daySlots : null}
+                    selectedDate={selectedDate}
+                    selectedSlot={selectedSlot}
+                    locale={locale}
+                    timeZone={timeZone}
+                    fullyBooked={tb.fullyBookedDay}
+                    labels={{
+                      morning: tb.morning,
+                      afternoon: tb.afternoon,
+                      evening: tb.evening,
+                    }}
+                    disabled={submitting}
+                    onPick={(slot) => {
+                      if (!slotsLoading && !slotsError && daySlots?.date === selectedDate) setSelectedSlot(slot);
+                    }}
+                  />
+                )}
+              </section>
+            )}
+          </div>
 
-          {submitError && (
-            <InlineError style={{ margin: "16px 0 0" }}>
-              {submitError}
-            </InlineError>
-          )}
         </>
       )}
     </ActionModal>
@@ -548,30 +590,9 @@ function DateGrid({
   disabled: boolean;
 }) {
   const hasAvailable = days.some((d) => d.status === "available");
-  if (!hasAvailable) {
-    return (
-      <p
-        className="txt-pretty"
-        style={{
-          margin: 0,
-          fontSize: 14,
-          lineHeight: 1.6,
-          color: "var(--c-600)",
-        }}
-      >
-        {noAvailability}
-      </p>
-    );
-  }
-
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))",
-        gap: 8,
-      }}
-    >
+    <>
+    <div className={styles.dateStrip}>
       {days.map((d) => {
         const available = d.status === "available";
         const on = selectedDate === d.date;
@@ -589,54 +610,26 @@ function DateGrid({
           <button
             key={d.date}
             type="button"
-            className="tap"
+            className={`tap ${styles.dateTile}`}
             disabled={disabled || !available}
+            data-available={available}
             aria-pressed={on}
             aria-label={fmtDateLabel(d.date, locale)}
             onClick={() => onPick(d.date)}
             title={!available ? d.reason ?? d.status : undefined}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 3,
-              padding: "10px 0 9px",
-              height: 62,
-              borderRadius: 14,
-              cursor: available ? "pointer" : "default",
-              opacity: available ? 1 : 0.35,
-              background: on ? "var(--c-ink)" : "#fff",
-              border: on
-                ? "1px solid var(--c-ink)"
-                : "1px solid rgba(28,28,26,0.10)",
-            }}
           >
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 9.5,
-                fontWeight: 600,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: on ? "rgba(255,255,255,0.85)" : "var(--c-600)",
-              }}
-            >
+            <span className={styles.weekday}>
               {dow}
             </span>
-            <span
-              style={{
-                fontSize: 16,
-                fontWeight: 600,
-                fontVariantNumeric: "tabular-nums",
-                color: on ? "#fff" : "var(--c-900)",
-              }}
-            >
+            <span className={styles.dayNumber}>
               {dayNum}
             </span>
           </button>
         );
       })}
     </div>
+    {!hasAvailable && <p className={styles.hint}>{noAvailability}</p>}
+    </>
   );
 }
 
@@ -668,9 +661,9 @@ function SlotGrid({
   const slots = daySlots.slots ?? [];
   if (slots.length === 0) {
     return (
-      <div style={{ fontSize: 13.5, color: "var(--c-600)", padding: "14px 2px" }}>
+      <p className={styles.emptySlots}>
         {fullyBooked}
-      </div>
+      </p>
     );
   }
 
@@ -686,18 +679,12 @@ function SlotGrid({
     selectedSlot?.endTime === s.endTime;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className={styles.slotGroups}>
       {(Object.keys(groups) as SlotGroup[]).map((g) =>
         groups[g].length > 0 ? (
           <div key={g}>
-            <div style={dateSectionLabel}>{labels[g]}</div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(86px, 1fr))",
-                gap: 8,
-              }}
-            >
+            <h4 className={styles.groupLabel}>{labels[g]}</h4>
+            <div className={styles.slots}>
               {groups[g].map((s) => {
                 const on = isSelected(s);
                 return (
@@ -706,22 +693,8 @@ function SlotGrid({
                     type="button"
                     disabled={disabled}
                     aria-pressed={on}
-                    className="tap zv-slot"
+                    className={`tap zv-slot ${styles.slot}`}
                     onClick={() => onPick(s)}
-                    style={{
-                      padding: "10px 0",
-                      height: 44,
-                      borderRadius: 11,
-                      cursor: "pointer",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      background: on ? "var(--c-ink)" : "#fff",
-                      color: on ? "#fff" : "var(--c-900)",
-                      border: on
-                        ? "1px solid var(--c-ink)"
-                        : "1px solid rgba(28,28,26,0.10)",
-                    }}
                   >
                     {fmtTimeLabel(selectedDate, s.startTime, locale, timeZone)}
                   </button>
@@ -742,16 +715,12 @@ function LoadingBlock({ label, kind }: { label: string; kind: "dates" | "slots" 
   return (
     <div aria-busy="true">
       <div aria-hidden="true">
-        {kind === "slots" && <Skeleton w={64} h={20.25} r={4} style={{ marginBottom: 10 }} />}
+        {kind === "slots" && <Skeleton w={64} h={18} r={4} style={{ marginBottom: 10 }} />}
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(auto-fill, minmax(${kind === "dates" ? 64 : 86}px, 1fr))`,
-            gap: 8,
-          }}
+          className={kind === "dates" ? styles.dateStrip : styles.slots}
         >
-          {Array.from({ length: kind === "dates" ? CAL_DAYS_TO_CHECK : 8 }, (_, index) => (
-            <Skeleton key={index} h={kind === "dates" ? 62 : 44} r={kind === "dates" ? 14 : 11} />
+          {Array.from({ length: kind === "dates" ? VISIBLE_DAYS : 8 }, (_, index) => (
+            <Skeleton key={index} className={kind === "dates" ? styles.dateTile : undefined} h={kind === "dates" ? "var(--reschedule-date-height)" : 46} r={kind === "dates" ? 16 : 12} />
           ))}
         </div>
       </div>
@@ -759,50 +728,20 @@ function LoadingBlock({ label, kind }: { label: string; kind: "dates" | "slots" 
     </div>
   );
 }
-
-function ErrorBlock({
-  label,
+function RetryBlock({
   retry,
   onRetry,
   loading,
 }: {
-  label: string;
   retry: string;
   onRetry: () => void;
   loading: boolean;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 14,
-        padding: "28px 0",
-        textAlign: "center",
-      }}
-    >
-      <InlineError
-        className="txt-pretty"
-        style={{
-          margin: 0,
-          fontSize: 14,
-          lineHeight: 1.5,
-          maxWidth: 280,
-        }}
-      >
-        {label}
-      </InlineError>
+    <div className={styles.retry}>
       <Button kind="secondary" size="md" onClick={onRetry} loading={loading}>
         {retry}
       </Button>
     </div>
   );
 }
-
-const dateSectionLabel: CSSProperties = {
-  fontSize: 13.5,
-  fontWeight: 600,
-  color: "var(--c-800)",
-  marginBottom: 10,
-};

@@ -1,21 +1,10 @@
-/**
- * Resolving a slot against the professional the customer actually picked.
- *
- * The slots endpoint computes a day's availability WITHOUT knowing who will
- * serve it, so each item carries conservative figures: the longest duration any
- * capable professional needs (a slot must fit whoever ends up assigned) and the
- * lowest price they charge (the "from" figure the listing advertises). The
- * response also ships `staffPricing` — every professional's exact price and
- * duration for every service in the selection — precisely so the client can
- * re-resolve those figures the moment someone is chosen, with no refetch and no
- * reshuffling of the slot list under the customer.
- *
- * Everything here is pure and works on `HH:mm` wall-clock strings in the
- * location's timezone, matching the API.
- */
+/** Resolve each original booking selection against its chosen professional.
+ * Bundle prices and default-service durations remain independent of standalone
+ * service overrides. All times are venue-local HH:mm values. */
 
 import type {
   BookingDaySlots,
+  ItemStaffPricing,
   SlotItem,
   TimeSlot,
 } from "@/lib/api/marketplace/types";
@@ -51,89 +40,63 @@ function toClock(minutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** The service ids a slot item is priced from — one for a service, many for a bundle. */
-function serviceIdsOf(item: SlotItem): number[] {
-  if (item.type === "service") {
-    return item.serviceId != null ? [item.serviceId] : [];
-  }
-  return (item.services ?? []).map((s) => s.serviceId);
-}
-
-/**
- * Do the professionals available for this item differ in what they charge or
- * how long they take? Two identical-looking professionals are NOT a variance —
- * only a real difference forces a choice.
- */
-export function itemVariesByStaff(
+/** Locate only this selection's figures, including its original position. */
+function selectionPricing(
   item: SlotItem,
-  staffPricing: StaffPricing,
-): boolean {
-  if (item.availableStaffIds.length < 2) return false;
-  const serviceIds = serviceIdsOf(item);
-  if (serviceIds.length === 0) return false;
-
-  const combos = new Set<string>();
-  for (const staffId of item.availableStaffIds) {
-    let price = 0;
-    let duration = 0;
-    let complete = true;
-    for (const serviceId of serviceIds) {
-      const entry = staffPricing[serviceId]?.[staffId];
-      if (!entry) {
-        complete = false;
-        break;
-      }
-      price += entry.price;
-      duration += entry.duration;
-    }
-    // A professional missing from staffPricing tells us nothing — skip rather
-    // than inventing a difference that would force a pointless choice.
-    if (!complete) continue;
-    combos.add(`${price}:${duration}`);
-    if (combos.size > 1) return true;
-  }
-  return false;
+  itemStaffPricing: ItemStaffPricing[] | undefined,
+  itemIndex: number | undefined,
+) {
+  if (itemIndex == null) return undefined;
+  return itemStaffPricing?.find((entry) =>
+    entry.itemIndex === itemIndex && entry.type === item.type &&
+    (item.type === "bundle"
+      ? entry.bundleId === item.bundleId
+      : entry.serviceId === item.serviceId),
+  )?.staff;
 }
 
-/** Price + duration of one item for one professional (or the slot's own figures). */
+/** Price and duration of a whole selected unit for one professional. */
 export function staffFiguresForItem(
   item: SlotItem,
   staffId: number | null,
   staffPricing: StaffPricing,
+  itemStaffPricing?: ItemStaffPricing[],
+  itemIndex?: number,
 ): { priceAmountMinor: number; durationMinutes: number } {
   const fallback = {
     priceAmountMinor: item.priceAmountMinor,
     durationMinutes: item.durationMinutes,
   };
-  if (staffId == null) return fallback;
+  // Bundles always retain their own total and sum of default service durations.
+  if (staffId == null || item.type === "bundle") return fallback;
+  const scoped = selectionPricing(item, itemStaffPricing, itemIndex);
+  const entry = scoped
+    ? scoped[staffId]
+    : item.serviceId != null ? staffPricing[item.serviceId]?.[staffId] : undefined;
+  return entry
+    ? { priceAmountMinor: entry.price, durationMinutes: entry.duration }
+    : fallback;
+}
 
-  if (item.type === "service") {
-    const entry =
-      item.serviceId != null ? staffPricing[item.serviceId]?.[staffId] : undefined;
-    return entry
-      ? { priceAmountMinor: entry.price, durationMinutes: entry.duration }
-      : fallback;
+/** Only a real standalone-service price/duration difference forces a choice. */
+export function itemVariesByStaff(
+  item: SlotItem,
+  staffPricing: StaffPricing,
+  itemStaffPricing?: ItemStaffPricing[],
+  itemIndex?: number,
+): boolean {
+  if (item.type === "bundle" || item.availableStaffIds.length < 2) return false;
+  const scoped = selectionPricing(item, itemStaffPricing, itemIndex);
+  const combos = new Set<string>();
+  for (const staffId of item.availableStaffIds) {
+    const entry = scoped
+      ? scoped[staffId]
+      : item.serviceId != null ? staffPricing[item.serviceId]?.[staffId] : undefined;
+    if (!entry) continue;
+    combos.add(`${entry.price}:${entry.duration}`);
+    if (combos.size > 1) return true;
   }
-
-  // A bundle is priced as a package, so only its duration follows the
-  // professional — summed across the services they'll chain back-to-back.
-  const services = item.services ?? [];
-  if (services.length === 0) return fallback;
-  let duration = 0;
-  let anyKnown = false;
-  for (const svc of services) {
-    const entry = staffPricing[svc.serviceId]?.[staffId];
-    if (entry) {
-      duration += entry.duration;
-      anyKnown = true;
-    } else {
-      duration += svc.durationMinutes;
-    }
-  }
-  return {
-    priceAmountMinor: item.priceAmountMinor,
-    durationMinutes: anyKnown ? duration : item.durationMinutes,
-  };
+  return false;
 }
 
 /**
@@ -144,6 +107,7 @@ export function resolveSlotItems(
   slot: TimeSlot,
   staffPicks: StaffPicks,
   staffPricing: StaffPricing,
+  itemStaffPricing?: ItemStaffPricing[],
 ): ResolvedSlotItem[] {
   let cursor = toMinutes(slot.startTime);
   return slot.items.map((item, idx) => {
@@ -152,6 +116,8 @@ export function resolveSlotItems(
       item,
       staffId,
       staffPricing,
+      itemStaffPricing,
+      idx,
     );
     const startTime = toClock(cursor);
     cursor += durationMinutes;
@@ -160,7 +126,7 @@ export function resolveSlotItems(
       durationMinutes,
       startTime,
       endTime: toClock(cursor),
-      variesByStaff: itemVariesByStaff(item, staffPricing),
+      variesByStaff: itemVariesByStaff(item, staffPricing, itemStaffPricing, idx),
       staffId,
     };
   });
@@ -175,10 +141,11 @@ export function needsStaffChoice(
   slot: TimeSlot | null,
   staffPicks: StaffPicks,
   staffPricing: StaffPricing,
+  itemStaffPricing?: ItemStaffPricing[],
 ): boolean {
   if (!slot) return false;
   return slot.items.some(
-    (item, idx) => staffPicks[idx] == null && itemVariesByStaff(item, staffPricing),
+    (item, idx) => staffPicks[idx] == null && itemVariesByStaff(item, staffPricing, itemStaffPricing, idx),
   );
 }
 
@@ -195,6 +162,7 @@ export function slotSpread(
   slot: TimeSlot,
   staffPicks: StaffPicks,
   staffPricing: StaffPricing,
+  itemStaffPricing?: ItemStaffPricing[],
 ): {
   priceMinor: number;
   priceVaries: boolean;
@@ -211,7 +179,7 @@ export function slotSpread(
   slot.items.forEach((item, idx) => {
     const staffId = staffPicks[idx] ?? null;
     if (staffId != null) {
-      const f = staffFiguresForItem(item, staffId, staffPricing);
+      const f = staffFiguresForItem(item, staffId, staffPricing, itemStaffPricing, idx);
       priceMinor += f.priceAmountMinor;
       durationMinMinutes += f.durationMinutes;
       durationMaxMinutes += f.durationMinutes;
@@ -222,7 +190,7 @@ export function slotSpread(
     // bounds. Falls back to the slot's own (already conservative) numbers when
     // staffPricing has nothing for this item.
     const figures = item.availableStaffIds.map((sid) =>
-      staffFiguresForItem(item, sid, staffPricing),
+      staffFiguresForItem(item, sid, staffPricing, itemStaffPricing, idx),
     );
     if (figures.length === 0) {
       priceMinor += item.priceAmountMinor;

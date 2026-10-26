@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
@@ -11,6 +11,10 @@ import {
   getTeamMemberInListing,
 } from "@/lib/api/marketplace/public";
 import type { AppointmentDetail } from "@/lib/api/marketplace/types";
+import {
+  getAuthenticatedSessionId,
+  subscribeSession,
+} from "@/lib/auth/session-store";
 import { useBooking } from "./useBooking";
 import type { BookingSelectionItem } from "./types";
 
@@ -40,13 +44,37 @@ export function useRebook(): {
   pending: boolean;
 } {
   const router = useRouter();
+  const pathname = usePathname();
   const toast = useToast();
   const { locale, dict } = useTranslation();
   const { openBooking } = useBooking();
   const [pending, setPending] = useState(false);
+  const activeRequest = useRef<object | null>(null);
+
+  useEffect(() => {
+    const invalidate = () => {
+      activeRequest.current = null;
+      setPending(false);
+    };
+    let sessionId = getAuthenticatedSessionId();
+    const unsubscribe = subscribeSession(() => {
+      const nextSessionId = getAuthenticatedSessionId();
+      if (nextSessionId !== sessionId) {
+        sessionId = nextSessionId;
+        invalidate();
+      }
+    });
+    // The booking provider survives route changes. A launcher that has been
+    // left (or belongs to a replaced session) must not open its drawer later.
+    return () => {
+      unsubscribe();
+      invalidate();
+    };
+  }, [pathname]);
 
   const rebook = useCallback(
     async (appt: AppointmentDetail): Promise<void> => {
+      if (activeRequest.current) return;
       const locationId = appt.location?.id;
       // No resolvable location → cannot fetch the listing nor navigate sensibly.
       if (locationId == null) {
@@ -54,10 +82,19 @@ export function useRebook(): {
         return;
       }
       const businessHref = localeHref(locale, "business", String(locationId));
+      const request = {};
+      const requestPathname = window.location.pathname;
+      const sessionId = getAuthenticatedSessionId();
+      activeRequest.current = request;
+      const isCurrent = () =>
+        activeRequest.current === request &&
+        window.location.pathname === requestPathname &&
+        getAuthenticatedSessionId() === sessionId;
 
       setPending(true);
       try {
         const listing = await getListing(String(locationId));
+        if (!isCurrent()) return;
         const servicesById = new Map(listing.services.map((s) => [s.id, s]));
         const bundlesById = new Map(listing.bundles.map((b) => [b.id, b]));
 
@@ -87,6 +124,7 @@ export function useRebook(): {
                 )
                 .catch(() => null)
             : null;
+        if (!isCurrent()) return;
 
         // Reconstruct each booked item from the CURRENT menu so pricing and
         // duration are authoritative. Items whose service/package is gone from
@@ -201,14 +239,22 @@ export function useRebook(): {
           locationId: listing.locationId,
           timezone: listing.timezone,
           currency: listing.businessCurrency,
+          showPricing: !(listing.additionalSettings &&
+            typeof listing.additionalSettings === "object" &&
+            "showPricing" in listing.additionalSettings &&
+            listing.additionalSettings.showPricing === false),
           bookingPolicy: listing.bookingPolicy,
           services: mapped,
         });
       } catch {
+        if (!isCurrent()) return;
         toast(dict.booking.rebookError, "warn", undefined, "error");
         router.push(businessHref);
       } finally {
-        setPending(false);
+        if (activeRequest.current === request) {
+          activeRequest.current = null;
+          setPending(false);
+        }
       }
     },
     [router, toast, locale, dict, openBooking],

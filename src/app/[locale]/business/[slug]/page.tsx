@@ -57,26 +57,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const title = listing.location?.name || listing.name;
     const description = listing.description ?? undefined;
     const image = listing.featuredImage ?? listing.logo ?? undefined;
+    // Numeric aliases resolve the same location and must advertise its actual
+    // canonical slug, rather than compete with that slug in search results.
+    const canonicalSlug = listing.slug?.trim() || listing.location.slug?.trim() || String(listing.locationId);
 
     // The same URL under both locales renders the same business with different
     // chrome, so each is canonical for its own locale and the two are declared
     // as alternates — not as duplicates competing for one canonical.
     const languages = Object.fromEntries(
-      LOCALES.map((l) => [l, localeHref(l, "business", slug)]),
+      LOCALES.map((l) => [l, localeHref(l, "business", canonicalSlug)]),
     ) as Record<Locale, string>;
 
     return {
       title,
       description,
       alternates: {
-        canonical: localeHref(locale, "business", slug),
+        canonical: localeHref(locale, "business", canonicalSlug),
         languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] },
       },
       openGraph: {
         type: "website",
         title,
         description,
-        url: `${SITE_URL}${localeHref(locale, "business", slug)}`,
+        url: `${SITE_URL}${localeHref(locale, "business", canonicalSlug)}`,
         images: image ? [image] : undefined,
       },
     };

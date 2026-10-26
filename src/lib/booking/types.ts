@@ -48,6 +48,14 @@ export interface BookingSelectionItem {
 
 /** Everything the booking flow needs to start, handed over by the detail page. */
 export interface OpenBookingPayload {
+  /** In-place professional profile that handed its selection to this flow.
+   *  Only an explicit return restores it; ordinary dismissal discards it.
+   *  Availability can change during the existing route-based sign-in detour. */
+  profileOrigin?: {
+    isAvailable: () => boolean;
+    onReturn: () => void;
+    onDismiss: () => void;
+  };
   /** Website return address for this booking drawer. */
   websiteSlug?: string;
   businessId: number;
@@ -61,10 +69,7 @@ export interface OpenBookingPayload {
   /** Effective location price-display policy. False shows the existing quote
    *  label throughout the drawer; numeric amounts remain available to booking. */
   showPricing?: boolean;
-  /** The location's real cancellation/reschedule policy. `null` when the
-   *  location has no policy configured. Not currently surfaced in the drawer
-   *  UI (cancellation-claim copy was removed); kept so policy-aware behavior
-   *  can be reintroduced without re-plumbing every call site. */
+  /** Location policy fallback for older availability API versions. */
   bookingPolicy: BookingPolicy | null;
   /** Pre-selected items; MAY be empty — an empty list makes the drawer open on
    *  its own in-drawer "choose services" step (see `catalog`). */
@@ -83,6 +88,8 @@ export interface OpenBookingPayload {
 export interface BookingApi {
   openBooking: (payload: OpenBookingPayload) => void;
   closeBooking: () => void;
+  /** Leave booking and restore its still-mounted originating profile. */
+  returnToProfile: () => void;
   /** Hide the drawer for an auth detour (e.g. sign-in gate on Step 3), while
    *  remembering to automatically reopen it — with its in-progress state
    *  intact — once the user finishes signing in. Distinct from `closeBooking`,

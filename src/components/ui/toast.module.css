@@ -1,0 +1,16 @@
+.host { bottom: 28px; }
+/* A dialog owns the toast's focus scope and room, keeping all controls visible. */
+.dialogHost { align-self: center; flex-shrink: 0; max-width: calc(100% - 40px) !important; }
+.dialogHost:has(> *) { margin: 0 20px 20px; }
+@media (max-width: 920px) { .host:not(.dialogHost) { top: calc(var(--nav-h, 60px) + 12px); bottom: auto; } }
+.toast { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: start; gap: 12px; width: fit-content; max-width: 100%; margin-inline: auto; padding: 14px 12px 14px 18px; border-radius: 24px; background: var(--c-ink); color: #fff; font-size: 14px; font-weight: 500; line-height: 22px; letter-spacing: -.01em; box-shadow: var(--sh-lg); pointer-events: auto; }
+.leading { display: grid; place-items: center; width: 26px; height: 26px; }
+.defaultIcon { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--p-500); }
+.message { min-width: 0; padding-block: 2px; text-align: start; overflow-wrap: anywhere; }
+.dismiss { position: relative; display: grid; place-items: center; width: 44px; height: 44px; margin-block: -9px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+.dismiss::before { content: ""; position: absolute; inset: 6px; border-radius: inherit; background: rgb(255 255 255 / .12); transition: background 160ms var(--ease-out); }
+.dismiss > svg { position: relative; }
+.dismiss:focus-visible, .action:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.action { min-height: 44px; max-width: min(42vw, 160px); margin-block: -9px; padding: 8px 14px; border: 0; border-radius: var(--r-full); background: rgb(255 255 255 / .16); color: inherit; font: inherit; font-size: 13px; font-weight: 600; line-height: 20px; overflow-wrap: anywhere; cursor: pointer; }
+@media (hover: hover) { .dismiss:hover::before { background: rgb(255 255 255 / .22); } }
+@media (prefers-reduced-motion: reduce) { .dismiss::before { transition: none; } }

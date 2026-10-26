@@ -4,9 +4,12 @@ import type { ReactNode } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Icon, type IconName } from "./icon";
 import { Button } from "./button";
+import styles from "./signed-out-gate.module.css";
 
 export interface SignedOutGateProps {
   icon?: IconName;
+  /** Optional decorative illustration for the centered, full-height layout. */
+  artwork?: ReactNode;
   title: ReactNode;
   body: ReactNode;
   cta?: string;
@@ -20,6 +23,7 @@ export interface SignedOutGateProps {
 // label comes from i18n common.signIn.
 export function SignedOutGate({
   icon = "user",
+  artwork,
   title,
   body,
   cta,
@@ -29,6 +33,25 @@ export function SignedOutGate({
 }: SignedOutGateProps) {
   const { dict } = useTranslation();
   const ctaLabel = cta ?? dict.common.signIn;
+  if (artwork) {
+    return (
+      <div className={styles.illustrated}>
+        <div className={`zw-container ${styles.inner}`}>
+          <div className={styles.artwork} aria-hidden="true">{artwork}</div>
+          <div className={styles.copy}>
+            <h1>{title}</h1>
+            <p>{body}</p>
+          </div>
+          <div className={styles.actions}>
+            <Button kind="primary" size="lg" onClick={onCta}>{ctaLabel}</Button>
+            {secondaryLabel && (
+              <Button kind="secondary" size="lg" onClick={onSecondary}>{secondaryLabel}</Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       className="zw-container"

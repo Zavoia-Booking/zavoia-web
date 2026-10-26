@@ -8,7 +8,7 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
-import { SITE_URL } from "@/lib/site";
+import { DEFAULT_SOCIAL_IMAGE, SITE_URL } from "@/lib/site";
 import { HomeContent, type FeedResult } from "@/app/_components/home-content";
 import {
   getBrands,
@@ -75,14 +75,6 @@ export async function generateMetadata({
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const dict = dictionaries[locale];
-  // Share one English brand image across locales; surrounding metadata stays localized.
-  const socialImage = {
-    url: `${SITE_URL}/brand/home-social.png`,
-    width: 1200,
-    height: 630,
-    alt: "Zavoia. Local services. On your schedule.",
-  };
-
   const languages = Object.fromEntries(
     LOCALES.map((l) => [l, localeHref(l)]),
   ) as Record<Locale, string>;
@@ -104,13 +96,13 @@ export async function generateMetadata({
       alternateLocale: LOCALES.filter((l) => l !== locale).map(
         (l) => OPEN_GRAPH_LOCALES[l],
       ),
-      images: [socialImage],
+      images: [DEFAULT_SOCIAL_IMAGE],
     },
     twitter: {
       card: "summary_large_image",
       title: dict.home.title,
       description: dict.home.description,
-      images: [socialImage],
+      images: [DEFAULT_SOCIAL_IMAGE],
     },
   };
 }

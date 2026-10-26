@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { Icon } from "./icon";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/format";
+import { format, formatCount } from "@/i18n/format";
 
 export interface StarsProps {
   value?: number;
@@ -55,12 +55,17 @@ export function Rating({ rating, reviews, size = 13, color = "var(--c-900)" }: R
   const { dict, locale } = useTranslation();
   const formattedRating = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(rating);
   const formattedReviews = reviews != null ? new Intl.NumberFormat(locale).format(reviews) : null;
+  const reviewLabel = reviews != null ? formatCount(reviews, locale, {
+    one: dict.business.reviewsCountOne,
+    few: dict.business.reviewsCount,
+    other: dict.business.reviewsCountMany,
+  }) : null;
   const label = format(dict.locationPage.ratingLabel, { rating: formattedRating });
   const tnum: CSSProperties = { fontVariantNumeric: "tabular-nums" };
   return (
     <span
       role="img"
-      aria-label={formattedReviews !== null ? `${label}, ${formattedReviews} ${dict.common.reviews}` : label}
+      aria-label={reviewLabel !== null ? `${label}, ${reviewLabel}` : label}
       style={{
         display: "inline-flex",
         alignItems: "center",

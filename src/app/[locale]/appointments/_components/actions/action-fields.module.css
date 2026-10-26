@@ -37,7 +37,8 @@
 
 textarea.input {
   min-height: 108px;
-  resize: vertical;
+  resize: none;
+  overflow-y: auto;
 }
 
 .hint {
@@ -75,6 +76,21 @@ textarea.input {
   font-weight: 600;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+.dateStrip {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-block: 4px;
+  scroll-snap-type: x proximity;
+}
+
+.dateTile {
+  flex: 1 0 44px;
+  min-width: 44px;
+  scroll-snap-align: start;
 }
 
 @media (max-width: 600px) {

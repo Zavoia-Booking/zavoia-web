@@ -16,6 +16,7 @@ import { buildMicrositeRender } from "@/features/website/publicWebsite";
 import type { MicrositeLocale } from "@/features/website/i18n/translate";
 import { getListing } from "@/lib/api/marketplace/public";
 import { ApiError } from "@/lib/api/http";
+import { professionalHref } from "@/lib/professionals/urls";
 import type { ListingDetail, PublicWebsite } from "@/lib/api/marketplace/types";
 import { useBooking } from "@/lib/booking";
 import type { BookingSelectionItem } from "@/lib/booking/types";
@@ -165,7 +166,12 @@ export function BusinessMicrosite({ site, locale }: { site: PublicWebsite; local
     }
   }, [data.locations, selectedLocation, site.slug, openBooking, showContact, toast, dict]);
 
-  const actions = useMemo(() => ({ book: (intent?: WebsiteBookIntent) => { void book(intent); }, pending, pendingIntent }), [book, pending, pendingIntent]);
+  const actions = useMemo(() => ({
+    book: (intent?: WebsiteBookIntent) => { void book(intent); },
+    pending,
+    pendingIntent,
+    professionalHref: (uuid: string) => professionalHref(locale, uuid),
+  }), [book, pending, pendingIntent, locale]);
   const fontHref = fontStylesheetFor(data.fontKey);
 
   return (

@@ -233,7 +233,7 @@ export function getWebsiteShowcase(
 /**
  * GET /marketplace/public/sitemap — every public URL the marketplace should
  * advertise to crawlers, gated by the same visibility rules the pages enforce.
- * Three families: location pages, brand pages, published microsites.
+ * Location pages, brand pages, published microsites and discoverable professionals.
  */
 export function getSitemapEntries(
   opts?: CacheOptions,
@@ -242,6 +242,14 @@ export function getSitemapEntries(
     method: "GET",
     ...cacheInit(opts),
   });
+}
+
+/** Resolve the independent public profile through its existing stable identifier. */
+export function getProfessional(uuid: string): Promise<TeamMemberProfile> {
+  return apiFetch<TeamMemberProfile>(
+    `/marketplace/public/professional/${encodeURIComponent(uuid)}`,
+    { method: "GET", cache: "no-store" },
+  );
 }
 
 /** GET /marketplace/public/team-member/:id — RAW TeamMemberProfile (no listing context). */
@@ -292,7 +300,7 @@ export async function getTeamMemberBookingContext(
 ): Promise<TeamMemberBookingContext> {
   const res = await apiFetch<Envelope<TeamMemberBookingContext>>(
     `/marketplace/public/team-member/${teamMemberId}/booking-context`,
-    { method: "GET" },
+    { method: "GET", cache: "no-store" },
   );
   return res.data;
 }

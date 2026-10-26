@@ -158,7 +158,7 @@ test.describe('Availability conflicts', () => {
       // A is now stale — confirming the same slot hits E10 (slot conflict):
       // the alert appears, the slot is dropped, and the grid refetches.
       await drawerA.confirmButton().click()
-      await expect(drawerA.submitAlert()).toHaveText('That slot was just taken. Please choose another time.')
+      await expect(drawerA.submitAlert()).toHaveText('That time is no longer available. Choose another time.')
       await expect(drawerA.stepLabel(2)).toBeVisible()
       await expect(drawerA.slot(slotLabel)).toHaveCount(0)
 

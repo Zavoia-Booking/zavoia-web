@@ -299,7 +299,7 @@ function permitsAnonymousDiscovery(path: string, init: RequestInit): boolean {
   if (method === "POST")
     return pathname === "/marketplace/public/nearby-locations";
   if (method !== "GET") return false;
-  return /^\/marketplace\/public\/(?:industries|venue-tags|brands|sitemap|listings(?:\/bulk)?|(?:brand|website|listing)\/[^/]+|listing\/[^/]+\/reviews|listing\/[^/]+\/team-member\/[^/]+|team-member\/[^/]+(?:\/(?:reviews|booking-context))?)$/.test(pathname);
+  return /^\/marketplace\/public\/(?:industries|venue-tags|brands|sitemap|listings(?:\/bulk)?|(?:brand|website|listing|professional)\/[^/]+|listing\/[^/]+\/reviews|listing\/[^/]+\/team-member\/[^/]+|team-member\/[^/]+(?:\/(?:reviews|booking-context))?)$/.test(pathname);
 }
 
 async function serializedRefresh(signal: AbortSignal): Promise<string> {

@@ -1,0 +1,26 @@
+.page { box-sizing: border-box; display: grid; place-items: center; width: 100%; max-width: 1400px; margin-inline: auto; min-height: calc(100svh - var(--nav-h, 0px)); padding: 48px var(--gutter, 20px); }
+.content { display: flex; flex-direction: column; align-items: center; gap: 26px; width: 100%; max-width: 540px; text-align: center; }
+.artwork { width: min(440px, 100%); pointer-events: none; }
+.artwork > svg { display: block; width: 100%; height: auto; }
+.copy { max-width: 46ch; }
+.title { margin: 0; color: var(--c-900, #1c1c1a); font-size: 32px; font-weight: 600; line-height: 1.25; letter-spacing: -.035em; text-wrap: balance; }
+.title:focus { outline: none; }
+.copy p { margin: 12px 0 0; color: var(--c-600, #6b6862); font-size: 16px; line-height: 1.65; text-wrap: pretty; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.action { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; min-height: 54px; padding: 15px 28px; border-radius: var(--r-full, 9999px); font: inherit; font-size: 16px; font-weight: 600; letter-spacing: -.01em; text-decoration: none; line-height: 1.5; text-align: center; }
+.action:focus-visible { outline: 2px solid var(--c-ink, #1c1c1a); outline-offset: 4px; }
+.primary { background: var(--c-ink, #1c1c1a); color: var(--c-50, #fafaf7); border: 1px solid var(--c-ink, #1c1c1a); }
+.secondary { background: var(--c-50, #fafaf7); color: var(--c-900, #1c1c1a); border: 1px solid rgba(28, 28, 26, .14); }
+.contained { display: grid; place-items: center; width: 100%; padding-block: 16px; }
+.contained .content { gap: 20px; }
+.contained .artwork { width: min(280px, 100%); }
+.contained .title { font-size: 24px; }
+.contained .copy p { font-size: 14px; }
+@media (max-width: 920px) {
+  .page { min-height: calc(100svh - var(--nav-h, 0px) - var(--mobile-tabs-h, 0px)); }
+}
+@media (max-width: 600px) {
+  .page .title { font-size: 28px; }
+  .actions { width: 100%; max-width: 320px; gap: 10px; }
+  .actions > .action { width: 100%; white-space: normal !important; }
+}

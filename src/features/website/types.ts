@@ -50,6 +50,10 @@ export interface WebsiteBuilderPortfolioImage {
 
 export interface WebsiteBuilderTeamMember {
   id: number;
+  /** Public responses include this; older Studio specimens may omit it. */
+  uuid?: string;
+  /** Explicit eligibility for the independent public profile, not booking. */
+  publicProfileAvailable?: boolean;
   firstName: string;
   lastName: string;
   profileImage: string | null;

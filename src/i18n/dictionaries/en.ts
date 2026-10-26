@@ -1,6 +1,7 @@
 import type { Locale } from "../locales";
 import { locationPageEn } from "./location-page";
 import { appointmentPageEn } from "./appointment-page";
+import { textareaEn } from "./textarea";
 
 // English dictionary — the source of truth for the `Dictionary` type
 // (`type Dictionary = typeof en`). Add new keys here first, then mirror
@@ -9,6 +10,8 @@ import { appointmentPageEn } from "./appointment-page";
 export const en: {
   locationPage: typeof locationPageEn;
   appointmentPage: typeof appointmentPageEn;
+  textarea: typeof textareaEn;
+  imageViewer: { unavailable: string };
   preposition: string;
   home: {
     title: string;
@@ -329,6 +332,7 @@ export const en: {
       pageDescription: string;
       verifying: string;
       confirmHeading: string;
+      accountLabel: string;
       confirmBody: string;
       googleOnlyBody: string;
       passwordLabel: string;
@@ -674,6 +678,7 @@ export const en: {
     loadMoreReviewsError: string;
     reviewsCount: string;
     reviewsCountOne: string;
+    reviewsCountMany: string;
     onlineBookingUnavailable: string;
     closed: string;
     call: string;
@@ -681,6 +686,9 @@ export const en: {
     seeOnMap: string;
     share: string;
     shareCopied: string;
+    memberCopyLink: string;
+    memberShareError: string;
+    memberCopyError: string;
     close: string;
     continue: string;
     comingSoon: string;
@@ -691,9 +699,11 @@ export const en: {
     browseBusinesses: string;
     memberStatYears: string;
     memberStatYearsOne: string;
+    memberStatYearsMany: string;
     memberStatYearsLabel: string;
     memberStatVisitsLabel: string;
     memberStatSinceLabel: string;
+    memberStatSince: string;
     memberSpeaks: string;
     memberSpecialties: string;
     memberPortfolio: string;
@@ -703,13 +713,19 @@ export const en: {
     memberLoadError: string;
     memberUnavailable: string;
     memberContextLoadError: string;
-    memberChooseVenuePrompt: string;
+    memberLocation: string;
+    memberViewLocation: string;
+    memberViewLocationAria: string;
+    memberReviewsEmptyTitle: string;
     memberBookingDetailsUnavailable: string;
     memberRetry: string;
     memberPhotoAria: string;
+    memberPhotoAlt: string;
+    memberMetaDescription: string;
     memberClosePhotoAria: string;
     memberChooseVenue: string;
     memberNoBooking: string;
+    memberNoBookingAtLocation: string;
     memberNoServicesHere: string;
     memberChecking: string;
     reviewsEmptyTitle: string;
@@ -723,6 +739,7 @@ export const en: {
     locationsTitleOne: string;
     locationsCount: string;
     locationsCountOne: string;
+    locationsCountMany: string;
     teamTitle: string;
     aboutTitle: string;
     since: string;
@@ -734,6 +751,10 @@ export const en: {
     stepDateTimeTitle: string;
     stepReviewTitle: string;
     stepProgress: string;
+    backToProfile: string;
+    previousDates: string;
+    nextDates: string;
+    chooseDate: string;
     selectServicesEmpty: string;
     noAvailability: string;
     nextAvailable: string;
@@ -761,6 +782,9 @@ export const en: {
     viewAppointment: string;
     done: string;
     close: string;
+    quoteChanged: string;
+    cancellationUnavailable: string;
+    reschedulingUnavailable: string;
     payAtVenueTitle: string;
     payAtVenueNote: string;
     blockedScreen: {
@@ -1474,6 +1498,7 @@ export const en: {
     gate: {
       title: string;
       body: string;
+      cta: string;
       secondary: string;
     };
   };
@@ -1506,13 +1531,13 @@ export const en: {
     nextOn: string;
     viewVenue: string;
     viewProfile: string;
+    viewBrand: string;
     edit: string;
-    getDirections: string;
+    viewMap: string;
     callVenue: string;
     leaveReview: string;
     openApp: string;
     bookAgain: string;
-    directions: string;
     reschedule: string;
     rescheduleUnavailable: string;
     rescheduleWindowPassed: string;
@@ -1635,8 +1660,11 @@ export const en: {
       submitNew: string;
       submitEdit: string;
       noteLabel: string;
-      notePlaceholder: string;
-      ratePrompt: string;
+      includeEveryone: string;
+      back: string;
+      continue: string;
+      skip: string;
+      stepAria: string;
       labelPoor: string;
       labelFair: string;
       labelGood: string;
@@ -1679,6 +1707,8 @@ export const en: {
 } = {
   locationPage: locationPageEn,
   appointmentPage: appointmentPageEn,
+  textarea: textareaEn,
+  imageViewer: { unavailable: "This photo couldn't be loaded." },
   preposition: "in",
   home: {
     title: "Zavoia — Discover Local Services & Book Online",
@@ -2045,10 +2075,11 @@ export const en: {
       pageDescription: "Confirm marketplace access for your Zavoia account.",
       verifying: "Checking your link...",
       confirmHeading: "Confirm it's you",
+      accountLabel: "Your account",
       confirmBody:
-        "To enable marketplace access for {email}, confirm your account password.",
+        "Enter your account password to enable marketplace access.",
       googleOnlyBody:
-        "The account {email} uses Google sign-in. Continue with Google to enable marketplace access.",
+        "This account uses Google sign-in. Continue with Google to enable marketplace access.",
       passwordLabel: "Password",
       passwordRequired: "Please enter your password.",
       wrongPassword: "Incorrect password. Please try again.",
@@ -2416,6 +2447,7 @@ export const en: {
     loadMoreReviewsError: "We couldn't load more reviews.",
     reviewsCount: "{count} reviews",
     reviewsCountOne: "{count} review",
+    reviewsCountMany: "{count} reviews",
     onlineBookingUnavailable:
       "This business doesn’t accept appointments online. Call them to book or ask about availability.",
     closed: "Closed",
@@ -2424,6 +2456,9 @@ export const en: {
     seeOnMap: "See on map",
     share: "Share",
     shareCopied: "Link copied",
+    memberCopyLink: "Copy link",
+    memberShareError: "Couldn't share this profile. Please try again.",
+    memberCopyError: "Couldn't copy the link. Please try again.",
     close: "Close",
     continue: "Continue",
     comingSoon: "Booking is coming soon.",
@@ -2433,27 +2468,35 @@ export const en: {
       "It may have closed or moved. Plenty of other trusted pros are a click away.",
     backToExplore: "Back to Explore",
     browseBusinesses: "Browse businesses",
-    memberStatYears: "{count} yrs",
-    memberStatYearsOne: "1 yr",
+    memberStatYears: "{count} years",
+    memberStatYearsOne: "1 year",
+    memberStatYearsMany: "{count} years",
     memberStatYearsLabel: "experience",
     memberStatVisitsLabel: "visits",
     memberStatSinceLabel: "on Zavoia",
+    memberStatSince: "Since {year}",
     memberSpeaks: "Languages",
     memberSpecialties: "Specialties",
     memberPortfolio: "Portfolio",
     memberShowAllReviews: "Show all {count} reviews",
-    memberSelectPrompt: "Select a service to book",
+    memberSelectPrompt: "Choose a service",
     memberBookWith: "Book with {name}",
     memberLoadError: "Couldn't load the full profile.",
     memberUnavailable: "This profile is no longer available.",
     memberContextLoadError: "Couldn't load booking options.",
-    memberChooseVenuePrompt: "Choose a location to see its services.",
+    memberLocation: "Location",
+    memberViewLocation: "View location",
+    memberViewLocationAria: "View location: {name}",
+    memberReviewsEmptyTitle: "No reviews yet",
     memberBookingDetailsUnavailable: "Booking details are unavailable for this location.",
     memberRetry: "Try again",
-    memberPhotoAria: "View photo",
+    memberPhotoAria: "View portfolio photo {index} ({name})",
+    memberPhotoAlt: "{name}, portfolio photo {index}",
+    memberMetaDescription: "{name}. View their professional profile and reviews on Zavoia.",
     memberClosePhotoAria: "Close photo",
-    memberChooseVenue: "Where to book",
+    memberChooseVenue: "Choose a location",
     memberNoBooking: "Online booking isn't available for this professional yet.",
+    memberNoBookingAtLocation: "Online booking isn't available for this professional at this location.",
     memberNoServicesHere:
       "{name} doesn’t offer any bookable services at this location yet.",
     memberChecking: "Checking availability…",
@@ -2469,6 +2512,7 @@ export const en: {
     locationsTitleOne: "The location",
     locationsCount: "{count} locations",
     locationsCountOne: "1 location",
+    locationsCountMany: "{count} locations",
     teamTitle: "The people",
     aboutTitle: "About {name}",
     since: "Since {year}",
@@ -2480,8 +2524,12 @@ export const en: {
     stepDateTimeTitle: "Pick a date & time",
     stepReviewTitle: "Review & confirm",
     stepProgress: "Step {n} of {total}",
+    backToProfile: "Back to profile",
+    previousDates: "Previous dates",
+    nextDates: "Next dates",
+    chooseDate: "Choose a date to see available times.",
     selectServicesEmpty: "Select at least one service to continue.",
-    noAvailability: "No availability in the next 30 days.",
+    noAvailability: "No availability in this date range.",
     nextAvailable: "Next available: {date}",
     jumpToNext: "Jump to next available",
     slotsCountLabel: "{count} slots",
@@ -2508,6 +2556,9 @@ export const en: {
     viewAppointment: "View appointment",
     done: "Done",
     close: "Close",
+    quoteChanged: "The price or duration has changed. Review the updated details before confirming.",
+    cancellationUnavailable: "This appointment cannot be cancelled online.",
+    reschedulingUnavailable: "This appointment cannot be rescheduled online.",
     payAtVenueTitle: "Pay at the venue",
     payAtVenueNote: "Nothing to pay now — settle directly with {business} after your visit.",
     blockedScreen: {
@@ -2537,20 +2588,20 @@ export const en: {
     back: "Back",
     retry: "Try again",
     loading: "Loading…",
-    loadError: "We couldn't load availability. Please try again.",
+    loadError: "We couldn’t load available times.",
     catalogLoadError: "We couldn't load the services. Please try again.",
-    rebookError: "Some services may have changed — review the menu to book again.",
+    rebookError: "Some services may have changed. Check the service list before booking again.",
     rebookServiceGone:
-      "“{service}” is no longer offered at this venue — here's the current menu.",
+      "“{service}” is no longer offered here. Choose another service.",
     rebookServicesGone:
-      "The booked services are no longer offered at this venue — here's the current menu.",
+      "The services from your previous appointment couldn’t be added. Check the current service list.",
     rebookPartialGone:
-      "“{service}” is no longer offered at this venue and was left out.",
+      "“{service}” is no longer offered here and was left out.",
     errors: {
-      tooSoon: "That time is too soon to book. Please pick a later date.",
-      tooFar: "That date is too far ahead. Please pick an earlier date.",
-      slotConflict: "That slot was just taken. Please choose another time.",
-      outsideHours: "That time is outside opening hours. Please choose another.",
+      tooSoon: "That time is too soon to book. Choose a later time.",
+      tooFar: "Bookings aren’t open for that date yet. Choose an earlier date.",
+      slotConflict: "That time is no longer available. Choose another time.",
+      outsideHours: "That time is outside opening hours. Choose another time.",
       calendarBlock: "That time is no longer available. Please choose another.",
       staffUnavailable: "That professional isn't available then. Please choose another time.",
       generic: "Something went wrong. Please try again.",
@@ -2571,13 +2622,13 @@ export const en: {
   },
   errors: {
     generic: "Something went wrong. Please try again.",
-    offline: "You're offline. We'll keep retrying.",
+    offline: "We couldn’t connect. Check your internet connection and try again.",
     offlineShort: "No connection.",
     timeout:
-      "This is taking unusually long. Check your connection and try again.",
-    server: "Something's wrong on our side. Please try again in a moment.",
-    rateLimit: "Too many attempts. Try again in {seconds}s.",
-    rateLimitNoTime: "Too many attempts. Please wait a moment and try again.",
+      "We didn’t receive a response in time. Try again.",
+    server: "We’re having a technical problem. Try again in a moment.",
+    rateLimit: "Too many attempts. Try again in {seconds} s.",
+    rateLimitNoTime: "Too many attempts. Wait a moment and try again.",
     sessionExpired: "Your session expired.",
     retry: "Try again",
     signIn: "Sign in",
@@ -2587,7 +2638,7 @@ export const en: {
       "It's a problem on our side, not something you did. Try again — it usually clears right up.",
     backHome: "Back home",
     pageRecovery: {
-      body: "Try loading it again, or return to the home page.",
+      body: "Please try loading it again in a moment.",
       retrying: "Loading…",
       home: "Go to homepage",
     },
@@ -2595,18 +2646,18 @@ export const en: {
     reload: "Reload",
     dismiss: "Dismiss",
     customer: {
-      accountMissing: "We couldn't find this account. Try signing in again.",
+      accountMissing: "We couldn’t find your account. Try signing in again.",
       incorrectPassword: "That current password isn't right.",
       passwordGoogleLinked:
         "This account signs in with Google, so it has no password to change.",
       imageTooLarge: "That image is too large. Pick one under 5 MB.",
       imageType: "That file type isn't supported. Use a JPG, PNG or WebP.",
       favoriteGone: "This place is no longer available.",
-      reviewNotCompleted: "You can review an appointment once it's completed.",
+      reviewNotCompleted: "You can leave a review after the appointment is completed.",
       reviewAlreadyExists: "You've already reviewed this appointment.",
       reviewNoRating: "Add at least one rating before sending.",
       reviewProfessional:
-        "That professional wasn't part of this appointment.",
+        "This professional isn’t listed on this appointment.",
     },
   },
   nav: {
@@ -2812,6 +2863,11 @@ export const en: {
       tr: "Turkish",
       ru: "Russian",
       uk: "Ukrainian",
+      zh: "Chinese",
+      ja: "Japanese",
+      ko: "Korean",
+      ar: "Arabic",
+      hi: "Hindi",
     },
   },
   industries: {
@@ -3582,26 +3638,27 @@ export const en: {
     },
     free: "Free",
     loadMore: "Load more",
-    loadMoreError: "We couldn't load the rest of your appointments.",
+    loadMoreError: "We couldn’t load more appointments.",
     loading: "Loading your appointments…",
     errorLoading: "We couldn't load your appointments. Please try again.",
     retry: "Try again",
     notes: {
-      upcomingEmpty: "Nothing coming up yet — your next visit will show here.",
+      upcomingEmpty: "You have no upcoming appointments.",
       pastEmpty:
-        "Your completed visits will show here once you've had your first.",
-      cancelledEmpty: "No cancellations — a clean record.",
-      noShowEmpty: "No missed visits. Nice.",
+        "Your past appointments will appear here.",
+      cancelledEmpty: "You have no cancelled appointments.",
+      noShowEmpty: "You have no appointments marked as no-show.",
     },
     empty: {
-      title: "An empty schedule, for now.",
-      body: "Your visits show up here — the date, the place, and everything you need to walk in.",
-      cta: "Explore places near you",
+      title: "No appointments yet",
+      body: "Your appointments will appear here after you book.",
+      cta: "Explore",
     },
     gate: {
-      title: "Keep every appointment in one place.",
-      body: "Sign in to see your upcoming and past appointments, with reminders, reschedules and directions.",
-      secondary: "Explore places",
+      title: "Appointments",
+      body: "Sign in to see your appointments.",
+      cta: "Sign in",
+      secondary: "Explore",
     },
   },
   appointmentDetail: {
@@ -3614,7 +3671,7 @@ export const en: {
       note: "Your note to the venue",
       with: "With",
       yourReview: "Your review",
-      about: "About the venue",
+      about: "About",
     },
     bundleTag: "Bundle",
     subtotal: "Subtotal",
@@ -3634,23 +3691,23 @@ export const en: {
     nextOn: "Next on {date}",
     viewVenue: "View venue",
     viewProfile: "View profile",
+    viewBrand: "View brand",
     edit: "Edit",
-    getDirections: "Get directions",
-    callVenue: "Call venue",
+    viewMap: "View map",
+    callVenue: "Call",
     leaveReview: "Leave a review",
     openApp: "Open in app",
     bookAgain: "Book again",
-    directions: "Directions",
     reschedule: "Reschedule",
     rescheduleUnavailable: "Reschedule unavailable",
-    rescheduleWindowPassed: "Online rescheduling window is closed by the business",
-    contactBusinessDirectly: "For urgent matters contact the business directly",
+    rescheduleWindowPassed: "The deadline for online rescheduling has passed",
+    contactBusinessDirectly: "Contact the venue for help.",
     cancelAppointment: "Cancel appointment",
     cancelUnavailable: "Cancellation unavailable",
-    cancelWindowPassed: "Online cancellation window is closed by the business",
+    cancelWindowPassed: "The deadline for online cancellation has passed",
     youMissedAppointment: "You missed this appointment",
     cancelledTitle: "Cancelled",
-    bookedOn: "Booked {date}",
+    bookedOn: "Booked on {date}",
     relative: {
       inProgress: "In progress",
       today: "Today",
@@ -3815,14 +3872,14 @@ export const en: {
       keep: "Keep it",
       confirm: "Cancel appointment",
       successToast: "Appointment cancelled",
-      error: "We couldn't cancel your appointment. Please try again.",
+      error: "We couldn’t cancel your appointment. Try again.",
       windowPassed:
-        "Online cancellation window is closed by the business. For urgent matters contact the business directly.",
+        "The online cancellation deadline has passed. Contact {businessName} directly.",
       notAllowed:
-        "This venue doesn't allow cancelling online. Contact them to cancel.",
+        "Online cancellation isn’t available. Contact {businessName} directly.",
       alreadyCancelled: "This appointment is already cancelled.",
       noLongerCancellable:
-        "This appointment can no longer be cancelled. Refresh to see its current status.",
+        "This appointment can no longer be cancelled. Refresh the page to see its current status.",
     },
     reschedule: {
       title: "Reschedule",
@@ -3833,15 +3890,15 @@ export const en: {
       newTimeLabel: "New time",
       confirm: "Confirm new time",
       successToast: "Rescheduled to {when}",
-      error: "We couldn't reschedule. Please try again.",
+      error: "We couldn’t reschedule your appointment. Try again.",
       windowPassed:
-        "Online rescheduling window is closed by the business. For urgent matters contact the business directly.",
+        "The online rescheduling deadline has passed. Contact {businessName} directly.",
       notAllowed:
-        "This venue doesn't allow rescheduling online. Contact them to change the time.",
+        "Online rescheduling isn’t available. Contact {businessName} directly.",
       alreadyStarted:
-        "This appointment has already started, so it can no longer be moved.",
+        "The appointment’s start time has passed. It can no longer be rescheduled.",
       noLongerReschedulable:
-        "This appointment can no longer be rescheduled. Refresh to see its current status.",
+        "This appointment can no longer be rescheduled. Refresh the page to see its current status.",
       unsupported:
         "This appointment can't be rescheduled online. Contact the venue to change the time.",
     },
@@ -3849,12 +3906,15 @@ export const en: {
       titleNew: "How was it?",
       titleEdit: "Edit your review",
       sub: "Your visit to {business}",
-      publicNote: "Reviews are public and tied to your visit.",
+      publicNote: "Reviews are public. Your first name, last initial and profile photo, if available, are shown.",
       submitNew: "Post review",
       submitEdit: "Update review",
-      noteLabel: "Add a note (optional)",
-      notePlaceholder: "What stood out — the result, the welcome, the space?",
-      ratePrompt: "Tap to rate",
+      noteLabel: "Comment (optional)",
+      includeEveryone: "Include everyone you want to review before posting.",
+      back: "Back",
+      continue: "Continue",
+      skip: "Skip",
+      stepAria: "Review {current} of {total}",
       labelPoor: "Poor",
       labelFair: "Fair",
       labelGood: "Good",
@@ -3865,7 +3925,7 @@ export const en: {
       businessLabel: "Rate {business}",
       professionalLabel: "Rate {name}",
       starsAria: "{n} stars",
-      error: "We couldn't submit your review. Please try again.",
+      error: "We couldn’t post your review. Try again.",
     },
   },
   notFound: {

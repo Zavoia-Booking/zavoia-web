@@ -33,20 +33,27 @@ export function zonedWallTimeToUtcISO(
     second: "2-digit",
     hour12: false,
   });
-  const p = Object.fromEntries(
-    dtf.formatToParts(new Date(guess)).map((x) => [x.type, x.value]),
-  );
-  const hour = p.hour === "24" ? 0 : Number(p.hour);
-  const asUTC = Date.UTC(
-    Number(p.year),
-    Number(p.month) - 1,
-    Number(p.day),
-    hour,
-    Number(p.minute),
-    Number(p.second),
-  );
-  const offset = asUTC - guess;
-  return new Date(guess - offset).toISOString();
+  const offsetAt = (instant: number): number => {
+    const p = Object.fromEntries(
+      dtf.formatToParts(new Date(instant)).map((x) => [x.type, x.value]),
+    );
+    const hour = p.hour === "24" ? 0 : Number(p.hour);
+    return Date.UTC(
+      Number(p.year),
+      Number(p.month) - 1,
+      Number(p.day),
+      hour,
+      Number(p.minute),
+      Number(p.second),
+    ) - instant;
+  };
+
+  // Match the dashboard's conversion: the initial UTC guess can fall on the
+  // other side of a DST transition, so re-evaluate at the resulting instant.
+  // HH:mm slots do not distinguish the two occurrences of a repeated hour;
+  // this correction does not introduce a different disambiguation policy.
+  const candidate = guess - offsetAt(guess);
+  return new Date(guess - offsetAt(candidate)).toISOString();
 }
 
 /** Today's date (YYYY-MM-DD) as observed in `timeZone`. */
@@ -57,4 +64,10 @@ export function todayInTz(timeZone: string): string {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
+}
+
+/** Add calendar days without depending on the browser's local timezone. */
+export function addWallDays(date: string, count: number): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + count)).toISOString().slice(0, 10);
 }

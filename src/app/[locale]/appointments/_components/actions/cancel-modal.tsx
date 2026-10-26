@@ -2,14 +2,17 @@
 
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useCallback, useRef, useState } from "react";
-import { Button, useToast } from "@/components/ui";
-import { InlineError } from "@/components/ui/inline-error";
+import { Avatar, Button, Icon, Img, useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
+import { format } from "@/i18n/format";
 import { ApiError } from "@/lib/api/http";
 import { cancelAppointment } from "@/lib/api/marketplace/appointments";
 import type { AppointmentDetail } from "@/lib/api/marketplace/types";
-import { ActionModal, ApptMini } from "./action-modal";
-import { apptMiniProps, type AppointmentChange } from "./shared";
+import { formatDuration } from "@/lib/format/money-time";
+import { apptDateParts, apptTime, apptTimeZone } from "../vm";
+import { ActionModal } from "./action-modal";
+import { apptMiniProps, staffDisplayName, type AppointmentChange } from "./shared";
+import styles from "./cancel-modal.module.css";
 
 /**
  * Turn a namespaced backend error code into copy the customer can act on.
@@ -19,13 +22,14 @@ import { apptMiniProps, type AppointmentChange } from "./shared";
 function cancelErrorMessage(
   code: string | undefined,
   t: Dictionary["appointmentActions"]["cancel"],
+  businessName: string,
 ): string {
   switch (code) {
     // The notice window lapsed — most likely while this modal sat open.
     case "APPOINTMENTS.E07":
-      return t.windowPassed;
+      return format(t.windowPassed, { businessName });
     case "APPOINTMENTS.E06":
-      return t.notAllowed;
+      return format(t.notAllowed, { businessName });
     case "APPOINTMENTS.E03":
       return t.alreadyCancelled;
     case "APPOINTMENTS.E04":
@@ -37,8 +41,8 @@ function cancelErrorMessage(
 }
 
 /**
- * Cancel-appointment modal. Ports `ZwCancelModal`
- * (web-appointment-actions.jsx:233-256) onto the live cancel endpoint.
+ * Confirm cancellation with the booked service, place, staff and venue-local time.
+ * The mutation and its authoritative policy checks remain server-owned.
  */
 export function CancelModal({
   appointment,
@@ -49,74 +53,116 @@ export function CancelModal({
   onClose: () => void;
   onChanged?: (change?: AppointmentChange) => void | Promise<void>;
 }) {
-  const { dict } = useTranslation();
+  const { dict, locale } = useTranslation();
   const t = dict.appointmentActions.cancel;
+  const pending = appointment.status === "pending";
   const toast = useToast();
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const inFlightRef = useRef(false);
   const closingRef = useRef(false);
   const handleClosing = useCallback(() => { closingRef.current = true; }, []);
 
-  const mini = apptMiniProps(appointment, dict.common.photo);
+  const mini = apptMiniProps(appointment);
+  const businessName = appointment.business?.name?.trim()
+    || appointment.location?.name?.trim()
+    || dict.appointmentPage.contactBusinessFallback;
+  const timeZone = apptTimeZone(appointment.location?.timezone, appointment.business?.timezone);
+  const dateParts = apptDateParts(appointment.scheduled_at, locale, timeZone);
+  const date = new Intl.DateTimeFormat(locale, {
+    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone,
+  }).format(new Date(appointment.scheduled_at));
+  const place = [mini.business, appointment.location?.name]
+    .filter((name, index, values) => name && values.indexOf(name) === index);
+  const professionals = (appointment.staff_users ?? []).flatMap((member) => {
+    const name = staffDisplayName(member);
+    return name ? [{ ...member, name }] : [];
+  });
 
   const confirm = async () => {
     if (inFlightRef.current || closingRef.current) return;
     inFlightRef.current = true;
     setSubmitting(true);
-    setError(null);
     try {
       const result = await cancelAppointment({ uuid: appointment.uuid });
-      toast(t.successToast, "check");
+      toast(pending ? dict.appointmentPage.cancelRequestSuccess : t.successToast, "check");
       onClose();
       void onChanged?.({ status: result.status, cancellation_reason: result.cancellation_reason });
     } catch (e) {
       const code = e instanceof ApiError ? e.code : undefined;
-      setError(cancelErrorMessage(code, t));
+      toast(cancelErrorMessage(code, t, businessName), "warn", undefined, "error");
       setSubmitting(false);
       inFlightRef.current = false;
     }
   };
 
   return (
-    <ActionModal title={t.title} onClose={onClose} width={440}
+    <ActionModal title={pending ? dict.appointmentPage.cancelRequestTitle : t.title} onClose={onClose}
+      width={540} className={styles.modal}
       dismissible={!submitting} onClosing={handleClosing}
       footer={
-        <>
+        <div className={styles.actions}>
           <Button
             kind="secondary"
             size="lg"
             onClick={() => { closingRef.current = true; onClose(); }}
             disabled={submitting}
-            style={{ flex: "1 1 120px", whiteSpace: "normal" }}
           >
             {t.keep}
           </Button>
           <Button
             loading={submitting}
-          kind="accent"
+            kind="accent"
             size="lg"
             onClick={() => void confirm()}
             disabled={submitting}
             style={{
-              flex: "1 1 120px",
-              whiteSpace: "normal",
               background: "var(--s-error-600)",
-              border: "1px solid var(--s-error-600)",
+              border: "none",
+              color: "var(--c-50)",
             }}
           >
-            {t.confirm}
+            {pending ? dict.appointmentPage.cancelRequest : t.confirm}
           </Button>
-        </>
+        </div>
       }
     >
-      <ApptMini {...mini} />
+      <div className={styles.booking}>
+        <Img src={mini.photo ?? undefined} alt="" className={styles.photo}
+          label={<Icon name="pin" size={24} color="var(--c-600)" />} />
+        <div className={styles.service}>
+          <h2>{mini.serviceLine}</h2>
+          {appointment.additionalServices.map((name, index) => <p className={styles.additionalService} key={`${index}:${name}`}>+ {name}</p>)}
+          {place.map((name) => <p className={styles.place} key={name}>{name}</p>)}
+        </div>
+      </div>
 
-      {error && (
-        <InlineError style={{ margin: "14px 0 0" }}>
-          {error}
-        </InlineError>
+      <div className={styles.schedule}>
+        <div className={styles.dateBadge} aria-hidden="true">
+          <span>{dateParts.dow}</span>
+          <strong>{dateParts.day}</strong>
+          <span>{dateParts.mon}</span>
+        </div>
+        <div className={styles.when}>
+          <time className={styles.date} dateTime={appointment.scheduled_at}>{date}</time>
+          <div className={styles.timeRange}>
+            <span>
+              <time dateTime={appointment.scheduled_at}>{apptTime(appointment.scheduled_at, locale, timeZone)}</time>
+              {" – "}
+              <time dateTime={appointment.ends_at}>{apptTime(appointment.ends_at, locale, timeZone)}</time>
+            </span>
+            <span className={styles.duration}>{formatDuration(Number(appointment.duration))}</span>
+          </div>
+        </div>
+      </div>
+
+      {professionals.length > 0 && (
+        <ul className={styles.professionals} aria-label={dict.appointmentDetail.sections.with}>
+          {professionals.map((member) => <li key={member.teamMemberId}>
+            <Avatar src={member.profileImage ?? undefined} name={member.name} size={28} />
+            <span>{member.name}</span>
+          </li>)}
+        </ul>
       )}
     </ActionModal>
   );

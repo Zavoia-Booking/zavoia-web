@@ -8,11 +8,12 @@ import { DEMO, getUserIdByEmail, seedAppointment } from '../fixtures/seed'
  * /appointments list + detail — src/app/[locale]/appointments/_components/
  * appointments-content.tsx (filters, grouping) and the detail page's own
  * SignedOutGate. Grouping is SERVER-side (admin-api's
- * AppointmentsService.getAppointments, read directly, not guessed):
- *   - `upcoming` filter / section → future PENDING/CONFIRMED only.
- *   - `past` filter → ALL terminal statuses (COMPLETED/CANCELLED/NO_SHOW),
- *     regardless of how far in the future/past they're scheduled — a
- *     cancelled appointment is "past" the instant it's cancelled.
+ * AppointmentsService.getAppointmentsByCustomer, read directly):
+ *   - `upcoming` filter / section → PENDING/CONFIRMED with ends_at > NOW(),
+ *     including appointments currently in progress.
+ *   - `past` filter → terminal statuses (COMPLETED/CANCELLED/NO_SHOW),
+ *     regardless of their scheduled date, plus ended PENDING/CONFIRMED
+ *     appointments. A cancelled appointment enters history immediately.
  *   - `cancelled` / `no_show` filters → that single status only.
  *   - `all` → both sections at once (the default filter chip).
  * Filter chips are `aria-pressed` buttons labelled "All"/"Upcoming"/"Past"/
@@ -89,12 +90,9 @@ test.describe('Appointments list + detail', () => {
     await expect(completedCard()).toBeVisible()
     await expect(noShowCard()).toBeVisible()
 
-    // SchedFilters chips carry aria-pressed (SchedFilters concatenates a
-    // live mono count span into the SAME button, so an exact-label match
-    // never resolves once a count renders — hence the regex). The
-    // "Upcoming" collapsible SECTION header is ALSO a <button> whose name
-    // starts with "Upcoming" but has no aria-pressed — scope to that
-    // attribute so the two never collide.
+    // Filter buttons expose their selected state with aria-pressed. Primary
+    // filters include a live count, so match the label prefix. The upcoming
+    // and history section headings are plain text and stay visible.
     const filterChip = (name: RegExp) => page.locator('button[aria-pressed]').filter({ hasText: name })
     await filterChip(/^Upcoming/).click()
     await expect(pendingCard()).toBeVisible()
@@ -131,7 +129,7 @@ test.describe('Appointments list + detail', () => {
     // so this test only asserts what /appointments itself actually does.)
     await expect(page).toHaveURL(/\/appointments$/)
     await expect(page).not.toHaveURL(/\/auth/)
-    await expect(page.getByRole('heading', { name: 'Keep every appointment in one place.' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Appointments', exact: true, level: 1 })).toBeVisible()
   })
 
   test('LIST-03 a composite (multi-service, same-staff) appointment shows each item with its own price/duration', async ({

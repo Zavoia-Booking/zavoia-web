@@ -1,364 +1,287 @@
 "use client";
 
-import { useCallback, useId, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Button, Icon, useToast } from "@/components/ui";
+import { useCallback, useId, useRef, useState, type Ref } from "react";
+import { Avatar, Button, Icon, Img, useToast } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
+import { TextareaField } from "@/components/ui/textarea-field";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { customerErrorMessage } from "@/lib/api/customer-error-messages";
+import { backendCode } from "@/lib/api/error-messages";
 import { submitReview } from "@/lib/api/marketplace/customer";
-import type {
-  AppointmentDetail,
-  ProfessionalRatingInput,
-  SubmitReviewBody,
-} from "@/lib/api/marketplace/types";
-import { ActionModal, ApptMini } from "./action-modal";
-import { apptMiniProps, canLeaveReview, staffDisplayName } from "./shared";
-import styles from "./action-fields.module.css";
+import type { AppointmentDetail, SubmitReviewBody } from "@/lib/api/marketplace/types";
+import { getPlainTextApiError, plainTextErrorMessage, REVIEW_COMMENT_MAX_LENGTH, validatePlainText } from "@/lib/validation/free-text";
+import { ActionModal } from "./action-modal";
+import { canLeaveReview, staffDisplayName } from "./shared";
+import styles from "./review-modal.module.css";
 
-type ReviewDict = ReturnType<
-  typeof useTranslation
->["dict"]["appointmentActions"]["review"];
+type ReviewDict = ReturnType<typeof useTranslation>["dict"]["appointmentActions"]["review"];
+interface TargetState { rating: number; comment: string }
+interface ReviewTarget {
+  key: string;
+  professionalId?: number;
+  name: string;
+  secondary: string | null;
+  photo: string | null;
+}
+const emptyState: TargetState = { rating: 0, comment: "" };
+const hasDraft = (state: TargetState) => state.rating > 0 || state.comment.trim().length > 0;
+const needsRating = (state: TargetState) => state.rating === 0 && state.comment.trim().length > 0;
 
-/** One editable review target's state (rating + comment). */
-interface TargetState {
-  rating: number;
-  comment: string;
+function reviewTargets(appointment: AppointmentDetail, unavailable: string): ReviewTarget[] {
+  const targets: ReviewTarget[] = appointment.reviews.professionals
+    .filter((p) => p.canLeaveReview && p.review == null)
+    .map((p) => {
+      const member = appointment.staff_users?.find((s) => s.teamMemberId === p.staffId);
+      return {
+        key: `professional-${p.staffId}`,
+        professionalId: p.staffId,
+        name: staffDisplayName(member) ?? unavailable,
+        secondary: member?.professionalTitle ?? null,
+        photo: member?.profileImage ?? null,
+      };
+    });
+  if (appointment.reviews.canLeaveBusinessReview && appointment.reviews.business == null) {
+    const name = appointment.location?.name ?? appointment.business?.name ?? "";
+    targets.push({
+      key: "location",
+      name,
+      secondary: appointment.business?.name !== name ? appointment.business?.name ?? null : null,
+      photo: appointment.location?.profileImage ?? appointment.business?.logo ?? null,
+    });
+  }
+  return targets;
 }
 
-/** One create-only submission with optional location and professional ratings. */
-export function ReviewModal({
-  appointment,
-  onClose,
-  onChanged,
-  onSubmitted,
-}: {
+/** Each optional subject is edited separately, then all ratings are posted once. */
+export function ReviewModal({ appointment, onClose, onChanged, onSubmitted }: {
   appointment: AppointmentDetail;
   onClose: () => void;
   onChanged?: () => void | Promise<void>;
   onSubmitted?: (uuid: string) => void;
 }) {
-  const { dict } = useTranslation();
+  const { dict, locale } = useTranslation();
   const t = dict.appointmentActions.review;
   const toast = useToast();
-
-  const reviews = appointment.reviews;
-  const businessName = appointment.business?.name ?? "";
-
-  const eligible = canLeaveReview(appointment);
-  const professionalTargets = useMemo(
-    () => reviews.professionals.filter((p) => p.canLeaveReview && p.review == null),
-    [reviews.professionals],
-  );
-  const showBusiness = reviews.canLeaveBusinessReview && reviews.business == null;
-
-  const [businessState, setBusinessState] = useState<TargetState>({
-    rating: 0,
-    comment: "",
-  });
-  const [proStates, setProStates] = useState<Record<number, TargetState>>(() => {
-    const seed: Record<number, TargetState> = {};
-    for (const p of professionalTargets) {
-      seed[p.staffId] = { rating: 0, comment: "" };
-    }
-    return seed;
-  });
-
+  // Keep subjects and their order stable for this editing session, as in the app.
+  // Current eligibility is still checked before submitting; the server validates targets.
+  const [targets] = useState(() => reviewTargets(appointment, dict.appointmentPage.professionalUnavailable));
+  const [states, setStates] = useState<Record<string, TargetState>>({});
+  const [step, setStep] = useState(0);
+  const [attempted, setAttempted] = useState<Set<string>>(() => new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const firstStarRef = useRef<HTMLButtonElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const commentRef = useRef<HTMLTextAreaElement>(null);
   const inFlightRef = useRef(false);
   const closingRef = useRef(false);
-  const handleClosing = useCallback(() => {
-    closingRef.current = true;
-  }, []);
+  const handleClosing = useCallback(() => { closingRef.current = true; }, []);
+  const active = targets[step];
+  const current = active ? states[active.key] ?? emptyState : emptyState;
+  const last = step === targets.length - 1;
+  const dirty = targets.some((target) => hasDraft(states[target.key] ?? emptyState));
+  const ready = canLeaveReview(appointment) && dirty;
+  const hasProfessionals = targets.some((target) => target.professionalId != null);
 
-  const mini = apptMiniProps(appointment, dict.common.photo);
+  const navigate = (next: number, focus: "heading" | "rating" | "comment" = "heading") => {
+    if (inFlightRef.current || closingRef.current) return;
+    setStep(next);
+    requestAnimationFrame(() => {
+      const element = focus === "rating" ? firstStarRef.current : focus === "comment" ? commentRef.current : headingRef.current;
+      element?.focus({ preventScroll: true });
+      element?.scrollIntoView({ block: "nearest" });
+    });
+  };
 
-  // Ready when at least one rendered target has a rating > 0.
-  const ready =
-    eligible &&
-    ((showBusiness && businessState.rating > 0) ||
-      professionalTargets.some((p) => (proStates[p.staffId]?.rating ?? 0) > 0));
+  const validate = (target: ReviewTarget) => {
+    const state = states[target.key] ?? emptyState;
+    if (validatePlainText(state.comment, { maxLength: REVIEW_COMMENT_MAX_LENGTH })) {
+      navigate(targets.indexOf(target), "comment");
+      return false;
+    }
+    if (!needsRating(state)) return true;
+    setAttempted((prev) => new Set(prev).add(target.key));
+    navigate(targets.indexOf(target), "rating");
+    return false;
+  };
 
-  const setProTarget = (staffId: number, next: TargetState) => {
-    setProStates((prev) => ({ ...prev, [staffId]: next }));
+  const advance = () => {
+    if (!active || last || inFlightRef.current || closingRef.current) return;
+    if (validate(active)) navigate(step + 1);
   };
 
   const submit = async () => {
-    if (!ready || inFlightRef.current || closingRef.current) return;
+    if (!last || !ready || inFlightRef.current || closingRef.current) return;
+    const missing = targets.find((target) => {
+      const state = states[target.key] ?? emptyState;
+      return needsRating(state) || validatePlainText(state.comment, { maxLength: REVIEW_COMMENT_MAX_LENGTH });
+    });
+    if (missing && !validate(missing)) return;
     inFlightRef.current = true;
     setSubmitting(true);
     setError(null);
-
     const body: SubmitReviewBody = { appointmentUuid: appointment.uuid };
-
-    if (showBusiness && businessState.rating > 0) {
-      body.locationRating = businessState.rating;
-      const comment = businessState.comment.trim();
-      if (comment) body.locationComment = comment;
+    for (const target of targets) {
+      const state = states[target.key] ?? emptyState;
+      if (!state.rating) continue;
+      const comment = state.comment.trim();
+      if (target.professionalId != null) {
+        (body.professionalRatings ??= []).push({
+          professionalId: target.professionalId, rating: state.rating,
+          ...(comment ? { comment } : {}),
+        });
+      } else {
+        body.locationRating = state.rating;
+        if (comment) body.locationComment = comment;
+      }
     }
-
-    const professionalRatings: ProfessionalRatingInput[] = [];
-    for (const p of professionalTargets) {
-      const st = proStates[p.staffId];
-      if (!st || st.rating <= 0) continue;
-      const entry: ProfessionalRatingInput = {
-        professionalId: p.staffId,
-        rating: st.rating,
-      };
-      const comment = st.comment.trim();
-      if (comment) entry.comment = comment;
-      professionalRatings.push(entry);
-    }
-    if (professionalRatings.length > 0) {
-      body.professionalRatings = professionalRatings;
-    }
-
     try {
       await submitReview(body);
     } catch (e) {
-      // CUSTOMER_REVIEW.* codes ("already reviewed", "not completed yet",
-      // "no rating given", "professional not on this appointment") each get
-      // their own copy via `customerErrorMessage`; anything unrecognised
-      // falls back to this modal's own generic line.
-      setError(customerErrorMessage(e, dict.errors, t.error));
+      const validationError = plainTextErrorMessage(getPlainTextApiError(e), dict.textarea, REVIEW_COMMENT_MAX_LENGTH, locale);
+      if (validationError || backendCode(e) === "CUSTOMER_REVIEW.E04") {
+        setError(validationError ?? customerErrorMessage(e, dict.errors, t.error));
+      } else {
+        toast(customerErrorMessage(e, dict.errors, t.error), "warn", undefined, "error");
+      }
       inFlightRef.current = false;
       setSubmitting(false);
       return;
     }
-
     onSubmitted?.(appointment.uuid);
     toast(t.successNew, "star");
     onClose();
-    // The existing detail refresh handles its errors; a confirmed submission
-    // must not wait for that request before finishing the interaction.
     void onChanged?.();
   };
 
+  if (!active) return null;
   return (
     <ActionModal
       title={t.titleNew}
-      subtitle={format(t.sub, { business: businessName })}
+      width={540}
+      className={styles.modal}
       onClose={onClose}
       dismissible={!submitting}
       onClosing={handleClosing}
       footer={
-        <>
-          <span style={{ flex: 1, fontSize: 12.5, color: "var(--c-600)" }}>
-            {t.publicNote}
-          </span>
-          <Button
-            loading={submitting}
-          kind="accent"
-            size="lg"
-            disabled={!ready || submitting}
-            onClick={() => void submit()}
-          >
-            {t.submitNew}
-          </Button>
-        </>
+        <div className={styles.footer}>
+          {error && <InlineError>{error}</InlineError>}
+          <div className={styles.actions}>
+            {step > 0 && (
+              <Button kind="ghost" size="lg" disabled={submitting} onClick={() => navigate(step - 1)}>
+                <Icon name="back" size={16} />{t.back}
+              </Button>
+            )}
+            <Button
+              key={active.key}
+              className={styles.primaryAction}
+              kind="accent"
+              size="lg"
+              style={{ border: "none", color: "var(--c-50)" }}
+              loading={last ? submitting : undefined}
+              disabled={last ? !ready || submitting : submitting}
+              onClick={last ? (event) => {
+                // A double click on Continue must not post the newly shown step.
+                if (event.detail < 2) void submit();
+              } : advance}
+            >
+              {last ? t.submitNew : hasDraft(current) ? t.continue : t.skip}
+            </Button>
+          </div>
+        </div>
       }
     >
-      <ApptMini {...mini} />
-      <p className={styles.hint} style={{ marginTop: 16 }}>{dict.appointmentPage.reviewFinality}</p>
-
-      {error && (
-        <InlineError style={{ margin: "14px 0 0" }}>
-          {error}
-        </InlineError>
-      )}
-
-      <div
-        style={{
-          marginTop: 20,
-          display: "flex",
-          flexDirection: "column",
-          gap: 26,
-        }}
-      >
-        {showBusiness && (
-          <RatingBlock
-            label={format(t.businessLabel, { business: appointment.location?.name ?? businessName })}
-            state={businessState}
-            onChange={setBusinessState}
-            t={t}
-            disabled={submitting}
-          />
+      <div className={styles.context}>
+        <div className={styles.booking}>
+          <span>{appointment.primaryItemName || appointment.bookedItemName}</span>
+          {appointment.business?.name && <span>{appointment.business.name}</span>}
+        </div>
+        {targets.length > 1 && (
+          <span className={styles.stepCount} role="status" aria-live="polite"
+            aria-label={format(t.stepAria, { current: String(step + 1), total: String(targets.length) })}>
+            {step + 1} / {targets.length}
+          </span>
         )}
-
-        {professionalTargets.map((p, idx) => {
-          const member = appointment.staff_users?.find(
-            (s) => s.teamMemberId === p.staffId,
-          );
-          const name = staffDisplayName(member) ?? dict.appointmentPage.professionalUnavailable;
-          const state = proStates[p.staffId] ?? { rating: 0, comment: "" };
-          return (
-            <RatingBlock
-              key={p.staffId}
-              label={format(t.professionalLabel, { name })}
-              state={state}
-              onChange={(next) => setProTarget(p.staffId, next)}
-              t={t}
-              disabled={submitting}
-              divider={idx > 0 || showBusiness}
-            />
-          );
-        })}
       </div>
+      {targets.length > 1 && (
+        <div className={styles.progress} aria-hidden="true">
+          {targets.map((target, index) => <span key={target.key} data-current={index === step} data-visited={index < step} />)}
+        </div>
+      )}
+      <RatingBlock
+        key={active.key}
+        target={active}
+        state={current}
+        onChange={(next) => { setStates((prev) => ({ ...prev, [active.key]: next })); setError(null); }}
+        t={t}
+        disabled={submitting}
+        error={attempted.has(active.key) && needsRating(current) ? dict.appointmentPage.reviewRatingRequired : undefined}
+        firstStarRef={firstStarRef}
+        headingRef={headingRef}
+        commentRef={commentRef}
+      />
+      {last && (
+        <div className={styles.notices}>
+          <p>{dict.appointmentPage.reviewFinality}{hasProfessionals && <> {t.includeEveryone}</>}</p>
+          <p>{t.publicNote}</p>
+        </div>
+      )}
     </ActionModal>
   );
 }
 
-/**
- * One review target block: a label, an interactive INTEGER 1–5 star input
- * (built locally — `Stars` is display-only and supports halves), the value
- * label, and an optional comment textarea.
- */
-function RatingBlock({
-  label,
-  state,
-  onChange,
-  t,
-  divider,
-  disabled,
-}: {
-  label: string;
+function RatingBlock({ target, state, onChange, t, disabled, error, firstStarRef, headingRef, commentRef }: {
+  target: ReviewTarget;
   state: TargetState;
   onChange: (next: TargetState) => void;
   t: ReviewDict;
-  divider?: boolean;
   disabled: boolean;
+  error?: string;
+  firstStarRef: Ref<HTMLButtonElement>;
+  headingRef: Ref<HTMLHeadingElement>;
+  commentRef: Ref<HTMLTextAreaElement>;
 }) {
   const labelId = useId();
   const commentId = useId();
-  const countId = useId();
-  const { dict } = useTranslation();
+  const errorId = useId();
   const [hover, setHover] = useState(0);
   const shown = hover || state.rating;
-  const valueLabels = [
-    "",
-    t.labelPoor,
-    t.labelFair,
-    t.labelGood,
-    t.labelGreat,
-    t.labelExceptional,
-  ];
-
+  const values = ["", t.labelPoor, t.labelFair, t.labelGood, t.labelGreat, t.labelExceptional];
+  const label = target.professionalId != null
+    ? format(t.professionalLabel, { name: target.name })
+    : format(t.businessLabel, { business: target.name });
   return (
-    <div
-      role="group"
-      aria-labelledby={labelId}
-      style={{
-        paddingTop: divider ? 22 : 0,
-        borderTop: divider ? "1px solid rgba(28,28,26,0.08)" : 0,
-      }}
-    >
-      <div
-        id={labelId}
-        style={{
-          fontSize: 13.5,
-          fontWeight: 600,
-          color: "var(--c-800)",
-          textAlign: "center",
-        }}
-      >
-        {label}
+    <div className={styles.target} role="group" aria-labelledby={labelId}>
+      <div className={styles.identity}>
+        {target.professionalId != null
+          ? <Avatar src={target.photo ?? undefined} name={target.name} size={64} />
+          : <Img src={target.photo ?? undefined} alt={target.name} className={styles.locationImage} />}
+        <div>
+          <h2 id={labelId} ref={headingRef} tabIndex={-1}>{label}</h2>
+          {target.secondary && <p>{target.secondary}</p>}
+        </div>
       </div>
-
-      <div
-        style={{
-          marginTop: 12,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <div
-          style={{ display: "flex", gap: 4 }}
-          onMouseLeave={() => setHover(0)}
-        >
+      <div className={styles.rating}>
+        <div className={styles.stars} onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              disabled={disabled}
-              className="tap"
-              aria-label={format(t.starsAria, { n: String(n) })}
-              aria-pressed={state.rating === n}
-              onMouseEnter={() => setHover(n)}
-              onClick={() => onChange({ ...state, rating: n })}
-              style={{
-                background: "transparent",
-                border: 0,
-                cursor: "pointer",
-                padding: 3,
-                minWidth: 44,
-                minHeight: 44,
-                lineHeight: 0,
-              }}
-            >
-              <Icon
-                name={n <= shown ? "star" : "starO"}
-                size={38}
-                color={n <= shown ? "var(--p-500)" : "var(--c-300)"}
-              />
+            <button key={n} ref={n === 1 ? firstStarRef : undefined} type="button" disabled={disabled}
+              className={`tap ${styles.star}`} aria-label={format(t.starsAria, { n: String(n) })}
+              aria-pressed={state.rating === n} aria-describedby={error ? errorId : undefined}
+              onMouseEnter={() => setHover(n)} onFocus={() => setHover(n)} onBlur={() => setHover(0)}
+              onClick={() => onChange({ ...state, rating: n })}>
+              <Icon name={n <= shown ? "star" : "starO"} size={40}
+                color={n <= shown ? "var(--p-500)" : "var(--c-600)"} />
             </button>
           ))}
         </div>
-        <div
-          style={{
-            height: 18,
-            fontSize: 13.5,
-            fontWeight: 600,
-            color: "var(--c-700)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {valueLabels[shown] || t.ratePrompt}
-        </div>
+        <span className={styles.value} aria-live="polite">{values[shown]}</span>
       </div>
-
-      <div style={{ marginTop: 16 }}>
-        <label htmlFor={commentId} style={{ ...sectionLabel, display: "block" }}>{t.noteLabel}</label>
-        <textarea
-          id={commentId}
-          className={styles.input}
-          aria-describedby={countId}
-          disabled={disabled}
-          maxLength={2000}
-          value={state.comment}
-          onChange={(e) => onChange({ ...state, comment: e.target.value })}
-          rows={4}
-          placeholder={t.notePlaceholder}
-          style={{
-            width: "100%",
-            resize: "vertical",
-            minHeight: 96,
-            border: "1px solid rgba(28,28,26,0.12)",
-            borderRadius: 14,
-            padding: "12px 14px",
-            fontSize: 16,
-            lineHeight: 1.5,
-            background: "#fff",
-            color: "var(--c-900)",
-            fontFamily: "inherit",
-          }}
-        />
-        <span id={countId} className={styles.hint} style={{ fontVariantNumeric: "tabular-nums" }}>
-          {format(dict.appointmentPage.commentLimit, { count: String(state.comment.length) })}
-        </span>
-      </div>
+      {error && <InlineError id={errorId}>{error}</InlineError>}
+      <TextareaField id={commentId} ref={commentRef} className={styles.comment}
+        label={t.noteLabel} disabled={disabled} maxLength={REVIEW_COMMENT_MAX_LENGTH} rows={3}
+        value={state.comment} onChange={(e) => onChange({ ...state, comment: e.target.value })}
+        aria-describedby={error ? errorId : undefined} aria-invalid={!!error || undefined} />
     </div>
   );
 }
-
-const sectionLabel: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 10.5,
-  fontWeight: 600,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "var(--c-600)",
-  marginBottom: 8,
-};

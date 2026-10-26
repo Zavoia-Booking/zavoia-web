@@ -1,0 +1,8 @@
+.field { width: 100%; min-width: 0; }
+.label { display: block; margin-bottom: 9px; color: var(--c-800); font-size: 14px; font-weight: 500; line-height: 1.5; }
+.control { display: block; width: 100%; box-sizing: border-box; min-height: 100px; padding: 12px 14px; border: 1px solid var(--c-400); border-radius: 14px; background: var(--c-50); color: var(--c-900); font: inherit; font-size: 16px; line-height: 1.5; resize: none; overflow-y: auto; field-sizing: fixed; }
+.control[aria-invalid="true"] { border-color: var(--s-error-text); }
+.control:focus { outline: none; outline-offset: 0; border-color: var(--c-ink); border-radius: 14px; box-shadow: none; }
+.control:disabled { opacity: 0.6; }
+.count { display: block; margin-top: 7px; text-align: right; color: var(--c-600); font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.error { margin-top: 4px; }

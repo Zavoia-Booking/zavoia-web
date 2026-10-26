@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { localeHref } from "@/i18n/routes";
@@ -30,6 +30,7 @@ import { pushRecentView } from "@/lib/recent-views";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { SEARCH_RADIUS_KM } from "@/components/search/constants";
 import { TeamMemberProfileModal } from "./team-member-profile-modal";
+import { professionalHref } from "@/lib/professionals/urls";
 import { EmptyState } from "./empty-state";
 import styles from "./business-detail.module.css";
 import { LocationGallery } from "./location-gallery";
@@ -88,24 +89,25 @@ export function BusinessDetail({ listing, locale, categoryHref }: Props) {
     pushRecentView(locationId);
   }, [locationId]);
 
-  // Deep-link support (brand page → team member profile): `?tab=<tab>` opens
-  // that tab, `?member=<id>` additionally opens that member's profile modal on
-  // the team tab. Read once as initial state — in-page navigation stays local.
-  const searchParams = useSearchParams();
-  const [tab, setTab] = useState<Tab>(() => {
-    const t = searchParams.get("tab");
-    return t === "team" || t === "reviews" || t === "about" ? t : "services";
-  });
-  const [visitedTabs, setVisitedTabs] = useState<Set<Tab>>(() => new Set([tab]));
-  const selectTab = (next: Tab) => {
+  // Keep the location's base content in ISR HTML. Query-only deep links are
+  // applied by a small Suspense child, rather than suspending this whole page.
+  const [tab, setTab] = useState<Tab>("services");
+  const [visitedTabs, setVisitedTabs] = useState<Set<Tab>>(() => new Set(["services"]));
+  const [memberId, setMemberId] = useState<number | null>(null);
+  const initialUrlApplied = useRef(false);
+  const selectTab = useCallback((next: Tab) => {
+    // A user's local selection wins if the URL resolver hydrates later.
+    initialUrlApplied.current = true;
     setTab(next);
     setVisitedTabs(previous => previous.has(next) ? previous : new Set([...previous, next]));
-  };
-  const [memberId, setMemberId] = useState<number | null>(() => {
-    const raw = searchParams.get("member");
-    const n = raw ? Number(raw) : NaN;
-    return Number.isInteger(n) && n > 0 ? n : null;
-  });
+  }, []);
+  const applyInitialUrl = useCallback((next: Tab, nextMemberId: number | null) => {
+    if (initialUrlApplied.current) return;
+    initialUrlApplied.current = true;
+    setTab(next);
+    setVisitedTabs(previous => previous.has(next) ? previous : new Set([...previous, next]));
+    setMemberId(next === "team" ? nextMemberId : null);
+  }, []);
 
   // Single ordered selection list so the appointment summary preserves the exact
   // order the user picked items in (services and bundles interleaved as chosen),
@@ -283,6 +285,9 @@ export function BusinessDetail({ listing, locale, categoryHref }: Props) {
   const servicesLabel = format(listing.services.length === 1 ? dict.locationPage.servicesCountOne : dict.locationPage.servicesCount, { count: String(listing.services.length) });
 
   return <main className={`zw-container ${styles.page}`}>
+    <Suspense fallback={null}>
+      <InitialLocationUrl onResolve={applyInitialUrl} />
+    </Suspense>
     <button type="button" className={styles.back} onClick={() => {
       if (window.history.length > 1) router.back();
       else router.push(localeHref(locale, "search"));
@@ -316,9 +321,9 @@ export function BusinessDetail({ listing, locale, categoryHref }: Props) {
 
         <Tabs tab={tab} setTab={selectTab} listing={listing} panelId={panelId} />
         {(["services", "team", "reviews", "about"] as const).map(key => <div key={key} role="tabpanel" id={`${panelId}-${key}-panel`} aria-labelledby={`${panelId}-${key}-tab`} hidden={tab !== key} tabIndex={0} className={styles.tabPanel}>
-          {visitedTabs.has(key) && <>
+          {(key === "team" || visitedTabs.has(key)) && <>
             {key === "services" && <LocationServices listing={listing} locale={locale} picked={picked} pickedBundles={pickedBundles} togglePick={togglePick} toggleBundle={toggleBundle} canSelect={canBook} showPricing={showPricing} />}
-            {key === "team" && <TeamTab members={listing.teamMembers} memberId={memberId} setMemberId={setMemberId} listing={listing} locale={locale} />}
+            {key === "team" && <TeamTab members={listing.teamMembers} memberId={tab === "team" ? memberId : null} setMemberId={setMemberId} listing={listing} locale={locale} />}
             {key === "reviews" && <LocationReviews listing={listing} locale={locale} />}
             {key === "about" && <LocationAbout listing={listing} locale={locale} phone={phone} directionsHref={directionsHref} />}
           </>}
@@ -328,6 +333,22 @@ export function BusinessDetail({ listing, locale, categoryHref }: Props) {
     </div>
     <span className="sr-only">{servicesLabel}</span>
   </main>;
+}
+
+/** Query changes after initialization do not override local tab/profile state. */
+function InitialLocationUrl({ onResolve }: { onResolve: (tab: Tab, memberId: number | null) => void }) {
+  const searchParams = useSearchParams();
+  const applied = useRef(false);
+  useEffect(() => {
+    if (applied.current) return;
+    applied.current = true;
+    const rawTab = searchParams.get("tab");
+    const tab = rawTab === "team" || rawTab === "reviews" || rawTab === "about" ? rawTab : "services";
+    const rawMember = searchParams.get("member");
+    const memberId = rawMember ? Number(rawMember) : NaN;
+    onResolve(tab, Number.isInteger(memberId) && memberId > 0 ? memberId : null);
+  }, [onResolve, searchParams]);
+  return null;
 }
 
 function FavoriteHeart({ locationId }: { locationId: number }) {
@@ -371,11 +392,21 @@ function TeamTab({ members, memberId, setMemberId, listing, locale }: { members:
     </div></div>
     <div className={view === "grid" ? styles.teamGrid : styles.teamList}>{members.map(member => {
       const name = member.displayName || [member.firstName, member.lastName].filter(Boolean).join(" ");
-      return <button key={member.id} type="button" className={styles.teamCard} onClick={() => setMemberId(member.id)}>
+      const content = <>
         <Avatar src={member.profileImage ?? undefined} name={name} size={80} ring />
         <span className={styles.teamIdentity}><strong>{name}</strong>{member.professionalTitle && <span>{member.professionalTitle}</span>}{member.averageRating != null && <Rating rating={member.averageRating} reviews={member.totalReviews} size={13} />}</span>
         <span className={styles.profileLink}>{dict.locationPage.viewProfile}<Icon name="arrowUR" size={14} /></span>
-      </button>;
+      </>;
+      return member.publicProfileAvailable === true && member.uuid ? (
+        <Link key={member.id} href={professionalHref(locale, member.uuid)} prefetch={false} className={styles.teamCard}
+          onNavigate={(event) => { event.preventDefault(); setMemberId(member.id); }}>
+          {content}
+        </Link>
+      ) : (
+        <button key={member.id} type="button" className={styles.teamCard} onClick={() => setMemberId(member.id)}>
+          {content}
+        </button>
+      );
     })}</div>
     {selected && <TeamMemberProfileModal member={selected} listing={listing} locale={locale} onClose={() => setMemberId(null)} />}
   </div>;

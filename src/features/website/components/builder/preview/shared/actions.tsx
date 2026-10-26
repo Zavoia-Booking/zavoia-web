@@ -1,6 +1,7 @@
 "use client";
 
 import { Children, createContext, useContext, type CSSProperties, type FocusEventHandler, type ReactNode } from "react";
+import Link from "next/link";
 import { Spinner } from "@/components/ui/spinner";
 import styles from "./actions.module.css";
 
@@ -15,6 +16,8 @@ export interface MicrositeActions {
   book: (intent?: WebsiteBookIntent) => void;
   pending: boolean;
   pendingIntent?: WebsiteBookIntent | null;
+  /** Supplied only by the published renderer, never by Studio specimens. */
+  professionalHref?: (uuid: string) => string;
 }
 
 /** Only the published website supplies actions. Studio specimens remain inert. */
@@ -31,13 +34,7 @@ export function isPendingBooking(actions: MicrositeActions | null, intent: Websi
     .every((key) => actions.pendingIntent?.[key] === intent[key]);
 }
 
-/** Preserve each variant's markup and styling while making public actions real buttons. */
-export function MicrositeBookAction({
-  intent,
-  previewTag = "span",
-  children,
-  ...props
-}: {
+type MicrositeActionProps = {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
@@ -46,7 +43,44 @@ export function MicrositeBookAction({
   onFocus?: FocusEventHandler<HTMLElement>;
   intent?: WebsiteBookIntent;
   previewTag?: "span" | "div" | "button";
-}) {
+};
+
+/** Profile links keep native navigation while ordinary clicks retain the scoped modal. */
+export function MicrositeProfessionalAction({ uuid, children, previewTag, ...props }: MicrositeActionProps & { uuid?: string }) {
+  const actions = useMicrositeActions();
+  if (!uuid || !actions?.professionalHref) {
+    return <MicrositeBookAction {...props} previewTag={previewTag}>{children}</MicrositeBookAction>;
+  }
+  const busy = isPendingBooking(actions, props.intent);
+  const { intent, ...linkProps } = props;
+  return (
+    <Link
+      {...linkProps}
+      href={actions.professionalHref(uuid)}
+      prefetch={false}
+      className={[props.className, styles.action, styles.professional].filter(Boolean).join(" ")}
+      style={{ ...props.style, cursor: actions.pending ? "wait" : "pointer" }}
+      aria-busy={actions.pending || undefined}
+      aria-disabled={actions.pending || undefined}
+      data-pending={busy || undefined}
+      onNavigate={(event) => {
+        event.preventDefault();
+        if (!actions.pending) actions.book(intent);
+      }}
+    >
+      {Children.map(children, (child) => typeof child === "string" || typeof child === "number" ? <span>{child}</span> : child)}
+      {busy && <span className={styles.spinner} aria-hidden="true"><Spinner size={18} color="currentColor" /></span>}
+    </Link>
+  );
+}
+
+/** Preserve each variant's markup and styling while making public actions real buttons. */
+export function MicrositeBookAction({
+  intent,
+  previewTag = "span",
+  children,
+  ...props
+}: MicrositeActionProps) {
   const actions = useMicrositeActions();
   const busy = isPendingBooking(actions, intent);
   if (!actions) {

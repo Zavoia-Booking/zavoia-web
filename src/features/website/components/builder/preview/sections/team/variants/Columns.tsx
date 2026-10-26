@@ -1,6 +1,6 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Star, ArrowRight } from "lucide-react";
-import { MicrositeBookAction, useMicrositeActions } from "../../../shared/actions";
+import { MicrositeProfessionalAction, useMicrositeActions } from "../../../shared/actions";
 import { DISPLAY } from "../../../shared/constants";
 import type { TeamVariantProps } from "../types";
 import "./columns.css";
@@ -101,7 +101,8 @@ export function Columns({ locationGroups, ratings, nameOf, initialsOf, tintOf, t
                     <span>{t("businessPage.builder.preview.reviewsCount", { count: r.count })}</span>
                   </div>
                 )}
-                <MicrositeBookAction
+                <MicrositeProfessionalAction
+                  uuid={m.publicProfileAvailable === true ? m.uuid : undefined}
                   intent={{ locationId: activeLoc.id, teamMemberId: m.id }}
                   className="mc-tmc-book"
                   aria-hidden={actions ? undefined : true}
@@ -109,7 +110,7 @@ export function Columns({ locationGroups, ratings, nameOf, initialsOf, tintOf, t
                 >
                   {t("businessPage.builder.preview.teamBookWith", { name: first })}
                   <ArrowRight className="h-3 w-3" strokeWidth={2} />
-                </MicrositeBookAction>
+                </MicrositeProfessionalAction>
               </div>
             </div>
           );

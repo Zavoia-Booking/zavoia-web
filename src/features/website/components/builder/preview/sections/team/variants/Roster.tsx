@@ -1,6 +1,6 @@
 import { type CSSProperties } from "react";
 import { ArrowRight } from "lucide-react";
-import { MicrositeBookAction } from "../../../shared/actions";
+import { MicrositeProfessionalAction } from "../../../shared/actions";
 import { DISPLAY } from "../../../shared/constants";
 import { Stars } from "../../../shared/primitives";
 import type { TeamVariantProps } from "../types";
@@ -15,7 +15,7 @@ export function Roster({ members, ratings, nameOf, initialsOf, tintOf }: TeamVar
         const r = ratings?.[m.id];
         return (
           <div key={`${locId}-${m.id}`} className="mc-rrow mc-locx-rowin" style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}>
-            <MicrositeBookAction previewTag="div" intent={{ locationId: locId, teamMemberId: m.id }} className="mc-rrow-btn" aria-label={nameOf(m)}>
+            <MicrositeProfessionalAction uuid={m.publicProfileAvailable === true ? m.uuid : undefined} previewTag="div" intent={{ locationId: locId, teamMemberId: m.id }} className="mc-rrow-btn" aria-label={nameOf(m)}>
               <span className="mc-rrow-ava" style={{ background: tintOf(m) }}>
                 {m.profileImage ? (
                   <img src={m.profileImage} alt={nameOf(m)} loading="lazy" decoding="async" />
@@ -43,7 +43,7 @@ export function Roster({ members, ratings, nameOf, initialsOf, tintOf }: TeamVar
               <span className="mc-rrow-cta" aria-hidden>
                 <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </span>
-            </MicrositeBookAction>
+            </MicrositeProfessionalAction>
           </div>
         );
       })}

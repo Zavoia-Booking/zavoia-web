@@ -26,6 +26,13 @@ import { format } from "@/i18n/format";
 import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Button, Icon, InlineError, Skeleton, useToast } from "@/components/ui";
+import { TextareaField } from "@/components/ui/textarea-field";
+import {
+  getPlainTextApiError,
+  plainTextErrorMessage,
+  SUPPORT_MESSAGE_MAX_LENGTH,
+  validatePlainText,
+} from "@/lib/validation/free-text";
 import {
   addTicketMessage,
   closeTicket,
@@ -296,21 +303,42 @@ function NewTicketForm({
   onCreated: (ticket: Ticket) => void;
 }) {
   const toast = useToast();
+  const { dict, locale } = useTranslation();
   const [category, setCategory] = useState<TicketCategory>("bug");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const messageRef = useRef<HTMLTextAreaElement | null>(null);
+  const inFlight = useRef(false);
+  const dismissed = useRef(false);
 
   const submit = async () => {
+    if (inFlight.current || dismissed.current) return;
+    const invalid = validatePlainText(message, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH });
+    if (invalid) {
+      setFieldError(plainTextErrorMessage(invalid, dict.textarea, SUPPORT_MESSAGE_MAX_LENGTH, locale));
+      messageRef.current?.focus();
+      return;
+    }
     const trimmed = message.trim();
-    if (!trimmed || submitting) return;
+    inFlight.current = true;
     setSubmitting(true);
+    setFieldError(null);
+    setRequestError(null);
     try {
       const created = await createTicket({ category, message: trimmed });
       toast(t.toasts.created, "check");
       onCreated(created);
-    } catch {
-      toast(t.toasts.error, "warn", undefined, "error");
+    } catch (e) {
+      const fieldFailure = getPlainTextApiError(e);
+      if (fieldFailure) {
+        setFieldError(plainTextErrorMessage(fieldFailure, dict.textarea, SUPPORT_MESSAGE_MAX_LENGTH, locale));
+      } else {
+        setRequestError(errorMessage(e, dict.errors, t.toasts.error));
+      }
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   };
@@ -382,42 +410,31 @@ function NewTicketForm({
         </div>
       </div>
 
-      <label style={{ display: "block" }}>
-        <span
-          style={{
-            display: "block",
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--c-700)",
-            marginBottom: 8,
-          }}
-        >
-          {t.new.messageLabel}
-        </span>
-        <textarea
-          value={message}
-          disabled={submitting}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={t.new.messagePlaceholder}
-          rows={5}
-          style={{
-            width: "100%",
-            boxSizing: "border-box",
-            padding: "10px 12px",
-            borderRadius: 10,
-            border: "1px solid rgba(28,28,26,0.18)",
-            fontSize: 14,
-            color: "var(--c-900)",
-            background: "#fff",
-            outline: "none",
-            fontFamily: "inherit",
-            resize: "vertical",
-          }}
-        />
-      </label>
+      <TextareaField
+        ref={messageRef}
+        label={t.new.messageLabel}
+        value={message}
+        disabled={submitting}
+        error={fieldError}
+        onChange={(e) => {
+          setMessage(e.target.value);
+          setFieldError(null);
+          setRequestError(null);
+        }}
+        placeholder={t.new.messagePlaceholder}
+        maxLength={SUPPORT_MESSAGE_MAX_LENGTH}
+        required
+        rows={5}
+      />
+
+      {requestError && <InlineError>{requestError}</InlineError>}
 
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-        <Button kind="secondary" size="md" onClick={onCancel} disabled={submitting}>
+        <Button kind="secondary" size="md" onClick={() => {
+          if (inFlight.current) return;
+          dismissed.current = true;
+          onCancel();
+        }} disabled={submitting}>
           {t.new.cancel}
         </Button>
         <Button
@@ -425,7 +442,7 @@ function NewTicketForm({
           kind="primary"
           size="md"
           onClick={submit}
-          disabled={submitting || !message.trim()}
+          disabled={submitting || validatePlainText(message, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH }) !== null}
         >
           {t.new.submit}
         </Button>
@@ -452,17 +469,22 @@ function TicketDetailView({
   onUpdated: (ticket: Ticket) => void;
 }) {
   const toast = useToast();
-  const { dict } = useTranslation();
+  const { dict, locale } = useTranslation();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
   const [draft, setDraft] = useState("");
+  const [replyVersion, setReplyVersion] = useState(0);
   const [sending, setSending] = useState(false);
+  const [replyFieldError, setReplyFieldError] = useState<string | null>(null);
+  const [replyError, setReplyError] = useState<string | null>(null);
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [closing, setClosing] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const replyRef = useRef<HTMLTextAreaElement | null>(null);
+  const replyInFlight = useRef(false);
   // Closing a ticket is irreversible from here (it drops out of the active
   // list and stops accepting replies) — the same synchronous lock as
   // register-form.tsx's submitLockRef: `closing` state disables the confirm
@@ -502,29 +524,42 @@ function TicketDetailView({
   }, [ticket?.details.history.length]);
 
   const send = async () => {
+    if (!ticket || replyInFlight.current || !ACTIVE_STATUSES.includes(ticket.status)) return;
+    const invalid = validatePlainText(draft, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH });
+    if (invalid) {
+      setReplyFieldError(plainTextErrorMessage(invalid, dict.textarea, SUPPORT_MESSAGE_MAX_LENGTH, locale));
+      replyRef.current?.focus();
+      return;
+    }
     const trimmed = draft.trim();
-    if (!trimmed || !ticket || sending) return;
+    replyInFlight.current = true;
     setSending(true);
+    setReplyFieldError(null);
+    setReplyError(null);
     try {
       const updated = await addTicketMessage(ticket.id, { message: trimmed });
       setTicket(updated);
       onUpdated(updated);
       setDraft("");
+      // A successful send starts a fresh reply, including its blur-validation
+      // state. Failed sends keep the same field and its existing draft.
+      setReplyVersion((version) => version + 1);
       toast(t.toasts.replySent, "check");
     } catch (e) {
       // SUPPORT.E04: the ticket was closed (by staff, or in another tab) while
       // this reply was being written. Retrying can never work — the user needs
       // to open a new ticket, so say that instead of "something went wrong".
       const closed = mapBackendCode(e, { "SUPPORT.E04": true as const });
-      toast(
-        closed
-          ? t.toasts.ticketClosed
-          : errorMessage(e, dict.errors, t.toasts.error),
-        "warn",
-        undefined,
-        "error",
-      );
+      const fieldFailure = getPlainTextApiError(e);
+      if (closed) {
+        setReplyError(t.toasts.ticketClosed);
+      } else if (fieldFailure) {
+        setReplyFieldError(plainTextErrorMessage(fieldFailure, dict.textarea, SUPPORT_MESSAGE_MAX_LENGTH, locale));
+      } else {
+        setReplyError(errorMessage(e, dict.errors, t.toasts.error));
+      }
     } finally {
+      replyInFlight.current = false;
       setSending(false);
     }
   };
@@ -706,39 +741,38 @@ function TicketDetailView({
           }}
         >
           {canReply ? (
-            <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-              <textarea
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <TextareaField
+                key={replyVersion}
+                ref={replyRef}
+                label={dict.textarea.replyLabel}
                 value={draft}
                 disabled={sending}
-                onChange={(e) => setDraft(e.target.value)}
+                error={replyFieldError}
+                required
+                maxLength={SUPPORT_MESSAGE_MAX_LENGTH}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  setReplyFieldError(null);
+                  setReplyError(null);
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                     e.preventDefault();
-                    send();
+                    void send();
                   }
                 }}
                 placeholder={t.composer.placeholder}
                 rows={2}
-                style={{
-                  flex: 1,
-                  boxSizing: "border-box",
-                  padding: "10px 14px",
-                  borderRadius: 14,
-                  border: "1px solid rgba(28,28,26,0.14)",
-                  fontSize: 14,
-                  color: "var(--c-900)",
-                  background: "var(--c-canvas)",
-                  outline: "none",
-                  fontFamily: "inherit",
-                  resize: "vertical",
-                }}
               />
+              {replyError && <InlineError>{replyError}</InlineError>}
               <Button
                 loading={sending}
                 kind="accent"
                 size="md"
                 onClick={send}
-                disabled={sending || !draft.trim()}
+                disabled={sending || validatePlainText(draft, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH }) !== null}
+                style={{ alignSelf: "flex-end" }}
               >
                 {t.composer.send}
               </Button>

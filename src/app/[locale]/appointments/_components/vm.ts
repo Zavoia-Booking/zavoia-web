@@ -23,7 +23,7 @@
 import type { AppointmentStatus } from "@/lib/api/marketplace/types";
 import { formatMoney } from "@/lib/format/money-time";
 
-/** When an appointment sits relative to "now". `now` = live (in progress). */
+/** Chronology only: `now` is the scheduled window, not proof of confirmation. */
 export type Tense = "now" | "today" | "future" | "past";
 
 /** Visual tone for the detail status pill. */
@@ -79,7 +79,7 @@ export const STATUS_TONE: Record<AppointmentStatus, StatusTone> = {
 
 /**
  * Classify an appointment's position in time.
- * - `"now"`  → confirmed AND `now` is within [scheduledAt, endsAt].
+ * - `"now"`  → pending/confirmed within [scheduledAt, endsAt).
  * - `"today"`→ same calendar day as `now` AND still in the future.
  * - `"future"`→ scheduled after `now`.
  * - `"past"` → otherwise.
@@ -95,7 +95,8 @@ export function deriveTense(
   const end = new Date(endsAt);
   const t = now.getTime();
 
-  if (status === "confirmed" && t >= start.getTime() && t <= end.getTime()) {
+  if (status !== "pending" && status !== "confirmed") return "past";
+  if (t >= start.getTime() && t < end.getTime()) {
     return "now";
   }
 
@@ -118,14 +119,15 @@ export function timeUntil(
   status: AppointmentStatus,
   tense: Tense,
   now: Date = new Date(),
+  timeZone?: string,
 ): TimeUntil | null {
-  if (tense === "now") return { kind: "live" };
   // Past appointments never show a countdown chip — a confirmed-but-past
   // appointment (backend hasn't transitioned it to completed yet) would
   // otherwise compute diff <= 0 and wrongly read "Starting".
   if (tense === "past") return null;
   if (status === "pending") return { kind: "pending" };
   if (status !== "confirmed") return null;
+  if (tense === "now") return { kind: "live" };
 
   const diff = Math.round(
     (new Date(scheduledAt).getTime() - now.getTime()) / 60000,
@@ -133,11 +135,12 @@ export function timeUntil(
 
   if (diff <= 0) return { kind: "soon", variant: "starting" };
   if (diff < 60) return { kind: "soon", variant: "minutes", value: diff };
-  if (diff < 1440) {
+  const days = Math.round((Date.parse(wallDateKey(new Date(scheduledAt), timeZone))
+    - Date.parse(wallDateKey(now, timeZone))) / 86_400_000);
+  if (days <= 0) {
     return { kind: "today", variant: "hours", value: Math.floor(diff / 60) };
   }
 
-  const days = Math.floor(diff / 1440);
   if (days === 1) return { kind: "future", variant: "tomorrow" };
   if (days < 7) return { kind: "future", variant: "days", value: days };
   if (days < 30) {
@@ -163,7 +166,7 @@ export function apptStamp(
   if (status === "pending") {
     return { key: "pending", color: "var(--c-900)" };
   }
-  if (tense === "now") {
+  if (status === "confirmed" && tense === "now") {
     return { key: "live", color: "var(--s-success-600)", pulse: true };
   }
   return null;
@@ -245,6 +248,6 @@ export function apptStatusTone(
   status: AppointmentStatus,
   tense: Tense,
 ): StatusTone {
-  if (tense === "now") return "live";
+  if (status === "confirmed" && tense === "now") return "live";
   return STATUS_TONE[status];
 }

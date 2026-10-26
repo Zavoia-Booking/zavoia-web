@@ -14,13 +14,17 @@
  * changes, this file is the one place to follow it.
  */
 
-/** admin-api: `@MinLength(8)` on every password DTO. */
+/** admin-api: `@MinLength(8)` when creating or replacing a password. */
 export const PASSWORD_MIN_LENGTH = 8;
 
 /**
  * admin-api `PASSWORD_REGEX` (validation.ts:21), plus the length check the
  * DTOs apply alongside it. Any non-alphanumeric counts as the special
  * character, so `#` or `-` work — not just `@$!%*?&`.
+ *
+ * These are NEW-password rules. Sign-in and ownership confirmation accept
+ * existing passwords without strength checks, trimming, sanitizing or Unicode
+ * normalization; altering their characters would change the credential.
  */
 export const PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;

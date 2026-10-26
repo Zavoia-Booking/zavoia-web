@@ -97,6 +97,9 @@ async function installSavedFixture(context: BrowserContext, baseURL: string, opt
     contextFailure: null as FixtureFailure,
     professionalIdsOverride: null as AllFavorites['professionals'] | null,
     requests: [] as string[],
+    availability: bookingAvailabilityFixture(),
+    slotsByDate: {} as Record<string, BookingDaySlots>,
+    slotsDelayByDate: {} as Record<string, number>,
     availabilityRequests: [] as Array<GetBookingCalendarBody | GetBookingSlotsBody>,
     mutations: [] as Mutation[],
     blockedMutations: [] as string[],
@@ -197,11 +200,15 @@ async function installSavedFixture(context: BrowserContext, baseURL: string, opt
       }
       if (path.endsWith('/public/booking/calendar') && method === 'POST') {
         state.availabilityRequests.push(request.postDataJSON() as GetBookingCalendarBody)
-        return json({ data: bookingAvailabilityFixture().calendar })
+        return json({ data: state.availability.calendar })
       }
       if (path.endsWith('/public/booking/slots') && method === 'POST') {
-        state.availabilityRequests.push(request.postDataJSON() as GetBookingSlotsBody)
-        return json({ data: bookingAvailabilityFixture().slots })
+        const body = request.postDataJSON() as GetBookingSlotsBody
+        state.availabilityRequests.push(body)
+        const response = structuredClone(state.slotsByDate[body.date] ?? state.availability.slots)
+        const delay = state.slotsDelayByDate[body.date] ?? 0
+        if (delay) await new Promise(resolve => setTimeout(resolve, delay))
+        return json({ data: response })
       }
       if (path.endsWith('/notifications/unread-count') && method === 'GET') return json({ data: { count: 0 } })
       if (path.endsWith('/notifications/inbox') && method === 'GET') {
@@ -426,7 +433,7 @@ testSaved('a failed delete restores the saved item, and Retry sends it again', a
   await expect(page.getByRole('button', { name: /^Locations\s*2$/ })).toBeVisible()
   // Next's route announcer is also role="alert", so find the toast by its text.
   const errorToast = page.getByRole('alert').filter({
-    hasText: "Something's wrong on our side. Please try again in a moment.",
+    hasText: "We’re having a technical problem. Try again in a moment.",
   })
   await expect(errorToast).toBeVisible()
   expect(saved.favorites.locations).toHaveLength(2)
@@ -647,12 +654,47 @@ testSaved('multiple venues require a choice and switching resets shared service 
   expect(saved.mutations).toEqual([])
 })
 
+testSaved('service rows toggle once from the name, empty space, icon and keyboard', async ({ page, saved }) => {
+  saved.bookingContext = venueFixture(1)
+  await openSaved(page)
+  const dialog = await openProfessional(page)
+  const row = dialog.getByRole('button', { name: /^(?:Add|Remove) Fixture haircut$/ })
+  const book = dialog.getByRole('button', { name: 'Book with Mara', exact: true })
+  await expect(row).toHaveCount(1)
+  await expect(row).toHaveAttribute('aria-pressed', 'false')
+  // The complete row is one native control, including its decorative icon.
+  expect(await row.evaluate((element) => element.tagName)).toBe('BUTTON')
+  await expect(row.locator('button, a, input, [role="button"]')).toHaveCount(0)
+  await expect(book).toBeDisabled()
+
+  await row.getByText('Fixture haircut', { exact: true }).click()
+  await expect(row).toHaveAttribute('aria-pressed', 'true')
+  await expect(book).toBeEnabled()
+
+  const bounds = await row.boundingBox()
+  expect(bounds).not.toBeNull()
+  await row.click({ position: { x: bounds!.width / 2, y: bounds!.height - 3 } })
+  await expect(row).toHaveAttribute('aria-pressed', 'false')
+
+  await row.locator('svg').click()
+  await expect(row).toHaveAttribute('aria-pressed', 'true')
+  await row.focus()
+  await page.keyboard.press('Enter')
+  await expect(row).toHaveAttribute('aria-pressed', 'false')
+  await page.keyboard.press('Space')
+  await expect(row).toHaveAttribute('aria-pressed', 'true')
+
+  await expect(page).toHaveURL(/\/saved$/)
+  expect(saved.mutations).toEqual([])
+  expect(saved.availabilityRequests).toEqual([])
+})
+
 testSaved('profile keyboard trap excludes a temporarily unavailable favorite control', async ({ page, saved }) => {
   saved.bookingContext = venueFixture(1)
   saved.profile.reviewStats = { totalCount: 0, averageRating: null }
   await openSaved(page)
   const dialog = await openProfessional(page)
-  const close = dialog.getByRole('button', { name: 'Close', exact: true })
+  const firstControl = dialog.getByRole('button', { name: 'Share', exact: true })
   const addService = dialog.getByRole('button', { name: 'Add Fixture haircut', exact: true })
   await expect(addService).toBeVisible()
   // Saved seeds IDs before opening the modal. This shared modal also opens
@@ -661,11 +703,11 @@ testSaved('profile keyboard trap excludes a temporarily unavailable favorite con
     button.setAttribute('tabindex', '-1')
     button.setAttribute('aria-disabled', 'true')
   })
-  await close.focus()
+  await firstControl.focus()
   await page.keyboard.press('Shift+Tab')
   await expect(addService).toBeFocused()
   await page.keyboard.press('Tab')
-  await expect(close).toBeFocused()
+  await expect(firstControl).toBeFocused()
   expect(saved.mutations).toEqual([])
 })
 
@@ -674,7 +716,7 @@ testSaved('one venue selects automatically and an empty menu explains the unavai
   saved.bookingContext.businesses[0].locations[0].services = []
   await openSaved(page)
   const dialog = await openProfessional(page)
-  await expect(dialog.getByRole('button', { name: /Atelier Saved Studio.*Old Town venue/ })).toHaveAttribute('aria-pressed', 'true')
+  await expect(dialog.getByRole('link', { name: /Atelier Saved Studio.*Old Town venue/ })).toHaveAttribute('href', '/business/201')
   await expect(dialog.getByText('Mara doesn’t offer any bookable services at this location yet.', { exact: true })).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Book with Mara', exact: true })).toHaveCount(0)
   await expect(dialog.getByRole('button', { name: 'Try again', exact: true })).toHaveCount(0)
@@ -707,12 +749,42 @@ for (const outcome of ['empty', 'permanent', 'transient'] as const) {
 for (const hidden of [false, true]) {
   testSaved(`${hidden ? 'hidden' : 'default visible'} venue pricing persists from profile through booking review`, async ({ page, saved }) => {
     saved.bookingContext = venueFixture(1)
+    const services = saved.bookingContext.businesses[0].locations[0].services
+    services.push({
+      ...services[0], id: 402, uuid: 'saved-second-service-fixture',
+      name: 'Fixture scalp care', priceAmountMinor: 8000,
+    })
+    const { calendar, slots } = saved.availability
+    calendar.items.push({
+      ...calendar.items[0], serviceId: 402, serviceName: 'Fixture scalp care', priceAmountMinor: 8000,
+    })
+    calendar.totalDuration = slots.totalDuration = 60
+    calendar.totalPrice = slots.totalPrice = 20000
+    slots.items = structuredClone(calendar.items)
+    slots.staffPricing![402] = { 301: { price: 8000, duration: 30 } }
+    const firstItem = slots.slots[0].items[0]
+    const clock = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+    slots.slots = Array.from({ length: 25 }, (_, index) => {
+      const start = 9 * 60 + index * 15
+      return {
+        startTime: clock(start), endTime: clock(start + 60), totalPriceAmountMinor: 20000,
+        items: [{
+          ...firstItem, startTime: clock(start), endTime: clock(start + 30),
+        }, {
+          ...firstItem, serviceId: 402, serviceName: 'Fixture scalp care',
+          priceAmountMinor: 8000, startTime: clock(start + 30), endTime: clock(start + 60),
+        }],
+      }
+    })
+    calendar.calendar[0].slotsCount = slots.slots.length
     if (hidden) saved.bookingContext.businesses[0].locations[0].showPricing = false
+    await page.setViewportSize({ width: 900, height: 640 })
     await openSaved(page)
     const dialog = await openProfessional(page)
     await dialog.getByRole('button', { name: 'Add Fixture haircut', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Add Fixture scalp care', exact: true }).click()
     if (hidden) {
-      await expect(dialog.getByText(/Request quote/)).toHaveCount(2)
+      await expect(dialog.getByText(/Request quote/)).toHaveCount(3)
       await expect(dialog.getByText(/RON/)).toHaveCount(0)
     } else {
       await expect(dialog).toContainText('RON')
@@ -721,7 +793,7 @@ for (const hidden of [false, true]) {
     await dialog.getByRole('button', { name: 'Book with Mara', exact: true }).click()
     const drawer = page.getByRole('dialog', { name: 'Book an appointment', exact: true })
     await expect(drawer).toBeVisible()
-    await expect(drawer.getByRole('button', { name: /^Tue\s*22/ })).toBeVisible()
+    await expect(drawer.locator('button[data-date="2030-10-22"]')).toBeVisible()
     const assertPricing = async () => {
       if (hidden) {
         await expect(drawer).toContainText('Request quote')
@@ -732,62 +804,371 @@ for (const hidden of [false, true]) {
       }
     }
     await assertPricing()
-    await drawer.getByRole('button', { name: /^Tue\s*22/ }).click()
+    await drawer.locator('button[data-date="2030-10-22"]').click()
     await drawer.getByRole('button', { name: /^10:00/ }).click()
+    // A profile booking already identifies the professional. The picks remain
+    // selected internally without repeating a card for each booked service.
+    await expect(drawer.getByRole('heading', { name: /^Professional(?: ·|$)/ })).toHaveCount(0)
+    await expect(drawer.getByRole('button', { name: PERSON, exact: true })).toHaveCount(0)
+    const body = drawer.locator('[data-booking-body]')
+    await expect(body).toHaveCSS('scrollbar-width', 'none')
+    const scrolling = await body.evaluate(element => {
+      const before = element.scrollTop
+      element.scrollTop = before + 100
+      return {
+        scrollable: element.scrollHeight > element.clientHeight,
+        moved: element.scrollTop > before,
+        trackDisplay: getComputedStyle(element, '::-webkit-scrollbar').display,
+      }
+    })
+    expect(scrolling).toEqual({ scrollable: true, moved: true, trackDisplay: 'none' })
     await assertPricing()
+    await expect(drawer.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled()
     await drawer.getByRole('button', { name: 'Continue', exact: true }).click()
     await expect(drawer.getByRole('button', { name: 'Confirm appointment', exact: true })).toBeEnabled()
     await expect(drawer).toContainText('Fixture haircut')
-    await expect(drawer).toContainText(PERSON)
+    await expect(drawer).toContainText('Fixture scalp care')
+    await expect(drawer.getByText(PERSON, { exact: true })).toHaveCount(1)
     await assertPricing()
     // Availability preserves the selected professional; no appointment is
     // submitted. An accidental booking POST remains an unmatched mutation.
-    expect(saved.availabilityRequests).toHaveLength(2)
+    expect(saved.availabilityRequests).toHaveLength(3)
     for (const request of saved.availabilityRequests) {
       expect(request).toMatchObject({
-        businessId: 101, locationId: 201, services: [{ serviceId: 401, teamMemberId: 301 }],
+        businessId: 101, locationId: 201,
+        services: [{ serviceId: 401, teamMemberId: 301 }, { serviceId: 402, teamMemberId: 301 }],
       })
     }
     expect(saved.mutations).toEqual([])
   })
 }
 
-for (const outcome of ['permanent', 'transient'] as const) {
-  testSaved(`${outcome} full profile failure does not expose a bookable menu`, async ({ page, saved }) => {
-    saved.bookingContext = venueFixture(1)
-    saved.profileFailure = outcome === 'permanent' ? { status: 404 } : { status: 503 }
-    await openSaved(page)
-    const dialog = await openProfessional(page)
-    const retry = dialog.getByRole('button', { name: 'Try again', exact: true })
-    if (outcome === 'permanent') {
-      await expect(dialog.getByText('This profile is no longer available.', { exact: true })).toBeVisible()
-      await expect(retry).toHaveCount(0)
-    } else {
-      await expect(retry).toBeVisible()
-    }
-    await expect(dialog.getByRole('button', { name: 'Add Fixture haircut', exact: true })).toHaveCount(0)
-    await expect(dialog.getByRole('button', { name: 'Book with Mara', exact: true })).toHaveCount(0)
-    if (outcome === 'transient') {
-      saved.profileFailure = null
-      await retry.click()
-      await expect(dialog.getByRole('button', { name: 'Add Fixture haircut', exact: true })).toBeVisible()
+function fillBookingCalendar(saved: Awaited<ReturnType<typeof installSavedFixture>>, count = 30) {
+  saved.availability.calendar.bookingSettings.maxAdvanceBookingMinutes = Math.floor((Date.UTC(2030, 9, 21 + count, 12) - Date.now()) / 60000) - 1
+  saved.availability.calendar.calendar = Array.from({ length: count }, (_, offset) => {
+    const date = new Date(Date.UTC(2030, 9, 22 + offset, 12))
+    return {
+      date: date.toISOString().slice(0, 10),
+      dayOfWeek: new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'UTC' }).format(date),
+      status: offset === 1 ? 'closed' as const : 'available' as const,
+      slotsCount: offset === 1 ? undefined : 1,
     }
   })
 }
 
+async function openProfileBooking(page: Page, locale: 'en' | 'ro' = 'en') {
+  await page.goto(locale === 'en' ? '/saved' : '/ro/saved')
+  await page.getByRole('button', { name: PERSON, exact: true }).click()
+  const profile = page.getByRole('dialog', { name: PERSON, exact: true })
+  await expect(profile).toBeVisible()
+  await profile.getByRole('button', { name: `${locale === 'en' ? 'Add' : 'Adaugă'} Fixture haircut`, exact: true }).click()
+  await profile.getByRole('button', { name: locale === 'en' ? 'Book with Mara' : 'Programează-te la Mara', exact: true }).click()
+  const drawer = page.getByRole('dialog', { name: locale === 'en' ? 'Book an appointment' : 'Rezervă o programare', exact: true })
+  await expect(drawer).toBeVisible()
+  await expect(drawer.locator('button[data-date="2030-10-22"]')).toBeVisible()
+  return drawer
+}
+
+testSaved('booking redesign returns to the same profile with venue, service selection and focus preserved', async ({ page, saved }) => {
+  saved.bookingContext = venueFixture()
+  await openSaved(page)
+  const profile = await openProfessional(page)
+  const venue = profile.getByRole('button', { name: /Atelier Saved Studio.*Old Town venue/ })
+  await venue.click()
+  await profile.getByRole('button', { name: 'Add Fixture haircut', exact: true }).click()
+  const selectedService = profile.getByRole('button', { name: 'Remove Fixture haircut', exact: true })
+  const book = profile.getByRole('button', { name: 'Book with Mara', exact: true })
+  const scrollBefore = await profile.evaluate(el => [...el.querySelectorAll<HTMLElement>('*')]
+    .filter(node => node.scrollHeight > node.clientHeight && getComputedStyle(node).overflowY === 'auto')
+    .map(node => node.scrollTop))
+  await book.click()
+  const drawer = page.getByRole('dialog', { name: 'Book an appointment', exact: true })
+  await expect(drawer).toBeVisible()
+  await expect(profile).toBeHidden()
+  await expect(drawer.getByRole('button', { name: 'Back to profile', exact: true })).toBeVisible()
+  await drawer.getByRole('button', { name: 'Back to profile', exact: true }).click()
+  await expect(drawer).toHaveCount(0)
+  await expect(profile).toBeVisible()
+  await expect(venue).toHaveAttribute('aria-pressed', 'true')
+  await expect(selectedService).toHaveAttribute('aria-pressed', 'true')
+  await expect(book).toBeFocused()
+  const scrollAfter = await profile.evaluate(el => [...el.querySelectorAll<HTMLElement>('*')]
+    .filter(node => node.scrollHeight > node.clientHeight && getComputedStyle(node).overflowY === 'auto')
+    .map(node => node.scrollTop))
+  expect(scrollAfter).toEqual(scrollBefore)
+
+  // Step-3 Back returns to time selection, then Back to profile restores the
+  // original profile. Nothing refetches or recreates its draft services.
+  await book.click()
+  await drawer.locator('button[data-date="2030-10-22"]').click()
+  await drawer.getByRole('button', { name: /^10:00/ }).click()
+  const continueButton = drawer.getByRole('button', { name: 'Continue', exact: true })
+  await continueButton.focus()
+  await page.keyboard.press('Tab')
+  await expect(drawer.getByRole('button', { name: 'Back to profile', exact: true })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(continueButton).toBeFocused()
+  await continueButton.click()
+  await expect(drawer.getByRole('button', { name: 'Confirm appointment', exact: true })).toBeEnabled()
+  await drawer.getByRole('button', { name: 'Back', exact: true }).click()
+  await expect(drawer.getByRole('button', { name: /^10:00/ })).toHaveAttribute('aria-pressed', 'true')
+  await drawer.getByRole('button', { name: 'Back to profile', exact: true }).click()
+  await expect(profile).toBeVisible()
+  await expect(selectedService).toHaveAttribute('aria-pressed', 'true')
+  expect(saved.requests.filter(request => request.endsWith('/team-member/301'))).toHaveLength(1)
+  expect(saved.requests.filter(request => request.endsWith('/team-member/301/booking-context'))).toHaveLength(1)
+  await book.click()
+  await expect(drawer).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(drawer).toHaveCount(0)
+  await expect(profile).toHaveCount(0)
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).not.toBe('hidden')
+  expect(saved.mutations).toEqual([])
+})
+
+testSaved('booking redesign respects the business date horizon and preserves a chosen slot while browsing', async ({ page, saved }) => {
+  saved.bookingContext = venueFixture(1)
+  fillBookingCalendar(saved)
+  const drawer = await openProfileBooking(page)
+  const firstDate = drawer.locator('button[data-date="2030-10-22"]')
+  const disabledDate = drawer.locator('button[data-date="2030-10-23"]')
+  await expect(disabledDate).toBeDisabled()
+  await firstDate.click()
+  await drawer.getByRole('button', { name: /^10:00/ }).click()
+  const continueButton = drawer.getByRole('button', { name: 'Continue', exact: true })
+  await expect(continueButton).toBeEnabled()
+  const shell = page.locator('[data-booking-dialog]')
+  const bounds = await shell.boundingBox()
+  const previous = drawer.getByRole('button', { name: 'Previous dates', exact: true })
+  const next = drawer.getByRole('button', { name: 'Next dates', exact: true })
+  await expect(previous).toBeDisabled()
+  await next.click()
+  await expect(drawer.locator('button[data-date="2030-10-29"]')).toBeVisible()
+  await expect(drawer.getByRole('button', { name: /^10:00/ })).toHaveAttribute('aria-pressed', 'true')
+  await expect(continueButton).toBeEnabled()
+  await previous.click()
+  await expect(firstDate).toHaveAttribute('aria-pressed', 'true')
+  expect((await shell.boundingBox())!.height).toBe(bounds!.height)
+  for (let index = 0; index < 4; index += 1) await next.click()
+  await expect(next).toBeDisabled()
+  const dates = await drawer.locator('button[data-date]').evaluateAll(buttons => buttons.map(button => button.getAttribute('data-date')))
+  expect(dates).toEqual(['2030-11-19', '2030-11-20'])
+  expect(saved.availabilityRequests).toHaveLength(2)
+  expect(saved.availabilityRequests[0]).toMatchObject({ daysToCheck: 30 })
+  expect(saved.availabilityRequests.every(request => request.services[0].teamMemberId === 301)).toBe(true)
+  expect(saved.mutations).toEqual([])
+})
+
+testSaved('booking redesign never allows stale day slots to replace the current date selection', async ({ page, saved }) => {
+  saved.bookingContext = venueFixture(1)
+  const secondDate = '2030-10-23'
+  saved.availability.calendar.calendar.push({ date: secondDate, dayOfWeek: 'Wednesday', status: 'available', slotsCount: 1 })
+  const secondSlots = structuredClone(saved.availability.slots)
+  secondSlots.date = secondDate
+  secondSlots.dayOfWeek = 'Wednesday'
+  secondSlots.slots[0].startTime = secondSlots.slots[0].items[0].startTime = '14:00'
+  secondSlots.slots[0].endTime = secondSlots.slots[0].items[0].endTime = '14:30'
+  saved.slotsByDate[secondDate] = secondSlots
+  const drawer = await openProfileBooking(page)
+  const first = drawer.locator('button[data-date="2030-10-22"]')
+  const second = drawer.locator(`button[data-date="${secondDate}"]`)
+  const continueButton = drawer.getByRole('button', { name: 'Continue', exact: true })
+  await first.click()
+  await drawer.getByRole('button', { name: /^10:00/ }).click()
+  await expect(continueButton).toBeEnabled()
+  saved.slotsDelayByDate['2030-10-22'] = 1_000
+  const staleResponse = page.waitForResponse(response => response.url().endsWith('/public/booking/slots') && response.request().postDataJSON().date === '2030-10-22')
+  await first.click()
+  await expect(continueButton).toBeDisabled()
+  await second.click()
+  await expect(drawer.getByRole('button', { name: '2:00 PM', exact: true })).toBeVisible()
+  await expect(continueButton).toBeDisabled()
+  await staleResponse
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+  await expect(drawer.getByRole('button', { name: /^10:00/ })).toHaveCount(0)
+  await expect(second).toHaveAttribute('aria-pressed', 'true')
+  await drawer.getByRole('button', { name: '2:00 PM', exact: true }).click()
+  await continueButton.click()
+  await expect(drawer.getByRole('button', { name: 'Confirm appointment', exact: true })).toBeEnabled()
+  await expect(drawer).toContainText('2:00 PM')
+  expect(saved.mutations).toEqual([])
+})
+
+for (const [locale, viewport] of [
+  ['en', { width: 1440, height: 1000 }],
+  ['ro', { width: 320, height: 640 }],
+  ['ro', { width: 844, height: 390 }],
+] as const) {
+  testSaved(`booking redesign ${locale} stays within ${viewport.width}×${viewport.height} with stable height and usable controls`, async ({ page, saved }) => {
+    saved.bookingContext = venueFixture(1)
+    fillBookingCalendar(saved)
+    await page.setViewportSize(viewport)
+    const drawer = await openProfileBooking(page, locale)
+    const shell = page.locator('[data-booking-dialog]')
+    await shell.evaluate(async element => {
+      await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined)))
+    })
+    const bounds = (await shell.boundingBox())!
+    expect(bounds.x).toBeGreaterThanOrEqual(0)
+    expect(bounds.y).toBeGreaterThanOrEqual(0)
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width)
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height)
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    const close = drawer.getByRole('button', { name: locale === 'en' ? 'Close' : 'Închide', exact: true })
+    const closeBounds = (await close.boundingBox())!
+    expect(closeBounds.width).toBeGreaterThanOrEqual(44)
+    expect(closeBounds.height).toBeGreaterThanOrEqual(44)
+    const continueButton = drawer.getByRole('button', { name: locale === 'en' ? 'Continue' : 'Continuă', exact: true })
+    await expect(continueButton).toBeDisabled()
+    if (locale === 'ro' && viewport.width === 320) {
+      const firstDay = drawer.locator('button[data-date="2030-10-22"]')
+      const scrollRight = await firstDay.evaluate(button => {
+        const dateViewport = button.parentElement!.parentElement!
+        dateViewport.scrollLeft = dateViewport.scrollWidth
+        return dateViewport.scrollLeft
+      })
+      expect(scrollRight).toBeGreaterThan(0)
+      const next = drawer.getByRole('button', { name: 'Datele următoare', exact: true })
+      for (let index = 0; index < 4; index += 1) await next.click()
+      await expect(next).toBeDisabled()
+      const lastPageFirstDay = drawer.locator('button[data-date="2030-11-19"]')
+      const finalPage = await lastPageFirstDay.evaluate(button => {
+        const dateViewport = button.parentElement!.parentElement!
+        const day = button.getBoundingClientRect()
+        const bounds = dateViewport.getBoundingClientRect()
+        return { scrollLeft: dateViewport.scrollLeft, dayLeft: day.left, dayRight: day.right, viewportLeft: bounds.left, viewportRight: bounds.right }
+      })
+      expect(finalPage.scrollLeft).toBe(0)
+      expect(finalPage.dayLeft).toBeGreaterThanOrEqual(finalPage.viewportLeft)
+      expect(finalPage.dayRight).toBeLessThanOrEqual(finalPage.viewportRight)
+      const previous = drawer.getByRole('button', { name: 'Datele anterioare', exact: true })
+      for (let index = 0; index < 4; index += 1) await previous.click()
+      await expect(firstDay).toBeVisible()
+    }
+    const selectedDate = drawer.locator('button[data-date="2030-10-22"]')
+    await selectedDate.click()
+    const selectedSlot = drawer.getByRole('button', { name: /^10:00/ })
+    await selectedSlot.click()
+    await selectedSlot.hover()
+    const selectedColors = await selectedDate.evaluate(element => ({
+      background: getComputedStyle(element).backgroundColor,
+      text: getComputedStyle(element).color,
+    }))
+    await expect(selectedSlot).toHaveCSS('background-color', selectedColors.background)
+    await expect(selectedSlot).toHaveCSS('color', selectedColors.text)
+    await expect(continueButton).toBeEnabled()
+    const selectedBounds = (await shell.boundingBox())!
+    expect(selectedBounds.height).toBe(bounds.height)
+    expect(selectedBounds.y).toBe(bounds.y)
+    await continueButton.click()
+    const confirm = drawer.getByRole('button', { name: locale === 'en' ? 'Confirm appointment' : 'Confirmă programarea', exact: true })
+    await expect(confirm).toBeEnabled()
+    await expect(drawer.locator('[data-booking-body]')).toHaveJSProperty('scrollTop', 0)
+    const reviewBounds = (await shell.boundingBox())!
+    expect(reviewBounds.height).toBe(bounds.height)
+    expect(reviewBounds.y).toBe(bounds.y)
+    const confirmBounds = (await confirm.boundingBox())!
+    expect(confirmBounds.y + confirmBounds.height).toBeLessThanOrEqual(viewport.height)
+    expect(confirmBounds.x + confirmBounds.width).toBeLessThanOrEqual(viewport.width)
+    await close.click()
+    await expect(drawer).toHaveCount(0)
+    await expect(page.getByRole('dialog', { name: PERSON, exact: true })).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).overflowY)).not.toBe('hidden')
+    expect(saved.mutations).toEqual([])
+  })
+}
+
+for (const locale of ['en', 'ro'] as const) {
+for (const outcome of ['permanent', 'transient'] as const) {
+  testSaved(`${locale}: ${outcome} full profile failure uses contained recovery without exposing a bookable menu`, async ({ page, saved }) => {
+    saved.bookingContext = venueFixture(1)
+    saved.profileFailure = outcome === 'permanent' ? { status: 404 } : { status: 503 }
+    if (locale === 'ro') await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(locale === 'en' ? '/saved' : '/ro/saved')
+    const dialog = await openProfessional(page)
+    const title = outcome === 'permanent'
+      ? locale === 'en' ? 'This profile is no longer available.' : 'Acest profil nu mai este disponibil.'
+      : locale === 'en' ? "Couldn't load the full profile." : 'Profilul complet nu a putut fi încărcat.'
+    const recovery = dialog.getByRole('region', { name: title, exact: true })
+    await expect(recovery.getByRole('heading', { name: title, level: 2, exact: true })).toBeVisible()
+    await expect(recovery.locator('svg').first()).toBeVisible()
+    await expect(dialog.getByRole('main')).toHaveCount(0)
+    await expect(recovery.getByRole('alert')).toHaveCount(0)
+    const retry = recovery.getByRole('button', { name: locale === 'en' ? 'Try again' : 'Încearcă din nou', exact: true })
+    if (outcome === 'permanent') {
+      await expect(retry).toHaveCount(0)
+    } else {
+      await expect(retry).toBeVisible()
+    }
+    const addService = dialog.getByRole('button', { name: locale === 'en' ? 'Add Fixture haircut' : 'Adaugă Fixture haircut', exact: true })
+    await expect(addService).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: locale === 'en' ? 'Book with Mara' : 'Programează-te la Mara', exact: true })).toHaveCount(0)
+    await expect.poll(() => dialog.evaluate(el => el.scrollWidth <= window.innerWidth)).toBe(true)
+    if (outcome === 'transient') {
+      saved.profileFailure = null
+      await retry.click()
+      await expect(addService).toBeVisible()
+      await expect(recovery).toHaveCount(0)
+    } else {
+      await recovery.getByRole('button', { name: locale === 'en' ? 'Close' : 'Închide', exact: true }).click()
+      await expect(dialog).toHaveCount(0)
+    }
+    expect(saved.mutations).toEqual([])
+  })
+}
+
 for (const missing of ['timezone', 'currency'] as const) {
-  testSaved(`missing ${missing} blocks booking without inventing defaults`, async ({ page, saved }) => {
+  testSaved(`${locale}: missing ${missing} uses a dismissible toast and keeps booking disabled`, async ({ page, saved }) => {
     saved.bookingContext = venueFixture(1)
     if (missing === 'timezone') saved.bookingContext.businesses[0].locations[0].timezone = null
     else saved.bookingContext.businesses[0].businessCurrency = ''
-    await openSaved(page)
+    await page.goto(locale === 'en' ? '/saved' : '/ro/saved')
     const dialog = await openProfessional(page)
-    await expect(dialog.getByText('Booking details are unavailable for this location.', { exact: true })).toBeVisible()
+    const message = locale === 'en'
+      ? 'Booking details are unavailable for this location.'
+      : 'Detaliile de programare nu sunt disponibile pentru această locație.'
+    const notice = dialog.locator('[data-toast-host] [role="alert"]').filter({ hasText: message })
+    await expect(notice).toBeVisible()
     await expect(dialog.getByText('Fixture haircut', { exact: true })).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Add Fixture haircut', exact: true })).toHaveCount(0)
-    await expect(dialog.getByRole('button', { name: 'Book with Mara', exact: true })).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: locale === 'en' ? 'Add Fixture haircut' : 'Adaugă Fixture haircut', exact: true })).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: locale === 'en' ? 'Book with Mara' : 'Programează-te la Mara', exact: true })).toHaveCount(0)
+    await notice.getByRole('button').click()
+    await expect(dialog.getByText(message, { exact: true })).toHaveCount(0)
+    await expect(dialog.getByText('Fixture haircut', { exact: true })).toBeVisible()
+    expect(saved.availabilityRequests).toEqual([])
+    expect(saved.mutations).toEqual([])
   })
 }
+}
+
+testSaved('booking metadata toast clears when selecting an eligible venue or closing the profile', async ({ page, saved }) => {
+  saved.bookingContext = venueFixture(3)
+  saved.bookingContext.businesses[0].locations[0].timezone = null
+  saved.bookingContext.businesses[0].locations[1].timezone = 'Invalid/Timezone'
+  saved.bookingContext.businesses[0].locations[2].name = 'Healthy venue'
+  await openSaved(page)
+  const dialog = await openProfessional(page)
+  const unavailable = dialog.getByRole('button', { name: /Atelier Saved Studio.*Old Town venue/ })
+  const alsoUnavailable = dialog.getByRole('button', { name: /Atelier Saved Studio.*North venue/ })
+  const eligible = dialog.getByRole('button', { name: /Atelier Saved Studio.*Healthy venue/ })
+  const notice = page.locator('[data-toast-host] [role="alert"]').filter({ hasText: 'Booking details are unavailable for this location.' })
+  await unavailable.click()
+  await expect(notice).toBeVisible()
+  await alsoUnavailable.click()
+  await expect(notice).toBeVisible()
+  await expect(notice).toHaveCount(1)
+  await eligible.click()
+  await expect(notice).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Add Fixture haircut', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: 'Book with Mara', exact: true })).toBeEnabled()
+  await unavailable.click()
+  await expect(notice).toBeVisible()
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(notice).toHaveCount(0)
+  expect(saved.availabilityRequests).toEqual([])
+  expect(saved.mutations).toEqual([])
+})
 
 testSaved('narrow layouts stay within the viewport without requesting location permission', async ({ page, saved }) => {
   saved.favorites.locations[1].location.name = `${SECOND_LOCATION} with a deliberately long location name`
@@ -859,4 +1240,136 @@ test('signed-out Saved does not request browser geolocation or favorites', async
   expect(favoritesRequests).toEqual([])
   expect(saved.blockedMutations).toEqual([])
   expect(pageErrors, 'Signed-out Saved must render without runtime or hydration errors').toEqual([])
+})
+
+
+async function reachBookingReview(page: Page, saved: Awaited<ReturnType<typeof installSavedFixture>>) {
+  saved.bookingContext = venueFixture(1)
+  const drawer = await openProfileBooking(page)
+  await drawer.locator('button[data-date="2030-10-22"]').click()
+  await drawer.getByRole('button', { name: /^10:00/ }).click()
+  await drawer.getByRole('button', { name: 'Continue', exact: true }).click()
+  await expect(drawer.getByRole('button', { name: 'Confirm appointment', exact: true })).toBeEnabled()
+  return drawer
+}
+
+testSaved('booking contract preserves an unknown-outcome request through Back and unchanged retry', async ({ page, saved }) => {
+  const attempts: Array<{ body: unknown; key: string | undefined }> = []
+  await page.route('**/appointments/book', async route => {
+    attempts.push({ body: route.request().postDataJSON(), key: route.request().headers()['idempotency-key'] })
+    return route.fulfill({ status: attempts.length === 1 ? 500 : 200, contentType: 'application/json',
+      body: JSON.stringify(attempts.length === 1 ? { message: 'fixture unknown outcome' } : { data: { appointments: [] } }) })
+  })
+  const drawer = await reachBookingReview(page, saved)
+  await drawer.getByRole('button', { name: 'Confirm appointment', exact: true }).click()
+  await expect.poll(() => attempts.length).toBe(1)
+  await expect(drawer.getByRole('button', { name: 'Confirm appointment', exact: true })).toBeEnabled()
+  const checksAfterAttempt = saved.availabilityRequests.length
+  // The first POST may have booked the slot. An unchanged retry must not ask it to be free again.
+  saved.availability.slots.slots = []
+  await drawer.getByRole('button', { name: 'Back', exact: true }).click()
+  await drawer.getByRole('button', { name: 'Continue', exact: true }).click()
+  await drawer.getByRole('button', { name: 'Confirm appointment', exact: true }).click()
+  await expect.poll(() => attempts.length).toBe(2)
+  expect(saved.availabilityRequests).toHaveLength(checksAfterAttempt)
+  expect(attempts[0]).toEqual(attempts[1])
+  expect(attempts[0].key).toBeTruthy()
+  expect(attempts[0].body).toMatchObject({ listingId: 11, locationId: 201, services: [{ serviceId: 401, staffId: 301 }] })
+  await expect(drawer).toContainText("You're booked")
+})
+
+testSaved('booking contract closing during validation prevents a late booking submission', async ({ page, saved }) => {
+  let posts = 0
+  await page.route('**/appointments/book', route => { posts += 1; return route.fulfill({ json: { data: { appointments: [] } } }) })
+  const drawer = await reachBookingReview(page, saved)
+  saved.slotsDelayByDate['2030-10-22'] = 600
+  const delayedCheck = page.waitForResponse(response => response.url().endsWith('/public/booking/slots'))
+  await drawer.getByRole('button', { name: 'Confirm appointment', exact: true }).click()
+  await expect(drawer.getByRole('button', { name: 'Confirm appointment', exact: true })).toBeDisabled()
+  await drawer.getByRole('button', { name: 'Close', exact: true }).click()
+  await expect(drawer).toHaveCount(0)
+  await delayedCheck
+  await page.waitForTimeout(150)
+  expect(posts).toBe(0)
+})
+
+testSaved('booking contract requires confirmation of a changed quote and shows effective policy', async ({ page, saved }) => {
+  let posts = 0
+  await page.route('**/appointments/book', route => { posts += 1; return route.fulfill({ json: { data: { appointments: [] } } }) })
+  saved.availability.slots.bookingPolicy = { allowCustomerCancellation: false, allowCustomerReschedule: true,
+    cancellationWindowMinutes: 0, rescheduleWindowMinutes: 90 }
+  const drawer = await reachBookingReview(page, saved)
+  await expect(drawer).toContainText('This appointment cannot be cancelled online.')
+  await expect(drawer).toContainText('90 minutes')
+  saved.availability.slots.staffPricing[401][301].price = 15000
+  saved.availability.slots.slots[0].items[0].priceAmountMinor = 15000
+  await drawer.getByRole('button', { name: 'Confirm appointment', exact: true }).click()
+  await expect(drawer).toContainText('The price or duration has changed.')
+  expect(posts).toBe(0)
+  await expect(drawer.getByRole('button', { name: 'Confirm appointment', exact: true })).toBeEnabled()
+  await drawer.getByRole('button', { name: 'Confirm appointment', exact: true }).click()
+  await expect.poll(() => posts).toBe(1)
+})
+
+testSaved('booking contract rejects an unavailable chosen sequence before review', async ({ page, saved }) => {
+  saved.bookingContext = venueFixture(1)
+  const drawer = await openProfileBooking(page)
+  await drawer.locator('button[data-date="2030-10-22"]').click()
+  await drawer.getByRole('button', { name: /^10:00/ }).click()
+  saved.availability.slots.slots = []
+  await drawer.getByRole('button', { name: 'Continue', exact: true }).click()
+  await expect(drawer).toContainText("That professional isn't available then.")
+  await expect(drawer.getByRole('button', { name: 'Confirm appointment', exact: true })).toHaveCount(0)
+  await expect(drawer.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
+})
+
+testSaved('booking contract loads beyond thirty dates without clearing the selected slot', async ({ page, saved }) => {
+  saved.bookingContext = venueFixture(1)
+  fillBookingCalendar(saved)
+  saved.availability.calendar.bookingSettings.maxAdvanceBookingMinutes = null
+  const requests: GetBookingCalendarBody[] = []
+  await page.route('**/public/booking/calendar', async route => {
+    const body = route.request().postDataJSON() as GetBookingCalendarBody
+    requests.push(body)
+    const calendar = structuredClone(saved.availability.calendar)
+    if (requests.length > 1) {
+      const start = new Date(`${body.startDate}T12:00:00Z`)
+      calendar.calendar = Array.from({ length: 30 }, (_, index) => ({ date: new Date(start.getTime() + index * 86400000).toISOString().slice(0, 10),
+        dayOfWeek: 'Monday', status: 'available', slotsCount: 1 }))
+    }
+    return route.fulfill({ json: { data: calendar } })
+  })
+  const drawer = await openProfileBooking(page)
+  await drawer.locator('button[data-date="2030-10-22"]').click()
+  await drawer.getByRole('button', { name: /^10:00/ }).click()
+  for (let index = 0; index < 4; index += 1) await drawer.getByRole('button', { name: 'Next dates', exact: true }).click()
+  await expect(drawer.locator('button[data-date="2030-11-21"]')).toBeVisible()
+  expect(requests).toHaveLength(2)
+  expect(requests[1]).toMatchObject({ startDate: '2030-11-21', daysToCheck: 30, services: [{ serviceId: 401, teamMemberId: 301 }] })
+  await expect(drawer.getByRole('button', { name: /^10:00/ })).toHaveAttribute('aria-pressed', 'true')
+  await expect(drawer.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled()
+})
+
+
+testSaved('booking contract keeps navigation available when the first thirty days have no slots', async ({ page, saved }) => {
+  saved.bookingContext = venueFixture(1)
+  fillBookingCalendar(saved)
+  saved.availability.calendar.bookingSettings.maxAdvanceBookingMinutes = null
+  for (const day of saved.availability.calendar.calendar) { day.status = 'closed'; delete day.slotsCount }
+  const requests: GetBookingCalendarBody[] = []
+  await page.route('**/public/booking/calendar', async route => {
+    const body = route.request().postDataJSON() as GetBookingCalendarBody
+    requests.push(body)
+    const calendar = structuredClone(saved.availability.calendar)
+    if (requests.length > 1) calendar.calendar = Array.from({ length: 30 }, (_, index) => ({
+      date: new Date(new Date(`${body.startDate}T12:00:00Z`).getTime() + index * 86400000).toISOString().slice(0, 10),
+      dayOfWeek: 'Monday', status: 'available', slotsCount: 1,
+    }))
+    return route.fulfill({ json: { data: calendar } })
+  })
+  const drawer = await openProfileBooking(page)
+  await expect(drawer).toContainText('No availability in this date range.')
+  for (let index = 0; index < 4; index += 1) await drawer.getByRole('button', { name: 'Next dates', exact: true }).click()
+  await expect(drawer.locator('button[data-date="2030-11-21"]')).toBeEnabled()
+  expect(requests).toHaveLength(2)
 })

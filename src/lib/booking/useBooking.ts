@@ -9,6 +9,7 @@ import type { BookingApi } from "./types";
 const NOOP: BookingApi = {
   openBooking: () => {},
   closeBooking: () => {},
+  returnToProfile: () => {},
   closeForAuth: () => {},
 };
 

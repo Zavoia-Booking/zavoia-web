@@ -14,22 +14,12 @@ import { DEMO, getUserIdByEmail, seedAppointment, setBookingSettings } from '../
  *   - modal: role="dialog" aria-label="Reschedule" (ActionModal sets
  *     aria-label from `title`, no separate heading element)
  *   - footer confirm button: "Confirm new time"
- *   - ManageRow label when allowed: "Reschedule" (no hint span, so the
- *     button's accessible name is exactly that string)
- *   - ManageRow label when the business closed the window:
- *     "Online rescheduling window is closed by the business"
- *   - ManageRow label when the business disallows it outright:
- *     "Reschedule unavailable"
- *   - BOTH disabled cases share the SAME hint span underneath:
- *     "For urgent matters contact the business directly" (shared.ts's
- *     canReschedule() only returns a bool — sections.tsx's ManageRow always
- *     renders the identical hint whenever that bool is false, regardless of
- *     WHICH of the two reasons caused it). The task brief assumed the hint
- *     text differs per reason; reading the source shows it does not — the
- *     LABEL differs, the hint does not. Since the hint text lives inside the
- *     same <button>, its accessible name is the label + hint concatenated,
- *     so the disabled-row assertions below match by substring (no
- *     `exact: true`) rather than an exact name.
+ *   - ManageRow keeps "Reschedule" as its action label.
+ *   - A disabled row includes the restriction in its accessible name:
+ *     "Reschedule unavailable" or
+ *     "The deadline for online rescheduling has passed".
+ *   - "Contact the venue for help." appears once outside the action buttons,
+ *     shared by blocked cancellation and rescheduling.
  */
 
 test.describe('Reschedule', () => {
@@ -98,16 +88,14 @@ test.describe('Reschedule', () => {
     })
 
     await page.goto(`/appointments/${uuid}`)
-    // Scoped to this specific row, not a page-wide getByText: the hint span
-    // "For urgent matters contact the business directly" is IDENTICAL for
-    // every disabled ManageRow (reschedule and cancel both use it), so an
-    // untargeted search is ambiguous whenever more than one row is disabled
-    // at once — including via booking_settings state another spec left on
-    // this same business (booking_settings is per-business, not per-test).
-    const row = page.getByRole('button', { name: 'Online rescheduling window is closed by the business' })
+    const rail = page.getByRole('complementary', { name: 'Manage appointment' })
+    const row = rail.getByRole('button', { name: /^Reschedule/ })
     await expect(row).toBeVisible()
     await expect(row).toBeDisabled()
-    await expect(row).toContainText('For urgent matters contact the business directly')
+    await expect(row).toContainText('The deadline for online rescheduling has passed')
+    const contactHint = rail.getByText('Contact the venue for help.', { exact: true })
+    await expect(contactHint).toHaveCount(1)
+    await expect(contactHint).toBeVisible()
   })
 
   test('RESCH-03b reschedule row is disabled when the business disallows online rescheduling entirely', async ({
@@ -128,13 +116,14 @@ test.describe('Reschedule', () => {
     })
 
     await page.goto(`/appointments/${uuid}`)
-    // Scoped to this row — see the comment on RESCH-03a for why an
-    // untargeted page-wide getByText is ambiguous here.
-    const row = page.getByRole('button', { name: 'Reschedule unavailable' })
+    const rail = page.getByRole('complementary', { name: 'Manage appointment' })
+    const row = rail.getByRole('button', { name: /^Reschedule/ })
     await expect(row).toBeVisible()
     await expect(row).toBeDisabled()
-    // Same hint copy as the window-closed case (see the file-level note above).
-    await expect(row).toContainText('For urgent matters contact the business directly')
+    await expect(row).toContainText('Reschedule unavailable')
+    const contactHint = rail.getByText('Contact the venue for help.', { exact: true })
+    await expect(contactHint).toHaveCount(1)
+    await expect(contactHint).toBeVisible()
   })
 
   test('RESCH-03c a cancelled appointment offers no reschedule action at all', async ({ page }) => {
@@ -152,11 +141,7 @@ test.describe('Reschedule', () => {
     })
 
     await page.goto(`/appointments/${uuid}`)
-    await expect(page.getByRole('button', { name: 'Reschedule', exact: true })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Reschedule unavailable' })).toHaveCount(0)
-    await expect(
-      page.getByRole('button', { name: 'Online rescheduling window is closed by the business' }),
-    ).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Reschedule/ })).toHaveCount(0)
   })
 
   test('RESCH-04 confirming a stale slot selection surfaces the conflict and clears the picked slot', async ({
@@ -229,7 +214,7 @@ test.describe('Reschedule', () => {
 
     // Customer A confirms their now-stale selection.
     await dialog.getByRole('button', { name: 'Confirm new time' }).click()
-    await expect(dialog.getByRole('alert')).toContainText('That slot was just taken', {
+    await expect(dialog.getByRole('alert')).toContainText('That time is no longer available', {
       timeout: 10_000,
     })
     // The picked slot was cleared and the day's slots refetched — footer

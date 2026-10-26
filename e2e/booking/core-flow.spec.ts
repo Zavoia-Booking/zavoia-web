@@ -111,7 +111,7 @@ async function confirmWithConflictRetry(
     ])
     if (await success.isVisible().catch(() => false)) return
     const alertText = (await alert.textContent().catch(() => null)) ?? ''
-    if (!/slot was just taken/i.test(alertText)) {
+    if (!/time is no longer available/i.test(alertText)) {
       throw new Error(`confirmWithConflictRetry: non-conflict submit error: "${alertText}"`)
     }
     // Bounced back to step 2 with the slot cleared — pick the NEXT slot and retry.

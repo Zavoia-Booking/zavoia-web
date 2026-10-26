@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
+import { professionalHref } from "@/lib/professionals/urls";
 import { getCategoryAlternates } from "@/data/seo";
 import { getCategoryDiscoveryGroups } from "@/lib/seo/category-discovery";
 import { listPostsForSitemap } from "@/sanity/queries";
@@ -26,6 +27,7 @@ const EMPTY_SITEMAP: MarketplaceSitemap = {
   locations: [],
   brands: [],
   websites: [],
+  professionals: [],
 };
 
 /**
@@ -252,6 +254,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "weekly",
   );
 
+  const professionalEntries: MetadataRoute.Sitemap = (marketplace.professionals ?? []).flatMap(({ uuid }) => {
+    const languages = Object.fromEntries(
+      LOCALES.map((locale) => [locale, abs(professionalHref(locale, uuid))]),
+    ) as Record<Locale, string>;
+    // No single profile timestamp accounts for changes to reviews and venues.
+    // Omit lastModified rather than imply that sitemap regeneration is an edit.
+    return LOCALES.map((locale) => ({
+      url: languages[locale],
+      alternates: { languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] } },
+    }));
+  });
+
   return [
     ...homeEntries,
     ...industryDirectoryEntries,
@@ -259,6 +273,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...listingEntries,
     ...websiteEntries,
     ...brandEntries,
+    ...professionalEntries,
     ...blogIndexEntries,
     ...postEntries,
     ...legalEntries,

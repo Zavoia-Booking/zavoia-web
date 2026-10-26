@@ -10,6 +10,7 @@ import {
 } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Icon } from "@/components/ui";
+import { useToastContainerRef } from "@/components/ui/toast";
 import { useTranslation } from "@/i18n/useTranslation";
 import styles from "./action-fields.module.css";
 
@@ -27,6 +28,8 @@ export interface ActionModalProps {
   onClosing?: () => void;
   /** Card max width in px. Defaults to 480. */
   width?: number;
+  /** Scoped presentation overrides for a particular action. */
+  className?: string;
 }
 
 /**
@@ -51,8 +54,10 @@ export function ActionModal({
   dismissible = true,
   onClosing,
   width = 480,
+  className,
 }: ActionModalProps) {
   const { dict } = useTranslation();
+  const toastContainerRef = useToastContainerRef();
   const descriptionId = useId();
   const [closing, setClosing] = useState(false);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -98,7 +103,10 @@ export function ActionModal({
           }}
         >
           <DialogPrimitive.Content
-            className={closing ? "zw-modal-out" : "zw-modal-in"}
+            ref={toastContainerRef}
+            data-toast-scope="dialog"
+            className={[closing ? "zw-modal-out" : "zw-modal-in", className].filter(Boolean).join(" ")}
+            role="dialog"
             aria-describedby={subtitle ? descriptionId : undefined}
             onOpenAutoFocus={() => {
               // Capture before Radix focuses the first enabled control inside the dialog.
@@ -117,7 +125,9 @@ export function ActionModal({
               if (!dismissible) event.preventDefault();
             }}
             onPointerDownOutside={(event) => {
-              if (!dismissible) event.preventDefault();
+              // Dismissing a notification must not also discard this form.
+              const target = event.target;
+              if (!dismissible || target instanceof Element && target.closest("[data-toast-host]")) event.preventDefault();
             }}
             style={{
               width: `min(${width}px, 100%)`,
@@ -134,7 +144,7 @@ export function ActionModal({
             {/* Header */}
             <div
               style={{
-                padding: "20px 22px 16px",
+                padding: "var(--action-modal-header-padding, 20px 22px 16px)",
                 display: "flex",
                 alignItems: "flex-start",
                 gap: 12,
@@ -147,7 +157,7 @@ export function ActionModal({
                 <DialogPrimitive.Title asChild>
                   <div
                     style={{
-                      fontSize: 18,
+                      fontSize: "var(--action-modal-title-size, 18px)",
                       fontWeight: 600,
                       letterSpacing: "-0.02em",
                       color: "var(--c-900)",
@@ -199,33 +209,37 @@ export function ActionModal({
             {/* Body */}
             <div
               className="zw-scroll-y"
-              style={{ flex: 1, minHeight: 0, padding: "20px 22px" }}
+              style={{ flex: 1, minHeight: 0, padding: "var(--action-modal-body-padding, 20px 22px)" }}
             >
               {children}
             </div>
 
             {/* Footer */}
-            {footer && (
-              <div
-                className={styles.footer}
-                style={{
-                  padding: "14px 22px",
-                  borderTop: "1px solid rgba(28,28,26,0.07)",
-                  background: "#fff",
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  flexShrink: 0,
-                }}
-              >
-                {footer}
-              </div>
-            )}
+            {footer && <ActionModalFooter>{footer}</ActionModalFooter>}
           </DialogPrimitive.Content>
         </DialogPrimitive.Overlay>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
+  );
+}
+
+function ActionModalFooter({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className={styles.footer}
+      style={{
+        padding: "var(--action-modal-footer-padding, 14px 22px)",
+        borderTop: "1px solid rgba(28,28,26,0.07)",
+        background: "#fff",
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap",
+        alignItems: "center",
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </div>
   );
 }
 

@@ -11,18 +11,12 @@ import { DEMO, getUserIdByEmail, seedAppointment, setBookingSettings } from '../
  *   - modal: role="dialog" aria-label="Cancel this appointment?"
  *   - footer buttons: "Keep it" (dismiss) / "Cancel appointment" (confirm)
  *   - success toast: "Appointment cancelled" (role="status", default tone)
- *   - ManageRow label when allowed: "Cancel appointment"
- *   - ManageRow label when the business closed the window:
- *     "Online cancellation window is closed by the business"
- *   - ManageRow label when the business disallows it outright:
- *     "Cancellation unavailable"
- *   - Both disabled cases share the SAME hint span underneath:
- *     "For urgent matters contact the business directly" (see the identical
- *     note in reschedule.spec.ts — ManageRow always renders this hint
- *     whenever the action is blocked, regardless of which of the two
- *     reasons caused it, so the label differs but the hint text does not).
- *     Since the hint lives inside the same <button>, the disabled-row
- *     assertions below match by substring, not `exact: true`.
+ *   - ManageRow keeps "Cancel appointment" as its action label.
+ *   - A disabled row includes the restriction in its accessible name:
+ *     "Cancellation unavailable" or
+ *     "The deadline for online cancellation has passed".
+ *   - "Contact the venue for help." appears once outside the action buttons,
+ *     shared by blocked cancellation and rescheduling.
  */
 
 test.describe('Cancel appointment', () => {
@@ -99,11 +93,7 @@ test.describe('Cancel appointment', () => {
     })
 
     await page.goto(`/appointments/${uuid}`)
-    await expect(page.getByRole('button', { name: 'Cancel appointment', exact: true })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Cancellation unavailable' })).toHaveCount(0)
-    await expect(
-      page.getByRole('button', { name: 'Online cancellation window is closed by the business' }),
-    ).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Cancel appointment/ })).toHaveCount(0)
   })
 
   test('CANC-03b cancel row is disabled when the business disallows online cancellation entirely', async ({
@@ -124,13 +114,14 @@ test.describe('Cancel appointment', () => {
     })
 
     await page.goto(`/appointments/${uuid}`)
-    const row = page.getByRole('button', { name: 'Cancellation unavailable' })
+    const rail = page.getByRole('complementary', { name: 'Manage appointment' })
+    const row = rail.getByRole('button', { name: /^Cancel appointment/ })
     await expect(row).toBeVisible()
     await expect(row).toBeDisabled()
-    // Scoped to this row, not a page-wide getByText: the hint span is
-    // identical for every disabled ManageRow, so an untargeted search is
-    // ambiguous whenever more than one row on the page is disabled at once.
-    await expect(row).toContainText('For urgent matters contact the business directly')
+    await expect(row).toContainText('Cancellation unavailable')
+    const contactHint = rail.getByText('Contact the venue for help.', { exact: true })
+    await expect(contactHint).toHaveCount(1)
+    await expect(contactHint).toBeVisible()
   })
 
   test('CANC-03c cancel row is disabled once the business-set cancellation window has closed', async ({
@@ -154,12 +145,13 @@ test.describe('Cancel appointment', () => {
     })
 
     await page.goto(`/appointments/${uuid}`)
-    const row = page.getByRole('button', { name: 'Online cancellation window is closed by the business' })
+    const rail = page.getByRole('complementary', { name: 'Manage appointment' })
+    const row = rail.getByRole('button', { name: /^Cancel appointment/ })
     await expect(row).toBeVisible()
     await expect(row).toBeDisabled()
-    // Scoped to this row, not a page-wide getByText: the hint span is
-    // identical for every disabled ManageRow, so an untargeted search is
-    // ambiguous whenever more than one row on the page is disabled at once.
-    await expect(row).toContainText('For urgent matters contact the business directly')
+    await expect(row).toContainText('The deadline for online cancellation has passed')
+    const contactHint = rail.getByText('Contact the venue for help.', { exact: true })
+    await expect(contactHint).toHaveCount(1)
+    await expect(contactHint).toBeVisible()
   })
 })

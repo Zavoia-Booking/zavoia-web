@@ -18,9 +18,10 @@ const APP_URL = `http://localhost:${APP_PORT}`
 
 export default defineConfig({
   testDir: './e2e',
-  // Explore's live-map checks use the existing app and a real Mapbox renderer.
-  // Run them with playwright.explore.config.ts, outside this reseeded suite.
-  testIgnore: ['**/e2e/explore/**'],
+  // Explore and the *-ui.spec.ts suites use their dedicated configurations.
+  // Keep them outside this suite's real API/database setup; professionals also
+  // requires its own in-memory API server for server-rendered requests.
+  testIgnore: ['**/e2e/explore/**', '**/*-ui.spec.ts'],
   fullyParallel: false,
   workers: 1,
   retries: 0,

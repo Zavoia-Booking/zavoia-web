@@ -4,8 +4,10 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { isPendingBooking, useMicrositeActions } from "../../../shared/actions";
 import { Spinner } from "@/components/ui/spinner";
@@ -25,6 +27,7 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
   const trackRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const movedRef = useRef(false);
+  const pointerIndexRef = useRef(-1);
   const [active, setActive] = useState(0);
   const [offset, setOffset] = useState(0);
   const [dragDX, setDragDX] = useState(0);
@@ -83,7 +86,7 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button != null && event.button !== 0) return;
+    if ((event.button != null && event.button !== 0) || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
@@ -117,19 +120,17 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
     setDragDX(dx);
   };
 
-  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = () => {
     const drag = dragRef.current;
     if (!drag) return;
     dragRef.current = null;
+    pointerIndexRef.current = drag.downIndex;
     setDragging(false);
 
     if (!movedRef.current) {
-      // Side cards centre first; the public centre card opens the same scoped professional profile.
-      if (drag.downIndex >= 0 && drag.downIndex !== active) settleTo(drag.downIndex);
-      else if (drag.downIndex === active && event.type === "pointerup") {
-        const entry = members[active];
-        if (entry && !actions?.pending) actions?.book({ locationId: entry.locId, teamMemberId: entry.m.id });
-      }
+      // Published cards use click so native links also work with keyboards and
+      // assistive technology. Studio keeps the existing inert centring preview.
+      if (!actions && drag.downIndex >= 0 && drag.downIndex !== active) settleTo(drag.downIndex);
       return;
     }
 
@@ -140,6 +141,23 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
     window.setTimeout(() => {
       movedRef.current = false;
     }, 0);
+  };
+
+  const handleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!actions || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    if (movedRef.current) {
+      event.preventDefault();
+      return;
+    }
+    const slide = (event.target as Element).closest<HTMLElement>(".mc-tmr-slide");
+    // Pointer capture can retarget a tap to the rail rather than its card.
+    const index = slide ? Number(slide.dataset.tmi) : pointerIndexRef.current;
+    if (index < 0) return;
+    if (index !== active) settleTo(index);
+    else {
+      const entry = members[index];
+      if (entry && !actions.pending) actions.book({ locationId: entry.locId, teamMemberId: entry.m.id });
+    }
   };
 
   const num = (value: number) => String(value).padStart(2, "0");
@@ -166,30 +184,47 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onLostPointerCapture={handlePointerUp}
+        onClick={handleClick}
       >
         <div className="mc-tmr-track" ref={trackRef} data-drag={dragging ? "1" : "0"} style={{ transform: `translate3d(${offset + dragDX}px, 0, 0)` }}>
           {members.map(({ m, locId }, index) => {
             const r = ratings?.[m.id];
+            const href = m.publicProfileAvailable === true && m.uuid ? actions?.professionalHref?.(m.uuid) : undefined;
+            const card = <TeamCard name={nameOf(m)} initials={initialsOf(m)} image={m.profileImage ?? null} rating={r && r.count > 0 ? r.rating : null} tint={tintOf(m)} />;
             return (
               <figure
                 key={`${locId}-${m.id}`}
                 className={`mc-tmr-slide mc-portrait ${actionStyles.action}`}
                 data-tmi={index}
                 data-active={index === active ? "1" : "0"}
-                role="button"
-                tabIndex={index === active ? 0 : -1}
-                aria-label={nameOf(m)}
+                role={href ? undefined : "button"}
+                tabIndex={href ? undefined : index === active ? 0 : -1}
+                aria-label={href ? undefined : nameOf(m)}
                 aria-busy={actions?.pending || undefined}
                 aria-disabled={actions?.pending || undefined}
                 data-pending={isPendingBooking(actions, { locationId: locId, teamMemberId: m.id }) || undefined}
                 onKeyDown={(event) => {
+                  if (href) return;
                   if (event.key !== "Enter" && event.key !== " ") return;
                   event.preventDefault();
                   if (index !== active) settleTo(index);
                   else if (!actions?.pending) actions?.book({ locationId: locId, teamMemberId: m.id });
                 }}
               >
-                <TeamCard name={nameOf(m)} initials={initialsOf(m)} image={m.profileImage ?? null} rating={r && r.count > 0 ? r.rating : null} tint={tintOf(m)} />
+                {href ? (
+                  <Link
+                    href={href}
+                    prefetch={false}
+                    draggable={false}
+                    className={`mc-tmr-profile ${actionStyles.professional}`}
+                    aria-label={nameOf(m)}
+                    aria-disabled={actions?.pending || undefined}
+                    tabIndex={index === active ? 0 : -1}
+                    onNavigate={(event) => event.preventDefault()}
+                  >
+                    {card}
+                  </Link>
+                ) : card}
                 {isPendingBooking(actions, { locationId: locId, teamMemberId: m.id }) && <span className={actionStyles.spinner} aria-hidden="true"><Spinner size={24} color="var(--mc-ink)" /></span>}
               </figure>
             );

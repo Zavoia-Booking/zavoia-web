@@ -3,14 +3,16 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Icon, Skeleton, Spinner } from "@/components/ui";
-import { InlineError } from "@/components/ui/inline-error";
+import { useToast, useToastContainerRef } from "@/components/ui/toast";
+import styles from "./booking-drawer.module.css";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
@@ -31,6 +33,7 @@ import {
   type ResolvedSlotItem,
 } from "@/lib/booking/staff-resolution";
 import { useAuth } from "@/lib/auth/useAuth";
+import { getAuthenticatedSessionId } from "@/lib/auth/session-store";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
 import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
 import {
@@ -40,7 +43,9 @@ import {
 import { bookAppointment } from "@/lib/api/marketplace/appointments";
 import { classifyBookingBlock, type BookingBlock } from "./errors";
 import type {
+  BookAppointmentBody,
   BookingCalendar,
+  BookingPolicy,
   BookingCalendarDay,
   BookingDaySlots,
   BookingServiceItem,
@@ -49,8 +54,9 @@ import type {
   TimeSlot,
 } from "@/lib/api/marketplace/types";
 import type { BookingSelectionItem, OpenBookingPayload } from "./types";
-import { todayInTz, zonedWallTimeToUtcISO } from "./tz";
+import { addWallDays, todayInTz, zonedWallTimeToUtcISO } from "./tz";
 import { useBooking } from "./useBooking";
+import { exactSlotSelection, findExactSlot } from "./sequence";
 
 export interface BookingDrawerProps {
   open: boolean;
@@ -65,14 +71,19 @@ const CAL_DAYS_TO_CHECK = 30;
 
 /** crypto.randomUUID with a non-crypto fallback (older Safari / SSR-less guard). */
 function mintKey(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `bk-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 /** Map resolved booking selection items into calendar/slots ServiceSelection[]. */
-function toServiceSelections(services: BookingSelectionItem[]): ServiceSelection[] {
+function toServiceSelections(
+  services: BookingSelectionItem[],
+): ServiceSelection[] {
   return services.map((s) => ({
     ...(s.bundleId != null
       ? { bundleId: s.bundleId }
@@ -133,15 +144,14 @@ function groupForTime(start: string): SlotGroup {
  * Every mapped code sends the user back to step 2 — date/time/staff all live
  * there now, so step 1 is never a valid error-recovery target.
  */
-const BOOKING_SUBMIT_ERROR_KEYS: Record<string, keyof BookingDict["errors"]> =
-  {
-    "MARKETPLACE_BOOKING.E08": "tooSoon",
-    "MARKETPLACE_BOOKING.E09": "tooFar",
-    "MARKETPLACE_BOOKING.E10": "slotConflict",
-    "MARKETPLACE_BOOKING.E11": "outsideHours",
-    "MARKETPLACE_BOOKING.E14": "calendarBlock",
-    "MARKETPLACE_BOOKING.E15": "staffUnavailable",
-  };
+const BOOKING_SUBMIT_ERROR_KEYS: Record<string, keyof BookingDict["errors"]> = {
+  "MARKETPLACE_BOOKING.E08": "tooSoon",
+  "MARKETPLACE_BOOKING.E09": "tooFar",
+  "MARKETPLACE_BOOKING.E10": "slotConflict",
+  "MARKETPLACE_BOOKING.E11": "outsideHours",
+  "MARKETPLACE_BOOKING.E14": "calendarBlock",
+  "MARKETPLACE_BOOKING.E15": "staffUnavailable",
+};
 
 /**
  * Real booking drawer: date → time + staff → review/confirm → success.
@@ -154,17 +164,35 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const router = useRouter();
   const { status } = useAuth();
   const { openAuthModal } = useAuthModal();
-  const { closeForAuth } = useBooking();
+  const { closeForAuth, returnToProfile } = useBooking();
+  const toast = useToast();
+  const toastContainerRef = useToastContainerRef();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const setDialogRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      dialogRef.current = node;
+      toastContainerRef?.(node);
+    },
+    [toastContainerRef],
+  );
   const t = dict.booking;
   const tb = dict.business;
 
   // Whether this session actually has a reachable step 1 — true only when the
   // drawer was opened with an empty `services` list. Captured once per open
   // (see the reset effect below) so it doesn't flicker as local picks change.
-  const [hasStep1, setHasStep1] = useState(false);
+  const [hasStep1, setHasStep1] = useState(payload?.services.length === 0);
 
   // ── Flow state ──
-  const [step, setStep] = useState<Step>(1);
+  const [step, setStep] = useState<Step>(
+    payload?.services.length === 0 ? 1 : 2,
+  );
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    // Each booking step opens at its heading; browsing dates keeps its place.
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  }, [step]);
   const [calendar, setCalendar] = useState<BookingCalendar | null>(null);
   const [calLoading, setCalLoading] = useState(false);
   // Resolved message (transport-aware — see loadCalendar), not a bare flag, so
@@ -178,6 +206,19 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
 
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [staffPicks, setStaffPicks] = useState<StaffPicks>({});
+  const [validating, setValidating] = useState(false);
+  const [validatedQuote, setValidatedQuote] = useState<{
+    slot: TimeSlot; day: BookingDaySlots; picks: StaffPicks;
+  } | null>(null);
+  const validationRequestRef = useRef(0);
+  // Freeze an attempted request until a definitive rejection or selection change.
+  const attemptedBookingRef = useRef<{ body: BookAppointmentBody; key: string; sessionId: number } | null>(null);
+  const invalidateQuote = useCallback(() => {
+    validationRequestRef.current += 1;
+    setValidatedQuote(null);
+    setValidating(false);
+    attemptedBookingRef.current = null;
+  }, []);
 
   // Permanent booking block (CUSTOMER_BOOKING.* — venue delisted, service
   // removed at this location, no staff, pinned pro can't perform). Replaces
@@ -193,7 +234,6 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   >([]);
 
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
     pending: boolean;
     scheduledAt: string;
@@ -221,7 +261,9 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     if (!payload) return [];
     if (payload.services.length > 0) return payload.services;
     if (!payload.catalog) return [];
-    const servicesById = new Map(payload.catalog.services.map((s) => [s.id, s]));
+    const servicesById = new Map(
+      payload.catalog.services.map((s) => [s.id, s]),
+    );
     const bundlesById = new Map(payload.catalog.bundles.map((b) => [b.id, b]));
     return picked.flatMap((ref): BookingSelectionItem[] => {
       if (ref.type === "service") {
@@ -285,11 +327,18 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const calRequestIdRef = useRef(0);
   const slotsRequestIdRef = useRef(0);
 
+  // Invalidate awaits on genuine unmount, payload replacement and auth hiding.
+  useLayoutEffect(() => () => {
+    validationRequestRef.current += 1;
+    calRequestIdRef.current += 1;
+    slotsRequestIdRef.current += 1;
+  }, [open, payload]);
+
   // ── Fetch calendar (called on entering the combined step + on retry).
   //    `servicesOverride` lets the staff-pin recovery refetch unpinned in the
   //    same tick it flips `ignorePins` (before the memo above recomputes). ──
   const loadCalendar = useCallback(
-    async (servicesOverride?: BookingSelectionItem[], retry = false) => {
+    async (servicesOverride?: BookingSelectionItem[], retry = false, startDate?: string) => {
       if (!payload) return;
       const requestId = (calRequestIdRef.current += 1);
       setCalLoading(true);
@@ -300,22 +349,26 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
           businessId: payload.businessId,
           locationId: payload.locationId,
           services: toServiceSelections(servicesOverride ?? effectiveServices),
-          startDate: todayInTz(tz),
+          startDate: startDate ?? todayInTz(tz),
           daysToCheck: CAL_DAYS_TO_CHECK,
         });
         if (requestId !== calRequestIdRef.current) return; // superseded
-        setCalendar(res);
+        setCalendar((previous) => startDate && previous
+          ? { ...res, calendar: [...previous.calendar, ...res.calendar.filter((day) => !previous.calendar.some((old) => old.date === day.date))] }
+          : res);
         setCalError(null);
+        return res;
       } catch (e) {
         if (requestId !== calRequestIdRef.current) return; // superseded
         const block = classifyBookingBlock(e);
         if (block) setBlocked(block);
+        else if (startDate) toast(errorMessage(e, dict.errors, t.loadError), "warn", undefined, "error");
         else setCalError(errorMessage(e, dict.errors, t.loadError));
       } finally {
         if (requestId === calRequestIdRef.current) setCalLoading(false);
       }
     },
-    [payload, effectiveServices, dict.errors, t.loadError],
+    [payload, effectiveServices, dict.errors, t.loadError, toast],
   );
 
   // Remembers the last `payload` object reference the reset effect below
@@ -346,6 +399,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       setStep(startsOnStep1 ? 1 : 2);
       setPicked([]);
       setCalendar(null);
+      invalidateQuote();
       setCalError(null);
       setSelectedDate(null);
       setDaySlots(null);
@@ -355,7 +409,6 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       setBlocked(null);
       setIgnorePins(false);
       setSubmitting(false);
-      setSubmitError(null);
       setSuccess(null);
       idempotencyKeyRef.current = "";
       // Invalidate any load still in flight from whatever this instance was
@@ -373,8 +426,13 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
 
   // ── Fetch slots when a date is chosen. ──
   const loadSlots = useCallback(
-    async (date: string, servicesOverride?: BookingSelectionItem[], retry = false) => {
+    async (
+      date: string,
+      servicesOverride?: BookingSelectionItem[],
+      retry = false,
+    ) => {
       if (!payload) return;
+      invalidateQuote();
       const requestId = (slotsRequestIdRef.current += 1);
       setSlotsLoading(true);
       if (!retry) setSlotsError(null);
@@ -399,7 +457,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         if (requestId === slotsRequestIdRef.current) setSlotsLoading(false);
       }
     },
-    [payload, effectiveServices, dict.errors, t.loadError],
+    [payload, effectiveServices, dict.errors, t.loadError, invalidateQuote],
   );
 
   // ── Discard in-flight calendar/slots work the moment the drawer closes —
@@ -412,27 +470,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     if (!open) {
       calRequestIdRef.current += 1;
       slotsRequestIdRef.current += 1;
+      validationRequestRef.current += 1;
     }
-  }, [open]);
-
-  // ── Escape to close. ──
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  // ── Scroll lock while open. ──
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
   }, [open]);
 
   // ── The professional pinned to each selection item (rebook / team-member
@@ -474,33 +513,43 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     [pinnedStaffByKey],
   );
 
+  const reviewQuote = step === 3 ? validatedQuote : null;
+  const displaySlot = reviewQuote?.slot ?? selectedSlot;
+  const displayPicks = reviewQuote?.picks ?? staffPicks;
+  const displayDay = reviewQuote?.day ?? daySlots;
+
   // ── The chosen slot re-resolved against the picked professionals. The slots
   //    response is computed staff-agnostic (longest duration, lowest price), so
   //    every figure downstream — totals, the footer pill, the review card —
   //    reads from HERE, not from the raw slot. ──
   const resolvedItems = useMemo(
     () =>
-      selectedSlot
-        ? resolveSlotItems(selectedSlot, staffPicks, daySlots?.staffPricing ?? {})
+      displaySlot
+        ? resolveSlotItems(
+            displaySlot,
+            displayPicks,
+            displayDay?.staffPricing ?? {},
+            displayDay?.itemStaffPricing,
+          )
         : [],
-    [selectedSlot, staffPicks, daySlots],
+    [displaySlot, displayPicks, displayDay],
   );
 
   // ── Derived: totals from the chosen slot (falls back to the resolved
   //    services list, so the step 1 running total also reads from here). ──
   const totalMinor = useMemo(() => {
-    if (selectedSlot) {
+    if (displaySlot) {
       return resolvedItems.reduce((a, i) => a + i.priceAmountMinor, 0);
     }
     return resolvedServices.reduce((a, s) => a + s.priceAmountMinor, 0);
-  }, [selectedSlot, resolvedItems, resolvedServices]);
+  }, [displaySlot, resolvedItems, resolvedServices]);
 
   const totalDuration = useMemo(() => {
-    if (selectedSlot) {
+    if (displaySlot) {
       return resolvedItems.reduce((a, i) => a + i.durationMinutes, 0);
     }
     return resolvedServices.reduce((a, s) => a + s.duration, 0);
-  }, [selectedSlot, resolvedItems, resolvedServices]);
+  }, [displaySlot, resolvedItems, resolvedServices]);
 
   // ── The figures the footer shows, WITH their honesty flags.
   //    Before a slot: the menu spread of what's selected. After a slot but
@@ -508,11 +557,12 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   //    floor price and a duration range — never an exact quote. Once all picks
   //    are in, the bounds collapse and it renders like a plain total. ──
   const footerSpread = useMemo(() => {
-    if (selectedSlot) {
+    if (displaySlot) {
       const sp = slotSpread(
-        selectedSlot,
-        staffPicks,
-        daySlots?.staffPricing ?? {},
+        displaySlot,
+        displayPicks,
+        displayDay?.staffPricing ?? {},
+        displayDay?.itemStaffPricing,
       );
       return formatSelectionSpread(
         {
@@ -531,49 +581,98 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       currency,
       locale,
     );
-  }, [selectedSlot, staffPicks, daySlots, resolvedServices, currency, locale]);
+  }, [displaySlot, displayPicks, displayDay, resolvedServices, currency, locale]);
 
-  // Resolve the staffId for a given slot item index.
-  const resolveStaffId = useCallback(
-    (item: SlotItem, idx: number): number => {
-      return (
-        staffPicks[idx] ??
-        item.defaultStaffId ??
-        item.availableStaffIds[0]
-      );
-    },
-    [staffPicks],
-  );
+  const validateSequence = useCallback(async () => {
+    if (!payload || !selectedSlot || !selectedDate || slotsLoading || slotsError || daySlots?.date !== selectedDate) return null;
+    const requestId = ++validationRequestRef.current;
+    const sessionId = getAuthenticatedSessionId();
+    const selections = exactSlotSelection(selectedSlot, staffPicks);
+    setValidating(true);
+    try {
+      const day = await getBookingSlots({
+        businessId: payload.businessId, locationId: payload.locationId,
+        date: selectedDate, services: selections,
+      });
+      if (requestId !== validationRequestRef.current || sessionId !== getAuthenticatedSessionId()) return null;
+      const slot = day.businessId === payload.businessId && day.locationId === payload.locationId
+        ? findExactSlot(day, selectedDate, selectedSlot.startTime, selections)
+        : undefined;
+      if (!slot) {
+        toast(t.errors.staffUnavailable, "warn", undefined, "error");
+        setStep(2);
+        void loadSlots(selectedDate);
+        return null;
+      }
+      const picks = Object.fromEntries(selections.map((item, index) => [index, item.teamMemberId!])) as StaffPicks;
+      const quote = { slot, day, picks };
+      setValidatedQuote(quote);
+      return quote;
+    } catch (error) {
+      if (requestId !== validationRequestRef.current || sessionId !== getAuthenticatedSessionId()) return null;
+      const block = classifyBookingBlock(error);
+      if (block) setBlocked(block);
+      else toast(errorMessage(error, dict.errors, t.loadError), "warn", undefined, "error");
+      return null;
+    } finally {
+      if (requestId === validationRequestRef.current) setValidating(false);
+    }
+  }, [payload, selectedSlot, selectedDate, staffPicks, slotsLoading, slotsError, daySlots, loadSlots, toast, dict.errors, t.errors.staffUnavailable, t.loadError]);
+
+  const continueToReview = async () => {
+    // An unknown outcome must remain retryable even if that request booked the slot.
+    if (attemptedBookingRef.current && validatedQuote) { setStep(3); return; }
+    if (await validateSequence()) setStep(3);
+  };
 
   // ── Booking submit. ──
   const doBook = useCallback(async () => {
-    if (!payload || !selectedSlot || !selectedDate || slotsLoading || slotsError || daySlots?.date !== selectedDate) return;
-    if (!idempotencyKeyRef.current) idempotencyKeyRef.current = mintKey();
+    if (
+      !payload ||
+      !selectedSlot ||
+      !selectedDate ||
+      slotsLoading ||
+      slotsError ||
+      daySlots?.date !== selectedDate
+    )
+      return;
+    const sessionId = getAuthenticatedSessionId();
+    if (sessionId == null) return;
     setSubmitting(true);
-    setSubmitError(null);
     try {
-      const scheduledAt = zonedWallTimeToUtcISO(
-        selectedDate,
-        selectedSlot.startTime,
-        timeZone,
-      );
-      const services: BookingServiceItem[] = selectedSlot.items.map(
-        (item, idx) => ({
-          ...(item.type === "bundle"
-            ? { bundleId: item.bundleId }
-            : { serviceId: item.serviceId }),
-          staffId: resolveStaffId(item, idx),
-        }),
-      );
-      const res = await bookAppointment(
-        {
-          listingId: payload.listingId,
-          locationId: payload.locationId,
-          scheduledAt,
-          services,
-        },
-        idempotencyKeyRef.current,
-      );
+      let attempt = attemptedBookingRef.current;
+      if (attempt && attempt.sessionId !== sessionId) {
+        attempt = null;
+        attemptedBookingRef.current = null;
+        idempotencyKeyRef.current = "";
+      }
+      if (!attempt) {
+        const quote = await validateSequence();
+        if (!quote || sessionId !== getAuthenticatedSessionId()) return;
+        if (validatedQuote) {
+          const figures = (value: typeof quote) => resolveSlotItems(value.slot, value.picks, value.day.staffPricing ?? {}, value.day.itemStaffPricing);
+          if (JSON.stringify(figures(quote)) !== JSON.stringify(figures(validatedQuote))) {
+            toast(t.quoteChanged, "warn");
+            return;
+          }
+        }
+        const body: BookAppointmentBody = {
+          listingId: payload.listingId, locationId: payload.locationId,
+          scheduledAt: zonedWallTimeToUtcISO(selectedDate, quote.slot.startTime, timeZone),
+          services: quote.slot.items.map((item, index): BookingServiceItem => ({
+            ...(item.type === "bundle" ? { bundleId: item.bundleId } : { serviceId: item.serviceId }),
+            staffId: quote.picks[index],
+          })),
+        };
+        if (!idempotencyKeyRef.current) idempotencyKeyRef.current = mintKey();
+        attempt = { body, key: idempotencyKeyRef.current, sessionId };
+        attemptedBookingRef.current = attempt;
+      }
+      if (attempt.sessionId !== getAuthenticatedSessionId()) return;
+      // A retry has no validation await; a new attempt was guarded by its validator.
+      if (attemptedBookingRef.current !== attempt) return;
+      const scheduledAt = attempt.body.scheduledAt;
+      const res = await bookAppointment(attempt.body, attempt.key);
       const appts = res.appointments ?? [];
       const first = appts[0];
       setSuccess({
@@ -589,6 +688,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       // honest blocked screen — a retry or slot change can never fix them.
       const block = classifyBookingBlock(e);
       if (block) {
+        attemptedBookingRef.current = null;
         setBlocked(block);
         return; // finally still clears `submitting`
       }
@@ -597,8 +697,9 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       // Transport failures (offline / timeout / rate-limited / our fault) win
       // over a domain message: a request that never reached the server cannot
       // have been rejected for being "too soon".
-      setSubmitError(errorMessage(e, dict.errors, specific));
+      toast(errorMessage(e, dict.errors, specific), "warn", undefined, "error");
       if (errorKey) {
+        invalidateQuote();
         setStep(2);
         idempotencyKeyRef.current = "";
         // Only a slot conflict or a fresh calendar block actually invalidate
@@ -624,12 +725,16 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     slotsError,
     daySlots,
     timeZone,
-    resolveStaffId,
+    validateSequence,
+    validatedQuote,
+    t.quoteChanged,
+    invalidateQuote,
     resolvedServices,
     t.errors,
     dict.errors,
     loadCalendar,
     loadSlots,
+    toast,
   ]);
 
   // Hooks complete — safe to bail.
@@ -641,21 +746,22 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   // Picking a date no longer transitions the step — date/time/staff all live
   // on the same combined step 2 screen; only the slots refetch + reset.
   const onPickDate = (date: string) => {
+    invalidateQuote();
     setSelectedDate(date);
-    setSubmitError(null);
     idempotencyKeyRef.current = "";
     void loadSlots(date);
   };
 
   const onPickSlot = (slot: TimeSlot) => {
+    invalidateQuote();
     if (slotsLoading || slotsError || daySlots?.date !== selectedDate) return;
     setSelectedSlot(slot);
     setStaffPicks(seedStaffPicks(slot));
-    setSubmitError(null);
     idempotencyKeyRef.current = "";
   };
 
   const onPickStaff = (idx: number, staffId: number | null) => {
+    invalidateQuote();
     setStaffPicks((prev) => {
       if (staffId == null) {
         if (!(idx in prev)) return prev;
@@ -683,6 +789,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   // date/slot/staff pick — or a stale, still-clickable calendar — that was
   // never validated against the final services.
   const onContinueFromServices = () => {
+    invalidateQuote();
     setStep(2);
     setCalendar(null);
     setCalError(null);
@@ -708,7 +815,6 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   };
 
   const goBack = () => {
-    setSubmitError(null);
     if (step === 3) setStep(2);
     else if (step === 2 && hasStep1) setStep(1);
   };
@@ -719,35 +825,16 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     selectedSlot,
     staffPicks,
     daySlots?.staffPricing ?? {},
+    daySlots?.itemStaffPricing,
   );
-  const canContinueFromSlot = !!selectedSlot && !awaitingStaffChoice && !slotsLoading && !slotsError && daySlots?.date === selectedDate;
+  const canContinueFromSlot =
+    !!selectedSlot &&
+    !awaitingStaffChoice &&
+    !slotsLoading &&
+    !validating &&
+    !slotsError &&
+    daySlots?.date === selectedDate;
   const canContinueFromServices = picked.length > 0;
-
-  // ── Styles shared across steps ──
-  const stepLabel: CSSProperties = {
-    fontSize: 19,
-    fontWeight: 600,
-    letterSpacing: "-0.02em",
-    color: "var(--c-900)",
-    marginTop: 4,
-  };
-  const stepPill: CSSProperties = {
-    fontFamily: "var(--font-mono)",
-    fontSize: 10.5,
-    fontWeight: 600,
-    letterSpacing: "0.14em",
-    textTransform: "uppercase",
-    color: "var(--p-600)",
-  };
-  const sectionLabel: CSSProperties = {
-    fontFamily: "var(--font-mono)",
-    fontSize: 10.5,
-    fontWeight: 600,
-    letterSpacing: "0.12em",
-    textTransform: "uppercase",
-    color: "var(--c-500)",
-    marginBottom: 9,
-  };
 
   const stepTitle =
     step === 1
@@ -755,406 +842,344 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       : step === 2
         ? t.stepDateTimeTitle
         : t.stepReviewTitle;
-
-  // Back button: shown on step 3 always, on step 2 only when a step 1 was
-  // actually reachable this session, never on step 1.
-  const showBack = !success && (step === 3 || (step === 2 && hasStep1));
+  const stepCount = hasStep1 ? 3 : 2;
+  const visibleStep = hasStep1 ? step : Math.max(1, step - 1);
+  const canReturnToProfile = !!payload.profileOrigin?.isAvailable();
+  const backToProfile =
+    canReturnToProfile && !success && (blocked || (step === 2 && !hasStep1));
+  const showBack =
+    !success &&
+    (backToProfile || (!blocked && (step === 3 || (step === 2 && hasStep1))));
 
   return (
-    <div
-      className="zv-sheet-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label={tb.bookHeading}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 250,
-        background: "rgba(28,28,26,0.42)",
-        cursor: "pointer",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
+    <DialogPrimitive.Root
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
       }}
     >
-      <div
-        className="zw-modal-in"
-        style={{
-          width: "min(478px, 100%)",
-          cursor: "default",
-          maxHeight: "calc(100dvh - 40px)",
-          background: "var(--c-canvas)",
-          boxShadow: "var(--sh-lg)",
-          borderRadius: 24,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: "16px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            borderBottom: "1px solid rgba(28,28,26,0.07)",
-            background: "#fff",
-            flexShrink: 0,
-          }}
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          className={`zv-sheet-backdrop ${styles.overlay}`}
         >
-          {showBack && (
-            <button
-              type="button"
-              className="tap"
-              onClick={goBack}
-              aria-label={t.back}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                border: "1px solid rgba(28,28,26,0.10)",
-                background: "#fff",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Icon name="back" size={15} color="var(--c-800)" />
-            </button>
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 15.5,
-                fontWeight: 600,
-                color: "var(--c-900)",
-                letterSpacing: "-0.015em",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {calendar?.businessName ?? tb.bookHeading}
-            </div>
-            {(calendar?.locationName || !success) && (
-              <div
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "var(--c-500)",
-                  marginTop: 2,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {calendar?.locationName ?? tb.book}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            className="tap"
-            onClick={onClose}
-            aria-label={tb.close}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              border: 0,
-              background: "var(--c-100)",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
+          <DialogPrimitive.Content
+            className={`zw-modal-in ${styles.dialog}`}
+            data-booking-dialog
+            data-toast-scope="dialog"
+            ref={setDialogRef}
+            aria-describedby={undefined}
+            onOpenAutoFocus={(event) => {
+              returnFocusRef.current =
+                document.activeElement instanceof HTMLElement
+                  ? document.activeElement
+                  : null;
+              event.preventDefault();
+              dialogRef.current?.focus();
+            }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              requestAnimationFrame(() => {
+                const target = returnFocusRef.current;
+                if (
+                  target?.isConnected &&
+                  target.getClientRects().length &&
+                  !target.closest("[hidden], [inert]")
+                )
+                  target.focus({ preventScroll: true });
+              });
+            }}
+            onPointerDownOutside={(event) => {
+              if (
+                event.target instanceof Element &&
+                event.target.closest("[data-toast-host]")
+              )
+                event.preventDefault();
             }}
           >
-            <Icon name="x" size={15} color="var(--c-800)" />
-          </button>
-        </div>
-
-        {success ? (
-          <SuccessScreen
-            pending={success.pending}
-            scheduledAt={success.scheduledAt}
-            serviceNames={success.serviceNames}
-            businessName={calendar?.businessName ?? tb.bookHeading}
-            timeZone={timeZone}
-            locale={locale}
-            t={t}
-            onViewAppointment={() => {
-              // The list, not the single appointment: a booking can produce
-              // several (one per item), and landing on the full list also shows
-              // the customer everything else they have coming up.
-              router.push(localeHref(locale, "appointments"));
-              onClose();
-            }}
-            onClose={onClose}
-          />
-        ) : blocked ? (
-          <BlockedScreen
-            block={blocked}
-            services={resolvedServices}
-            t={t}
-            tb={tb}
-            onBrowseServices={() => {
-              router.push(
-                payload.websiteSlug
-                  ? localeHref(locale, payload.websiteSlug)
-                  : localeHref(locale, "business", String(payload.locationId)),
-              );
-              onClose();
-            }}
-            onAnyProfessional={() => {
-              // Refetch unpinned immediately with an explicit override — the
-              // `ignorePins` state lands on the next render. If nobody offers
-              // the service at all, the refetch cascades to a no-staff block.
-              const unpinned = stripPins(resolvedServices);
-              setBlocked(null);
-              setIgnorePins(true);
-              void loadCalendar(unpinned);
-              if (selectedDate) void loadSlots(selectedDate, unpinned);
-            }}
-            onClose={onClose}
-          />
-        ) : (
-          <>
-            {/* Body */}
-            <div
-              className="zw-scroll-y"
-              style={{ flex: 1, padding: "22px 20px 28px" }}
-            >
-              <div
-                className="zv-tab-in"
-                key={step}
-                style={{ display: "flex", flexDirection: "column", gap: 18 }}
+            <header className={styles.header}>
+              {showBack && (
+                <button
+                  type="button"
+                  className={`tap ${styles.iconButton}`}
+                  onClick={backToProfile ? returnToProfile : goBack}
+                  aria-label={backToProfile ? t.backToProfile : t.back}
+                  title={backToProfile ? t.backToProfile : undefined}
+                  disabled={submitting || validating}
+                >
+                  <Icon name="back" size={20} color="currentColor" />
+                </button>
+              )}
+              <DialogPrimitive.Title className={`txt-balance ${styles.title}`}>
+                {tb.bookHeading}
+              </DialogPrimitive.Title>
+              <button
+                type="button"
+                className={`tap ${styles.iconButton}`}
+                onClick={onClose}
+                aria-label={tb.close}
               >
-                <div>
-                  <div style={stepPill}>
-                    {format(t.stepProgress, {
-                      n: String(step),
-                      total: "3",
-                    })}
-                  </div>
-                  <div style={stepLabel}>{stepTitle}</div>
-                </div>
+                <Icon name="x" size={20} color="currentColor" />
+              </button>
+            </header>
 
-                {/* STEP 1 — CHOOSE SERVICES (only reachable when the drawer
-                    opened with an empty payload.services). */}
-                {step === 1 && payload.catalog && (
-                  <ServicesStep
-                    catalog={payload.catalog}
-                    picked={picked}
-                    currency={currency}
-                    showPricing={showPricing}
-                    quoteLabel={quoteLabel}
-                    locale={locale}
-                    tb={tb}
-                    onToggle={togglePicked}
-                  />
-                )}
-
-                {/* STEP 2 — DATE + TIME + STAFF, all on one scrollable step. */}
-                {step === 2 && (
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 22 }}
-                  >
-                    {/* Surfaces a submit-time failure (from step 3) that sent
-                        the user back here — otherwise it would be set but
-                        never shown, since step 3's own error banner is gone
-                        the moment we navigate away from it. */}
-                    {submitError && (
-                      <InlineError style={{ margin: 0 }}>
-                        {submitError}
-                      </InlineError>
+            {success ? (
+              <SuccessScreen
+                pending={success.pending}
+                scheduledAt={success.scheduledAt}
+                serviceNames={success.serviceNames}
+                businessName={calendar?.businessName ?? tb.bookHeading}
+                timeZone={timeZone}
+                locale={locale}
+                t={t}
+                onViewAppointment={() => {
+                  // A booking can produce several appointments when its professional changes.
+                  router.push(localeHref(locale, "appointments"));
+                  onClose();
+                }}
+                onClose={onClose}
+              />
+            ) : blocked ? (
+              <BlockedScreen
+                block={blocked}
+                services={resolvedServices}
+                t={t}
+                tb={tb}
+                onBrowseServices={() => {
+                  router.push(
+                    payload.websiteSlug
+                      ? localeHref(locale, payload.websiteSlug)
+                      : localeHref(
+                          locale,
+                          "business",
+                          String(payload.locationId),
+                        ),
+                  );
+                  onClose();
+                }}
+                onAnyProfessional={() => {
+                  const unpinned = stripPins(resolvedServices);
+                  setBlocked(null);
+                  setIgnorePins(true);
+                  void loadCalendar(unpinned);
+                  if (selectedDate) void loadSlots(selectedDate, unpinned);
+                }}
+                onClose={onClose}
+              />
+            ) : (
+              <>
+                <div ref={bodyRef} className={styles.body} data-booking-body>
+                  <div key={step} className={styles.step}>
+                    <div className={styles.stepHeading}>
+                      <h2 className={`txt-balance ${styles.stepTitle}`}>
+                        {stepTitle}
+                      </h2>
+                      <span className={styles.stepCount}>
+                        <span className="sr-only">
+                          {format(t.stepProgress, {
+                            n: String(visibleStep),
+                            total: String(stepCount),
+                          })}
+                        </span>
+                        <span aria-hidden="true">
+                          {visibleStep} / {stepCount}
+                        </span>
+                      </span>
+                    </div>
+                    <div className={styles.progress} aria-hidden="true">
+                      {Array.from({ length: stepCount }, (_, index) => (
+                        <span key={index} data-active={index < visibleStep} />
+                      ))}
+                    </div>
+                    {calendar && step !== 3 && (
+                      <div className={styles.venueSummary}>
+                        <Icon name="pin" size={18} color="var(--c-600)" />
+                        <div>
+                          <div className={styles.businessName}>
+                            {calendar.businessName}
+                          </div>
+                          {calendar.locationName &&
+                            calendar.locationName !== calendar.businessName && (
+                              <div className={styles.locationName}>
+                                {calendar.locationName}
+                              </div>
+                            )}
+                        </div>
+                      </div>
                     )}
-                    <DateStep
-                      calendar={calendar}
-                      loading={calLoading}
-                      error={calError}
-                      locale={locale}
-                      timeZone={timeZone}
-                      sectionLabel={sectionLabel}
-                      t={t}
-                      selectedDate={selectedDate}
-                      onRetry={() => void loadCalendar(undefined, true)}
-                      onPickDate={onPickDate}
-                    />
-                    {selectedDate && (
-                      <SlotStep
-                        daySlots={daySlots}
-                        loading={slotsLoading}
-                        error={slotsError}
-                        selectedDate={selectedDate}
-                        selectedSlot={selectedSlot}
-                        staffPicks={staffPicks}
-                        locale={locale}
+                    {step === 1 && payload.catalog && (
+                      <ServicesStep
+                        catalog={payload.catalog}
+                        picked={picked}
                         currency={currency}
                         showPricing={showPricing}
                         quoteLabel={quoteLabel}
+                        locale={locale}
+                        tb={tb}
+                        onToggle={togglePicked}
+                      />
+                    )}
+                    {step === 2 && (
+                      <div className={styles.availability}>
+                        <DateStep
+                          calendar={calendar}
+                          loading={calLoading}
+                          error={calError}
+                          locale={locale}
+                          timeZone={timeZone}
+                          t={t}
+                          selectedDate={selectedDate}
+                          hasMore={canExtendCalendar(calendar, timeZone)}
+                          onLoadMore={async () => {
+                            const tail = calendar?.calendar.at(-1)?.date;
+                            return !!tail && !!await loadCalendar(undefined, false, addWallDays(tail, 1));
+                          }}
+                          onRetry={() => void loadCalendar(undefined, true)}
+                          onPickDate={onPickDate}
+                        />
+                        <div className={styles.timeArea}>
+                          {selectedDate ? (
+                            <SlotStep
+                              daySlots={displayDay}
+                              loading={slotsLoading}
+                              error={slotsError}
+                              selectedDate={selectedDate}
+                              selectedSlot={selectedSlot}
+                              staffPicks={displayPicks}
+                              locale={locale}
+                              currency={currency}
+                              showPricing={showPricing}
+                              quoteLabel={quoteLabel}
+                              timeZone={timeZone}
+                              t={t}
+                              onRetry={() => {
+                                if (selectedDate)
+                                  void loadSlots(selectedDate, undefined, true);
+                              }}
+                              pinnedStaffByKey={pinnedStaffByKey}
+                              fromProfessionalProfile={!!payload.profileOrigin}
+                              onPickSlot={onPickSlot}
+                              onPickStaff={onPickStaff}
+                            />
+                          ) : (
+                            !calError &&
+                            !calLoading &&
+                            calendar?.calendar.some(
+                              (day) => day.status === "available",
+                            ) && <p className={styles.hint}>{t.chooseDate}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {step === 3 && displaySlot && selectedDate && (
+                      <ReviewStep
+                        slot={displaySlot}
+                        date={selectedDate}
+                        staffPicks={displayPicks}
+                        resolvedItems={resolvedItems}
+                        daySlots={displayDay}
+                        calendar={calendar}
+                        services={services}
+                        currency={currency}
+                        showPricing={showPricing}
+                        quoteLabel={quoteLabel}
+                        locale={locale}
                         timeZone={timeZone}
-                        sectionLabel={sectionLabel}
+                        totalMinor={totalMinor}
+                        totalDuration={totalDuration}
+                        policy={displayDay?.bookingPolicy ?? calendar?.bookingPolicy ?? payload.bookingPolicy}
                         t={t}
-                        onRetry={() => {
-                          if (selectedDate) void loadSlots(selectedDate, undefined, true);
-                        }}
-                        pinnedStaffByKey={pinnedStaffByKey}
-                        onPickSlot={onPickSlot}
-                        onPickStaff={onPickStaff}
+                        tb={tb}
                       />
                     )}
                   </div>
-                )}
-
-                {/* STEP 3 — REVIEW */}
-                {step === 3 && selectedSlot && selectedDate && (
-                  <ReviewStep
-                    slot={selectedSlot}
-                    date={selectedDate}
-                    staffPicks={staffPicks}
-                    resolvedItems={resolvedItems}
-                    daySlots={daySlots}
-                    calendar={calendar}
-                    services={services}
-                    currency={currency}
-                    showPricing={showPricing}
-                    quoteLabel={quoteLabel}
-                    locale={locale}
-                    timeZone={timeZone}
-                    totalMinor={totalMinor}
-                    totalDuration={totalDuration}
-                    submitError={submitError}
-                    t={t}
-                    tb={tb}
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Footer CTA */}
-            <div
-              style={{
-                padding: "14px 20px calc(14px + env(safe-area-inset-bottom))",
-                borderTop: "1px solid rgba(28,28,26,0.07)",
-                background: "#fff",
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {step === 1 && !canContinueFromServices ? (
-                  <div style={{ fontSize: 13, color: "var(--c-500)" }}>
-                    {t.selectServicesEmpty}
+                </div>
+                <footer className={styles.footer}>
+                  <div className={styles.footerSummary}>
+                    {step === 1 && !canContinueFromServices ? (
+                      <div className={styles.hint}>{t.selectServicesEmpty}</div>
+                    ) : (
+                      <>
+                        <div className={styles.footerPrice}>
+                          {showPricing && footerSpread.priceVaries && (
+                            <span className={styles.from}>{tb.priceFrom} </span>
+                          )}
+                          {showPricing ? footerSpread.price : quoteLabel}
+                        </div>
+                        <div className={styles.footerMeta}>
+                          {format(
+                            services.length === 1
+                              ? t.serviceCountOne
+                              : t.serviceCount,
+                            {
+                              count: String(services.length),
+                              duration: footerSpread.duration,
+                            },
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    <div
+                  {step < 3 ? (
+                    <Button
+                      kind="accent"
+                      size="lg"
+                      className={styles.primaryAction}
+                      disabled={
+                        step === 1
+                          ? !canContinueFromServices
+                          : !canContinueFromSlot
+                      }
+                      onClick={step === 1 ? onContinueFromServices : () => void continueToReview()}
+                      aria-label={tb.continue}
+                      aria-busy={validating}
+                      style={{ position: "relative" }}
+                    >
+                      <span aria-hidden="true" style={{ visibility: validating ? "hidden" : "visible" }}>{tb.continue}</span>
+                      <Icon name="arrowR" size={17} color="currentColor" />
+                      {validating && <span aria-hidden="true" style={{ position: "absolute" }}><Spinner size={16} color="currentColor" /></span>}
+                    </Button>
+                  ) : (
+                    <Button
+                      kind="accent"
+                      size="lg"
+                      className={styles.primaryAction}
+                      disabled={submitting || validating}
+                      aria-label={isAuthed ? t.confirmBooking : t.signInToBook}
+                      aria-busy={submitting}
+                      onClick={onConfirm}
                       style={{
-                        fontSize: 14.5,
-                        fontWeight: 700,
-                        color: "var(--c-900)",
-                        fontVariantNumeric: "tabular-nums",
+                        position: "relative",
+                        opacity: submitting ? 0.7 : 1,
                       }}
                     >
-                      {showPricing && footerSpread.priceVaries && (
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          visibility: submitting ? "hidden" : "visible",
+                        }}
+                      >
+                        {isAuthed ? t.confirmBooking : t.signInToBook}
+                      </span>
+                      {submitting && (
                         <span
-                          style={{
-                            fontWeight: 500,
-                            fontSize: 12.5,
-                            color: "var(--c-600)",
-                          }}
+                          aria-hidden="true"
+                          style={{ position: "absolute" }}
                         >
-                          {tb.priceFrom}{" "}
+                          <Spinner size={16} color="currentColor" />
                         </span>
                       )}
-                      {showPricing ? footerSpread.price : quoteLabel}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 10.5,
-                        color: "var(--c-600)",
-                        marginTop: 1,
-                      }}
-                    >
-                      {format(
-                        services.length === 1
-                          ? t.serviceCountOne
-                          : t.serviceCount,
-                        {
-                          count: String(services.length),
-                          duration: footerSpread.duration,
-                        },
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {step === 1 && (
-                <Button
-                  kind="primary"
-                  size="lg"
-                  disabled={!canContinueFromServices}
-                  onClick={onContinueFromServices}
-                >
-                  {tb.continue}
-                  <Icon name="arrowR" size={15} color="#fff" />
-                </Button>
-              )}
-
-              {step === 2 && (
-                <Button
-                  kind="primary"
-                  size="lg"
-                  disabled={!canContinueFromSlot}
-                  onClick={() => setStep(3)}
-                >
-                  {tb.continue}
-                  <Icon name="arrowR" size={15} color="#fff" />
-                </Button>
-              )}
-
-              {step === 3 && (
-                <Button
-                  kind="accent"
-                  size="lg"
-                  disabled={submitting}
-                  aria-label={isAuthed ? t.confirmBooking : t.signInToBook}
-                  aria-busy={submitting}
-                  onClick={onConfirm}
-                  style={{ position: "relative", opacity: submitting ? 0.7 : 1 }}
-                >
-                  <span aria-hidden="true" style={{ visibility: submitting ? "hidden" : "visible" }}>
-                    {isAuthed ? t.confirmBooking : t.signInToBook}
-                  </span>
-                  {submitting && (
-                    <span aria-hidden="true" style={{ position: "absolute" }}>
-                      <Spinner size={16} color="currentColor" />
-                    </span>
+                    </Button>
                   )}
-                </Button>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+                  <span role="status" className="sr-only">
+                    {submitting ? t.booking : validating ? t.loading : ""}
+                  </span>
+                </footer>
+              </>
+            )}
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Overlay>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
@@ -1185,127 +1210,79 @@ function ServicesStep({
   onToggle: (type: "service" | "bundle", id: number) => void;
 }) {
   const isPicked = (type: "service" | "bundle", id: number) =>
-    picked.some((x) => x.type === type && x.id === id);
-
+    picked.some((item) => item.type === type && item.id === id);
   const groups = useMemo(() => {
-    const byCat = new Map<
+    const byCategory = new Map<
       number | "uncat",
       { name: string; color: string; items: typeof catalog.services }
     >();
-    for (const c of catalog.serviceCategories) {
-      byCat.set(c.id, { name: c.name, color: c.color, items: [] });
-    }
-    for (const s of catalog.services) {
-      const key = s.categoryId ?? "uncat";
-      if (!byCat.has(key)) {
-        byCat.set(key, {
-          name: s.category?.name ?? "",
-          color: s.category?.color ?? "var(--c-400)",
+    for (const category of catalog.serviceCategories)
+      byCategory.set(category.id, {
+        name: category.name,
+        color: category.color,
+        items: [],
+      });
+    for (const service of catalog.services) {
+      const key = service.categoryId ?? "uncat";
+      if (!byCategory.has(key))
+        byCategory.set(key, {
+          name: service.category?.name ?? "",
+          color: service.category?.color ?? "var(--c-400)",
           items: [],
         });
-      }
-      byCat.get(key)!.items.push(s);
+      byCategory.get(key)!.items.push(service);
     }
-    return [...byCat.values()].filter((g) => g.items.length > 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalog.serviceCategories, catalog.services]);
-
+    return [...byCategory.values()].filter((group) => group.items.length > 0);
+  }, [catalog]);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {groups.map((g, gi) => (
-        <div key={gi}>
-          {g.name && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                marginBottom: 4,
-                fontFamily: "var(--font-mono)",
-                fontSize: 10.5,
-                fontWeight: 600,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--c-500)",
-              }}
-            >
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: g.color,
-                }}
-              />
-              {g.name}
+    <div className={styles.serviceGroups}>
+      {groups.map((group, index) => (
+        <div key={index}>
+          {group.name && (
+            <div className={styles.category}>
+              <span style={{ background: group.color }} />
+              {group.name}
             </div>
           )}
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {g.items.map((it) => (
-              <ServiceCheckRow
-                key={it.id}
-                name={it.name}
-                service={it}
-                on={isPicked("service", it.id)}
-                onToggle={() => onToggle("service", it.id)}
-                currency={currency}
-                locale={locale}
-                fromLabel={tb.priceFrom}
-                showPricing={showPricing}
-                quoteLabel={quoteLabel}
-              />
-            ))}
-          </div>
+          {group.items.map((service) => (
+            <ServiceCheckRow
+              key={service.id}
+              name={service.name}
+              service={service}
+              on={isPicked("service", service.id)}
+              onToggle={() => onToggle("service", service.id)}
+              currency={currency}
+              locale={locale}
+              fromLabel={tb.priceFrom}
+              showPricing={showPricing}
+              quoteLabel={quoteLabel}
+            />
+          ))}
         </div>
       ))}
-
       {catalog.bundles.length > 0 && (
         <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 4,
-              fontFamily: "var(--font-mono)",
-              fontSize: 10.5,
-              fontWeight: 600,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "var(--c-500)",
-            }}
-          >
-            {tb.bundles}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {catalog.bundles.map((b) => (
-              <ServiceCheckRow
-                key={b.id}
-                name={b.name}
-                service={b}
-                on={isPicked("bundle", b.id)}
-                onToggle={() => onToggle("bundle", b.id)}
-                currency={currency}
-                locale={locale}
-                fromLabel={tb.priceFrom}
-                showPricing={showPricing}
-                quoteLabel={quoteLabel}
-              />
-            ))}
-          </div>
+          <div className={styles.category}>{tb.bundles}</div>
+          {catalog.bundles.map((bundle) => (
+            <ServiceCheckRow
+              key={bundle.id}
+              name={bundle.name}
+              service={bundle}
+              on={isPicked("bundle", bundle.id)}
+              onToggle={() => onToggle("bundle", bundle.id)}
+              currency={currency}
+              locale={locale}
+              fromLabel={tb.priceFrom}
+              showPricing={showPricing}
+              quoteLabel={quoteLabel}
+            />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-/**
- * One checkbox row for the Step 1 services/bundles picker. Visual style
- * matches docs/web-booking.jsx's ZwBookingDrawer step-1 row: a 22×22
- * rounded-square checkbox that fills with `var(--p-500)` + a check icon when
- * on — distinct from the circular add/remove toggle used on the business
- * detail page's own service list.
- */
 function ServiceCheckRow({
   name,
   service,
@@ -1318,7 +1295,6 @@ function ServiceCheckRow({
   quoteLabel,
 }: {
   name: string;
-  /** Services carry a staff spread; bundles don't, and degrade to exact figures. */
   service: ServiceSpread;
   on: boolean;
   onToggle: () => void;
@@ -1332,65 +1308,18 @@ function ServiceCheckRow({
   return (
     <button
       type="button"
-      className="tap"
+      className={`tap ${styles.serviceChoice}`}
       onClick={onToggle}
       aria-pressed={on}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 13,
-        width: "100%",
-        textAlign: "left",
-        cursor: "pointer",
-        padding: "13px 12px",
-        background: on ? "#fff" : "transparent",
-        border: on
-          ? "1px solid rgba(28,28,26,0.14)"
-          : "1px solid transparent",
-        borderRadius: 14,
-        boxShadow: on ? "var(--sh-sm)" : "inset 0 -1px 0 rgba(28,28,26,0.05)",
-      }}
     >
-      <span
-        style={{
-          width: 22,
-          height: 22,
-          borderRadius: 7,
-          flexShrink: 0,
-          border: on ? 0 : "1.5px solid rgba(28,28,26,0.25)",
-          background: on ? "var(--p-500)" : "transparent",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {on && <Icon name="check" size={13} color="#fff" />}
+      <span className={styles.serviceCheck} aria-hidden="true">
+        {on && <Icon name="check" size={13} color="currentColor" />}
       </span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span
-          style={{
-            display: "block",
-            fontSize: 14.5,
-            fontWeight: 600,
-            color: "var(--c-900)",
-          }}
-        >
-          {name}
-        </span>
-        <span
-          style={{
-            display: "block",
-            fontFamily: "var(--font-mono)",
-            fontSize: 11.5,
-            fontWeight: 700,
-            color: "var(--c-600)",
-            marginTop: 3,
-          }}
-        >
+      <span className={styles.serviceText}>
+        <span className={styles.serviceName}>{name}</span>
+        <span className={styles.serviceMeta}>
           {meta.duration} ·{" "}
-          {showPricing && meta.priceVaries && (
-            <span style={{ fontWeight: 500 }}>{fromLabel} </span>
-          )}
+          {showPricing && meta.priceVaries && <span>{fromLabel} </span>}
           {showPricing ? meta.price : quoteLabel}
         </span>
       </span>
@@ -1402,101 +1331,147 @@ function ServiceCheckRow({
 // Step 2 — Date picker (part of the combined date/time/staff step)
 // ─────────────────────────────────────────────
 
+/** Calendar request size is a page size, not the venue's booking horizon. */
+function canExtendCalendar(calendar: BookingCalendar | null, timeZone: string): boolean {
+  if (!calendar?.calendar.length) return false;
+  const maximum = calendar.bookingSettings.maxAdvanceBookingMinutes;
+  if (maximum === null) return true;
+  if (maximum === undefined) return false;
+  const end = new Intl.DateTimeFormat("en-CA", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(Date.now() + (maximum + 1) * 60_000 - 1));
+  return calendar.calendar[calendar.calendar.length - 1].date < end;
+}
+
 function DateStep({
   calendar,
   loading,
   error,
   locale,
   timeZone,
-  sectionLabel,
   t,
   selectedDate,
+  hasMore,
+  onLoadMore,
   onRetry,
   onPickDate,
 }: {
   calendar: BookingCalendar | null;
   loading: boolean;
-  /** Resolved message (transport-aware — see loadCalendar), null when clean. */
   error: string | null;
   locale: string;
   timeZone: string;
-  sectionLabel: CSSProperties;
   t: BookingDict;
   selectedDate: string | null;
+  hasMore: boolean;
+  onLoadMore: () => Promise<boolean>;
   onRetry: () => void;
   onPickDate: (date: string) => void;
 }) {
+  // Append API windows as needed while preserving the selected date and slot.
+  const [page, setPage] = useState<{ start: number | null; direction: number }>(
+    { start: null, direction: 0 },
+  );
+  const days = calendar?.calendar ?? [];
+  const selectedIndex = days.findIndex((day) => day.date === selectedDate);
+  const lastStart = Math.max(0, Math.floor((days.length - 1) / 7) * 7);
+  const start = Math.min(
+    page.start ?? Math.max(0, Math.floor(selectedIndex / 7) * 7),
+    lastStart,
+  );
+  const visibleDays = days.slice(start, start + 7);
+  const hasAvailable = days.some((day) => day.status === "available");
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    // A partial final page must stay reachable after swiping the previous row.
+    if (viewportRef.current) viewportRef.current.scrollLeft = 0;
+  }, [start]);
+
   if (error && !calendar)
-    return <ErrorBlock label={error} retry={t.retry} onRetry={onRetry} loading={loading} />;
-  if (loading && !calendar) return <LoadingBlock label={t.loading} kind="dates" title={t.dateLabel} headingStyle={sectionLabel} />;
+    return (
+      <ErrorBlock
+        label={error}
+        retry={t.retry}
+        onRetry={onRetry}
+        loading={loading}
+      />
+    );
+  if (loading && !calendar)
+    return <LoadingBlock label={t.loading} kind="dates" title={t.dateLabel} />;
   if (!calendar) return null;
 
-  const days = calendar.calendar;
-  const hasAvailable = days.some((d) => d.status === "available");
-
-  if (!hasAvailable) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <p
-          className="txt-pretty"
-          style={{
-            margin: 0,
-            fontSize: 14,
-            lineHeight: 1.6,
-            color: "var(--c-600)",
+  return (
+    <section aria-label={t.dateLabel}>
+      <h3 className={styles.sectionLabel}>{t.dateLabel}</h3>
+      <div className={styles.dateNavigation}>
+        <button
+          type="button"
+          className={`tap ${styles.weekButton}`}
+          disabled={start === 0 || loading}
+          aria-label={t.previousDates}
+          onClick={() =>
+            setPage({ start: Math.max(0, start - 7), direction: -1 })
+          }
+        >
+          <Icon name="chevL" size={18} color="currentColor" />
+        </button>
+        <span
+          className={styles.dateRange}
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {visibleDays.length > 0 && (
+            <>
+              {fmtDateLabel(visibleDays[0].date, locale, timeZone)}
+              <span aria-hidden="true"> – </span>
+              <span className="sr-only"> / </span>
+              {fmtDateLabel(
+                visibleDays[visibleDays.length - 1].date,
+                locale,
+                timeZone,
+              )}
+            </>
+          )}
+        </span>
+        <button
+          type="button"
+          className={`tap ${styles.weekButton}`}
+          disabled={loading || (start >= lastStart && !hasMore)}
+          aria-label={t.nextDates}
+          aria-busy={loading}
+          onClick={async () => {
+            const next = start + 7;
+            if (hasMore && next + 7 > days.length) {
+              if (!await onLoadMore()) return;
+            }
+            setPage({ start: next, direction: 1 });
           }}
         >
-          {t.noAvailability}
-        </p>
-        {calendar.nextAvailableDate && (
-          <button
-            type="button"
-            className="tap"
-            onClick={() => onPickDate(calendar.nextAvailableDate as string)}
-            style={{
-              alignSelf: "flex-start",
-              padding: "11px 18px",
-              borderRadius: "var(--r-full)",
-              border: "1px solid var(--c-ink)",
-              background: "var(--c-ink)",
-              color: "#fff",
-              fontSize: 13.5,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            {format(t.nextAvailable, {
-              date: fmtDateLabel(calendar.nextAvailableDate, locale, timeZone),
-            })}
-          </button>
-        )}
+          {loading ? <Spinner size={16} color="currentColor" /> : <Icon name="chevR" size={18} color="currentColor" />}
+        </button>
       </div>
-    );
-  }
-
-  return (
-    <div>
-      <div style={sectionLabel}>{t.dateLabel}</div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))",
-          gap: 8,
-        }}
-      >
-        {days.map((d) => (
-          <DayCell
-            key={d.date}
-            day={d}
-            locale={locale}
-            timeZone={timeZone}
-            t={t}
-            selected={d.date === selectedDate}
-            onPick={() => onPickDate(d.date)}
-          />
-        ))}
+      <div ref={viewportRef} className={styles.dateViewport}>
+        <div
+          key={start}
+          className={styles.dates}
+          data-direction={page.direction}
+        >
+          {visibleDays.map((day) => (
+            <DayCell
+              key={day.date}
+              day={day}
+              locale={locale}
+              timeZone={timeZone}
+              t={t}
+              selected={day.date === selectedDate}
+              onPick={() => onPickDate(day.date)}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+      {!hasAvailable && <p className={styles.hint}>{t.noAvailability}</p>}
+      <span className="sr-only" role="status">{loading ? t.loading : ""}</span>
+    </section>
   );
 }
 
@@ -1517,74 +1492,33 @@ function DayCell({
 }) {
   const available = day.status === "available";
   const [y, mo, d] = day.date.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
-  const dow = new Intl.DateTimeFormat(locale, {
+  const date = new Date(Date.UTC(y, mo - 1, d, 12));
+  const weekday = new Intl.DateTimeFormat(locale, {
     weekday: "short",
     timeZone,
-  }).format(dt);
-  const dayNum = new Intl.DateTimeFormat(locale, {
+  }).format(date);
+  const dayNumber = new Intl.DateTimeFormat(locale, {
     day: "numeric",
     timeZone,
-  }).format(dt);
-
+  }).format(date);
+  const count =
+    available && day.slotsCount != null
+      ? format(t.slotsCountLabel, { count: String(day.slotsCount) })
+      : null;
   return (
     <button
       type="button"
-      className="tap"
+      className={`tap ${styles.day}`}
       disabled={!available}
+      data-date={day.date}
       onClick={onPick}
       aria-pressed={selected}
-      title={!available ? day.reason ?? day.status : undefined}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 3,
-        padding: "10px 0 9px",
-        height: 74,
-        borderRadius: 14,
-        cursor: available ? "pointer" : "default",
-        opacity: available ? 1 : 0.35,
-        background: selected ? "var(--c-ink)" : "#fff",
-        border: selected
-          ? "1px solid var(--c-ink)"
-          : "1px solid rgba(28,28,26,0.10)",
-      }}
+      aria-label={fmtDateLabel(day.date, locale, timeZone)}
+      title={count ?? (!available ? (day.reason ?? day.status) : undefined)}
     >
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 9.5,
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: selected ? "#fff" : "var(--c-500)",
-        }}
-      >
-        {dow}
-      </span>
-      <span
-        style={{
-          fontSize: 16,
-          fontWeight: 600,
-          fontVariantNumeric: "tabular-nums",
-          color: selected ? "#fff" : "var(--c-900)",
-        }}
-      >
-        {dayNum}
-      </span>
-      {available && day.slotsCount != null && (
-        <span
-          style={{
-            fontSize: 8.5,
-            fontWeight: 600,
-            color: selected ? "#fff" : "var(--s-success-600)",
-            lineHeight: 1,
-          }}
-        >
-          {format(t.slotsCountLabel, { count: String(day.slotsCount) })}
-        </span>
-      )}
+      <span className={styles.weekday}>{weekday}</span>
+      <span className={styles.dayNumber}>{dayNumber}</span>
+      {count && <span className={styles.slotCount}>{count}</span>}
     </button>
   );
 }
@@ -1604,16 +1538,15 @@ function SlotStep({
   showPricing,
   quoteLabel,
   timeZone,
-  sectionLabel,
   t,
   pinnedStaffByKey,
+  fromProfessionalProfile,
   onRetry,
   onPickSlot,
   onPickStaff,
 }: {
   daySlots: BookingDaySlots | null;
   loading: boolean;
-  /** Resolved message (transport-aware — see loadSlots), null when clean. */
   error: string | null;
   selectedDate: string | null;
   selectedSlot: TimeSlot | null;
@@ -1623,125 +1556,115 @@ function SlotStep({
   showPricing: boolean;
   quoteLabel: string;
   timeZone: string;
-  sectionLabel: CSSProperties;
   t: BookingDict;
-  /** Selection-item key → pinned professional (rebook / team-member flow). */
   pinnedStaffByKey: Map<string, number>;
+  fromProfessionalProfile: boolean;
   onRetry: () => void;
   onPickSlot: (slot: TimeSlot) => void;
   onPickStaff: (idx: number, staffId: number | null) => void;
 }) {
   if (error)
-    return <ErrorBlock label={error} retry={t.retry} onRetry={onRetry} loading={loading} />;
-  if (loading) return <LoadingBlock label={t.loading} kind="slots" title={selectedDate ? fmtDateLabel(selectedDate, locale, timeZone) : undefined} headingStyle={sectionLabel} />;
-  if (!daySlots || !selectedDate || daySlots.date !== selectedDate) return null;
-
-  const slots = daySlots.slots ?? [];
-  if (slots.length === 0) {
     return (
-      <div
-        style={{
-          fontSize: 13.5,
-          color: "var(--c-600)",
-          padding: "14px 2px",
-        }}
-      >
-        {t.fullyBookedDay}
-      </div>
+      <ErrorBlock
+        label={error}
+        retry={t.retry}
+        onRetry={onRetry}
+        loading={loading}
+      />
     );
-  }
-
+  if (loading)
+    return (
+      <LoadingBlock
+        label={t.loading}
+        kind="slots"
+        title={
+          selectedDate
+            ? fmtDateLabel(selectedDate, locale, timeZone)
+            : undefined
+        }
+      />
+    );
+  if (!daySlots || !selectedDate || daySlots.date !== selectedDate) return null;
+  const slots = daySlots.slots ?? [];
+  if (slots.length === 0)
+    return <p className={styles.hint}>{t.fullyBookedDay}</p>;
   const groups: Record<SlotGroup, TimeSlot[]> = {
     morning: [],
     afternoon: [],
     evening: [],
   };
-  for (const s of slots) groups[groupForTime(s.startTime)].push(s);
-
+  for (const slot of slots) groups[groupForTime(slot.startTime)].push(slot);
   const groupLabel: Record<SlotGroup, string> = {
     morning: t.morning,
     afternoon: t.afternoon,
     evening: t.evening,
   };
-
-  const isSelected = (s: TimeSlot) =>
-    selectedSlot?.startTime === s.startTime &&
-    selectedSlot?.endTime === s.endTime;
-
+  const staffItems = (selectedSlot?.items ?? []).flatMap((item, index) => {
+    const pinned = pinnedStaffByKey.get(
+      item.type === "bundle" ? `b${item.bundleId}` : `s${item.serviceId}`,
+    );
+    // A profile's professional is already chosen. Keep the picker available
+    // after unpin recovery, or whenever that choice still needs resolving.
+    if (
+      fromProfessionalProfile &&
+      pinned != null &&
+      staffPicks[index] === pinned &&
+      item.availableStaffIds.includes(pinned)
+    )
+      return [];
+    return [{ item, index, pinned }];
+  });
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+    <div className={styles.slotGroups}>
       <div>
-        <div style={sectionLabel}>
+        <h3 className={styles.sectionLabel}>
           {fmtDateLabel(selectedDate, locale, timeZone)}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {(Object.keys(groups) as SlotGroup[]).map((g) =>
-            groups[g].length > 0 ? (
-              <div key={g}>
-                <div style={sectionLabel}>{groupLabel[g]}</div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fill, minmax(86px, 1fr))",
-                    gap: 8,
-                  }}
-                >
-                  {groups[g].map((s) => {
-                    const on = isSelected(s);
-                    return (
-                      <button
-                        key={`${s.startTime}-${s.endTime}`}
-                        type="button"
-                        className="tap zv-slot"
-                        onClick={() => onPickSlot(s)}
-                        style={{
-                          padding: "10px 0",
-                          height: 41,
-                          borderRadius: 11,
-                          cursor: "pointer",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          background: on ? "var(--c-ink)" : "#fff",
-                          color: on ? "#fff" : "var(--c-900)",
-                          border: on
-                            ? "1px solid var(--c-ink)"
-                            : "1px solid rgba(28,28,26,0.10)",
-                        }}
-                      >
-                        {fmtTimeLabel(
-                          selectedDate,
-                          s.startTime,
-                          locale,
-                          timeZone,
-                        )}
-                      </button>
-                    );
-                  })}
+        </h3>
+        <div className={styles.slotGroups}>
+          {(Object.keys(groups) as SlotGroup[]).map((group) =>
+            groups[group].length > 0 ? (
+              <section key={group} aria-label={groupLabel[group]}>
+                <div className={styles.groupLabel}>{groupLabel[group]}</div>
+                <div className={styles.slotGrid}>
+                  {groups[group].map((slot) => (
+                    <button
+                      key={`${slot.startTime}-${slot.endTime}`}
+                      type="button"
+                      className={`tap zv-slot ${styles.slot}`}
+                      aria-pressed={
+                        selectedSlot?.startTime === slot.startTime &&
+                        selectedSlot?.endTime === slot.endTime
+                      }
+                      onClick={() => onPickSlot(slot)}
+                    >
+                      {fmtTimeLabel(
+                        selectedDate,
+                        slot.startTime,
+                        locale,
+                        timeZone,
+                      )}
+                    </button>
+                  ))}
                 </div>
-              </div>
+              </section>
             ) : null,
           )}
         </div>
       </div>
-
-      {/* Per-item staff picker (only once a slot is chosen) */}
-      {selectedSlot && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {selectedSlot.items.map((item, idx) => (
+      {selectedSlot && staffItems.length > 0 && (
+        <div className={styles.staffSection}>
+          {staffItems.map(({ item, index, pinned }) => (
             <StaffPicker
-              key={`${item.type}-${item.serviceId ?? item.bundleId}-${idx}`}
+              key={`${item.type}-${item.serviceId ?? item.bundleId}-${index}`}
               item={item}
-              idx={idx}
-              picked={staffPicks[idx]}
+              idx={index}
+              picked={staffPicks[index]}
               directory={daySlots.staffDirectory}
               showItemLabel={selectedSlot.items.length > 1}
-              varies={itemVariesByStaff(item, daySlots.staffPricing ?? {})}
-              pinned={pinnedStaffByKey.get(
-                item.type === "bundle" ? `b${item.bundleId}` : `s${item.serviceId}`,
-              )}
+              varies={itemVariesByStaff(item, daySlots.staffPricing ?? {}, daySlots.itemStaffPricing, index)}
+              pinned={pinned}
               staffPricing={daySlots.staffPricing ?? {}}
+              itemStaffPricing={daySlots.itemStaffPricing}
               currency={currency}
               showPricing={showPricing}
               quoteLabel={quoteLabel}
@@ -1765,6 +1688,7 @@ function StaffPicker({
   varies,
   pinned,
   staffPricing,
+  itemStaffPricing,
   currency,
   showPricing,
   quoteLabel,
@@ -1777,11 +1701,10 @@ function StaffPicker({
   picked: number | undefined;
   directory: BookingDaySlots["staffDirectory"];
   showItemLabel: boolean;
-  /** Professionals differ in price and/or duration for this item. */
   varies: boolean;
-  /** The professional this item was booked with, when rebooking with them. */
   pinned: number | undefined;
   staffPricing: BookingDaySlots["staffPricing"];
+  itemStaffPricing?: BookingDaySlots["itemStaffPricing"];
   currency: string;
   showPricing: boolean;
   quoteLabel: string;
@@ -1789,158 +1712,81 @@ function StaffPicker({
   t: BookingDict;
   onPick: (idx: number, staffId: number | null) => void;
 }) {
-  const itemName =
-    item.type === "bundle" ? item.bundleName : item.serviceName;
+  const itemName = item.type === "bundle" ? item.bundleName : item.serviceName;
   const isAny = picked == null;
   return (
-    <div>
-      <div
-        style={{
-          fontSize: 13.5,
-          fontWeight: 600,
-          color: "var(--c-800)",
-          marginBottom: varies ? 4 : 10,
-        }}
-      >
-        {showItemLabel && itemName ? `${t.staffLabel} · ${itemName}` : t.staffLabel}
-      </div>
-      {/* When they differ we can't pick for the customer — say why, so the
-          missing "any available" reads as deliberate rather than broken. */}
+    <section>
+      <h3 className={styles.sectionLabel}>
+        {showItemLabel && itemName
+          ? `${t.staffLabel} · ${itemName}`
+          : t.staffLabel}
+      </h3>
       {varies && (
-        <div
-          style={{
-            fontSize: 12.5,
-            lineHeight: 1.45,
-            color: "var(--c-600)",
-            marginBottom: 10,
-          }}
-        >
+        <p className={styles.hint} style={{ marginBottom: 12 }}>
           {t.staffChoiceRequired}
-        </div>
+        </p>
       )}
-      <div className="zw-scroll-x" style={{ gap: 10, paddingBottom: 4 }}>
-        {/* Any available — offered only when every professional charges the
-            same and takes the same time, so assigning one is a free choice.
-            Never when a professional is pinned: this day's availability was
-            computed for THEM alone, so "any" would name a freedom the slots
-            behind it don't actually have. */}
+      <div className={styles.staffChoices}>
+        {/* Availability remains pinned unless the explicit recovery unpins it.
+            Any available is offered only when price and duration are identical. */}
         {!varies && pinned == null && (
           <button
             type="button"
-            className="tap"
+            className={`tap ${styles.staffChoice}`}
             onClick={() => onPick(idx, null)}
             aria-pressed={isAny}
-            style={{
-              ...staffChip(isAny),
-            }}
           >
-            <span
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                background: isAny ? "rgba(255,255,255,0.16)" : "var(--c-200)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Icon
-                name="sparkle"
-                size={17}
-                color={isAny ? "#fff" : "var(--c-700)"}
-              />
+            <span className={styles.anyAvatar} aria-hidden="true">
+              <Icon name="sparkle" size={20} color="currentColor" />
             </span>
-            <span style={staffChipLabel(isAny)}>{t.anyAvailable}</span>
+            <span className={styles.staffText}>
+              <span className={styles.staffName}>{t.anyAvailable}</span>
+            </span>
+            <span data-staff-check aria-hidden="true">
+              {isAny && <Icon name="check" size={12} color="currentColor" />}
+            </span>
           </button>
         )}
-
-        {item.availableStaffIds.map((sid) => {
-          const entry = directory[sid];
-          const on = picked === sid;
-          const name = entry?.name ?? `#${sid}`;
+        {item.availableStaffIds.map((staffId) => {
+          const entry = directory[staffId];
+          const selected = picked === staffId;
+          const name = entry?.name ?? `#${staffId}`;
+          const figures = varies
+            ? staffFiguresForItem(item, staffId, staffPricing, itemStaffPricing, idx)
+            : null;
           return (
             <button
-              key={sid}
+              key={staffId}
               type="button"
-              className="tap"
-              onClick={() => onPick(idx, sid)}
-              aria-pressed={on}
-              style={{ ...staffChip(on) }}
+              className={`tap ${styles.staffChoice}`}
+              onClick={() => onPick(idx, staffId)}
+              aria-pressed={selected}
             >
-              {entry?.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={entry.image}
-                  alt=""
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                  }}
-                />
-              ) : (
-                <Avatar name={name} size={40} />
-              )}
-              <span style={staffChipLabel(on)}>{name.split(" ")[0]}</span>
-              {/* Only when they differ — otherwise it's noise repeated on
-                  every chip. This is what makes the forced choice informed. */}
-              {varies &&
-                (() => {
-                  const f = staffFiguresForItem(item, sid, staffPricing);
-                  return (
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        lineHeight: 1.3,
-                        textAlign: "center",
-                        color: on ? "rgba(255,255,255,0.82)" : "var(--c-600)",
-                      }}
-                    >
-                      {formatDuration(f.durationMinutes)}
-                      <br />
-                      {showPricing ? formatMoney(f.priceAmountMinor, currency, locale) : quoteLabel}
-                    </span>
-                  );
-                })()}
+              <span aria-hidden="true">
+                <Avatar src={entry?.image ?? undefined} name={name} size={44} />
+              </span>
+              <span className={styles.staffText}>
+                <span className={styles.staffName}>{name}</span>
+                {figures && (
+                  <span className={styles.staffFigures}>
+                    {formatDuration(figures.durationMinutes)} ·{" "}
+                    {showPricing
+                      ? formatMoney(figures.priceAmountMinor, currency, locale)
+                      : quoteLabel}
+                  </span>
+                )}
+              </span>
+              <span data-staff-check aria-hidden="true">
+                {selected && (
+                  <Icon name="check" size={12} color="currentColor" />
+                )}
+              </span>
             </button>
           );
         })}
       </div>
-    </div>
+    </section>
   );
-}
-
-function staffChip(on: boolean): CSSProperties {
-  return {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 7,
-    minWidth: 86,
-    flexShrink: 0,
-    cursor: "pointer",
-    padding: "12px 8px 10px",
-    background: on ? "var(--c-ink)" : "#fff",
-    border: on ? "1px solid var(--c-ink)" : "1px solid rgba(28,28,26,0.10)",
-    borderRadius: 16,
-  };
-}
-function staffChipLabel(on: boolean): CSSProperties {
-  return {
-    fontSize: 11,
-    fontWeight: 600,
-    textAlign: "center",
-    lineHeight: 1.25,
-    color: on ? "#fff" : "var(--c-800)",
-    maxWidth: 84,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  };
 }
 
 // ─────────────────────────────────────────────
@@ -1961,14 +1807,13 @@ function ReviewStep({
   timeZone,
   totalMinor,
   totalDuration,
-  submitError,
+  policy,
   t,
   tb,
 }: {
   slot: TimeSlot;
   date: string;
   staffPicks: StaffPicks;
-  /** Slot items re-resolved against the chosen professionals. */
   resolvedItems: ResolvedSlotItem[];
   daySlots: BookingDaySlots | null;
   calendar: BookingCalendar | null;
@@ -1980,146 +1825,33 @@ function ReviewStep({
   timeZone: string;
   totalMinor: number;
   totalDuration: number;
-  submitError: string | null;
+  policy: BookingPolicy | null;
   t: BookingDict;
-  tb: ReturnType<typeof useTranslation>["dict"]["business"];
+  tb: BusinessDict;
 }) {
-  const staffNames = slot.items
-    .map((item, idx) => {
-      const sid = staffPicks[idx];
-      if (sid == null) return null;
-      return daySlots?.staffDirectory[sid]?.name ?? null;
-    })
-    .filter((n): n is string => !!n);
-
-  const card: CSSProperties = {
-    background: "#fff",
-    border: "1px solid rgba(28,28,26,0.08)",
-    borderRadius: 18,
-    boxShadow: "var(--sh-sm)",
-  };
-
+  const staffIds = [
+    ...new Set(
+      slot.items.flatMap((_, index) =>
+        staffPicks[index] == null ? [] : [staffPicks[index]],
+      ),
+    ),
+  ];
+  const staffNames = staffIds
+    .map((staffId) => daySlots?.staffDirectory[staffId]?.name ?? null)
+    .filter((name): name is string => !!name);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      {/* Itemized summary */}
-      <div
-        style={{
-          ...card,
-          padding: "18px 18px 14px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 13,
-        }}
-      >
-        {slot.items.map((item, idx) => {
-          const name =
-            (item.type === "bundle" ? item.bundleName : item.serviceName) ??
-            services[idx]?.name ??
-            "";
-          return (
-            <div
-              key={`${item.type}-${item.serviceId ?? item.bundleId}-${idx}`}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 14.5,
-                    fontWeight: 600,
-                    color: "var(--c-900)",
-                  }}
-                >
-                  {name}
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: "var(--c-600)",
-                    marginTop: 2,
-                  }}
-                >
-                  {formatDuration(
-                    resolvedItems[idx]?.durationMinutes ?? item.durationMinutes,
-                  )}
-                </div>
-              </div>
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: "var(--c-900)",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {showPricing ? formatMoney(
-                  resolvedItems[idx]?.priceAmountMinor ?? item.priceAmountMinor,
-                  currency,
-                  locale,
-                ) : quoteLabel}
-              </span>
-            </div>
-          );
-        })}
-        <div
-          style={{
-            borderTop: "1px solid rgba(28,28,26,0.07)",
-            paddingTop: 13,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-          }}
-        >
-          <span
-            style={{ fontSize: 13.5, fontWeight: 700, color: "var(--c-700)" }}
-          >
-            <span style={{ textTransform: "capitalize" }}>{tb.totalLabel}</span>{" "}
-            · {formatDuration(totalDuration)}
-          </span>
-          <span
-            style={{
-              fontSize: 17,
-              fontWeight: 700,
-              color: "var(--c-900)",
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            {showPricing ? formatMoney(totalMinor, currency, locale) : quoteLabel}
-          </span>
-        </div>
-      </div>
-
-      {/* Date / time / staff / location */}
-      <div
-        style={{
-          ...card,
-          padding: "16px 18px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 11,
-        }}
-      >
+    <div className={styles.review}>
+      <div className={styles.visitDetails}>
         <Row icon="cal">
-          <span style={{ fontWeight: 700 }}>
-            {fmtDateLabel(date, locale, timeZone)} ·{" "}
-            {fmtTimeLabel(date, slot.startTime, locale, timeZone)}
-            {" – "}
-            {/* End of the LAST resolved item, not the slot's own end: picking a
-                faster professional shortens the visit and this must follow. */}
-            {fmtTimeLabel(
-              date,
-              resolvedItems[resolvedItems.length - 1]?.endTime ?? slot.endTime,
-              locale,
-              timeZone,
-            )}
-            {" · "}
-            {formatDuration(totalDuration)}
-          </span>
+          <strong>{fmtDateLabel(date, locale, timeZone)}</strong>
+          <br />
+          {fmtTimeLabel(date, slot.startTime, locale, timeZone)} –{" "}
+          {fmtTimeLabel(
+            date,
+            resolvedItems[resolvedItems.length - 1]?.endTime ?? slot.endTime,
+            locale,
+            timeZone,
+          )}
         </Row>
         <Row icon="user">
           {staffNames.length > 0 ? staffNames.join(", ") : t.anyAvailable}
@@ -2129,26 +1861,99 @@ function ReviewStep({
             (calendar?.locationName ? ` · ${calendar.locationName}` : "")}
         </Row>
       </div>
-
-      {/* Trust card */}
-      <div style={{ ...card, padding: "4px 18px" }}>
-        <TrustRow
-          icon="wallet"
-          title={t.payAtVenueTitle}
-          sub={format(t.payAtVenueNote, {
-            business: calendar?.businessName ?? tb.bookHeading,
-          })}
-          first
-        />
+      <div className={styles.receipt}>
+        <div className={styles.receiptItems}>
+          {slot.items.map((item, index) => (
+            <div
+              key={`${item.type}-${item.serviceId ?? item.bundleId}-${index}`}
+              className={styles.receiptRow}
+            >
+              <div>
+                <div className={styles.serviceName}>
+                  {(item.type === "bundle"
+                    ? item.bundleName
+                    : item.serviceName) ??
+                    services[index]?.name ??
+                    ""}
+                </div>
+                <div className={styles.serviceMeta}>
+                  {formatDuration(
+                    resolvedItems[index]?.durationMinutes ??
+                      item.durationMinutes,
+                  )}
+                </div>
+              </div>
+              <span className={styles.receiptAmount}>
+                {showPricing
+                  ? formatMoney(
+                      resolvedItems[index]?.priceAmountMinor ??
+                        item.priceAmountMinor,
+                      currency,
+                      locale,
+                    )
+                  : quoteLabel}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className={styles.receiptTotal}>
+          <div>
+            <span style={{ textTransform: "capitalize" }}>{tb.totalLabel}</span>
+            <div className={styles.serviceMeta}>
+              {formatDuration(totalDuration)}
+            </div>
+          </div>
+          <strong>
+            {showPricing
+              ? formatMoney(totalMinor, currency, locale)
+              : quoteLabel}
+          </strong>
+        </div>
       </div>
-
-      {submitError && (
-        <InlineError style={{ margin: 0 }}>
-          {submitError}
-        </InlineError>
-      )}
+      {policy && <BookingPolicyNotice policy={policy} />}
+      <div className={styles.paymentNotice}>
+        <Icon name="wallet" size={20} color="var(--c-700)" />
+        <div>
+          <strong>{t.payAtVenueTitle}</strong>
+          <p className="txt-pretty">
+            {format(t.payAtVenueNote, {
+              business: calendar?.businessName ?? tb.bookHeading,
+            })}
+          </p>
+        </div>
+      </div>
     </div>
   );
+}
+
+function BookingPolicyNotice({ policy }: { policy: BookingPolicy }) {
+  const { dict, locale } = useTranslation();
+  const p = dict.appointmentPage;
+  const duration = (minutes: number) => {
+    const unit = minutes % 1440 === 0 ? "day" : minutes % 60 === 0 ? "hour" : "minute";
+    return new Intl.NumberFormat(locale, { style: "unit", unit, unitDisplay: "long" }).format(
+      unit === "day" ? minutes / 1440 : unit === "hour" ? minutes / 60 : minutes,
+    );
+  };
+  const combined = policy.allowCustomerCancellation && policy.allowCustomerReschedule &&
+    policy.cancellationWindowMinutes === policy.rescheduleWindowMinutes;
+  return <section className={styles.policyNotice} aria-label={p.combinedPolicyTitle}>
+    <h3 className={styles.sectionLabel}>{p.combinedPolicyTitle}</h3>
+    {combined ? <p className={styles.hint}>{policy.cancellationWindowMinutes > 0
+      ? format(p.combinedNotice, { duration: duration(policy.cancellationWindowMinutes) })
+      : p.combinedNoNoticeRequired}</p> : <dl>
+      <div><dt>{p.cancellationPolicy}</dt><dd>{!policy.allowCustomerCancellation
+        ? dict.booking.cancellationUnavailable
+        : policy.cancellationWindowMinutes > 0
+          ? format(p.cancellationNotice, { duration: duration(policy.cancellationWindowMinutes) })
+          : p.noNoticeRequired}</dd></div>
+      <div><dt>{p.reschedulePolicy}</dt><dd>{!policy.allowCustomerReschedule
+        ? dict.booking.reschedulingUnavailable
+        : policy.rescheduleWindowMinutes > 0
+          ? format(p.rescheduleNotice, { duration: duration(policy.rescheduleWindowMinutes) })
+          : p.noNoticeRequired}</dd></div>
+    </dl>}
+  </section>;
 }
 
 function Row({
@@ -2159,73 +1964,9 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <Icon name={icon} size={16} color="var(--p-600)" />
-      <span style={{ fontSize: 14, color: "var(--c-800)", minWidth: 0 }}>
-        {children}
-      </span>
-    </div>
-  );
-}
-
-function TrustRow({
-  icon,
-  title,
-  sub,
-  first,
-}: {
-  icon: "shield" | "wallet";
-  title: string;
-  sub: string;
-  first?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
-        padding: "14px 0",
-        borderTop: first ? 0 : "1px solid rgba(28,28,26,0.06)",
-      }}
-    >
-      <span
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          background: "var(--s-success-100)",
-          flexShrink: 0,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon name={icon} size={14} color="var(--s-success-600)" />
-      </span>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--c-900)",
-            letterSpacing: "-0.005em",
-          }}
-        >
-          {title}
-        </div>
-        <div
-          className="txt-pretty"
-          style={{
-            fontSize: 12,
-            lineHeight: 1.35,
-            color: "var(--c-600)",
-            marginTop: 1,
-          }}
-        >
-          {sub}
-        </div>
-      </div>
+    <div className={styles.detailRow}>
+      <Icon name={icon} size={18} color="var(--c-600)" />
+      <span>{children}</span>
     </div>
   );
 }
@@ -2283,73 +2024,20 @@ function BlockedScreen({
   const isPin = block.kind === "staff-pin";
 
   return (
-    <div
-      className="zv-tab-in"
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "32px 28px",
-      }}
-    >
-      <div
-        style={{
-          width: 72,
-          height: 72,
-          borderRadius: "50%",
-          background: "var(--c-200)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon name="info" size={30} color="var(--c-700)" />
+    <div className={styles.state}>
+      <div className={styles.stateIcon}>
+        <Icon name="info" size={30} color="currentColor" />
       </div>
-      <div
-        className="txt-balance"
-        style={{
-          marginTop: 20,
-          fontSize: 21,
-          fontWeight: 700,
-          letterSpacing: "-0.025em",
-          color: "var(--c-900)",
-        }}
-      >
-        {copy.title}
-      </div>
-      <p
-        className="txt-pretty"
-        style={{
-          margin: "10px 0 0",
-          fontSize: 14.5,
-          lineHeight: 1.55,
-          color: "var(--c-600)",
-          maxWidth: 340,
-        }}
-      >
-        {copy.body}
-      </p>
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          marginTop: 26,
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        {isPin ? (
-          <Button kind="primary" onClick={onAnyProfessional}>
-            {b.anyProfessional}
-          </Button>
-        ) : (
-          <Button kind="primary" onClick={onBrowseServices}>
-            {b.browseServices}
-          </Button>
-        )}
+      <h2 className={`txt-balance ${styles.stateTitle}`}>{copy.title}</h2>
+      <p className={`txt-pretty ${styles.stateBody}`}>{copy.body}</p>
+      <div className={styles.stateActions}>
+        <Button
+          kind="accent"
+          className={styles.primaryAction}
+          onClick={isPin ? onAnyProfessional : onBrowseServices}
+        >
+          {isPin ? b.anyProfessional : b.browseServices}
+        </Button>
         <Button kind="secondary" onClick={onClose}>
           {tb.close}
         </Button>
@@ -2389,108 +2077,29 @@ function SuccessScreen({
   }).format(new Date(scheduledAt));
 
   return (
-    <div
-      className="zv-tab-in"
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "32px 28px",
-      }}
-    >
-      <div
-        className="zv-ring-pulse"
-        style={{
-          width: 86,
-          height: 86,
-          borderRadius: "50%",
-          background: "var(--p-500)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow:
-            "0 1px 2px rgba(201,74,42,0.06), 0 14px 36px rgba(201,74,42,0.16)",
-        }}
-      >
-        <svg width="40" height="40" viewBox="0 0 24 24">
-          <path
-            d="M5 12.5l4.5 4.5L19 7.5"
-            fill="none"
-            stroke="#fff"
-            strokeWidth="2.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="24"
-            strokeDashoffset="24"
-            style={{
-              animation: "zv-draw-check .5s .25s var(--ease-out) forwards",
-            }}
-          />
-        </svg>
+    <div className={styles.state}>
+      <div className={styles.stateIcon} data-success="true">
+        <Icon name="check" size={32} color="currentColor" />
       </div>
-      <h2
-        style={{
-          margin: "26px 0 0",
-          fontSize: 26,
-          fontWeight: 600,
-          letterSpacing: "-0.03em",
-          color: "var(--c-900)",
-        }}
-      >
+      <h2 className={`txt-balance ${styles.stateTitle}`}>
         {pending ? t.pendingTitle : t.successTitle}
       </h2>
-      <p
-        className="txt-pretty"
-        style={{
-          margin: "10px 0 0",
-          fontSize: 14.5,
-          lineHeight: 1.55,
-          color: "var(--c-600)",
-          maxWidth: 320,
-        }}
-      >
+      <p className={`txt-pretty ${styles.stateBody}`}>
         {format(pending ? t.pendingBody : t.successBody, {
           services: serviceNames.join(" + "),
           business: businessName,
         })}
       </p>
-      <div
-        style={{
-          marginTop: 22,
-          background: "var(--c-50)",
-          border: "1px solid rgba(28,28,26,0.08)",
-          borderRadius: 16,
-          padding: "16px 22px",
-          minWidth: 260,
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--c-900)",
-          }}
+      <div className={styles.stateDate}>{when}</div>
+      <div className={styles.stateActions}>
+        <Button
+          kind="accent"
+          className={styles.primaryAction}
+          onClick={onViewAppointment}
         >
-          {when}
-        </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          marginTop: 28,
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <Button kind="primary" size="md" onClick={onViewAppointment}>
           {t.viewAppointment}
         </Button>
-        <Button kind="secondary" size="md" onClick={onClose}>
+        <Button kind="secondary" onClick={onClose}>
           {t.close}
         </Button>
       </div>
@@ -2501,25 +2110,47 @@ function SuccessScreen({
 // ─────────────────────────────────────────────
 // Shared small blocks
 // ─────────────────────────────────────────────
-function LoadingBlock({ label, kind, title, headingStyle }: { label: string; kind: "dates" | "slots"; title?: string; headingStyle?: CSSProperties }) {
+function LoadingBlock({
+  label,
+  kind,
+  title,
+}: {
+  label: string;
+  kind: "dates" | "slots";
+  title?: string;
+}) {
   return (
     <div aria-busy="true">
-      {title && <div style={headingStyle}>{title}</div>}
+      {title && <div className={styles.sectionLabel}>{title}</div>}
       <div aria-hidden="true">
-        {kind === "slots" && <Skeleton w={64} h={15.75} r={4} style={{ marginBottom: 9 }} />}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(auto-fill, minmax(${kind === "dates" ? 64 : 86}px, 1fr))`,
-            gap: 8,
-          }}
-        >
-          {Array.from({ length: kind === "dates" ? CAL_DAYS_TO_CHECK : 8 }, (_, index) => (
-            <Skeleton key={index} h={kind === "dates" ? 74 : 41} r={kind === "dates" ? 14 : 11} />
-          ))}
+        {kind === "dates" ? (
+          <div className={styles.skeletonNavigation}>
+            <Skeleton w={44} h={44} r={99} />
+            <Skeleton w="55%" h={18} />
+            <Skeleton w={44} h={44} r={99} />
+          </div>
+        ) : (
+          <Skeleton w={64} h={18} style={{ marginBottom: 10 }} />
+        )}
+        <div className={kind === "dates" ? styles.dateViewport : undefined}>
+          <div
+            className={
+              kind === "dates" ? styles.skeletonDates : styles.slotGrid
+            }
+          >
+            {Array.from({ length: kind === "dates" ? 7 : 10 }, (_, index) => (
+              <Skeleton
+                key={index}
+                h={kind === "dates" ? 88 : 46}
+                r={kind === "dates" ? 16 : 14}
+              />
+            ))}
+          </div>
         </div>
       </div>
-      <p role="status" className="sr-only">{label}</p>
+      <p role="status" className="sr-only">
+        {label}
+      </p>
     </div>
   );
 }
@@ -2536,29 +2167,9 @@ function ErrorBlock({
   loading: boolean;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 14,
-        padding: "32px 0",
-        textAlign: "center",
-      }}
-    >
-      <p
-        className="txt-pretty"
-        style={{
-          margin: 0,
-          fontSize: 14,
-          lineHeight: 1.5,
-          color: "var(--c-600)",
-          maxWidth: 280,
-        }}
-      >
-        {label}
-      </p>
-      <Button kind="secondary" size="md" onClick={onRetry} loading={loading}>
+    <div className={styles.error}>
+      <p className="txt-pretty">{label}</p>
+      <Button kind="secondary" onClick={onRetry} loading={loading}>
         {retry}
       </Button>
     </div>

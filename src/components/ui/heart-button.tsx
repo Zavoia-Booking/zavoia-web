@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
+import { clsx as cn } from "clsx";
 import { Icon } from "./icon";
 import { Skeleton } from "./skeleton";
 import { Spinner } from "./spinner";
 import { useTranslation } from "@/i18n/useTranslation";
+import styles from "./heart-button.module.css";
 
 export interface HeartButtonProps {
   /** undefined is unresolved; null is unavailable after a failed first load. */
@@ -63,21 +65,11 @@ export function HeartButton({
         setTimeout(() => setPop(false), 600);
         onClick?.();
       }}
-      className={actionable ? "tap" : undefined}
+      className={cn(styles.root, floating && styles.floating, actionable && "tap")}
       style={{
         width: size,
         height: size,
-        borderRadius: "50%",
-        border: 0,
         cursor: actionable ? "pointer" : "default",
-        background: floating ? "rgba(255,255,255,0.92)" : "transparent",
-        backdropFilter: floating ? "blur(10px)" : "none",
-        WebkitBackdropFilter: floating ? "blur(10px)" : "none",
-        boxShadow: floating ? "0 1px 4px rgba(28,28,26,0.12)" : "none",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
       }}
     >
       {loading ? (

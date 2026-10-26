@@ -363,7 +363,9 @@ zero result; a failed request must offer recovery instead of claiming either.
 - **Style:** white, 12%-ink hairline, 14px radius, sh-sm; icon leading inside `6px 6px 6px 16px` padding (help search).
 - **Focus:** container `:focus-within` — border warms to `--p-400`, glow `0 0 0 4px var(--p-100)`. Range sliders: 6px `--c-200` track, 26px ink circular thumb.
 - **Switch:** 46×28px pill, `--c-300` off / ink on, white knob springs 18px (`--ease-spring`).
-- **Inline errors:** use the shared `InlineError` component for validation, action and request failures shown within content. It uses a 14px `AlertCircle`, 12px/16px error text (`--s-error-text`), centered icon alignment and a 6px gap. Sign-in credential fields use its explicit `showIcon={false}` option to match the admin sign-in treatment. Field messages sit below the input with a 4px top margin; preserve their IDs and input associations. Render messages only when present so they grow the surrounding content; do not reserve an empty error row. Keep existing callout containers, retry actions and error copy. Loading labels, status badges, toasts and full-page/structured failure states have their own presentations.
+- **Error feedback:** use `PageError` when a failure prevents the page from being used, including initial loading, session-verification and render failures. Reuse its centered illustration, heading and description; choose actions from the actual failure. Retry transient failures, offer navigation out, and never offer Retry for a confirmed missing appointment. Keep successful data visible after background or action failures and announce those through the shared error toast. Repeated automatic failures in one outage must not queue duplicate notifications; explicit retries must report their result. Clear stale notifications after recovery or leaving the page. Appointment dialogs provide room for the shared toast below their controls, inside the keyboard focus scope, so feedback never covers an action or dismisses the form when clicked. Keep field validation inline rather than replacing it with a toast.
+- **Inline errors:** use the shared `InlineError` component for field validation and field-specific API rejections. It uses a 14px `AlertCircle`, 12px/16px error text (`--s-error-text`), centered icon alignment and a 6px gap. Sign-in credential fields use its explicit `showIcon={false}` option to match the admin sign-in treatment. Field messages sit below the input with a 4px top margin; preserve their IDs and input associations. Render messages only when present so they grow the surrounding content; do not reserve an empty error row. Loading labels, status badges, toasts and full-page/structured failure states have their own presentations.
+- **Textareas:** use `TextareaField` for every multiline plain-text field. Disable manual resizing, keep a fixed height with internal vertical scrolling, and show the localized character counter even at zero. Use a single 1px ink border on focus without another outline or ring. Require a visible associated label, a field-specific length cap, and `aria-describedby`/`aria-invalid` associations for errors. Reject HTML tags, script/iframe fragments, executable URI schemes, inline event assignments and unsupported control characters through `validatePlainText`, mirrored in API DTO validation. Preserve ordinary punctuation, diacritics, tabs and line breaks; never silently strip input. Show content/length errors immediately and missing required text after blur or a submit attempt. Revalidate at submission boundaries, retain drafts after failed requests, and use translated `InlineError` messages without an empty reserved error row.
 
 ### Navigation
 - **Top bar:** sticky, `--nav-h` (68px), with an opaque `--c-canvas` background and a subtle bottom hairline. The background stays solid before and after scrolling, on desktop and mobile. Text links (`.zw-navlink`) are 14px/600 at `--c-600`; hover and active simply darken to `--c-900` — color alone carries the state, no underline or pill.
@@ -386,7 +388,7 @@ business surfaces carry no heart. Hearts show for everyone: signed out, a tap
 shows "Sign in to save" with a Sign in action, and an unverifiable session shows
 the heart as unavailable rather than "not saved".
 
-Saved uses the account-page header shared with Appointments: a 36px/600 title
+Saved uses the account-page title scale also used by Appointments: a 36px/600 title
 with no kicker above it and a mono "N saved" summary that hides at zero. Counted ink-active filter
 pills (the Appointments filter grammar) offer All plus only the types you have;
 a selected type that empties stays visible so the choice can be changed. Saved
@@ -444,6 +446,14 @@ what you’ve saved. / Conectează-te pentru a vedea ce ai salvat." The primary
 "Sign in / Conectează-te" and secondary "Explore / Explorează" buttons sit
 together below, wrapping as needed on narrow screens.
 
+Signed-out Appointments uses the same centered layout with a companion studio
+illustration: a clock above the entrance and a small calendar beside the door.
+The H1 is "Appointments / Programări" and the description is "Sign in to see
+your appointments. / Conectează-te pentru a vedea programările tale." Its sign-in
+and explore labels match Saved. `SignedOutGate` supports this layout through an
+optional decorative `artwork` prop; other consumers retain their icon layout.
+
+
 Removal follows the app: the row hides at once and an Undo toast shows
 immediately (it does not queue). The delete is sent when the 6s window closes,
 when another item is removed, or when Saved unmounts; Undo is local, so it never
@@ -472,6 +482,204 @@ changes. Missing currency/timezone blocks booking instead of guessing. Carry the
 effective pricing visibility policy through the profile and booking drawer;
 hidden amounts use the existing Request quote wording.
 
+### Appointments
+
+The signed-in list uses the account title without a repeated summary. Filters
+share one underlined row with an ink active indicator, scrolling horizontally on
+narrow screens. All, Upcoming and Past have count badges; Cancelled and No-show
+omit partial or stale totals. Sections use plain H2s and remain expanded.
+Cards follow marketplace-app's compact receipt:
+a separate weekday/day/month date pill, time and stamp/countdown above the service
+and duration/price, then a perforated seam with 9px side notches. The bottom stub
+contains the location logo/name and professional avatar/first name. Location
+names stay plain text, without hover underlines, tooltips or arrows; the whole
+ticket links to appointment details. Center Load more beneath the history grid.
+The status dot is centered inline with the time. Web cards use 19px service
+titles, 15px times/venue names and 13px supporting details, with 20px vertical
+top-zone padding and a 72px stub. Service titles can occupy two lines.
+Upcoming and history use the same size. Three desktop columns become two on
+smaller screens and a single dotted timeline below 840px. The date pill is ink
+for future bookings, terracotta for today/in progress, and quiet for history;
+cancelled/no-show tickets are muted. Preserve server ordering and statuses,
+including past appointments whose recorded status is still confirmed. Full date,
+status, service, venue and professional remain in the link's accessible name.
+
+A successful empty account hides the filters and centers a large calendar
+streetscape, one H1, direct guidance and an ink Explore action. The calendar uses
+layered paper, rounded binding loops, a turned corner and a quiet seven-column
+grid without selected dates. Its stone neighbors share Saved's fine ledges and
+masonry details. Empty filters keep
+the page heading and filters, with a View all appointments action. Session
+verification failures offer retry, not a sign-in claim. Offline views retain
+loaded content and disable requests until reconnection. Filter, loaded history count and scroll preferences are browser-memory only and owned by the
+authenticated session; appointment records are not stored with those preferences.
+
+Appointment detail uses the shared 1400px content boundary on a plain canvas.
+Keep the warm gradient inside the booked-service receipt: a subtle horizontal
+wash from `--c-50` to a 40% blend of `--c-shade`, continuous through its total.
+An enlarged date pill anchors the service title and business identity; the full
+date and prominent time range stay together beneath it. The recorded status sits
+at the summary's top right in the list's dashed, slightly rotated mono stamp,
+with relative-day text beneath it. Keep confirmed and completed labels visible;
+only an in-progress confirmed visit gets the live dot. On narrow phones the title
+uses the row beneath the stamp so they never overlap. Match the list's date
+colors without deriving a new appointment status.
+Venue and professional identity rows sit side by side where space permits,
+with independently rounded photography and avatars. Separate the two sections
+with a hairline and breathing room; use a horizontal divider when they stack,
+and omit it when no professional is shown. View profile opens the shared
+professional modal over the appointment without changing the URL. Keep booking
+scoped to the appointment's business and location, selecting that single venue
+automatically; if it is unavailable, retain the profile and explain that booking
+is unavailable there without selecting another venue. Historical professionals
+and missing live business/location identities remain noninteractive.
+The lower business section is labeled
+About / Despre, with a View brand / Vezi brandul action to its
+brand page, distinct from the Where section's location link. Avoid stretching these
+identities into empty white cards. The booked-service receipt is the principal
+paper surface, with a perforated total divider and transparent side cutouts that
+reveal the canvas even when the total wraps. Match the list ticket's 16px outer
+corners, inset paper outline around each 9px notch, soft shadow and 2px/4px
+perforation rhythm inset 14px from the edges. Use the list's 19px bold service
+title and 13px mono metadata. Notes and business information
+sit directly on the canvas. Section headings use readable 18px sans type.
+The desktop management sidebar aligns with the summary inside a warm-paper
+container with an 18px radius, hairline border, small shadow and 24px padding.
+It groups actions with hairlines and is sticky only on tall viewports. Its loading skeleton uses
+the same composition and shared loading primitives.
+
+On mobile detail, stack identity rows and show venue and booked services before the management panel.
+A Manage appointment shortcut near the summary focuses that panel. Keep the
+primary View map or Book again action in the existing bottom bar, with an
+opaque canvas background so scrolling content cannot compete with its labels. Eligible
+completed visits instead use Leave a review as the primary action and Book again
+as secondary, on both desktop and mobile. The review action uses the primary
+terracotta (`--p-500`) with no border and white-palette text and star (`--c-50`). Reuse the existing combined review
+flow; a successful submission closes eligibility even if the refresh fails. Policy
+explanations use the location's actual cancellation/rescheduling settings and
+notice windows. Combine them only when both actions are enabled with equal
+notice periods; show the actual duration, or the start-time cutoff when zero.
+The map-search action reads View map / Vezi pe hartă on desktop and mobile.
+Use Call / Sună and With / Cu cine. Preserve each booking's actual source after
+Booked on / Programare făcută pe; only marketplace bookings say via Zavoia.
+Pending requests retain backend-permitted actions and use
+Cancel request wording. Within their scheduled window, unconfirmed visits remain
+Pending, retain map/contact options, and explain that confirmation has
+not been recorded. Past pending appointments say Appointment not confirmed /
+Programare neconfirmată and describe their current status, using the business
+name when available. Do not imply confirmation history, cancellation or a no-show,
+or instruct the customer to check the outcome. Only confirmed visits show live progress. Time passing never
+completes a visit or enables a review. Show a single live status, and suppress
+countdowns on terminal states. Detail and list revalidate while visible and online.
+Offline detail retains loaded information and disables network actions until
+reconnection. Long provider names wrap within the page. Service details retain
+their recorded prices and item breakdown. Label the receipt total Total, with
+Price recorded for this appointment / Prețul înregistrat pentru această programare;
+do not imply payment, balance due or an immutable original price. Emphasize the total,
+keeping the heading focused on the service, date, time and duration.
+
+Rescheduling displays seven dates at a time from the API's thirty-day windows,
+with available times directly below. Times use the same venue-zone, 24-hour
+format as the appointment. Match the other appointment dialogs' 540px width,
+24px title, warm canvas and fixed header/actions with a scrollable body.
+Keep the dialog height stable within the viewport when dates or slots change,
+and preserve the date row's scroll position when clearing the previous week's
+slots. Week changes use a short 220ms directional slide and fade; navigation
+buttons stay mounted, and reduced motion removes the animation.
+Use an unboxed booking summary with an 80px location image (64px on phones),
+a 22px service title (20px on phones), and distinct brand/location text.
+Show each named assigned professional in a separate row with the shared 44px
+circular photo or initial, an 18px name and their returned professional title
+when available. Preserve all named members and wrap long names. Separate the current
+appointment time from date selection with a quiet hairline. Dates and time slots
+use warm neutral surfaces, ink selections and dark keyboard focus; keep 44px
+minimum date targets with internal horizontal scrolling on narrow screens.
+The borderless terracotta confirmation action sits beside the selected new time
+on desktop and below it on phones. Retain the accessible pending action name,
+shared spinner and skeletons matching the date/slot geometry. Preserve the
+existing availability, paging, selection and submission guards.
+Reviews remain one combined submission: each comment
+requires that subject's star rating and untouched subjects stay optional.
+The close button, Escape and backdrop dismiss the review directly and discard
+the unsent draft. Reopening starts a fresh review. Only the explicit Post review
+action submits; dismissal remains blocked while that request is pending.
+The review dialog is 540px wide on desktop, with a 24px title, a quiet booking
+summary and one subject at a time. Eligible professionals come first, followed
+by the location; show its branch name with the brand secondary. Multiple subjects
+have a small step count and segmented progress, Back and Continue/Skip actions.
+Location-only visits open directly into the review without step controls. Keep
+all drafts when navigating, post once from the final step, and prevent a double
+click on Continue from publishing. Use prominent subject imagery, visible neutral
+star outlines and terracotta selected stars. Label the blank three-line field
+Comment (optional) / Comentariu (opțional), with a 2,000-character cap and an
+always-visible counter. Disable manual textarea resizing. On focus, darken the existing
+1px border to ink, preserving its radius without an additional outline or ring.
+Remove tap instructions and scripted comment placeholders.
+Put the one-time submission notice and public identity disclosure immediately
+before the publishing controls; the instruction to include everyone appears only
+when professional targets exist. Notices scroll with the form so actions stay
+reachable on short screens. Public reviews show the first name, surname initial
+and profile photo when available. The final action is borderless terracotta with
+white-palette text; pending requests reuse the shared spinner and retain its
+accessible action name.
+
+Cancellation uses the same 540px dialog and 24px title scale. Show the booked
+service and additional service names with a larger location image, the distinct
+brand/location names, the full date and 24-hour time range in the venue's zone,
+and all named assigned professionals. Keep the summary unboxed, with a quiet
+date badge and one divider before the schedule. Use equal-height Keep/Cancel
+controls, side by side on desktop and full width on phones. Cancellation retains
+the destructive red fill and white-palette text; pending appointments keep the
+Cancel request heading, action and success copy. Preserve pending-action locks,
+duplicate/closing guards, error toasts and the authoritative cancellation result.
+Web appointment management has no external calendar export or download action.
+
+Appointment support uses the same 540px dialog and 24px title scale, with an
+unboxed booking summary, a 112px image (80px on phones) and a separate venue-local
+date and time row. Two native radio choices,
+Problem / Problemă and Question / Întrebare, replace the dropdown; Problem is the
+default for the Report a problem action. A shared ink pill moves between the
+two choices over 220ms with the existing ease-out curve; labels transition over
+160ms. Keep native radio keyboard behavior and focus feedback, and switch
+instantly when reduced motion is preferred. Explain that messages go to Zavoia
+Support with the appointment context, and that replies are in Account → Support
+/ Cont → Asistență. Label the blank field Message / Mesaj, preserving its
+9,500-character limit and always showing the counter, including at zero.
+Disable manual resize and use the review field's
+single dark focus border. Close discards the draft without sending; only Send
+message / Trimite mesajul posts. Use a borderless terracotta submit button with
+white-palette text, shared pending spinner and duplicate/closing guards. Use
+inline field validation and error toasts for request failures. Keep the header and actions fixed with the form scrollable on
+short screens.
+
+
+### Account-link confirmation
+
+The emailed marketplace-access link uses a centered 420px content column without
+a card, border or shadow. The full-width page reuses the home hero's
+`--surface-warm` gradient and quiet terracotta radial glow, with a 30px heading.
+Fade the page background back to `--c-canvas` over its final 220–360px so it
+meets the existing footer surface without a hard color boundary.
+A decorative streetscape with an arched doorway and a personal key leads the
+confirmation and its loading state. Match Saved and Appointments' native SVG line work, stone
+neighbors and terracotta focal object; keep it at most 336px wide and responsive.
+Successful activation reuses the same artwork. Error and retry states retain
+their compact status icons.
+Show the validated account email as a separate identity row, keeping addresses
+wrappable on phones. The password field is 52px high; the primary action is a
+full-width ink pill at least 54px high, followed by a quiet return-to-sign-in link.
+Use the shared AuthField, InlineError and Button loading behavior. Keep password
+and Google actions unavailable while password confirmation is pending.
+This verifies an existing password: require a value and preserve it without
+trimming, Unicode normalization, sanitization or new-password strength checks.
+Focus invalid fields, clear stale errors on edits, and preserve the form for
+network, server and rate-limit failures. Only known token errors make a link unusable.
+The route fallback and validation skeleton share the content geometry. Success,
+unusable-link and retryable-check states use the same shell and their existing
+copy/actions. Preserve the non-consuming token check, password verification,
+Google handoff and localized success destination. The marketplace footer stays
+outside this view and is unchanged.
+
 ### Detail-Page Grammar (signature)
 Location (`/business/[slug]`) and brand (`/brand/[slug]`) pages share one
 grammar: a quiet back control (13.5px/600 `--c-600`, `back` icon, history-aware);
@@ -486,10 +694,156 @@ frosted bottom bar on mobile; and centered modals using `.zw-modal-in/out`
 scale-fade. Team-member profiles open as modals on the team tab
 (`?tab=team&member=<id>` deep link).
 
+The shared professional profile uses a 960px dialog with a warm content surface,
+a 280px identity rail and a stable height capped by the viewport. A fixed toolbar
+holds 44px save/close controls, and a separate footer holds the borderless
+terracotta booking action with white-palette text. Use a 112px portrait and 26px
+name on desktop, then an 80px portrait beside a 22px name on phones. Section
+headings are readable 18px sans text; services use 16.5px names, quiet duration
+and price details, and 44px ink selection indicators. Each bookable service is
+one native toggle button across the whole row, including its text and indicator;
+unavailable rows remain static. Show a single venue without a selection outline,
+using a rectangular photo and separate business, location and address lines.
+The single venue is a whole-row location link, including its photo, with a quiet
+trailing chevron and an ink keyboard focus outline.
+Group multiple venues under their business name and a localized location count.
+Use “Location / Locație” for one venue and “Choose a location / Alege locația”
+for multiple venues, without a repeated explanatory subtitle. The booking bar
+says “Choose a service / Alege un serviciu” until it shows the selection summary.
+Keep the personal “Book with {name} / Programează-te la {name}” action.
+Spell out experience years and use “Since {year} / Din {year}” above the Zavoia
+membership caption. Localize recognized language names and use locale-aware
+count forms; preserve unfamiliar language values and all business-authored
+biographies, service names, service categories and customer review text.
+Use photo-led choices with 88px by 104px venue images, warm paper surfaces,
+18px corners and fine borders. Business headers use a small logo or initials.
+Keep whole-row selection and an ink outline and filled check for the selected
+location. Keep the business and location in each choice's accessible name.
+Changing venue clears service picks.
+Reveal the selected location's service menu directly beneath that location,
+before the next choice. Reuse the same menu and booking state; keep only the
+selected menu interactive. In multi-location profiles, place a quiet
+“View location / Vezi locația” link with a right arrow beside the selected
+menu's Services heading. Use the existing location destination and normal link
+behavior, including opening a new tab without dismissing the profile.
+Keep the selection card focused on choosing the venue.
+Use the shared disclosure timing for a downward
+slide/fade and persistent grid expansion/collapse that moves following cards
+smoothly in both directions. Retain the outgoing venue's exact menu until its
+close finishes, immediately making it inert and hidden from assistive technology.
+Transitions reverse from their current position during rapid switches; reduced
+motion changes immediately. Preserve the open menu on return from booking.
+Native choices expose their expanded state and controlled
+panel; single-location navigation remains a link.
+Professional reviews use bespoke warm-paper line artwork with terracotta and
+neutral details, matching the appointments illustrations, beside neutral copy
+on desktop and above it on phones. Avoid a generic icon tile or circle and do
+not imply that a review can be submitted directly from the profile.
+Keep only “No reviews yet / Nicio recenzie încă” beneath the section heading,
+without an explanatory empty-state description.
+Populated reviews use an aggregate score, readable stars/count, 40px reviewer
+avatars, trailing dates and comments that preserve line breaks. Retain the
+existing review pagination, pending feedback and toast recovery.
+Keep long names and venue details wrappable. Phones use a rounded dialog inset 12px, one content scroller
+and stacked booking controls. Hide the native scrollbar tracks in the rail,
+content and mobile body while preserving native scrolling and keyboard access.
+Retain the shared profile, venue-selection, pricing, favorite and booking logic.
+
+The public professional route server-loads the existing profile and booking
+context. Reuse that context during hydration; a context failure preserves the
+profile and uses the existing toast/retry recovery. Render each venue's actual
+menu in its own persistent accordion panel, with its own effective prices,
+duration, currency and pricing visibility. Closed panels remain inert and hidden
+from assistive technology. After a collapse finishes, replace the outgoing
+selection snapshot with that venue's ordinary closed menu, rather than removing
+the panel's content. This keeps the real services and location links in server
+HTML while retaining explicit multi-location selection and the same motion.
+Use stored location slugs for links, with numeric fallback. Location canonical,
+language alternatives and Open Graph URLs use the resolved location's slug.
+Public team cards link to the independent UUID route while ordinary navigation
+retains contextual modals. Only advertise an independent link when the API marks
+that profile available; the same eligibility controls profile sharing and the
+modal's “View profile / Vezi profilul” link. Otherwise, keep the location card as a
+contextual modal button. Place the modal link below the rating as quiet terracotta
+text with a right arrow; same-tab navigation dismisses the modal, while opening a
+new tab preserves it. Omit this link on the public profile page. Use the homepage's shared
+Zavoia social artwork when the professional has no portrait. Give location links
+localized accessible names that identify their business and venue. Keep Studio
+specimens inactive. Keep the real location
+Team panel mounted before it is visited. Isolate initial location query/deep-link
+reading in its own small Suspense boundary so it cannot replace the full ISR
+page with a loading fallback. Professional sitemap discovery follows
+public team-listing visibility and deduplicates people across venues, without
+changing direct-profile access. Do not invent profile modification dates or
+image descriptions; portfolio controls use localized person/index labels.
+
+The standalone professional page uses the shared 1400px usable-content container
+and responsive gutters. Keep the 320px desktop identity rail balanced with a
+64px gap and readable body copy; stack the identity on phones. A static, subtle
+warm gradient and the existing homepage grain fade from the canvas beneath the
+header and back into it below the identity. Fine ink rules frame the 1400px
+content edges, divide the desktop columns and run above the sticky booking bar.
+Inset content from the frame; use a horizontal column divider on phones.
+Leave at least 64px gaps at the main divider junctions, including above the
+sticky booking bar, and fade their ends over 32px. Keep compact stats separators
+short and softly faded rather than applying the page-scale inset to them.
+Keep decorative layers behind the content and outside pointer interaction.
+The save, share and back controls provide hover and ink keyboard-focus feedback;
+pending controls remain inactive, and reduced motion removes lifts and pops.
+Retain document scrolling and the sticky booking bar above the mobile tabs.
+
+The booking dialog uses the same 540px width, 24px title, warm body, 44px header
+controls and borderless terracotta action as the appointment dialogs. Keep its
+height stable at 780px, capped by the viewport, with a scrolling body between the
+fixed header and actions. Phones use a 12px inset and stacked actions. Hide the
+dialog's native scrollbar tracks while preserving body and state-screen scrolling.
+For bookings started from a professional profile,
+omit per-service professional cards once that professional is pinned and selected.
+Keep their assignment and pricing intact, restore choices after explicit unpin
+recovery, and list each selected professional once in the final review. Show the
+actual reachable step count: two steps for preselected services, three when
+service selection starts in the dialog. Date navigation pages seven dates from
+the existing thirty-day response, with a short directional fade/slide. Browsing
+dates never changes the selected date, time or professional. Preserve the venue
+timezone, staff-dependent prices and durations, hidden-pricing policy, stale
+request guards, authentication draft and submission contract. Selected dates,
+times and services use ink; professional options show circular photos or initials,
+full names and any differing price/duration. Use matching skeletons while content
+loads, and shared toasts for failed actions that retain the current draft.
+When a professional profile starts booking, the first booking step offers Back to
+profile / Înapoi la profil. Returning restores that same profile's venue, service
+selection, scroll and focus. Ordinary dismissal closes both surfaces. The profile
+stays hidden and inert while booking; after an auth route unmounts the source,
+omit the unavailable return action. Review's Back still returns to date and time.
+
+Professional portfolios, location photos and Web Studio fullscreen galleries use
+the shared `ImageViewer`. Keep the dark viewport surface, contained image, quiet
+title, announced photo position and 48px close control consistent. Navigation is
+bounded at the first/last image, with arrows, Home/End and horizontal swipe;
+downward drag dismisses. Image clicks keep the viewer open. Location galleries
+retain their horizontal thumbnail rail. Studio's Mosaic keeps its in-place
+expansion rather than opening fullscreen.
+
+Use the Studio motion vocabulary: a transform-based thumbnail expansion at
+560ms, return at 540ms and directional image changes at 550ms. Cancel active
+motion on navigation/unmount and clean up clones. Reduced motion removes the
+animations and direct drag effects. Respect safe areas and keep controls clear
+of the image on phones. Reuse `Img` and `Skeleton` for image loading/fallback;
+no visible loading text. Radix owns modal isolation; a parent profile is inert
+while the viewer is open and its custom keyboard handlers are suspended. Return
+focus without scrolling after the parent becomes active again. Studio-specific
+thumbnail geometry, source synchronization and theme stay in its adapter.
+
 ### Toast
-Ink pill rising from the bottom (`.zv-toast`, spring), with a terracotta circle
-icon and optional action button; holds 2600ms (4200ms with an action), exits
-with a soft drop.
+Ink toast rising from the bottom (`.zv-toast`, spring), with a terracotta circle
+for ordinary feedback and a standalone 18px red warning triangle for errors.
+Use separate icon, message and control columns, aligned to the first text line,
+with 22px text line-height and 24px corners so multiline messages stay readable.
+The close control has an 18px glyph, a 32px visual circle and a 44px hit target.
+Keep action controls reachable and text wrapping inside the available width.
+The fixed host uses the available width up to 460px. On phones, place it below
+the header so it clears the bottom navigation and sticky appointment actions.
+Holds 4000ms (6000ms with an action), then exits with a soft drop.
 
 ### Web Studio — specimen catalogue
 

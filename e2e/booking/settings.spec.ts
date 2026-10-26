@@ -83,17 +83,19 @@ test.describe('Booking settings', () => {
 
     await page.goto(`/appointments/${uuid}`)
 
-    // Exact copy read off detail-content.tsx's ActionRail/ManageRow: when
-    // the business turns an action off entirely, the row label itself
-    // becomes "<Action> unavailable" and shows the contact-business hint
-    // (canReschedule/canCancel in actions/shared.ts short-circuit on the
-    // business flag before ever checking the notice window).
-    const rescheduleRow = page.getByRole('button', { name: 'Reschedule unavailable' })
-    const cancelRow = page.getByRole('button', { name: 'Cancellation unavailable' })
+    // The action labels remain stable, each row explains its restriction,
+    // and the management rail shares one contact hint below the blocked rows.
+    const rail = page.getByRole('complementary', { name: 'Manage appointment' })
+    const rescheduleRow = rail.getByRole('button', { name: /^Reschedule/ })
+    const cancelRow = rail.getByRole('button', { name: /^Cancel appointment/ })
     await expect(rescheduleRow).toBeVisible()
     await expect(rescheduleRow).toBeDisabled()
+    await expect(rescheduleRow).toContainText('Reschedule unavailable')
     await expect(cancelRow).toBeVisible()
     await expect(cancelRow).toBeDisabled()
-    await expect(page.getByText('For urgent matters contact the business directly')).toHaveCount(2)
+    await expect(cancelRow).toContainText('Cancellation unavailable')
+    const contactHint = rail.getByText('Contact the venue for help.', { exact: true })
+    await expect(contactHint).toHaveCount(1)
+    await expect(contactHint).toBeVisible()
   })
 })

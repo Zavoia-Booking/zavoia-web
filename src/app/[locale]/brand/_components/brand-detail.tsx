@@ -22,7 +22,7 @@
  */
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, CatDot, Icon, Img, Rating } from "@/components/ui";
 import {
@@ -33,6 +33,7 @@ import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
+import { professionalHref } from "@/lib/professionals/urls";
 import type { Locale } from "@/i18n/locales";
 import type {
   BrandDetail as BrandDetailData,
@@ -271,6 +272,7 @@ export function BrandDetail({ brand, locale }: Props) {
               <TeamMemberCard
                 key={m.id}
                 m={m}
+                locale={locale}
                 locationName={
                   multiLocation
                     ? (brand.locations.find((l) => l.id === m.locationId)
@@ -456,34 +458,35 @@ function LocationCard({
  */
 function TeamMemberCard({
   m,
+  locale,
   locationName,
   worksAtLabel,
   onOpen,
 }: {
   m: BrandTeamMember;
+  locale: Locale;
   locationName: string | null;
   worksAtLabel: string;
   onOpen: () => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="zw-hover-lift tap"
-      style={{
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.07)",
-        borderRadius: 18,
-        padding: "22px 16px 18px",
-        textAlign: "center",
-        cursor: "pointer",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 8,
-        boxShadow: "var(--sh-sm)",
-      }}
-    >
+  const cardProps = {
+    className: "zw-hover-lift tap",
+    style: {
+      background: "#fff",
+      border: "1px solid rgba(28,28,26,0.07)",
+      borderRadius: 18,
+      padding: "22px 16px 18px",
+      textAlign: "center",
+      cursor: "pointer",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 8,
+      boxShadow: "var(--sh-sm)",
+    } satisfies CSSProperties,
+  };
+  const content = (
+    <>
       <Avatar
         src={m.profileImage ?? undefined}
         name={m.displayName ?? ""}
@@ -514,6 +517,23 @@ function TeamMemberCard({
           {format(worksAtLabel, { location: locationName })}
         </div>
       )}
+    </>
+  );
+  return m.publicProfileAvailable === true && m.uuid ? (
+    <Link
+      {...cardProps}
+      href={professionalHref(locale, m.uuid)}
+      prefetch={false}
+      onNavigate={(event) => {
+        event.preventDefault();
+        onOpen();
+      }}
+    >
+      {content}
+    </Link>
+  ) : (
+    <button {...cardProps} type="button" onClick={onOpen}>
+      {content}
     </button>
   );
 }

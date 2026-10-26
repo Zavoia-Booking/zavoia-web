@@ -1,10 +1,10 @@
-import type { Locator, Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 /**
  * The booking drawer (src/lib/booking/BookingDrawer.tsx) — a `role="dialog"
- * aria-label="Book an appointment"` sheet. No data-testid anywhere; slot
- * buttons use the utility class `.zv-slot` (they carry no aria-pressed —
- * selection is visual only), everything else is role/aria-label/text.
+ * aria-label="Book an appointment"` sheet. Calendar buttons carry their ISO
+ * date in `data-date`; slot buttons use `.zv-slot`. Both expose selection
+ * through aria-pressed, so date selectors must always use data-date.
  *
  * Step 1 (services) only exists when the drawer was opened with an empty
  * selection (page-level "Book" with nothing pre-picked). Opening from a
@@ -34,7 +34,10 @@ export class BookingDrawer {
   }
 
   stepLabel(n: 1 | 2 | 3): Locator {
-    return this.root.getByText(`Step ${n} of 3`)
+    // Keep callers' logical step numbers when a preselected booking skips the
+    // service picker and displays progress as 1 / 2 rather than 2 / 3.
+    const names = { 1: 'Choose services', 2: 'Pick a date & time', 3: 'Review & confirm' }
+    return this.root.getByRole('heading', { name: names[n], exact: true })
   }
 
   // --- Step 1: choose services (only when the drawer opened empty) ---
@@ -52,28 +55,31 @@ export class BookingDrawer {
 
   dayCell(opts: { dayNumber?: string } = {}): Locator {
     return opts.dayNumber
-      ? this.root.getByRole('button', { name: new RegExp(opts.dayNumber) })
-      : this.root.locator('button[aria-pressed]')
+      ? this.root.locator('button[data-date]').filter({ has: this.page.getByText(String(Number(opts.dayNumber)), { exact: true }) })
+      : this.root.locator('button[data-date]')
   }
 
   /**
-   * Exact day-of-month match — `dayCell({dayNumber})`'s bare regex would
-   * also match "14"/"24"/... as a substring of "4". The day number renders
-   * as its own child node (e.g. `button "Fri 4 6 slots"` with an inner
-   * `"4"` span), so filter on an exact-text child instead of the button's
-   * whole concatenated accessible name.
+   * Exact day-of-month match within the currently visible week. ISO-date
+   * navigation below avoids ambiguity when a calendar spans two months.
    */
   exactDayCell(dayNumber: number): Locator {
-    return this.root
-      .locator('button[aria-pressed]')
-      .filter({ has: this.page.getByText(String(dayNumber), { exact: true }) })
+    return this.dayCell({ dayNumber: String(dayNumber) })
   }
 
   /** Clicks the day matching `isoDate` (YYYY-MM-DD), then the slot labelled `timeLabel` on it. For use with a slot already located via a direct API query (see fixtures/availability.ts) — much faster and more reliable than scanning through the UI. */
   async goToDateAndSlot(isoDate: string, timeLabel: string): Promise<void> {
-    const dayOfMonth = Number(isoDate.split('-')[2])
-    const day = this.exactDayCell(dayOfMonth)
-    await day.waitFor({ state: 'visible', timeout: 15_000 })
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) throw new Error(`Invalid booking date: ${isoDate}`)
+    await this.dayCell().first().waitFor({ state: 'visible', timeout: 15_000 })
+    const visitedPages = new Set<string>()
+    const day = this.root.locator(`button[data-date="${isoDate}"]`)
+    while (!(await day.count())) {
+      const firstDate = await this.dayCell().first().getAttribute('data-date')
+      if (!firstDate || visitedPages.has(firstDate)) break
+      visitedPages.add(firstDate)
+      if (!(await this.changeDatePage(isoDate < firstDate ? 'previous' : 'next'))) break
+    }
+    if (!(await day.count())) throw new Error(`Booking date ${isoDate} is outside the loaded calendar.`)
     await day.click()
     const target = this.slot(timeLabel)
     await target.waitFor({ state: 'visible', timeout: 15_000 })
@@ -89,9 +95,10 @@ export class BookingDrawer {
     return this.root.getByRole('button', { name: 'Any available' })
   }
 
-  /** Staff chips show the FIRST NAME only. */
+  /** Existing callers pass a first name; the redesigned cards display full names and optional figures. */
   staffChip(firstName: string): Locator {
-    return this.root.getByRole('button', { name: firstName, exact: true })
+    const escapedName = firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return this.root.getByRole('button', { name: new RegExp(`^${escapedName}(?:\\s|$)`) })
   }
 
   staffVariesNote(): Locator {
@@ -124,27 +131,55 @@ export class BookingDrawer {
     // clean DB — availableStaffIds was correct for every slot; the app/
     // backend logic isn't the issue here, shared-calendar contention is).
     const maxDays = opts.maxDays ?? 14
-    const days = this.root.locator('button[aria-pressed]:not([disabled])')
-    await days.first().waitFor({ state: 'visible', timeout: 15_000 })
-    const dayCount = Math.min(await days.count(), maxDays)
+    await this.dayCell().first().waitFor({ state: 'visible', timeout: 15_000 })
+    const previousPages = new Set<string>()
+    while (true) {
+      const firstDate = await this.dayCell().first().getAttribute('data-date')
+      if (!firstDate || previousPages.has(firstDate)) break
+      previousPages.add(firstDate)
+      if (!(await this.changeDatePage('previous'))) break
+    }
+    const visitedPages = new Set<string>()
+    const triedDates = new Set<string>()
     const triedCounts: number[] = []
-    for (let d = 0; d < dayCount; d++) {
-      await days.nth(d).click()
-      const slots = this.root.locator('.zv-slot')
-      await slots.first().waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
-      const slotCount = await slots.count()
-      triedCounts.push(slotCount)
-      for (let i = 0; i < slotCount; i++) {
-        const candidate = slots.nth(i)
-        await candidate.click()
-        if (await this.staffChip(firstName).isVisible().catch(() => false)) {
-          return ((await candidate.textContent()) ?? '').trim()
+    while (triedDates.size < maxDays) {
+      const firstDate = await this.dayCell().first().getAttribute('data-date')
+      if (!firstDate || visitedPages.has(firstDate)) break
+      visitedPages.add(firstDate)
+      const dates = await this.root.locator('button[data-date]:not(:disabled)').evaluateAll((days) =>
+        days.map((day) => day.getAttribute('data-date')!),
+      )
+      for (const date of dates) {
+        if (triedDates.size >= maxDays) break
+        triedDates.add(date)
+        await this.root.locator(`button[data-date="${date}"]`).click()
+        const slots = this.root.locator('.zv-slot')
+        await slots.first().waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+        const slotCount = await slots.count()
+        triedCounts.push(slotCount)
+        for (let i = 0; i < slotCount; i++) {
+          const candidate = slots.nth(i)
+          await candidate.click()
+          if (await this.staffChip(firstName).isVisible().catch(() => false)) {
+            return ((await candidate.textContent()) ?? '').trim()
+          }
         }
       }
+      if (triedDates.size >= maxDays || !(await this.changeDatePage('next'))) break
     }
     throw new Error(
-      `pickSlotOffering: no slot across ${dayCount} day(s) (slot counts: ${triedCounts.join(', ')}) offers "${firstName}".`,
+      `pickSlotOffering: no slot across ${triedDates.size} day(s) (slot counts: ${triedCounts.join(', ')}) offers "${firstName}".`,
     )
+  }
+
+  /** Pages only through the already-loaded calendar; verifies progress so scans cannot loop indefinitely. */
+  private async changeDatePage(direction: 'previous' | 'next'): Promise<boolean> {
+    const button = this.root.getByRole('button', { name: direction === 'previous' ? 'Previous dates' : 'Next dates', exact: true })
+    if (!(await button.count()) || !(await button.isEnabled())) return false
+    const firstDate = await this.dayCell().first().getAttribute('data-date')
+    await button.click()
+    await expect(this.dayCell().first()).not.toHaveAttribute('data-date', firstDate ?? '')
+    return true
   }
 
   // --- Step 3: review & confirm ---

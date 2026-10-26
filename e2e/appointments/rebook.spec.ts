@@ -85,7 +85,7 @@ test.describe('Book again', () => {
     await page.goto(`/appointments/${uuid}`)
     await page.getByRole('complementary', { name: 'Manage appointment' }).getByRole('button', { name: 'Book again' }).click()
 
-    await expect(page.getByRole('alert').filter({ hasText: 'is no longer offered at this venue' })).toBeVisible({
+    await expect(page.getByRole('alert').filter({ hasText: 'is no longer offered here' })).toBeVisible({
       timeout: 10_000,
     })
     await expect(page).toHaveURL(/\/business\//, { timeout: 10_000 })

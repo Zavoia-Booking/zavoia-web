@@ -1,18 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button, Icon } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
+import { TextareaField } from "@/components/ui/textarea-field";
 import { type Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
+import { useTranslation } from "@/i18n/useTranslation";
 import { createGuestTicket } from "@/lib/api/marketplace/support";
 import { ApiError } from "@/lib/api/http";
 import type { CreateTicketContext } from "@/lib/api/marketplace/types";
+import {
+  getPlainTextApiError,
+  plainTextErrorMessage,
+  SUPPORT_MESSAGE_MAX_LENGTH,
+  validatePlainText,
+} from "@/lib/validation/free-text";
 
 type ReportDict = Dictionary["help"]["report"];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// The guest API receives the title and body together as one message.
+const GUEST_MESSAGE_MAX_LENGTH = 10000;
 
 const fieldStyle: React.CSSProperties = {
   width: "100%",
@@ -35,11 +45,20 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
+const footerButtonStyle: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  minHeight: 46,
+  padding: "11px 14px",
+  whiteSpace: "normal",
+};
+
 // "Report an issue" — Help Centre aside card + guest report modal. Works
 // signed out: the report goes to the PUBLIC guest ticket endpoint with the
 // visitor's email as the only return channel (confirmation + replies arrive
 // by email; there is no in-app thread for guests).
 export function ReportIssue({ t, locale, context, triggerLabel, className }: { t: ReportDict; locale: Locale; context?: CreateTicketContext; triggerLabel?: string; className?: string }) {
+  const { dict } = useTranslation();
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState<{ email: string; reference: string } | null>(
     null,
@@ -50,7 +69,15 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const titleErrorId = useId();
+  const inFlight = useRef(false);
+  const closing = useRef(false);
+  // A context label can be longer than the title input's typing limit. It is
+  // still valid in the API's combined message, so retain it without truncation.
+  const titleIssue = validatePlainText(title, { maxLength: GUEST_MESSAGE_MAX_LENGTH });
+  const titleError = plainTextErrorMessage(titleIssue, dict.textarea, GUEST_MESSAGE_MAX_LENGTH, locale);
 
   // Escape closes + body scroll lock while the dialog is up (same recipe as
   // the search overlay — inline fixed backdrop, no portal).
@@ -58,7 +85,10 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
     if (!open) return;
     const previousFocus = document.activeElement;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && dialogRef.current?.getAttribute("aria-busy") !== "true") setOpen(false);
+      if (e.key === "Escape" && !inFlight.current) {
+        closing.current = true;
+        setOpen(false);
+      }
       if (e.key !== "Tab") return;
       const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]') ?? []).filter(element => element.getClientRects().length > 0);
       const first = controls[0];
@@ -81,10 +111,31 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
     !submitting &&
     title.trim().length > 0 &&
     EMAIL_RE.test(email.trim()) &&
-    message.trim().length > 0;
+    validatePlainText(message, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH }) === null &&
+    titleIssue === null;
 
   const submit = async () => {
+    if (inFlight.current || closing.current) return;
+    const messageIssue = validatePlainText(message, {
+      required: true,
+      maxLength: SUPPORT_MESSAGE_MAX_LENGTH,
+    });
+    if (titleIssue || messageIssue) {
+      if (titleIssue) titleRef.current?.focus();
+      else messageRef.current?.focus();
+      return;
+    }
     if (!canSubmit) return;
+    const fullMessage = `${title.trim()}\n\n${message.trim()}`;
+    const payloadIssue = validatePlainText(fullMessage, {
+      required: true,
+      maxLength: GUEST_MESSAGE_MAX_LENGTH,
+    });
+    if (payloadIssue) {
+      setError(plainTextErrorMessage(payloadIssue, dict.textarea, GUEST_MESSAGE_MAX_LENGTH, locale));
+      return;
+    }
+    inFlight.current = true;
     setSubmitting(true);
     setError(null);
     const cleanEmail = email.trim().toLowerCase();
@@ -96,33 +147,43 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
         locale,
         category: "bug",
         ...(context ? { context } : {}),
-        message: `${title.trim()}\n\n${message.trim()}`,
+        message: fullMessage,
       });
       setSent({ email: cleanEmail, reference: receipt.uuid });
       setTitle(context?.label ?? "");
       setEmail("");
       setMessage("");
     } catch (err) {
+      const validationIssue = getPlainTextApiError(err);
       setError(
-        err instanceof ApiError && err.status === 429
+        validationIssue
+          ? plainTextErrorMessage(validationIssue, dict.textarea, GUEST_MESSAGE_MAX_LENGTH, locale)
+          : err instanceof ApiError && err.status === 429
           ? t.modal.errorRateLimit
           : t.modal.error,
       );
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   };
 
   const close = () => {
-    if (submitting) return;
+    if (inFlight.current) return;
+    closing.current = true;
     setOpen(false);
     setError(null);
     setSent(null);
   };
 
+  const show = () => {
+    closing.current = false;
+    setOpen(true);
+  };
+
   return (
     <div className={triggerLabel ? undefined : "zw-help-card"}>
-      {triggerLabel ? <button type="button" className={className} onClick={() => setOpen(true)}>{triggerLabel}<Icon name="arrowUR" size={13} /></button> : <>
+      {triggerLabel ? <button type="button" className={className} onClick={show}>{triggerLabel}<Icon name="arrowUR" size={13} /></button> : <>
       <div
         style={{
           fontSize: 16,
@@ -139,7 +200,7 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
       <Button
         kind="primary"
         size="md"
-        onClick={() => setOpen(true)}
+        onClick={show}
         style={{ width: "100%", marginTop: 16, justifyContent: "center" }}
       >
         {t.cta}
@@ -262,25 +323,34 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
                   {t.modal.intro}
                 </p>
 
-                <label style={{ display: "block", marginBottom: 14 }}>
-                  <span style={labelStyle}>{t.modal.titleLabel}</span>
-                  <input
-                    ref={titleRef}
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder={t.modal.titlePlaceholder}
-                    maxLength={200}
-                    disabled={submitting}
-                    style={fieldStyle}
-                  />
-                </label>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block" }}>
+                    <span style={labelStyle}>{t.modal.titleLabel}</span>
+                    <input
+                      ref={titleRef}
+                      value={title}
+                      onChange={(e) => { setTitle(e.target.value); setError(null); }}
+                      placeholder={t.modal.titlePlaceholder}
+                      maxLength={200}
+                      disabled={submitting}
+                      aria-invalid={Boolean(titleError) || undefined}
+                      aria-describedby={titleError ? titleErrorId : undefined}
+                      style={fieldStyle}
+                    />
+                  </label>
+                  {titleError && (
+                    <InlineError id={titleErrorId} style={{ marginTop: 4 }}>
+                      {titleError}
+                    </InlineError>
+                  )}
+                </div>
 
                 <label style={{ display: "block", marginBottom: 14 }}>
                   <span style={labelStyle}>{t.modal.emailLabel}</span>
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setError(null); }}
                     placeholder={t.modal.emailPlaceholder}
                     maxLength={254}
                     disabled={submitting}
@@ -290,18 +360,19 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
                   />
                 </label>
 
-                <label style={{ display: "block", marginBottom: 18 }}>
-                  <span style={labelStyle}>{t.modal.messageLabel}</span>
-                  <textarea
+                <div style={{ marginBottom: 18 }}>
+                  <TextareaField
+                    ref={messageRef}
+                    label={t.modal.messageLabel}
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => { setMessage(e.target.value); setError(null); }}
                     placeholder={t.modal.messagePlaceholder}
                     rows={5}
-                    maxLength={9500}
+                    maxLength={SUPPORT_MESSAGE_MAX_LENGTH}
+                    required
                     disabled={submitting}
-                    style={{ ...fieldStyle, resize: "vertical" }}
                   />
-                </label>
+                </div>
 
                 {error && (
                   <InlineError style={{ margin: "0 0 14px" }}>
@@ -310,13 +381,14 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
                 )}
 
                 <div
-                  style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+                  style={{ display: "flex", gap: 10, alignItems: "stretch" }}
                 >
                   <Button
                     kind="secondary"
                     size="md"
                     onClick={close}
                     disabled={submitting}
+                    style={footerButtonStyle}
                   >
                     {t.modal.cancel}
                   </Button>
@@ -326,6 +398,7 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
                     onClick={submit}
                     disabled={!canSubmit}
                     loading={submitting}
+                    style={footerButtonStyle}
                   >
                     {t.modal.submit}
                   </Button>

@@ -20,7 +20,28 @@ npm run lint
 npx tsc --noEmit --incremental false
 ```
 
-Existing Playwright scripts are in `package.json`. Read `playwright.config.ts` and the existing test setup before running them: they have backend and test-database requirements.
+## Tests
+
+Run the unit regressions with Node 22.22.2, the version used to verify this setup. They use Node's built-in test runner and TypeScript support, without starting the app or accessing the database:
+
+```bash
+npm run test:unit
+```
+
+Run browser UI suites through their dedicated configurations:
+
+```bash
+npx playwright test --config=playwright.appointments-ui.config.ts
+npx playwright test --config=playwright.saved.config.ts
+npx playwright test --config=playwright.auth-ui.config.ts
+npx playwright test --config=playwright.forms-ui.config.ts
+npx playwright test --config=playwright.gallery-ui.config.ts
+npx playwright test --config=playwright.professionals-ui.config.ts
+```
+
+The first five use an already-running web server (localhost:3001 by default) and mock their API traffic. The professional suite starts its own web server on port 3012 and in-memory API on port 4317, including server-rendered requests. These configurations have no database seed/reset setup. Failure screenshots and traces go to ignored `test-results/` directories.
+
+`npm run test:e2e` uses `playwright.config.ts` with a real test API and truncates/reseeds the configured test database. Read its setup before running it; its API port 3001 also conflicts with the normal web development port. Explore and the dedicated UI suites are excluded from that run. Use `--list` to inspect test discovery without starting servers or running setup.
 
 ## Routes and language
 

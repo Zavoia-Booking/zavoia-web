@@ -20,6 +20,8 @@ export {
 export { DatePicker } from "./date-picker";
 export { Spinner, type SpinnerProps } from "./spinner";
 export { InlineError } from "./inline-error";
+export { PageError, type PageErrorProps, type PageErrorAction } from "./page-error";
+export { TextareaField, type TextareaFieldProps } from "./textarea-field";
 export { Stars, Rating, type StarsProps, type RatingProps } from "./rating";
 export { CatDot, type CatDotProps, type CategoryKey } from "./cat-dot";
 export { Kicker, type KickerProps } from "./kicker";
@@ -46,3 +48,4 @@ export {
   type ToastHandle,
   type ToastOptions,
 } from "./toast";
+export { ImageViewer, type ImageViewerProps, type ImageViewerImage, type ImageViewerRect } from "./image-viewer";

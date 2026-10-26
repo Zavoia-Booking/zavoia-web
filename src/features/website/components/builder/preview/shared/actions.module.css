@@ -1,3 +1,5 @@
 .action { position: relative; }
+.professional { color: inherit; text-decoration: none; }
+.professional:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 4px; }
 .action[data-pending="true"] > :not(.spinner) { opacity: 0; }
 .spinner { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }

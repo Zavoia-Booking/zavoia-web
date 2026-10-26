@@ -61,9 +61,9 @@ export class BusinessPage {
       : this.page.getByRole('button', { name: /^Book/ })
   }
 
-  /** Team member card on the Team tab — role="button" tabIndex=0 divs, matched by their visible name text. */
+  /** Public profile link; ordinary activation opens the contextual modal. */
   teamMemberCard(name: string): Locator {
-    return this.page.getByRole('button', { name: new RegExp(name) })
+    return this.page.getByRole('link', { name: new RegExp(name) })
   }
 
   notFoundHeading(): Locator {

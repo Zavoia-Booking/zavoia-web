@@ -5,12 +5,15 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { Icon, type IconName } from "./icon";
 import { useTranslation } from "@/i18n/useTranslation";
+import styles from "./toast.module.css";
 
 // ─────────────────────────────────────────────
 // Toast — context-driven replacement for the prototype's window.zwToast.
@@ -37,9 +40,8 @@ export type ToastAction = {
 };
 
 /**
- * `error` paints the circle with the error token and announces assertively.
- * The default keeps the terracotta circle, so every existing call site looks
- * exactly as it did.
+ * `error` uses a red warning triangle and announces assertively.
+ * The default keeps the terracotta circle and the caller's chosen icon.
  */
 export type ToastTone = "default" | "error";
 
@@ -87,10 +89,16 @@ const ToastContext = createContext<ToastApi | null>(null);
 type HostFns = { show: (s: ToastState) => void; dismiss: (key: number) => void };
 type RegisterFn = (host: HostFns | null) => void;
 const HostContext = createContext<RegisterFn | null>(null);
+const ContainerContext = createContext<{
+  container: HTMLElement | null;
+  setContainer: (container: HTMLElement | null) => void;
+} | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const hostRef = useRef<HostFns | null>(null);
   const seqRef = useRef(0);
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+  const placement = useMemo(() => ({ container, setContainer }), [container]);
 
   const toast = useCallback<ToastApi>(
     (text, icon = "check", action, tone = "default", options) => {
@@ -122,7 +130,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   return (
     <ToastContext.Provider value={toast}>
-      <HostContext.Provider value={register}>{children}</HostContext.Provider>
+      <HostContext.Provider value={register}>
+        <ContainerContext.Provider value={placement}>{children}</ContainerContext.Provider>
+      </HostContext.Provider>
     </ToastContext.Provider>
   );
 }
@@ -135,8 +145,14 @@ export function useToast(): ToastApi {
   return ctx;
 }
 
+/** Keep notification controls inside an open dialog's keyboard focus scope. */
+export function useToastContainerRef() {
+  return useContext(ContainerContext)?.setContainer;
+}
+
 export function ToastHost() {
   const register = useContext(HostContext);
+  const container = useContext(ContainerContext)?.container;
   const { dict } = useTranslation();
   const dismissLabel = dict.errors.dismiss;
   const [current, setCurrent] = useState<ToastState | null>(null);
@@ -227,19 +243,21 @@ export function ToastHost() {
     };
   }, [register, start, leave]);
 
-  return (
+  const content = (
     // Always mounted: a live region inserted at the same moment as its text is
     // not reliably announced. Errors are assertive, everything else polite.
     <div
+      data-toast-host=""
+      className={container ? `${styles.host} ${styles.dialogHost}` : styles.host}
       aria-live={current?.tone === "error" ? "assertive" : "polite"}
       aria-atomic="true"
       style={{
-        position: "fixed",
-        bottom: 28,
-        left: "50%",
-        transform: "translateX(-50%)",
+        position: container ? "static" : "fixed",
+        left: container ? undefined : "50%",
+        transform: container ? undefined : "translateX(-50%)",
         zIndex: 400,
         pointerEvents: "none",
+        width: container ? undefined : "min(92vw, 460px)",
         maxWidth: "min(92vw, 460px)",
       }}
     >
@@ -247,107 +265,33 @@ export function ToastHost() {
         <div
           key={current.key}
           role={current.tone === "error" ? "alert" : "status"}
-          className={"zv-toast" + (leaving ? " zv-toast--out" : "")}
-          style={{
-            background: "var(--c-ink)",
-            color: "#fff",
-            borderRadius: 999,
-            padding: current.action
-              ? "9px 9px 9px 14px"
-              : "11px 20px 11px 14px",
-            fontSize: 14,
-            fontWeight: 500,
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            boxShadow: "var(--sh-lg)",
-            letterSpacing: "-0.01em",
-            pointerEvents: "auto",
-            // Long copy — the rate-limit message carries a countdown — used to
-            // push the pill past both edges of a narrow screen with nothing to
-            // wrap it.
-            textWrap: "pretty",
-          }}
+          data-tone={current.tone}
+          className={`${styles.toast} zv-toast${leaving ? " zv-toast--out" : ""}`}
         >
-          <span
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: "50%",
-              background:
-                current.tone === "error"
-                  ? "var(--s-error-600)"
-                  : "var(--p-500)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name={current.icon} size={12} color="#fff" />
+          <span className={styles.leading} aria-hidden="true">
+            {current.tone === "error"
+              ? <Icon name="warn" size={18} color="var(--s-error-600)" />
+              : <span className={styles.defaultIcon}><Icon name={current.icon} size={12} color="#fff" /></span>}
           </span>
-          {current.text}
+          <span className={styles.message}>{current.text}</span>
           {!current.action && (
-            // A toast WITH an action can already be dismissed by pressing it.
-            // One without had no way out at all — it could only be waited out,
-            // which is the reason it needed longer timings in the first place.
-            // Deliberately understated: a faint hairline circle that doesn't
-            // compete with the message for attention on a pill this compact.
+            // The 44px target keeps the smaller visual close control easy to hit.
             <button
               type="button"
-              className="tap"
+              className={`tap ${styles.dismiss}`}
               onClick={leave}
               aria-label={dismissLabel}
-              style={{
-                marginLeft: 2,
-                width: 20,
-                height: 20,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 999,
-                border: 0,
-                padding: 0,
-                cursor: "pointer",
-                background: "rgba(255,255,255,0.12)",
-                color: "#fff",
-                flexShrink: 0,
-              }}
             >
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-              >
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
+              <Icon name="x" size={18} />
             </button>
           )}
           {current.action && (
             <button
               type="button"
-              className="tap"
+              className={`tap ${styles.action}`}
               onClick={() => {
                 current.action?.onClick?.();
                 leave();
-              }}
-              style={{
-                marginLeft: 4,
-                padding: "6px 14px",
-                borderRadius: 999,
-                border: 0,
-                cursor: "pointer",
-                background: "rgba(255,255,255,0.16)",
-                color: "#fff",
-                fontSize: 13,
-                fontWeight: 600,
-                fontFamily: "inherit",
-                flexShrink: 0,
-                whiteSpace: "nowrap",
               }}
             >
               {current.action.label}
@@ -357,4 +301,5 @@ export function ToastHost() {
       )}
     </div>
   );
+  return container ? createPortal(content, container) : content;
 }

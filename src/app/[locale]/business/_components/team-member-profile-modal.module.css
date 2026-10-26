@@ -1,9 +1,220 @@
-.card {
-  height: min(720px, calc(100dvh - 48px));
+.overlay:global(.zw-member-overlay) { padding: 24px; }
+.card:global(.zw-member-card) {
+  width: min(960px, 100%);
+  height: min(780px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  border-radius: 24px;
+}
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-shrink: 0; padding: 12px 18px; border-bottom: 1px solid var(--c-200); background: var(--c-50); }
+.save { width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: var(--c-100); }
+.toolbarActions { display: flex; align-items: center; gap: 8px; }
+.share { min-height: 44px; color: var(--c-800); }
+.toolbar .share { transition: background-color 160ms var(--ease-out), transform 160ms var(--ease-out); }
+.toolbar .share:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; }
+.close, .social, .pick { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; cursor: pointer; }
+.close { border: 0; background: var(--c-100); }
+.card .body { grid-template-columns: 280px minmax(0, 1fr); overflow: hidden; }
+.card .rail { min-width: 0; padding: 28px 24px 32px; background: var(--c-50); border-right: 0; border-inline-end: 1px solid var(--c-200); }
+.card .main { min-width: 0; padding: 28px 32px 32px; }
+/* Keep native scrolling and hide only the tracks, on all three responsive scrollers. */
+.card .body, .card .rail, .card .main { scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior: contain; }
+.card .body::-webkit-scrollbar, .card .rail::-webkit-scrollbar, .card .main::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.identity { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 20px; min-width: 0; }
+.portrait { --profile-avatar-size: 112px; width: var(--profile-avatar-size); height: var(--profile-avatar-size); flex-shrink: 0; }
+.portrait > * { width: var(--profile-avatar-size) !important; height: var(--profile-avatar-size) !important; font-size: calc(var(--profile-avatar-size) * .42) !important; }
+.identityText { min-width: 0; }
+.name { margin: 0; color: var(--c-900); font-size: 26px; font-weight: 600; letter-spacing: -.035em; line-height: 1.2; overflow-wrap: anywhere; }
+.professionalTitle { margin-top: 7px; color: var(--c-600); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.rating { display: flex; justify-content: center; margin-top: 10px; }
+.stats { display: flex; margin-top: 26px; border-block: 1px solid var(--c-200); }
+.stat { flex: 1; min-width: 0; padding: 16px 5px; text-align: center; }
+.stat + .stat { border-inline-start: 1px solid var(--c-200); }
+.statValue { color: var(--c-900); font-size: 17px; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.statLabel { margin-top: 4px; color: var(--c-600); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.railSection { margin-top: 26px; }
+.railHeading { margin: 0 0 10px; color: var(--c-700); font-size: 13px; font-weight: 600; line-height: 1.5; }
+.railText { color: var(--c-700); font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
+.specialties { display: flex; flex-wrap: wrap; gap: 7px; }
+.specialty { max-width: 100%; padding: 6px 11px; border: 1px solid var(--c-200); border-radius: 999px; background: var(--c-100); color: var(--c-700); font-size: 12.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.socials { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 26px; }
+.social { border: 1px solid var(--c-300); background: var(--c-50); color: var(--c-800); }
+.sections { display: flex; flex-direction: column; gap: 32px; }
+.sectionHeading { margin: 0 0 16px; color: var(--c-900); font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; }
+.bio { margin: 0; max-width: 65ch; color: var(--c-700); font-size: 15px; line-height: 1.75; overflow-wrap: anywhere; }
+.venues { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+.venueGroupHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-inline: 2px; margin-bottom: 12px; }
+.venueGroupIdentity { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.venueGroupName { min-width: 0; color: var(--c-800); font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.venueGroupCount { flex-shrink: 0; color: var(--c-600); font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.venueOptions { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.venueEntry { min-width: 0; }
+/* Match the persistent disclosures in search and the footer. Retaining the
+   outgoing menu lets the grid reverse from its current height on rapid picks. */
+.venueServices { display: grid; grid-template-rows: 0fr; visibility: hidden; pointer-events: none; transition: grid-template-rows var(--disclosure-duration) var(--disclosure-ease), visibility 0s linear var(--disclosure-duration); }
+.venueServices[data-open="true"] { grid-template-rows: 1fr; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+.venueServicesBody { padding: 24px 12px 20px; opacity: 0; transform: translateY(-8px); transition: opacity var(--disclosure-fade-out) var(--disclosure-ease), transform var(--disclosure-duration) var(--disclosure-ease); }
+.venueServices[data-open="true"] .venueServicesBody { opacity: 1; transform: translateY(0); transition-duration: var(--disclosure-fade-in), var(--disclosure-duration); }
+.venue { position: relative; display: flex; align-items: center; gap: 20px; width: 100%; padding: 12px; border: 1px solid var(--c-300); border-radius: 18px; background: var(--c-50); box-shadow: 0 2px 6px rgba(28, 28, 26, .025); transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out); }
+.venue[data-selected="true"] { border-color: var(--c-ink); background: var(--c-100); box-shadow: none; }
+.venue[data-single="true"] { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.venuePhoto { width: 88px; height: 104px; flex-shrink: 0; border-radius: 12px; overflow: hidden; object-fit: cover; }
+.venue[data-single="true"] .venuePhoto { width: 80px; height: 96px; }
+.venueChoice { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 0; border: 0; border-radius: inherit; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.venueChoice::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+a.venueChoice { text-decoration: none; }
+.venueChoice > svg { flex-shrink: 0; }
+.venueText { flex: 1; min-width: 0; }
+.venueBrand { display: block; margin-bottom: 3px; color: var(--c-600); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.venueName { display: block; color: var(--c-900); font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.venueAddress { display: block; margin-top: 3px; color: var(--c-600); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.venueRating { display: inline-flex; margin-top: 5px; }
+.venueRadio { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex-shrink: 0; border: 1px solid var(--c-400); border-radius: 50%; background: var(--c-50); }
+.venue[data-selected="true"] .venueRadio { border-color: var(--c-ink); background: var(--c-ink); }
+.serviceGroups { display: flex; flex-direction: column; gap: 24px; }
+.servicesHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; }
+.servicesHeader .sectionHeading { margin: 0; }
+.viewLocation { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; flex-shrink: 0; border-radius: 4px; color: var(--c-600); font-size: 13px; line-height: 1.5; text-decoration: none; }
+.viewLocation:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 4px; }
+.viewProfile { margin-top: 8px; color: var(--p-700); font-weight: 600; }
+.category { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--c-600); font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; line-height: 1.5; letter-spacing: .08em; text-transform: uppercase; overflow-wrap: anywhere; }
+.category > span { flex-shrink: 0; }
+.serviceRow { display: flex; align-items: center; gap: 16px; width: 100%; min-width: 0; padding: 16px 12px; border: 0; border-bottom: 1px solid var(--c-200); border-radius: 12px; background: transparent; font: inherit; text-align: start; transition: background-color 160ms var(--ease-out); }
+button.serviceRow { cursor: pointer; }
+.serviceRow[data-selected="true"] { background: var(--c-100); }
+.serviceText { display: block; flex: 1; min-width: 0; }
+.serviceName { display: block; color: var(--c-900); font-size: 16.5px; font-weight: 600; line-height: 1.45; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.serviceMeta { display: block; margin-top: 6px; color: var(--c-600); font-size: 13px; font-weight: 500; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pick { border: 1px solid var(--c-300); background: var(--c-50); cursor: inherit; transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out); }
+.serviceRow[data-selected="true"] .pick { border-color: var(--c-ink); background: var(--c-ink); }
+.portfolio { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+.portfolioTile:global(.zw-member-tile) { border-radius: 14px; }
+.reviewsSection, .reviewList { min-width: 0; }
+.reviewsEmpty { display: grid; grid-template-columns: 220px minmax(0, 1fr); align-items: center; gap: 24px; padding: 18px 0 12px; border-top: 1px solid var(--c-200); }
+.reviewsEmptyArt { width: 100%; max-width: 260px; }
+.reviewsEmptyArt > svg { display: block; width: 100%; height: auto; }
+.reviewsEmptyCopy { min-width: 0; }
+.reviewsEmptyTitle { margin: 0; color: var(--c-900); font-size: 18px; font-weight: 600; line-height: 1.4; text-wrap: balance; }
+.reviewSummary { display: flex; align-items: center; gap: 16px; padding: 4px 0 24px; border-bottom: 1px solid var(--c-200); }
+.reviewAverage { color: var(--c-900); font-size: 40px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.reviewAggregate { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.reviewCount { color: var(--c-600); font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.review { padding: 24px 0; border-bottom: 1px solid var(--c-200); }
+.reviewHeader { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.reviewIdentity { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.reviewName { color: var(--c-900); font-size: 14.5px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.reviewDate { color: var(--c-600); font-size: 12px; line-height: 1.5; text-align: end; font-variant-numeric: tabular-nums; }
+.reviewComment { margin: 14px 0 0; max-width: 65ch; color: var(--c-700); font-size: 14.5px; line-height: 1.7; overflow-wrap: anywhere; white-space: pre-wrap; }
+.reviewsMore { padding-top: 20px; }
+.reviewsMore > button { min-height: 44px; }
+.bookingBar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px; flex-shrink: 0; padding: 18px 28px calc(18px + env(safe-area-inset-bottom)); border-top: 1px solid var(--c-200); background: var(--c-50); }
+.bookingSummary { min-width: 0; color: var(--c-600); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.bookingTotal { color: var(--c-900); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bookingAction { min-width: 180px; max-width: 280px; min-height: 54px; white-space: normal !important; line-height: 1.4; overflow-wrap: anywhere; }
+.close:focus-visible, .social:focus-visible, button.serviceRow:focus-visible, .portfolioTile:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; }
+.venueChoice:focus-visible { outline: none; }
+.venueChoice:focus-visible::after { outline: 2px solid var(--c-ink); outline-offset: 3px; }
+.save > button:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; }
+
+/* The public destination keeps the marketplace's 1400px usable content shell.
+   Static landing-page materials fade into the canvas behind the profile. */
+.page { --profile-top-space: 28px; --profile-bottom-space: 48px; --profile-rule: rgba(28, 28, 26, .10); position: relative; isolation: isolate; width: 100%; padding-block: var(--profile-top-space) var(--profile-bottom-space); }
+.page::before, .page::after { content: ""; position: absolute; inset: 0 0 auto; height: min(760px, 100%); z-index: -1; pointer-events: none; mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 42%, transparent 100%); }
+.page::before { background: radial-gradient(ellipse 70% 80% at 5% 12%, color-mix(in oklch, var(--p-500) 7%, transparent), transparent 76%), var(--surface-warm); opacity: .75; }
+.page::after { background: url('/images/homepage/studio-grain.svg') repeat; opacity: .14; mix-blend-mode: multiply; }
+.pageCard { --profile-inset: 24px; --profile-rail: 320px; --profile-gap: 64px; --profile-rule-gap: 64px; --profile-rule-fade: 32px; position: relative; min-width: 0; }
+/* Frame the 1400px content boundary without changing the shared container. */
+.pageCard::before { content: ""; position: absolute; inset-block: calc(-1 * var(--profile-top-space)) calc(-1 * var(--profile-bottom-space)); inset-inline: var(--gutter); border-inline: 1px solid var(--profile-rule); z-index: 1; pointer-events: none; mask-image: linear-gradient(to bottom, transparent, #000 64px, #000 calc(100% - 64px), transparent); }
+.pageCard .toolbar { position: relative; padding: 0 var(--profile-inset) 24px; border-color: transparent; background: transparent; }
+.pageCard .toolbar::after, .pageCard .bookingBar::after { content: ""; position: absolute; inset-inline: var(--profile-rule-gap); height: 1px; background: var(--profile-rule); pointer-events: none; mask-image: linear-gradient(to right, transparent, #000 var(--profile-rule-fade), #000 calc(100% - var(--profile-rule-fade)), transparent); }
+.pageCard .toolbar::after { bottom: -1px; }
+.pageBack { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--c-600); font-size: 14px; line-height: 1.5; text-decoration: none; }
+.pageBack:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; border-radius: 6px; }
+.pageCard .body { position: relative; display: grid; grid-template-columns: var(--profile-rail) minmax(0, 1fr); gap: var(--profile-gap); padding: 48px var(--profile-inset); }
+.pageCard .body::before { content: ""; position: absolute; inset-block: var(--profile-rule-gap); inset-inline-start: calc(var(--profile-inset) + var(--profile-rail) + var(--profile-gap) / 2); width: 1px; background: var(--profile-rule); pointer-events: none; mask-image: linear-gradient(to bottom, transparent, #000 var(--profile-rule-fade), #000 calc(100% - var(--profile-rule-fade)), transparent); }
+.pageCard .rail { position: relative; overflow: visible; padding: 0; background: transparent; border: 0; }
+.pageCard .main { min-width: 0; overflow: visible; padding: 0; }
+.pageCard .portrait { --profile-avatar-size: 144px; }
+.pageCard .name { font-size: clamp(28px, 3vw, 36px); }
+.pageCard .bookingBar { position: sticky; bottom: 0; z-index: 20; padding-inline: var(--profile-inset); border: 0; border-top: 1px solid transparent; border-radius: 0; background: var(--c-canvas); }
+/* Keep the gap visible even when the sticky bar passes over the center rule. */
+.pageCard .bookingBar::before { content: ""; position: absolute; top: calc(-1 * (var(--profile-rule-gap) + var(--profile-rule-fade))); inset-inline-start: calc(var(--profile-inset) + var(--profile-rail) + var(--profile-gap) / 2); width: 1px; height: calc(var(--profile-rule-gap) + var(--profile-rule-fade)); background: linear-gradient(to bottom, transparent, var(--c-canvas) var(--profile-rule-fade), var(--c-canvas)); pointer-events: none; }
+.pageCard .bookingBar::after { top: -1px; }
+.pageCard .stat + .stat { position: relative; border-inline-start: 0; }
+.pageCard .stat + .stat::before { content: ""; position: absolute; inset-block: 12px; inset-inline-start: 0; width: 1px; background: var(--c-200); pointer-events: none; mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 65%, transparent); }
+.pageCard .bio, .pageCard .reviewComment { text-wrap: pretty; }
+
+@media (max-width: 1100px) {
+  .pageCard { --profile-rail: 280px; --profile-gap: 40px; }
+}
+
+@media (max-width: 920px) {
+  .pageCard { --profile-rail: 240px; --profile-gap: 32px; }
+  .pageCard .bookingBar { bottom: var(--mobile-tabs-h); }
+}
+
+@media (hover: hover) {
+  .viewLocation:hover { color: var(--c-900); text-decoration: underline; text-underline-offset: 4px; }
+  .pageBack:hover { color: var(--c-900); text-decoration: underline; text-underline-offset: 4px; }
+  .toolbar .share:not(:disabled):hover { background: var(--c-200) !important; transform: translateY(-1px); box-shadow: none; filter: none; }
+  .toolbar .share:not(:disabled):active { transform: scale(.97); box-shadow: none; filter: none; }
+  a.venueChoice:hover .venueName { text-decoration: underline; text-underline-offset: 3px; }
+  .venue[data-single="false"]:not([data-selected="true"]):hover { border-color: var(--c-400); background: var(--c-50); box-shadow: var(--sh-sm); }
+  button.serviceRow:hover { background: var(--c-100); }
+  button.serviceRow:hover .pick { border-color: var(--c-500); }
+  .social:hover, .close:hover { border-color: var(--c-500); background: var(--c-200); }
+}
+
+@media (pointer: coarse) {
+  .viewLocation { min-height: 44px; }
 }
 
 @media (max-width: 720px) {
-  .card {
-    height: calc(100dvh - 36px);
-  }
+  .page { --profile-top-space: 16px; --profile-bottom-space: 32px; }
+  .pageCard { --profile-inset: 12px; }
+  .pageCard .toolbar { gap: 12px; padding-bottom: 16px; }
+  .pageBack { max-width: 50%; font-size: 13px; }
+  .pageBack > svg { flex-shrink: 0; }
+  .pageCard .body { display: block; padding-block: 28px; }
+  .pageCard .body::before { content: none; }
+  .pageCard .bookingBar::before { content: none; }
+  .pageCard .rail { padding-bottom: 28px; margin-bottom: 28px; border-bottom: 1px solid transparent; }
+  .pageCard .rail::after { content: ""; position: absolute; bottom: -1px; inset-inline: var(--profile-rule-gap); height: 1px; background: var(--profile-rule); pointer-events: none; mask-image: linear-gradient(to right, transparent, #000 var(--profile-rule-fade), #000 calc(100% - var(--profile-rule-fade)), transparent); }
+  .pageCard .portrait { --profile-avatar-size: 88px; }
+  .pageCard .name { font-size: 28px; }
+  .pageCard .bookingBar { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .overlay:global(.zw-member-overlay) { align-items: center; padding: 12px; }
+  .card:global(.zw-member-card) { height: calc(100dvh - 24px); max-height: calc(100dvh - 24px); border-radius: 24px; }
+  .toolbar { padding: 12px 16px; }
+  .card .body { display: block; overflow-y: auto; }
+  .card .rail { overflow: visible; padding: 24px 20px; border-inline-end: 0; border-bottom: 1px solid var(--c-200); }
+  .card .main { overflow: visible; padding: 24px 20px 28px; }
+  .identity { display: flex; flex-direction: row; align-items: center; gap: 18px; text-align: start; }
+  .portrait { --profile-avatar-size: 80px; }
+  .name { font-size: 22px; }
+  .professionalTitle { margin-top: 5px; font-size: 13.5px; }
+  .rating { justify-content: flex-start; margin-top: 8px; }
+  .stats { margin-top: 24px; }
+  .railSection, .socials { margin-top: 22px; }
+  .socials { justify-content: flex-start; }
+  .sections { gap: 28px; }
+  .venue { padding: 10px; gap: 14px; border-radius: 16px; }
+  .venuePhoto { width: 72px; height: 88px; }
+  .venue[data-single="true"] .venuePhoto { width: 64px; height: 80px; }
+  .venueGroupHeader { gap: 12px; }
+  .venueName { font-size: 17px; }
+  .venueRadio { width: 24px; height: 24px; }
+  .reviewHeader { grid-template-columns: 40px minmax(0, 1fr); row-gap: 6px; }
+  .reviewDate { grid-column: 2 / -1; text-align: start; }
+  .reviewsEmpty { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 16px; padding: 24px 12px 12px; text-align: center; }
+  .reviewsEmptyArt { max-width: 240px; }
+  .serviceRow { padding: 16px 8px; gap: 12px; }
+  .serviceName { font-size: 16px; }
+  .portfolio { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .bookingBar { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px 20px calc(18px + env(safe-area-inset-bottom)); }
+  .bookingAction { width: 100%; min-width: 0; max-width: none; font-size: 14px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .venue, .serviceRow, .pick, .toolbar .share { transition: none; }
+  .toolbar .share:not(:disabled):hover, .toolbar .share:not(:disabled):active { transform: none; }
 }

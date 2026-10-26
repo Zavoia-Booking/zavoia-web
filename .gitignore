@@ -18,6 +18,8 @@
 
 # next.js
 /.next/
+/.next-professionals-ui/
+/.next-professionals-build/
 /out/
 
 # production

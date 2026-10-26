@@ -1,33 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useTransition, type CSSProperties } from "react";
+import { PageError } from "@/components/ui/page-error";
 
 /**
- * Root-layout crash boundary. `[locale]/layout.tsx` IS the app's root layout
- * (there is no `app/layout.tsx` — the app has only one top-level segment,
- * `[locale]`, per the not-found.tsx comment on this same constraint), so this
- * is the one file in the tree that catches a throw from the root layout
- * itself (its providers, its `<html>`/`<body>`, anything above where
- * `[locale]/error.tsx` can reach).
- *
- * Per the error.js docs: global-error "replaces the root layout... when
- * active", must define its own `<html>`/`<body>`, and cannot export
- * `metadata`/`generateMetadata` (error boundaries must be Client Components).
- * Concretely here that also means no `I18nProvider` — nothing above this
- * point survived — so this can't call `useTranslation()` or read a locale.
- * That's why this is the one screen in the app that shows both languages at
- * once, in plain inline styles, importing nothing from the design system.
+ * A root-layout crash removes the app's providers and global stylesheet.
+ * Keep recovery provider-free, with its own document, theme and home anchor.
  */
 export default function GlobalError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
-  // The root layout crashed — the most severe failure the app has, and the
-  // least likely to be reproducible. Record it even though nothing about it
-  // is shown here.
+  const [isPending, startTransition] = useTransition();
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -35,99 +23,52 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body
+        className="zv-global-error"
         style={{
+          "--c-50": "oklch(99% 0.004 70)",
+          "--c-600": "oklch(48% 0.008 70)",
+          "--c-800": "oklch(25% 0.005 70)",
+          "--c-900": "oklch(15% 0.004 70)",
+          "--c-canvas": "#FAFAF7",
+          "--c-shade": "#F0EEE4",
+          "--c-mist": "#E8E3D8",
+          "--c-ink": "#1C1C1A",
+          "--p-500": "oklch(53% 0.15 38)",
+          "--gutter": "20px",
+          "--r-full": "9999px",
           margin: 0,
-          display: "flex",
           minHeight: "100dvh",
+          display: "grid",
           alignItems: "center",
-          justifyContent: "center",
-          padding: "24px",
-          fontFamily:
-            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-          background: "#fff",
-          color: "#1c1c1a",
-          cursor: "default",
-        }}
+          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+          background: "var(--c-canvas)",
+          color: "var(--c-ink)",
+        } as CSSProperties}
       >
         <title>Zavoia</title>
-        <div style={{ textAlign: "center", maxWidth: 440 }}>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "clamp(24px, 4vw, 34px)",
-              fontWeight: 600,
-              letterSpacing: "-0.02em",
-              lineHeight: 1.2,
-            }}
-          >
-            Something went wrong.
-            <br />
-            Ceva nu a mers bine.
-          </h1>
-          <p
-            style={{
-              margin: "16px 0 0",
-              fontSize: 15.5,
-              lineHeight: 1.6,
-              color: "#5c5c58",
-            }}
-          >
-            We hit an unexpected error loading this page. Please try again.
-            <br />
-            Am întâmpinat o eroare neașteptată la încărcarea paginii.
-            Încearcă din nou.
-          </p>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 12,
-              marginTop: 26,
-              justifyContent: "center",
-            }}
-          >
-            <button
-              type="button"
-              onClick={reset}
-              style={{
-                padding: "13px 26px",
-                fontSize: 15.5,
-                fontWeight: 600,
-                borderRadius: 999,
-                border: "1px solid #1c1c1a",
-                background: "#1c1c1a",
-                color: "#fff",
-                cursor: "pointer",
-              }}
-            >
-              Try again / Încearcă din nou
-            </button>
-            {/*
-              A plain anchor, not next/link: the root layout just crashed, so
-              the router this boundary is rendered beside may be part of what
-              broke. A full document load is the recovery that cannot itself
-              fail — which is the whole job of this screen.
-            */}
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a
-              href="/"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "13px 26px",
-                fontSize: 15.5,
-                fontWeight: 600,
-                borderRadius: 999,
-                textDecoration: "none",
-                border: "1px solid rgba(28,28,26,0.14)",
-                color: "#1c1c1a",
-                cursor: "pointer",
-              }}
-            >
-              Home / Acasă
-            </a>
-          </div>
-        </div>
+        <style>{`
+          .zv-global-error *, .zv-global-error *::before, .zv-global-error *::after { box-sizing: border-box; }
+          .zv-global-error button, .zv-global-error a { font-family: inherit; }
+          .zv-global-error :focus-visible { outline: 2px solid var(--c-ink); outline-offset: 4px; }
+          .zv-global-error .zv-spin { animation: global-error-spin 900ms linear infinite; }
+          .zv-global-error .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+          @keyframes global-error-spin { to { transform: rotate(360deg); } }
+          @media (prefers-reduced-motion: reduce) { .zv-global-error .zv-spin { animation: none; } }
+        `}</style>
+        <PageError
+          title="We couldn't load this page / Nu am putut încărca pagina"
+          description="Try loading it again, or return to the home page. Încearcă să o încarci din nou sau revino la pagina principală."
+          primary={{
+            label: "Try again / Încearcă din nou",
+            onClick: () => startTransition(retry),
+            loading: isPending,
+          }}
+          secondary={{ label: "Home / Acasă", href: "/", fullReload: true }}
+          focusOnMount
+        />
+        <p role="status" aria-atomic="true" className="sr-only">
+          {isPending ? "Loading / Se încarcă" : ""}
+        </p>
       </body>
     </html>
   );

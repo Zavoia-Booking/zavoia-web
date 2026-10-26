@@ -1,0 +1,53 @@
+.illustrated {
+  display: grid;
+  min-height: calc(100svh - var(--nav-h));
+  place-items: center;
+  padding-block: 48px;
+}
+.inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+.artwork {
+  width: min(440px, 100%);
+  pointer-events: none;
+}
+.artwork > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.copy {
+  min-width: 0;
+  max-width: 44ch;
+}
+.copy h1 {
+  margin: 0;
+  color: var(--c-900);
+  font-size: clamp(26px, 2.5vw, 32px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.copy p {
+  margin: 10px 0 0;
+  color: var(--c-700);
+  font-size: 16px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+@media (max-width: 920px) {
+  .illustrated {
+    min-height: calc(100svh - var(--nav-h) - var(--mobile-tabs-h));
+  }
+}

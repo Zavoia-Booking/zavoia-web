@@ -1,0 +1,72 @@
+.page {
+  display: grid;
+  min-block-size: calc(100svh - var(--nav-h));
+  place-items: center;
+  padding: 48px var(--gutter) 64px;
+  /* Ease back to the footer's canvas-colored top without changing its surface. */
+  background:
+    linear-gradient(to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--c-canvas) 12%, transparent) 25%,
+      color-mix(in srgb, var(--c-canvas) 50%, transparent) 50%,
+      color-mix(in srgb, var(--c-canvas) 88%, transparent) 75%,
+      var(--c-canvas) 100%) bottom / 100% clamp(220px, 22vw, 360px) no-repeat,
+    radial-gradient(closest-side, color-mix(in oklch, var(--p-400) 9%, transparent) 0%, transparent 100%) center 44% / min(760px, 100%) 360px no-repeat,
+    var(--surface-warm);
+}
+.content {
+  inline-size: 100%;
+  max-inline-size: 420px;
+  min-inline-size: 0;
+}
+.header { text-align: center; }
+.artwork { display: block; inline-size: min(100%, 336px); block-size: auto; margin: 0 auto 24px; }
+.mark {
+  display: grid;
+  inline-size: 64px;
+  block-size: 64px;
+  place-items: center;
+  margin: 0 auto 24px;
+  border-radius: 20px;
+  background: var(--c-200);
+  color: var(--c-700);
+}
+.mark[data-tone="success"] { background: var(--s-success-100); color: var(--s-success-600); }
+.mark[data-tone="warning"] { background: var(--c-200); color: var(--c-600); }
+.header h1 { margin: 0; color: var(--c-900); font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -.035em; text-wrap: balance; }
+.description { margin-top: 12px; color: var(--c-600); font-size: 16px; line-height: 1.6; text-wrap: pretty; }
+.description p { margin: 0; }
+.identity { display: flex; min-inline-size: 0; align-items: center; gap: 14px; margin-block: 28px; padding-block: 18px; border-block: 1px solid rgba(28, 28, 26, .08); color: var(--c-600); }
+.identity > svg { flex-shrink: 0; }
+.identityCopy { display: flex; min-inline-size: 0; flex: 1; flex-direction: column; gap: 4px; }
+.accountLabel { margin: 0; color: var(--c-600); font-size: 13px; line-height: 18px; }
+.email { margin: 0; color: var(--c-900); font-size: 15px; font-weight: 600; line-height: 22px; overflow-wrap: anywhere; }
+.form { display: flex; min-inline-size: 0; flex-direction: column; gap: 20px; }
+.form :global(.zv-auth-input) { height: 52px; font-size: 16px; }
+.form :global(.auth-google-button), .googleOnly :global(.auth-google-button) { height: 52px; }
+.submit { inline-size: 100%; min-block-size: 54px; }
+.back { display: flex; min-block-size: 44px; align-items: center; justify-content: center; gap: 8px; padding: 8px; color: var(--c-600); font-size: 14px; font-weight: 500; line-height: 20px; text-align: center; text-decoration: none; }
+.back > svg { flex-shrink: 0; }
+.back[aria-disabled="true"] { cursor: default; opacity: .5; }
+.divider { display: flex; align-items: center; gap: 14px; margin-block: 4px 20px; color: var(--c-600); font-size: 13px; line-height: 18px; }
+.divider::before, .divider::after { height: 1px; flex: 1; background: rgba(28, 28, 26, .10); content: ""; }
+.googleOnly { display: flex; flex-direction: column; gap: 20px; }
+.resultActions { display: flex; flex-direction: column; gap: 16px; margin-top: 28px; }
+.primaryLink { display: flex; min-block-size: 54px; align-items: center; justify-content: center; padding: 14px 20px; border: 1px solid var(--c-ink); border-radius: var(--r-full); background: var(--c-ink); color: var(--c-50); font-size: 16px; font-weight: 600; line-height: 24px; text-align: center; text-decoration: none; }
+.copySkeleton { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-block: 5px; }
+.fieldSkeleton { display: flex; flex-direction: column; gap: 8px; }
+@media (hover: hover) {
+  .back:not([aria-disabled="true"]):hover { color: var(--c-900); }
+}
+@media (max-width: 920px) {
+  .page { min-block-size: calc(100svh - var(--nav-h) - var(--mobile-tabs-h)); padding-block: 32px 48px; }
+}
+@media (max-width: 600px) {
+  .page { padding-inline: 24px; }
+  .header h1 { font-size: 27px; }
+  .mark { margin-bottom: 20px; }
+  .identity { margin-block: 24px; }
+}
+@media (max-height: 640px) {
+  .page { padding-block: 24px; }
+}

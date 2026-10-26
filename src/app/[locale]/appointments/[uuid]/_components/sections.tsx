@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import type { Locale } from "@/i18n/locales";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -10,8 +10,12 @@ import { Avatar, Button, Icon, Img, Rating, Stars } from "@/components/ui";
 import { formatDuration, formatMoney } from "@/lib/format/money-time";
 import { apptTime, apptTimeZone, formatApptPrice, STATUS_DOT_COLOR, type StatusTone, type Tense } from "../../_components/vm";
 import { useAppointmentClock } from "../../_components/use-appointment-clock";
+import { useAppointmentActions } from "../../_components/actions/actions-provider";
+import { canLeaveReview } from "../../_components/actions/shared";
 import type { AppointmentBreakdownItem, AppointmentDetail, AppointmentStatus } from "@/lib/api/marketplace/types";
+import { TeamMemberProfileModal } from "@/app/[locale]/business/_components/team-member-profile-modal";
 import styles from "./detail.module.css";
+import ticketStyles from "../../_components/appointments.module.css";
 
 type ApptDict = Dictionary["appointmentDetail"];
 
@@ -71,8 +75,8 @@ export function StampPill({ t, tone, status }: { t: ApptDict; tone: StatusTone; 
     pending: t.status.pending, confirmed: t.status.confirmed, completed: t.status.completed,
     cancelled: t.status.cancelled, no_show: t.status.noShow,
   }[status];
-  return <span className={styles.status}>
-    <span aria-hidden="true" className={styles.statusDot} style={{ background: tone === "live" ? "var(--s-success-600)" : STATUS_DOT_COLOR[status] }} />
+  return <span className={ticketStyles.stamp} style={{ color: tone === "live" ? "var(--s-success-600)" : STATUS_DOT_COLOR[status] }}>
+    {tone === "live" && <span aria-hidden="true" className={ticketStyles.liveDot} />}
     {label}
   </span>;
 }
@@ -102,7 +106,7 @@ export function WhereCard({ t, appt, locale }: { t: ApptDict; appt: AppointmentD
       {href ? <span className={styles.textLink}>{t.viewVenue}<Icon name="chevR" size={13} /></span> : <span className={styles.secondary}>{dict.appointmentPage.historicalVenue}</span>}
     </div>
   </>;
-  return href ? <a href={href} className={`${styles.venue} zw-hover-lift`}>{content}</a> : <div className={styles.venue}>{content}</div>;
+  return href ? <a href={href} className={styles.venue}>{content}</a> : <div className={styles.venue}>{content}</div>;
 }
 
 function servicesFor(item: AppointmentBreakdownItem) {
@@ -126,46 +130,49 @@ export function ServiceCard({ t, appt, locale }: { t: ApptDict; appt: Appointmen
   });
   const originalTotal = originalPrices.every((price) => price != null) ? originalPrices.reduce<number>((sum, price) => sum + (price ?? 0), 0) : null;
   const saving = total != null && originalTotal != null ? Math.max(0, originalTotal - total) : 0;
-  return <div className={styles.surface}>
-    <div className={styles.serviceList}>
-      {rows.map((item, index) => {
-        const included = servicesFor(item);
-        const duration = num(item.duration);
-        const price = num(item.price);
-        const offset = num(item.startOffsetMinutes);
-        return <div className={styles.serviceItem} key={`${index}:${item.name}`}>
-          <div className={styles.serviceHeading}>
-            <div className={styles.serviceIdentity}>
-              {rows.length > 1 && <span className={styles.serviceIndex}>{String(index + 1).padStart(2, "0")}</span>}
-              <div>
-                <div className={styles.cardTitle}>{item.name}</div>
-                <div className={styles.serviceMeta}>
-                  {item.type === "bundle" && <span>{t.bundleTag}</span>}
-                  {duration != null && <span>{formatDuration(duration)}</span>}
-                  {rows.length > 1 && offset != null && <span>{format(p.startsAt, { time: apptTime(new Date(new Date(appt.scheduled_at).getTime() + offset * 60_000).toISOString(), locale, tz) })}</span>}
+  return <div className={styles.receipt}>
+    <div className={styles.receiptBody}>
+      <div className={styles.serviceList}>
+        {rows.map((item, index) => {
+          const included = servicesFor(item);
+          const duration = num(item.duration);
+          const price = num(item.price);
+          const offset = num(item.startOffsetMinutes);
+          return <div className={styles.serviceItem} key={`${index}:${item.name}`}>
+            <div className={styles.serviceHeading}>
+              <div className={styles.serviceIdentity}>
+                {rows.length > 1 && <span className={styles.serviceIndex}>{String(index + 1).padStart(2, "0")}</span>}
+                <div>
+                  <div className={styles.cardTitle}>{item.name}</div>
+                  <div className={styles.serviceMeta}>
+                    {item.type === "bundle" && <span>{t.bundleTag}</span>}
+                    {duration != null && <span>{formatDuration(duration)}</span>}
+                    {rows.length > 1 && offset != null && <span>{format(p.startsAt, { time: apptTime(new Date(new Date(appt.scheduled_at).getTime() + offset * 60_000).toISOString(), locale, tz) })}</span>}
+                  </div>
                 </div>
               </div>
+              {price != null && <span className={styles.itemPrice}>{formatApptPrice(price, appt.currency, locale, t.free)}</span>}
             </div>
-            {price != null && <span className={styles.itemPrice}>{formatApptPrice(price, appt.currency, locale, t.free)}</span>}
-          </div>
-          {item.description && <p className={styles.serviceDescription}>{item.description}</p>}
-          {included.length > 0 && <div className={styles.included}>
-            <span className={styles.kicker}>{p.includedServices}</span>
-            <ul className={styles.includedList}>
-              {included.map((service, serviceIndex) => <li key={`${serviceIndex}:${service.name}`}>
-                <span>{service.name}</span>
-                {num(service.duration) != null && <span className={styles.secondary}>{formatDuration(Number(service.duration))}</span>}
-              </li>)}
-            </ul>
-          </div>}
-        </div>;
-      })}
+            {item.description && <p className={styles.serviceDescription}>{item.description}</p>}
+            {included.length > 0 && <div className={styles.included}>
+              <span className={styles.kicker}>{p.includedServices}</span>
+              <ul className={styles.includedList}>
+                {included.map((service, serviceIndex) => <li key={`${serviceIndex}:${service.name}`}>
+                  <span>{service.name}</span>
+                  {num(service.duration) != null && <span className={styles.secondary}>{formatDuration(Number(service.duration))}</span>}
+                </li>)}
+              </ul>
+            </div>}
+          </div>;
+        })}
+      </div>
+      {saving > 0 && originalTotal != null && <div className={styles.savings}>
+        <span>{format(p.savedAmount, { amount: formatMoney(saving, appt.currency, locale) })}</span>
+        <s>{formatMoney(originalTotal, appt.currency, locale)}</s>
+      </div>}
     </div>
-    {saving > 0 && originalTotal != null && <div className={styles.savings}>
-      <span>{format(p.savedAmount, { amount: formatMoney(saving, appt.currency, locale) })}</span>
-      <s>{formatMoney(originalTotal, appt.currency, locale)}</s>
-    </div>}
     <div className={styles.total}>
+      <span className={styles.receiptPerforation} aria-hidden="true" />
       <div><span className={styles.cardTitle}>{p.bookedTotal}</span><p className={styles.totalHint}>{p.bookedTotalHint}</p></div>
       <span className={styles.totalPrice}>{formatApptPrice(appt.price, appt.currency, locale, t.free)}</span>
     </div>
@@ -173,24 +180,40 @@ export function ServiceCard({ t, appt, locale }: { t: ApptDict; appt: Appointmen
 }
 
 export function NotesCard({ notes }: { notes: string }) {
-  return <div className={`${styles.surface} ${styles.notes}`}><Icon name="reply" size={17} color="var(--c-600)" /><p>{notes}</p></div>;
+  return <div className={styles.notes}><Icon name="reply" size={17} color="var(--c-600)" /><p>{notes}</p></div>;
 }
 
 export function WithCard({ t, appt, locale }: { t: ApptDict; appt: AppointmentDetail; locale: Locale }) {
   const p = useTranslation().dict.appointmentPage;
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
   const members = appointmentProfessionals(appt);
-  const base = locationHref(locale, appt.location);
-  return <div className={styles.staffList}>{members.map((member, index) => {
+  const businessId = appt.business?.id;
+  const locationId = appt.location?.id;
+  const hasVenue = businessId != null && businessId > 0 && locationId != null && locationId > 0;
+  const selectedMember = hasVenue
+    ? members.find((member) => member.teamMemberId === selectedMemberId && !member.historical)
+    : undefined;
+  return <><div className={styles.staffList}>{members.map((member, index) => {
     const name = member.displayName || [member.firstName, member.lastName].filter(Boolean).join(" ");
-    const href = base && !member.historical ? `${base}?tab=team&member=${member.teamMemberId}` : undefined;
-    const content = <><Avatar src={member.profileImage ?? undefined} name={name} size={48} />
+    const canOpen = hasVenue && !member.historical && member.teamMemberId > 0;
+    const content = <><Avatar src={member.profileImage ?? undefined} name={name} size={56} />
       <div className={styles.staffContent}><span className={styles.cardTitle}>{name}</span>
         {member.professionalTitle && <span className={styles.body}>{member.professionalTitle}</span>}
         {member.averageRating != null && <Rating rating={Number(member.averageRating)} reviews={member.totalReviews} size={12.5} />}
-        {href ? <span className={styles.textLink}>{t.viewProfile}<Icon name="chevR" size={12} /></span> : member.historical && <span className={styles.secondary}>{p.historicalProfessional}</span>}
+        {canOpen ? <span className={styles.textLink}>{t.viewProfile}<Icon name="chevR" size={12} /></span> : member.historical && <span className={styles.secondary}>{p.historicalProfessional}</span>}
       </div></>;
-    return href ? <a key={`${member.uuid}:${index}`} href={href} className={`${styles.staffMember} zw-hover-lift`}>{content}</a> : <div key={`${member.uuid}:${index}`} className={styles.staffMember}>{content}</div>;
-  })}</div>;
+    return canOpen ? <button key={`${member.uuid}:${index}`} type="button"
+      className={`${styles.staffMember} ${styles.staffAction}`}
+      aria-label={`${t.viewProfile}: ${name}`} aria-haspopup="dialog"
+      onClick={() => setSelectedMemberId(member.teamMemberId)}>{content}</button>
+      : <div key={`${member.uuid}:${index}`} className={styles.staffMember}>{content}</div>;
+  })}</div>
+    {selectedMember && <TeamMemberProfileModal
+      key={`${appt.uuid}:${selectedMember.teamMemberId}:${businessId}:${locationId}`}
+      member={{ ...selectedMember, id: selectedMember.teamMemberId }}
+      businessId={businessId} locationId={locationId} locale={locale}
+      onClose={() => setSelectedMemberId(null)} />}
+  </>;
 }
 
 export function ReviewCard({ rating, comment, label }: { rating: number; comment: string | null; label?: string }) {
@@ -205,17 +228,19 @@ export function AboutCard({ t, appt, locale }: { t: ApptDict; appt: AppointmentD
   const biz = appt.business;
   if (!biz?.description) return null;
   const target = biz.businessSlug || String(biz.id);
-  return <a href={localeHref(locale, "brand", target)} className={`${styles.about} zw-hover-lift`}>
+  return <a href={localeHref(locale, "brand", target)} className={styles.about}>
     <Avatar src={biz.logo ?? undefined} name={biz.name} size={54} />
-    <div><span className={styles.cardTitle}>{biz.name}</span><p className={styles.body}>{biz.description}</p><span className={styles.textLink}>{t.viewProfile}<Icon name="chevR" size={12} /></span></div>
+    <div><span className={styles.cardTitle}>{biz.name}</span><p className={styles.body}>{biz.description}</p><span className={styles.textLink}>{t.viewBrand}<Icon name="chevR" size={12} /></span></div>
   </a>;
 }
 
-export function PendingBanner({ t, tense }: { t: ApptDict; appt: AppointmentDetail; tense: Tense }) {
+export function PendingBanner({ t, appt, tense }: { t: ApptDict; appt: AppointmentDetail; tense: Tense }) {
   const p = useTranslation().dict.appointmentPage;
+  const businessName = appt.business?.name?.trim();
+  const pastBody = businessName ? format(p.pendingPastBody, { businessName }) : p.pendingPastBodyFallback;
   return <div className={styles.pending}>
     <Icon name="clock" size={18} color="var(--s-warning-600)" />
-    <div><strong>{tense === "past" ? p.pendingPastTitle : t.awaitingConfirmation}</strong><p>{tense === "past" ? p.pendingPastBody : p.awaitingBody}</p></div>
+    <div><strong>{tense === "past" ? p.pendingPastTitle : t.awaitingConfirmation}</strong><p>{tense === "past" ? pastBody : tense === "now" ? p.pendingStartedBody : p.awaitingBody}</p></div>
   </div>;
 }
 
@@ -227,7 +252,7 @@ export function LiveStrip({ t, appt }: { t: ApptDict; appt: AppointmentDetail })
   const minutes = Math.max(0, Math.ceil((end - now.getTime()) / 60_000));
   const label = minutes <= 0 ? t.endingNow : minutes === 1 ? t.oneMinLeft : format(t.minsLeft, { n: String(minutes) });
   return <div className={styles.live}>
-    <div className={styles.liveLabels}><span>{t.inProgress}</span><span>{label}</span></div>
+    <div className={styles.liveLabels}><span>{label}</span></div>
     <div className={styles.progress} role="progressbar" aria-label={t.inProgress} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ transform: `scaleX(${progress})` }} /></div>
   </div>;
 }
@@ -251,17 +276,24 @@ export function CloserBand({ t, appt, locale, tone }: { t: ApptDict; appt: Appoi
   </div>;
 }
 
-export function MobileBar({ appt, locale, tense, tone, t, directionsHref, onBookAgain, bookingAgain }: {
+export function MobileBar({ appt, locale, tense, tone, t, directionsHref, onBookAgain, bookingAgain, offline }: {
   appt: AppointmentDetail; locale: Locale; tense: Tense; tone: StatusTone; t: ApptDict;
-  directionsHref: string | null; onBookAgain: () => void; bookingAgain: boolean;
+  directionsHref: string | null; onBookAgain: () => void; bookingAgain: boolean; offline: boolean;
 }) {
+  const { openReview } = useAppointmentActions();
+  const reviewAllowed = canLeaveReview(appt);
   const bookAgain = tense === "past" || appt.status === "completed" || tone === "warning" || tone === "error";
   const canBookAgain = appt.location?.id != null;
-  if (bookAgain ? !canBookAgain : !directionsHref) return null;
+  if (!reviewAllowed && (bookAgain ? !canBookAgain : !directionsHref)) return null;
   const tz = apptTimeZone(appt.location?.timezone, appt.business?.timezone);
   const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: tz }).format(new Date(appt.scheduled_at));
-  return <div className={`${styles.mobileBar} zv-frost zw-mobile-actionbar`}>
-    <div className={styles.mobileSummary}><strong>{date} · {apptTime(appt.scheduled_at, locale, tz)}</strong><span>{[appt.business?.name, appointmentVenue(appt).name].filter(Boolean).join(" · ")}</span></div>
-    {bookAgain ? <Button kind="accent" loading={bookingAgain} onClick={onBookAgain} disabled={bookingAgain}>{t.bookAgain}</Button> : <a className={`tap zw-btn ${styles.mobileDirection}`} href={directionsHref!} target="_blank" rel="noopener noreferrer">{t.directions}</a>}
+  return <div className={`${styles.mobileBar} zw-mobile-actionbar`}>
+    {reviewAllowed ? <div className={styles.mobileReviewActions}>
+      {canBookAgain && <Button kind="secondary" style={{ padding: "12px", whiteSpace: "normal", lineHeight: 1.3 }} loading={bookingAgain} onClick={onBookAgain} disabled={bookingAgain || offline}>{t.bookAgain}</Button>}
+      <Button kind="accent" style={{ border: "none", color: "var(--c-50)", padding: "12px", whiteSpace: "normal", lineHeight: 1.3 }} disabled={offline} onClick={() => openReview(appt)}><Icon name="star" size={16} />{t.leaveReview}</Button>
+    </div> : <>
+      <div className={styles.mobileSummary}><strong>{date} · {apptTime(appt.scheduled_at, locale, tz)}</strong><span>{[appt.business?.name, appointmentVenue(appt).name].filter(Boolean).join(" · ")}</span></div>
+      {bookAgain ? <Button kind="primary" loading={bookingAgain} onClick={onBookAgain} disabled={bookingAgain || offline}>{t.bookAgain}</Button> : <a className={`tap zw-btn ${styles.mobileDirection}`} href={directionsHref!} target="_blank" rel="noopener noreferrer">{t.viewMap}</a>}
+    </>}
   </div>;
 }

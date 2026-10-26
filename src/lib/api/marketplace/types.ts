@@ -136,10 +136,14 @@ export interface BrandLocation {
 
 /**
  * Lean public team member embedded in a BrandCard. `locationId`/`locationSlug`
- * point at the location page where their profile lives (deep-link target).
+ * preserve the venue context; `uuid` identifies the independent public profile.
  */
 export interface BrandTeamMember {
   id: number;
+  /** Stable public profile identifier; absent on previously cached responses. */
+  uuid?: string;
+  /** Explicit independent-profile eligibility; absent on older responses. */
+  publicProfileAvailable?: boolean;
   displayName: string | null;
   professionalTitle: string | null;
   profileImage: string | null;
@@ -542,6 +546,8 @@ export interface BundleSummary {
 export interface ListingTeamMember {
   id: number;
   uuid: string;
+  /** Eligibility for the independent public profile, separate from this location's modal. */
+  publicProfileAvailable?: boolean;
   firstName: string | null;
   lastName: string | null;
   profileImage: string | null;
@@ -678,6 +684,8 @@ export interface TeamMemberAbout {
 export interface TeamMemberProfile {
   id: number;
   uuid: string;
+  /** Only independent public profiles can be shared outside the current location. */
+  publicProfileAvailable?: boolean;
   firstName: string | null;
   lastName: string | null;
   profileImage: string | null;
@@ -716,6 +724,8 @@ export interface TeamMemberBookingContextService {
 
 export interface TeamMemberBookingLocation {
   id: number;
+  /** Existing location slug; numeric links remain valid for legacy responses. */
+  slug?: string | null;
   name: string;
   address: string | null;
   latitude: number | null;
@@ -923,6 +933,8 @@ export interface BookingCalendar {
   totalDuration: number;
   totalPrice: number;
   bookingSettings: BookingSettings;
+  /** Effective mutation policy; absent on older API versions. */
+  bookingPolicy?: BookingPolicy;
   calendar: BookingCalendarDay[];
   nextAvailableDate: string | null;
 }
@@ -971,6 +983,16 @@ export interface StaffPricingEntry {
   duration: number;
 }
 
+/** Figures for one original selection, without merging a bundle's children
+ * with standalone services or another bundle containing the same service. */
+export interface ItemStaffPricing {
+  itemIndex: number;
+  type: "service" | "bundle";
+  serviceId?: number;
+  bundleId?: number;
+  staff: Record<number, StaffPricingEntry>;
+}
+
 export interface BookingDaySlots {
   businessId: number;
   locationId: number;
@@ -984,6 +1006,8 @@ export interface BookingDaySlots {
   staffDirectory: Record<number, StaffDirectoryEntry>;
   /** serviceId → (teamMemberId → price/duration override). */
   staffPricing: Record<number, Record<number, StaffPricingEntry>>;
+  itemStaffPricing?: ItemStaffPricing[];
+  bookingPolicy?: BookingPolicy;
   slots: TimeSlot[];
 }
 
@@ -1610,7 +1634,7 @@ export interface SitemapEntry {
 }
 
 /**
- * GET /marketplace/public/sitemap — the three public URL families, each already
+ * GET /marketplace/public/sitemap — public URL families, each already
  * filtered to what actually renders: `locations` → /business/<slug>,
  * `brands` → /brand/<slug>, `websites` → /<businessSlug>.
  */
@@ -1623,4 +1647,6 @@ export interface MarketplaceSitemap {
   }>;
   brands: SitemapEntry[];
   websites: SitemapEntry[];
+  /** Publicly discoverable professionals, deduplicated across their venues. */
+  professionals: Array<{ uuid: string }>;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/i18n/useTranslation";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -10,8 +10,9 @@ import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuthModal } from "@/components/shell/auth-modal-provider";
-import { Avatar, Button, Icon, Img, SignedOutGate, Skeleton } from "@/components/ui";
-import { InlineError } from "@/components/ui/inline-error";
+import { Avatar, Button, Icon, Img, SignedOutGate, Skeleton, useToast } from "@/components/ui";
+import type { ToastHandle } from "@/components/ui/toast";
+import { PageError } from "@/components/ui/page-error";
 import { listAppointments } from "@/lib/api/marketplace/appointments";
 import type {
   AppointmentList,
@@ -23,6 +24,7 @@ import { formatDuration } from "@/lib/format/money-time";
 import {
   STATUS_DOT_COLOR,
   apptDateParts,
+  apptStamp,
   apptTime,
   deriveTense,
   formatApptPrice,
@@ -31,13 +33,27 @@ import {
   type TimeUntil,
 } from "./vm";
 import { useAppointmentClock } from "./use-appointment-clock";
+import { AppointmentsSignInArt } from "./appointments-sign-in-art";
+import { AppointmentsEmptyArt } from "./appointments-empty-art";
+import { readAppointmentListView, saveAppointmentListView, type AppointmentFilter } from "./appointment-list-view";
 import styles from "./appointments.module.css";
 
 type ApptDict = Dictionary["appointments"];
 type PageDict = Dictionary["appointmentPage"];
-type Filter = "all" | "upcoming" | "past" | "cancelled" | "no_show";
+type Filter = AppointmentFilter;
 const PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
+
+function subscribeConnectivity(listener: () => void) {
+  window.addEventListener("online", listener);
+  window.addEventListener("offline", listener);
+  return () => {
+    window.removeEventListener("online", listener);
+    window.removeEventListener("offline", listener);
+  };
+}
+const isOffline = () => navigator.onLine === false;
+const serverOffline = () => false;
 
 function timeUntilLabel(tu: TimeUntil, t: ApptDict): string {
   switch (tu.kind) {
@@ -59,12 +75,14 @@ function timeUntilLabel(tu: TimeUntil, t: ApptDict): string {
   }
 }
 
-function TicketCard({ a, locale, t, page, now }: {
+function TicketCard({ a, locale, t, page, now, first, last }: {
   a: AppointmentListItem;
   locale: Locale;
   t: ApptDict;
   page: PageDict;
   now: Date;
+  first: boolean;
+  last: boolean;
 }) {
   const tz = a.location.timezone ?? undefined;
   const tense = deriveTense(a.scheduledAt, a.endsAt, a.status, now, tz);
@@ -81,99 +99,94 @@ function TicketCard({ a, locale, t, page, now }: {
   }).format(new Date(a.scheduledAt));
   const brandName = a.business?.name?.trim();
   const branchName = a.location.name?.trim();
-  const venueName = brandName || branchName || page.venueUnavailable;
+  const venueName = branchName || brandName || page.venueUnavailable;
   const separateBranch = branchName && brandName && branchName.toLocaleLowerCase(locale) !== brandName.toLocaleLowerCase(locale);
-  const venueImage = brandName ? a.business?.logo : a.location.profileImage;
+  const venueImage = branchName ? a.location.profileImage : a.business?.logo;
   const staffName = a.staff
     ? [a.staff.firstName, a.staff.lastName].filter(Boolean).join(" ").trim()
     : "";
-  const statusLabel = tense === "now" ? page.statusLabels.live : page.statusLabels[a.status];
-  const countdown = timeUntil(a.scheduledAt, a.status, tense, now);
-  const showCountdown = a.status === "confirmed" && countdown && countdown.kind !== "live";
+  const statusLabel = a.status === "confirmed" && tense === "now" ? page.statusLabels.live : page.statusLabels[a.status];
+  const stamp = apptStamp(a.status, tense);
+  const muted = a.status === "cancelled" || a.status === "no_show";
+  const dateTense = muted || a.status === "completed" ? "past" : tense;
+  const countdown = timeUntil(a.scheduledAt, a.status, tense, now, tz);
+  const showCountdown = a.status === "confirmed" && countdown && !stamp;
   const price = formatApptPrice(a.price, a.currency, locale, t.free);
   const accessibleLabel = [title, fullDate, `${startTime} – ${endTime}`, venueName,
-    separateBranch ? branchName : null, staffName, statusLabel, price].filter(Boolean).join(", ");
+    separateBranch ? brandName : null, staffName, statusLabel, price].filter(Boolean).join(", ");
 
   return (
-    <Link
-      href={localeHref(locale, "appointments", a.uuid)}
-      prefetch={false}
-      className={`${styles.card} tap zw-hover-lift`}
-      aria-label={accessibleLabel}
-    >
-      <div className={styles.cardBody}>
-        <div className={styles.when}>
-          <time dateTime={a.scheduledAt} className={styles.date} aria-label={fullDate}>
-            <span className={styles.dateMonth}>{mon}</span>
-            <span className={styles.dateDay}>{day}</span>
-          </time>
-          <div className={styles.whenDetails}>
-            <span className={styles.weekday}>{dow}</span>
-            <span className={styles.time}>{startTime} – {endTime}</span>
-            <span className={styles.status}>
-              <span aria-hidden="true" className={styles.statusDot} style={{ background: tense === "now" ? "var(--s-success-600)" : STATUS_DOT_COLOR[a.status] }} />
-              {statusLabel}
-              {showCountdown && <span className={styles.countdown}>{timeUntilLabel(countdown, t)}</span>}
+    <div className={styles.timelineRow} data-first={first || undefined} data-last={last || undefined}>
+      <div className={styles.rail}>
+        <time dateTime={a.scheduledAt} className={styles.date} data-tense={dateTense} aria-label={fullDate}>
+          <span className={styles.weekday}>{dow.replace(/\.$/, "")}</span>
+          <span className={styles.dateDay}>{day}</span>
+          <span className={styles.dateMonth}>{mon.replace(/\.$/, "")}</span>
+        </time>
+      </div>
+      <Link
+        href={localeHref(locale, "appointments", a.uuid)}
+        prefetch={false}
+        className={`${styles.card} tap`}
+        data-muted={muted || undefined}
+        aria-label={accessibleLabel}
+      >
+        <span className={styles.ticketSurface} aria-hidden="true" />
+        <div className={styles.cardTop}>
+          <div className={styles.timeRow}>
+            <span className={styles.timeGroup}>
+              <span className={styles.statusDot} style={{ background: STATUS_DOT_COLOR[a.status] }} title={statusLabel} aria-hidden="true" />
+              <span className={styles.time}>{startTime} – {endTime}</span>
             </span>
+            {stamp ? (
+              <span className={styles.stamp} style={{ color: stamp.color }}>
+                {stamp.pulse && <span className={styles.liveDot} aria-hidden="true" />}
+                {t.stamps[stamp.key]}
+              </span>
+            ) : showCountdown ? <span className={styles.countdown}>{timeUntilLabel(countdown, t)}</span> : null}
+          </div>
+          <h3 className={styles.service} title={title}>{title}</h3>
+          <div className={styles.metadata}>
+            <span className={styles.duration}><Icon name="clock" size={14} color="var(--c-500)" />{formatDuration(Number(a.duration))}</span>
+            <span className={styles.price}><span aria-hidden="true" className={styles.separator}>·</span>{price}</span>
           </div>
         </div>
-        <h3 className={styles.service} title={title}>{title}</h3>
-        <div className={styles.metadata}>
-          <span className={styles.duration}><Icon name="clock" size={13} color="var(--c-600)" />{formatDuration(Number(a.duration))}</span>
-          <span className={styles.price}><span aria-hidden="true" className={styles.separator}>·</span>{price}</span>
-        </div>
-        {staffName && (
-          <div className={styles.professional}>
-            <Avatar src={a.staff?.profileImage ?? undefined} name={staffName} size={20} />
-            <span title={staffName}>{staffName}</span>
+        <span className={styles.perforation} aria-hidden="true" />
+        <div className={styles.venue}>
+          <div className={styles.venueImage} aria-hidden="true">
+            {venueImage ? (
+              <Img src={venueImage} alt="" label={venueName.trim()[0]} style={{ width: "100%", height: "100%" }} />
+            ) : <span>{venueName.trim()[0]}</span>}
           </div>
-        )}
-      </div>
-      <div className={styles.venue}>
-        <div className={`${styles.venueImage} zw-zoom-wrap`} aria-hidden="true">
-          {venueImage ? (
-            <Img src={venueImage} alt="" label={venueName.trim()[0]} style={{ width: "100%", height: "100%" }} />
-          ) : <span>{venueName.trim()[0]}</span>}
+          <span className={styles.venueName}>{venueName}</span>
+          {separateBranch && <span className="sr-only">{brandName}</span>}
+          {staffName && staffName.toLowerCase() !== "any" && (
+            <span className={styles.professional} title={staffName}>
+              <Avatar src={a.staff?.profileImage ?? undefined} name={staffName} size={24} />
+              <span>{a.staff?.firstName?.trim() || staffName.split(" ")[0]}</span>
+            </span>
+          )}
         </div>
-        <span className={styles.venueIdentity}>
-          <span className={styles.venueName} title={venueName}>{venueName}</span>
-          {separateBranch && <span className={styles.branch} title={branchName}>{branchName}</span>}
-        </span>
-        <Icon name="chevR" size={16} color="var(--c-600)" />
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
 
-function SchedSection({ label, count, open, onToggle, id }: {
+function SchedSection({ label, id }: {
   label: string;
-  count: number | null;
-  open: boolean;
-  onToggle: () => void;
-  id: string;
+  id?: string;
 }) {
-  return (
-    <h2 className={styles.sectionHeading}>
-      <button type="button" className={`${styles.sectionToggle} tap`} onClick={onToggle}
-        aria-expanded={open} aria-controls={id}>
-        <span className={styles.sectionTitle}>{label}
-          <span className={styles.sectionCount}>{count === null
-            ? <span aria-hidden="true"><Skeleton w="2ch" h={12} r={3} /></span>
-            : count}</span>
-        </span>
-        <Icon name={open ? "chevU" : "chevD"} size={16} color="var(--c-600)" />
-      </button>
-    </h2>
-  );
+  return <h2 id={id} className={styles.sectionHeading}>{label}</h2>;
 }
 
-function SchedFilters({ value, onChange, counts, t, page, loading = false }: {
+function SchedFilters({ value, onChange, counts, t, page, loading = false, disabled = false }: {
   value: Filter;
   onChange: (f: Filter) => void;
   counts: Partial<Record<Filter, number>>;
   t: ApptDict;
   page: PageDict;
   loading?: boolean;
+  disabled?: boolean;
 }) {
   const tabs: { id: Filter; label: string }[] = [
     { id: "all", label: t.filters.all },
@@ -186,13 +199,14 @@ function SchedFilters({ value, onChange, counts, t, page, loading = false }: {
     <div className={styles.filters} role="group" aria-label={page.filtersLabel}>
       {tabs.map((tab) => {
         const active = tab.id === value;
-        const count = counts[tab.id];
+        const secondary = tab.id === "cancelled" || tab.id === "no_show";
+        const count = secondary ? undefined : counts[tab.id];
         return (
           <button key={tab.id} type="button" className={`${styles.filter} tap`}
-            onClick={() => onChange(tab.id)} aria-pressed={active} disabled={loading}>
+            onClick={() => onChange(tab.id)} aria-pressed={active} disabled={loading || disabled}>
             {tab.label}
             {count !== undefined && <span className={styles.filterCount}>{count}</span>}
-            {loading && <span aria-hidden="true"><Skeleton w="2ch" h={11} r={3} /></span>}
+            {loading && !secondary && <span aria-hidden="true"><Skeleton w="2ch" h={12} r={3} /></span>}
           </button>
         );
       })}
@@ -204,13 +218,14 @@ function YearSep({ year }: { year: number }) {
   return <div className={styles.year}><span>{year}</span><span aria-hidden="true" /></div>;
 }
 
-function SchedGrid({ items, locale, t, page, now, withYears = false }: {
+function SchedGrid({ items, locale, t, page, now, withYears = false, upcoming = false }: {
   items: AppointmentListItem[];
   locale: Locale;
   t: ApptDict;
   page: PageDict;
   now: Date;
   withYears?: boolean;
+  upcoming?: boolean;
 }) {
   const nodes: ReactNode[] = [];
   let lastYear = now.getFullYear();
@@ -220,62 +235,47 @@ function SchedGrid({ items, locale, t, page, now, withYears = false }: {
       if (year !== lastYear) nodes.push(<YearSep key={`year-${year}-${a.uuid}`} year={year} />);
       lastYear = year;
     }
-    nodes.push(<TicketCard key={a.uuid} a={a} locale={locale} t={t} page={page} now={now} />);
+    nodes.push(<TicketCard key={a.uuid} a={a} locale={locale} t={t} page={page} now={now} first={a.uuid === items[0]?.uuid} last={a.uuid === items.at(-1)?.uuid} />);
   }
-  return <div className={styles.grid}>{nodes}</div>;
+  return <div className={styles.grid} data-upcoming={upcoming || undefined}>{nodes}</div>;
 }
 
 function SchedEmpty({ t, onExplore }: { t: ApptDict; onExplore: () => void }) {
   return (
     <div className={styles.empty}>
-      <span className={styles.emptyIcon}><Icon name="cal" size={24} color="var(--c-600)" /></span>
-      <h2>{t.empty.title}</h2>
+      <div className={styles.emptyArtwork}><AppointmentsEmptyArt /></div>
+      <div className={styles.emptyCopy}>
+      <h1>{t.empty.title}</h1>
       <p className="txt-pretty">{t.empty.body}</p>
-      <Button kind="accent" size="md" onClick={onExplore}>{t.empty.cta}</Button>
+      </div>
+      <Button kind="primary" size="lg" onClick={onExplore}>{t.empty.cta}</Button>
     </div>
   );
 }
 
-function AppointmentsHeading({ t, upcoming, past, loading }: {
-  t: ApptDict;
-  upcoming: number | null;
-  past: number | null;
-  loading: boolean;
-}) {
-  const count = (n: number | null) => n !== null ? n : loading
-    ? <span aria-hidden="true"><Skeleton w="2ch" h={12} r={3} /></span>
-    : null;
+function AppointmentsHeading({ t }: { t: ApptDict }) {
   return <header className={styles.heading}>
     <h1>{t.title}</h1>
-    {(loading || upcoming !== null || past !== null) && (
-      <div className={styles.summary}>
-        {(loading || upcoming !== null) && <span>{count(upcoming)} {t.upcomingWord}</span>}
-        {(loading || past !== null) && <span>{count(past)} {t.pastWord}</span>}
-      </div>
-    )}
   </header>;
 }
 
 function ListLoading({ t, label = t.sectionUpcoming }: { t: ApptDict; label?: string }) {
   return <div aria-busy="true">
     <div aria-hidden="true" inert>
-      <SchedSection label={label} count={null} open onToggle={() => {}} id="appointments-loading" />
-      <div id="appointments-loading" className={styles.grid}>
-        {[0, 1, 2].map((i) => <div key={i} className={styles.card}>
-          <div className={styles.cardBody}>
-            <div className={styles.when}>
-              <Skeleton w={48} h={62} r={10} style={{ flexShrink: 0 }} />
-              <div className={styles.whenDetails}>
-                <Skeleton w={36} h={11} r={3} />
-                <Skeleton w={140} h={19} r={4} />
-                <Skeleton w={94} h={14} r={4} />
-              </div>
+      <SchedSection label={label} />
+      <div id="appointments-loading" className={styles.grid} data-upcoming={label === t.sectionUpcoming || undefined}>
+        {[0, 1, 2].map((i) => <div key={i} className={styles.timelineRow} data-first={i === 0 || undefined} data-last={i === 2 || undefined}>
+          <div className={styles.rail}><Skeleton w={46} h={68} r={12} /></div>
+          <div className={styles.card}>
+            <span className={styles.ticketSurface} />
+            <div className={styles.cardTop}>
+              <div className={styles.timeRow}><Skeleton w={130} h={21} r={4} /><Skeleton w={58} h={24} r={999} /></div>
+              <div className={styles.service}><Skeleton w="82%" h={25} r={4} /></div>
+              <div className={styles.metadata}><Skeleton w="52%" h={19} r={4} /></div>
             </div>
-            <div className={styles.service}><Skeleton w="82%" h={22} r={4} /></div>
-            <div className={styles.metadata}><Skeleton w="52%" h={18} r={4} /></div>
-            <div className={styles.professional}><Skeleton w={20} h={20} r={999} /><Skeleton w={90} h={15} r={4} /></div>
+            <span className={styles.perforation} />
+            <div className={styles.venue}><Skeleton w={40} h={40} r={9} style={{ flexShrink: 0 }} /><Skeleton w="56%" h={20} r={4} /><Skeleton w={24} h={24} r={999} style={{ flexShrink: 0 }} /></div>
           </div>
-          <div className={styles.venue}><Skeleton w={36} h={36} r={10} /><Skeleton w="56%" h={18} r={4} /></div>
         </div>)}
       </div>
     </div>
@@ -284,18 +284,11 @@ function ListLoading({ t, label = t.sectionUpcoming }: { t: ApptDict; label?: st
 }
 
 function LoadingState({ t, page }: { t: ApptDict; page: PageDict }) {
-  return <div className={`zw-container ${styles.page}`} aria-busy="true">
-    <AppointmentsHeading t={t} upcoming={null} past={null} loading />
+  return <main className={`zw-container ${styles.page}`} aria-busy="true">
+    <AppointmentsHeading t={t} />
     <SchedFilters value="all" onChange={() => {}} counts={{}} t={t} page={page} loading />
     <ListLoading t={t} />
-  </div>;
-}
-
-function ErrorState({ t, onRetry, retrying }: { t: ApptDict; onRetry: () => void; retrying: boolean }) {
-  return <div className={styles.errorState}>
-    <InlineError className="txt-pretty">{t.errorLoading}</InlineError>
-    <Button kind="primary" size="md" onClick={onRetry} loading={retrying}>{t.retry}</Button>
-  </div>;
+  </main>;
 }
 
 /** Re-fetch every loaded history page so refreshing never drops paginated rows. */
@@ -325,13 +318,15 @@ function AppointmentsSessionContent({ locale }: { locale: Locale }) {
   const { dict } = useTranslation();
   const t = dict.appointments;
   const page = dict.appointmentPage;
+  const toast = useToast();
   const router = useRouter();
-  const { status } = useAuth();
+  const { status, refresh: refreshSession } = useAuth();
   const { openAuthModal } = useAuthModal();
   const now = useAppointmentClock();
-  const [filter, setFilter] = useState<Filter>("all");
-  const [upcomingOpen, setUpcomingOpen] = useState(true);
-  const [pastOpen, setPastOpen] = useState(true);
+  const [initialView] = useState(readAppointmentListView);
+  const [filter, setFilter] = useState<Filter>(initialView.filter);
+  const [authRetrying, setAuthRetrying] = useState(false);
+  const offline = useSyncExternalStore(subscribeConnectivity, isOffline, serverOffline);
   const [upcoming, setUpcoming] = useState<AppointmentListItem[]>([]);
   const [past, setPast] = useState<PastAppointmentsGroup | null>(null);
   const [loading, setLoading] = useState(true);
@@ -341,17 +336,52 @@ function AppointmentsSessionContent({ locale }: { locale: Locale }) {
   const [attempt, setAttempt] = useState(0);
   const [loadedFilter, setLoadedFilter] = useState<Filter | null>(null);
   const [counts, setCounts] = useState<Partial<Record<Filter, number>>>({});
-  const [loadMoreErrored, setLoadMoreErrored] = useState(false);
   const requestRef = useRef(0);
   const moreRequestRef = useRef(0);
   const busyRef = useRef(false);
   const moreBusyRef = useRef(false);
   const lastStartedRef = useRef(0);
-  const snapshotRef = useRef<{ filter: Filter; count: number } | null>(null);
+  const snapshotRef = useRef<{ filter: Filter; count: number } | null>({ filter: initialView.filter, count: initialView.historyCount });
+  const restoredScrollRef = useRef(false);
+  const loadedFilterRef = useRef<Filter | null>(null);
+  const refreshFailedRef = useRef(false);
+  const refreshToastRef = useRef<ToastHandle | null>(null);
+  const loadMoreToastRef = useRef<ToastHandle | null>(null);
+  const offlineToastRef = useRef<ToastHandle | null>(null);
+  const offlineEpisodeRef = useRef(false);
+  const retryRefreshRef = useRef<() => void>(() => {});
+  const retryLoadMoreRef = useRef<() => void>(() => {});
   const authed = status === "authenticated";
+
+  const clearRefreshError = useCallback(() => {
+    refreshFailedRef.current = false;
+    refreshToastRef.current?.dismiss();
+    refreshToastRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (!authed) return;
+    const remember = () => saveAppointmentListView({
+      filter,
+      historyCount: loadedFilter === filter ? past?.items.length ?? 0 : snapshotRef.current?.count ?? 0,
+      scrollY: window.scrollY,
+    });
+    remember();
+    window.addEventListener("scroll", remember, { passive: true });
+    return () => window.removeEventListener("scroll", remember);
+  }, [authed, filter, past, loadedFilter]);
+
+  useEffect(() => {
+    if (restoredScrollRef.current || loading || loadedFilter !== initialView.filter) return;
+    restoredScrollRef.current = true;
+    if (initialView.scrollY > 0) {
+      const frame = requestAnimationFrame(() => window.scrollTo({ top: initialView.scrollY, behavior: "instant" }));
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [loading, loadedFilter, initialView]);
+
+  useEffect(() => {
+    if (!authed || offline) return;
     let alive = true;
     const request = ++requestRef.current;
     const paginationRequest = moreRequestRef;
@@ -365,27 +395,35 @@ function AppointmentsSessionContent({ locale }: { locale: Locale }) {
     const summary = filter === "all" ? null : listAppointments({ limit: 1 }).catch(() => null);
     Promise.all([main, summary]).then(([res, totals]) => {
       if (!alive || request !== requestRef.current) return;
+      loadedFilterRef.current = filter;
       setLoadedFilter(filter);
       setUpcoming(res.upcoming ?? []);
       setPast(res.past);
       snapshotRef.current = { filter, count: res.past?.items.length ?? 0 };
-      setCounts((known) => {
+      setCounts(() => {
         const all = filter === "all" ? res : totals;
         return {
-          ...known,
           ...(all ? {
             all: (all.upcoming?.length ?? 0) + (all.past?.total ?? 0),
             upcoming: all.upcoming?.length ?? 0,
             past: all.past?.total ?? 0,
           } : {}),
-          [filter]: filter === "all"
-            ? (res.upcoming?.length ?? 0) + (res.past?.total ?? 0)
-            : filter === "upcoming" ? res.upcoming?.length ?? 0 : res.past?.total ?? 0,
         };
       });
+      clearRefreshError();
+      loadMoreToastRef.current?.dismiss();
+      loadMoreToastRef.current = null;
       setErrored(false);
     }).catch(() => {
-      if (alive && request === requestRef.current) setErrored(true);
+      if (!alive || request !== requestRef.current) return;
+      setErrored(true);
+      if (loadedFilterRef.current === filter && navigator.onLine !== false && !refreshFailedRef.current) {
+        refreshFailedRef.current = true;
+        refreshToastRef.current = toast(page.refreshError, "warn", {
+          label: page.refresh,
+          onClick: () => retryRefreshRef.current(),
+        }, "error");
+      }
     }).finally(() => {
       if (!alive || request !== requestRef.current) return;
       busyRef.current = false;
@@ -398,7 +436,7 @@ function AppointmentsSessionContent({ locale }: { locale: Locale }) {
       ++paginationRequest.current;
       moreBusyRef.current = false;
     };
-  }, [authed, filter, attempt]);
+  }, [authed, offline, filter, attempt, clearRefreshError, toast, page.refreshError, page.refresh]);
 
   useEffect(() => {
     if (!authed) return;
@@ -422,28 +460,32 @@ function AppointmentsSessionContent({ locale }: { locale: Locale }) {
   }, [authed]);
 
   const onFilter = useCallback((next: Filter) => {
-    if (next === filter) return;
+    if (next === filter || offline) return;
     ++requestRef.current;
     ++moreRequestRef.current;
     moreBusyRef.current = false;
     setLoadingMore(false);
     setLoading(true);
     setErrored(false);
-    setLoadMoreErrored(false);
+    clearRefreshError();
+    loadMoreToastRef.current?.dismiss();
+    loadMoreToastRef.current = null;
     setFilter(next);
-  }, [filter]);
+  }, [filter, offline, clearRefreshError]);
 
   const onRetry = useCallback(() => {
+    if (offline || busyRef.current || moreBusyRef.current) return;
     setLoading(true);
     setAttempt((n) => n + 1);
-  }, []);
+  }, [offline]);
 
   const onLoadMore = useCallback(async () => {
-    if (!past?.hasMore || moreBusyRef.current || busyRef.current) return;
+    if (offline || loadedFilterRef.current !== filter || !past?.hasMore || moreBusyRef.current || busyRef.current) return;
     const request = ++moreRequestRef.current;
     moreBusyRef.current = true;
     setLoadingMore(true);
-    setLoadMoreErrored(false);
+    loadMoreToastRef.current?.dismiss();
+    loadMoreToastRef.current = null;
     try {
       const res = await listAppointments({
         status: filter === "all" ? "past" : filter,
@@ -458,24 +500,88 @@ function AppointmentsSessionContent({ locale }: { locale: Locale }) {
         snapshotRef.current = { filter, count: items.length };
       }
     } catch {
-      if (request === moreRequestRef.current) setLoadMoreErrored(true);
+      if (request === moreRequestRef.current && navigator.onLine !== false) {
+        loadMoreToastRef.current = toast(t.loadMoreError, "warn", {
+          label: dict.errors.retry,
+          onClick: () => retryLoadMoreRef.current(),
+        }, "error");
+      }
     } finally {
       if (request === moreRequestRef.current) {
         moreBusyRef.current = false;
         setLoadingMore(false);
       }
     }
-  }, [past, filter]);
+  }, [past, filter, offline, toast, t.loadMoreError, dict.errors.retry]);
+
+  useEffect(() => {
+    retryRefreshRef.current = () => {
+      clearRefreshError();
+      onRetry();
+    };
+    retryLoadMoreRef.current = () => { void onLoadMore(); };
+  }, [onRetry, onLoadMore, clearRefreshError]);
+
+  useEffect(() => {
+    if (authed && offline && loadedFilter === filter) {
+      if (offlineEpisodeRef.current) return;
+      offlineEpisodeRef.current = true;
+      clearRefreshError();
+      loadMoreToastRef.current?.dismiss();
+      loadMoreToastRef.current = null;
+      offlineToastRef.current = toast(page.offline, "warn", undefined, "error");
+    } else {
+      offlineEpisodeRef.current = false;
+      offlineToastRef.current?.dismiss();
+      offlineToastRef.current = null;
+    }
+  }, [authed, offline, loadedFilter, filter, clearRefreshError, toast, page.offline]);
+
+  useEffect(() => () => {
+    refreshToastRef.current?.dismiss();
+    loadMoreToastRef.current?.dismiss();
+    offlineToastRef.current?.dismiss();
+    retryRefreshRef.current = () => {};
+    retryLoadMoreRef.current = () => {};
+  }, []);
 
   if (status === "idle" || status === "loading") return <LoadingState t={t} page={page} />;
-  if (status === "unauthenticated" || status === "error") {
-    return <SignedOutGate icon="cal" title={t.gate.title} body={t.gate.body}
-      onCta={() => openAuthModal("signin")} secondaryLabel={t.gate.secondary}
-      onSecondary={() => router.push(localeHref(locale, "search"))} />;
+  if (status === "unauthenticated") {
+    return (
+      <main>
+        <SignedOutGate artwork={<AppointmentsSignInArt />} title={t.gate.title} body={t.gate.body}
+          cta={t.gate.cta} onCta={() => openAuthModal("signin")} secondaryLabel={t.gate.secondary}
+          onSecondary={() => router.push(localeHref(locale, "search"))} />
+      </main>
+    );
   }
-  if (loading && !hasLoadedOnce) return <LoadingState t={t} page={page} />;
+  if (status === "error") return <PageError
+    title={page.detailSessionErrorTitle}
+    description={dict.accountMenu.sessionError}
+    primary={{ label: dict.errors.retry, loading: authRetrying, onClick: async () => {
+      if (authRetrying) return;
+      setAuthRetrying(true);
+      try { await refreshSession(); } finally { setAuthRetrying(false); }
+    } }}
+    secondary={{ label: dict.nav.explore, href: localeHref(locale, "search") }}
+  />;
 
   const hasCurrentData = loadedFilter === filter;
+  if (offline && !hasCurrentData) return <PageError
+    title={page.detailOfflineTitle}
+    description={page.listOfflineBody}
+    primary={{ label: dict.errors.retry, onClick: onRetry, disabled: true }}
+    secondary={{ label: dict.errors.backHome, href: localeHref(locale) }}
+  />;
+  if (errored && !hasCurrentData) return <PageError
+    title={page.listErrorTitle}
+    description={page.listErrorBody}
+    primary={{ label: dict.errors.retry, onClick: onRetry, loading, disabled: loading }}
+    secondary={filter === "all"
+      ? { label: dict.nav.explore, href: localeHref(locale, "search") }
+      : { label: page.clearFilter, onClick: () => onFilter("all") }}
+  />;
+  if (loading && !hasLoadedOnce) return <LoadingState t={t} page={page} />;
   const showUpcoming = filter === "all" || filter === "upcoming";
   const showFinished = filter !== "upcoming";
   const finishedItems = past?.items ?? [];
@@ -484,20 +590,16 @@ function AppointmentsSessionContent({ locale }: { locale: Locale }) {
   const finishedEmptyNote = filter === "cancelled" ? t.notes.cancelledEmpty
     : filter === "no_show" ? t.notes.noShowEmpty : page.historyEmpty;
   const currentEmpty = upcoming.length === 0 && finishedItems.length === 0;
-  const trulyEmpty = filter === "all" && currentEmpty;
+  const trulyEmpty = hasCurrentData && filter === "all" && currentEmpty;
 
   return (
-    <div className={`zw-container ${styles.page}`}>
-      <AppointmentsHeading t={t} upcoming={counts.upcoming ?? null} past={counts.past ?? null} loading={loading && !hasLoadedOnce} />
-      <SchedFilters value={filter} onChange={onFilter} counts={counts} t={t} page={page} />
-      <span role="status" className="sr-only">{loading ? t.loading : ""}</span>
-      {errored && (hasCurrentData ? (
-        <div className={styles.refreshError}>
-          <InlineError>{page.refreshError}</InlineError>
-          <Button kind="secondary" size="sm" loading={loading} onClick={onRetry}>{page.refresh}</Button>
-        </div>
-      ) : <ErrorState t={t} onRetry={onRetry} retrying={loading} />)}
-      {loading && !hasCurrentData && !errored ? <ListLoading t={t} label={showUpcoming ? t.sectionUpcoming : finishedLabel} />
+    <main className={`zw-container ${styles.page}`} data-empty={trulyEmpty || undefined}>
+      {!trulyEmpty && <>
+        <AppointmentsHeading t={t} />
+        <SchedFilters value={filter} onChange={onFilter} counts={counts} t={t} page={page} disabled={offline} />
+      </>}
+      <span role="status" className="sr-only">{loading && !offline ? t.loading : ""}</span>
+      {loading && !offline && !hasCurrentData && !errored ? <ListLoading t={t} label={showUpcoming ? t.sectionUpcoming : finishedLabel} />
         : !hasCurrentData ? null
         : trulyEmpty ? <SchedEmpty t={t} onExplore={() => router.push(localeHref(locale, "search"))} />
         : <>
@@ -505,33 +607,30 @@ function AppointmentsSessionContent({ locale }: { locale: Locale }) {
             <div className={styles.filteredEmpty}>
               <h2>{page.filterEmptyTitle}</h2>
               <p>{showUpcoming ? t.notes.upcomingEmpty : finishedEmptyNote}</p>
-              <Button kind="secondary" size="md" onClick={() => onFilter("all")}>{page.clearFilter}</Button>
+              <Button kind="secondary" size="md" disabled={offline} onClick={() => onFilter("all")}>{page.clearFilter}</Button>
             </div>
           ) : <>
-            {showUpcoming && <section className={styles.upcoming}>
-              <SchedSection label={t.sectionUpcoming} count={upcoming.length} open={upcomingOpen}
-                onToggle={() => setUpcomingOpen((o) => !o)} id="appointments-upcoming" />
-              <div id="appointments-upcoming" hidden={!upcomingOpen}>
+            {showUpcoming && <section aria-labelledby="appointments-upcoming-title">
+              <SchedSection label={t.sectionUpcoming} id="appointments-upcoming-title" />
+              <div id="appointments-upcoming">
                 {upcoming.length === 0 ? <div className={styles.note}>{t.notes.upcomingEmpty}</div>
-                  : <SchedGrid items={upcoming} locale={locale} t={t} page={page} now={now} />}
+                  : <SchedGrid items={upcoming} locale={locale} t={t} page={page} now={now} upcoming />}
               </div>
             </section>}
-            {showFinished && <section className={showUpcoming ? styles.history : undefined}>
-              <SchedSection label={finishedLabel} count={past?.total ?? 0} open={pastOpen}
-                onToggle={() => setPastOpen((o) => !o)} id="appointments-history" />
-              <div id="appointments-history" hidden={!pastOpen}>
+            {showFinished && <section className={showUpcoming ? styles.history : undefined} aria-labelledby="appointments-history-title">
+              <SchedSection label={finishedLabel} id="appointments-history-title" />
+              <div id="appointments-history">
                 {finishedItems.length === 0 ? <div className={styles.note}>{finishedEmptyNote}</div> : <>
                   <SchedGrid items={finishedItems} locale={locale} t={t} page={page} now={now} withYears />
                   {past?.hasMore && <div className={styles.pagination}>
-                    <Button kind="secondary" size="md" loading={loadingMore} spinnerSize={15}
-                      onClick={() => void onLoadMore()} disabled={loadingMore}>{t.loadMore}</Button>
-                    {loadMoreErrored && <InlineError className="txt-pretty" style={{ marginTop: 10 }}>{t.loadMoreError}</InlineError>}
+                    <Button kind="secondary" size="md" loading={loadingMore && !offline} spinnerSize={15}
+                      onClick={() => void onLoadMore()} disabled={loadingMore || offline}>{t.loadMore}</Button>
                   </div>}
                 </>}
               </div>
             </section>}
           </>}
         </>}
-    </div>
+    </main>
   );
 }

@@ -1,7 +1,10 @@
 "use client";
 
-import { Spinner } from "@/components/ui/spinner";
-import { AuthStepSkeleton } from "../../_components/auth-skeleton";
+import { Button } from "@/components/ui/button";
+import { InlineError } from "@/components/ui/inline-error";
+import { ArrowLeft, Link2Off, Mail, WifiOff } from "lucide-react";
+import { VerificationLayout, VerificationLoading } from "./verification-layout";
+import styles from "./verification.module.css";
 
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import Link from "next/link";
@@ -10,14 +13,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import { validateAccountLink } from "@/lib/api/customer-auth";
-import { ApiError } from "@/lib/api/http";
-import {
-  isOfflineError,
-  isServerError,
-  isTimeoutError,
-  transportErrorMessage,
-} from "@/lib/api/error-messages";
-import { InlineError } from "@/components/ui/inline-error";
+import { authErrorMessage } from "@/lib/api/auth-error-messages";
+import { backendCode } from "@/lib/api/error-messages";
 import { defaultPostAuthTarget } from "@/lib/auth/redirects";
 import { useAuth } from "@/lib/auth/useAuth";
 import type { AccountLinkValidation } from "@/lib/auth/types";
@@ -25,18 +22,26 @@ import { GOOGLE_CLIENT_ID } from "@/lib/env";
 import { AuthField } from "../../_components/auth-field";
 import { GoogleSignInButton } from "../../_components/google-signin-button";
 
-// "error": the backend rejected the token itself (not found / already used /
-// expired, or anything else it validated) — the dead-link copy is correct
-// and a retry can never help. "transient": the pre-flight check never
-// reliably reached the backend at all (offline / client timeout / 5xx) — the
-// token might still be perfectly good, so we offer a retry instead of
-// telling the user their link is dead.
+// Only explicit token/account rejections prove this link is unusable. An
+// unavailable backend, rate limit or unknown rejection must allow recovery.
+const DEAD_LINK_CODES = new Set([
+  "SYSTEM.E06", // Unknown token.
+  "SYSTEM.E07", // Already used.
+  "SYSTEM.E08", // Expired.
+  "CUSTOMER_AUTH.E10", // Marketplace access is already enabled.
+]);
+
+function isDeadLinkError(error: unknown): boolean {
+  const code = backendCode(error);
+  return code !== null && DEAD_LINK_CODES.has(code);
+}
+
 type State =
   | { kind: "checking" }
   | { kind: "confirm"; info: AccountLinkValidation }
   | { kind: "success" }
   | { kind: "error" }
-  | { kind: "transient" };
+  | { kind: "transient"; error: unknown };
 
 /**
  * Landing page of the account-link email. The emailed token alone must not
@@ -47,11 +52,18 @@ type State =
  * signed in.
  */
 export function VerifyAccountLink({ locale }: { locale: Locale }) {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  // A different emailed link is a different form, including password draft,
+  // errors and in-flight validation. Late results from its predecessor cannot
+  // replace this token's identity or confirmation state.
+  return <AccountLinkConfirmation key={token ?? ""} token={token} locale={locale} />;
+}
+
+function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: string | null }) {
   const dictionary = useAuthMessages();
   const dict = dictionary.auth;
   const t = dict.verifyLink;
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
   const { completeAccountLink } = useAuth();
 
   // A missing token is a render-time fact (no async needed), so derive the
@@ -61,25 +73,34 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
   );
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<unknown>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const startedRef = useRef(false);
   const mountedRef = useRef(true);
+  const submitLockRef = useRef(false);
+  const validateLockRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Validate the token once on mount WITHOUT consuming it, to learn how the
   // user can confirm account ownership. Shared between the initial auto-run
   // and the transient-failure retry button.
-  const runValidate = useCallback(async () => {
-    if (!token) return;
-    setState({ kind: "checking" });
+  const runValidate = useCallback(async (retry = false) => {
+    if (!token || validateLockRef.current) return;
+    validateLockRef.current = true;
+    if (retry) setRetrying(true);
+    else setState({ kind: "checking" });
     try {
       const info = await validateAccountLink(token);
       if (mountedRef.current) setState({ kind: "confirm", info });
     } catch (err) {
       if (!mountedRef.current) return;
-      const transient =
-        isOfflineError(err) || isTimeoutError(err) || isServerError(err);
-      setState({ kind: transient ? "transient" : "error" });
+      setState(isDeadLinkError(err)
+        ? { kind: "error" }
+        : { kind: "transient", error: err });
+    } finally {
+      validateLockRef.current = false;
+      if (mountedRef.current) setRetrying(false);
     }
   }, [token]);
 
@@ -94,185 +115,180 @@ export function VerifyAccountLink({ locale }: { locale: Locale }) {
     };
   }, [token, runValidate]);
 
+  useEffect(() => {
+    // An invalid field can receive focus only after the pending state has
+    // released it. Use the same named-control lookup as the sign-in form.
+    if (passwordError && !submitting) {
+      const field = formRef.current?.elements.namedItem("password");
+      if (field instanceof HTMLElement) field.focus();
+    }
+  }, [passwordError, submitting]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!token || state.kind !== "confirm") return;
+    if (!token || state.kind !== "confirm" || submitLockRef.current || submitting) return;
+    setActionError(null);
     if (!password) {
       setPasswordError(t.passwordRequired);
+      const field = event.currentTarget.elements.namedItem("password");
+      if (field instanceof HTMLElement) field.focus();
       return;
     }
+    // This confirms an existing password. Never trim, normalize, sanitize or
+    // apply new-password strength rules: the server needs the exact value.
+    // The ref locks synchronously before React disables the controls; the
+    // emailed token is single-use and must never be submitted twice at once.
+    submitLockRef.current = true;
     setPasswordError(null);
-    setSubmitError(null);
     setSubmitting(true);
     try {
       await completeAccountLink(token, password);
-      setState({ kind: "success" });
+      if (mountedRef.current) {
+        setPassword("");
+        setState({ kind: "success" });
+      }
     } catch (e) {
-      // Offline / timeout / rate limit / server failure: the token may still
-      // be valid, so keep the form and let the user retry.
-      const transport = transportErrorMessage(e, dictionary.errors);
-      if (transport) {
-        setSubmitError(transport);
-      } else if (e instanceof ApiError && e.status === 401) {
+      if (!mountedRef.current) return;
+      const code = backendCode(e);
+      if (code === "CUSTOMER_AUTH.E38") {
         // Wrong password — keep the form so the user can retry.
         setPasswordError(t.wrongPassword);
-      } else if (e instanceof ApiError && e.code === "google_login_required") {
+      } else if (code === "GOOGLE_LOGIN_REQUIRED") {
         // Passwordless (Google-only) account — only Google can confirm it.
         setState({
           kind: "confirm",
           info: { ...state.info, hasPassword: false, googleLinked: true },
         });
-      } else {
-        // Token consumed/expired or anything unexpected — dead end.
+        setPassword("");
+      } else if (isDeadLinkError(e)) {
         setState({ kind: "error" });
+        setPassword("");
+      } else {
+        // Transport failures, 429, SESSION_CHANGED and unknown errors do not
+        // prove a bad password or dead link. Preserve the form for recovery.
+        setActionError(e);
       }
     } finally {
-      setSubmitting(false);
+      submitLockRef.current = false;
+      if (mountedRef.current) setSubmitting(false);
     }
   }
 
   // Google path: full-page redirect through /auth/callback. The backend
-  // instant-links business accounts whose Google identity is already bound
-  // (sub match) and signs them in; the emailed token stays unused. Any
-  // collision or failure is handled by the callback page's panels.
+  // checks the bound Google identity; the callback owns any marketplace-access
+  // confirmation, collision or failure panels. The emailed token stays unused.
 
   const loginHref = `${localeHref(locale, "auth")}?mode=login`;
 
-  if (state.kind === "checking") {
-    return (
-      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16" aria-busy="true">
-        <AuthStepSkeleton password />
-        <p role="status" className="sr-only">{t.verifying}</p>
-      </main>
-    );
-  }
+  if (state.kind === "checking") return <VerificationLoading />;
 
   if (state.kind === "success") {
     return (
-      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t.successHeading}
-        </h1>
-        <p className="mt-2 text-sm text-zinc-600">{t.successBody}</p>
-        <Link
-          href={defaultPostAuthTarget(locale)}
-          className="mt-6 inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
-        >
-          {t.continueCta}
-        </Link>
-      </main>
+      <VerificationLayout title={t.successHeading} body={<p>{t.successBody}</p>}>
+        <div className={styles.resultActions}>
+          <Link href={defaultPostAuthTarget(locale)} className={`${styles.primaryLink} tap zw-btn`}>
+            {t.continueCta}
+          </Link>
+        </div>
+      </VerificationLayout>
     );
   }
 
   if (state.kind === "error") {
     return (
-      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t.errorHeading}
-        </h1>
-        <p className="mt-2 text-sm text-zinc-600">{t.errorBody}</p>
-        <Link
-          href={loginHref}
-          className="mt-6 inline-block rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
-        >
-          {t.backToLogin}
-        </Link>
-      </main>
+      <VerificationLayout title={t.errorHeading} body={<p>{t.errorBody}</p>}
+        icon={<Link2Off size={28} strokeWidth={1.6} />} tone="warning">
+        <div className={styles.resultActions}>
+          <Link href={loginHref} className={`${styles.primaryLink} tap zw-btn`}>
+            {t.backToLogin}
+          </Link>
+        </div>
+      </VerificationLayout>
     );
   }
 
   if (state.kind === "transient") {
     return (
-      <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {dict.errors.linkCheckFailedHeading}
-        </h1>
-        <p className="mt-2 text-sm text-zinc-600">
-          {dict.errors.linkCheckFailedBody}
-        </p>
-        <button
-          type="button"
-          onClick={() => void runValidate()}
-          className="mt-6 inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
-        >
-          {dictionary.errors.retry}
-        </button>
-      </main>
+      <VerificationLayout title={dict.errors.linkCheckFailedHeading}
+        body={<p>{dict.errors.linkCheckFailedBody}</p>}
+        icon={<WifiOff size={28} strokeWidth={1.6} />} tone="warning">
+        <div className={styles.resultActions}>
+          <InlineError>{authErrorMessage(state.error, dict.errors, dictionary.errors)}</InlineError>
+          <Button size="lg" loading={retrying} onClick={() => void runValidate(true)} className={styles.submit}>
+            {dictionary.errors.retry}
+          </Button>
+          <span role="status" className="sr-only">{retrying ? t.verifying : ""}</span>
+        </div>
+      </VerificationLayout>
     );
   }
 
   const { info } = state;
-  const body = info.hasPassword ? t.confirmBody : t.googleOnlyBody;
+  const backLink = (
+    <Link href={loginHref} className={styles.back}
+      aria-disabled={submitting || undefined} tabIndex={submitting ? -1 : undefined}
+      onNavigate={(event) => { if (submitting) event.preventDefault(); }}>
+      <ArrowLeft size={16} aria-hidden="true" />
+      {t.backToLogin}
+    </Link>
+  );
 
   return (
-    <main className="mx-auto min-h-[30rem] max-w-md px-6 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {t.confirmHeading}
-      </h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        {body.replace("{email}", info.email)}
-      </p>
+    <VerificationLayout title={t.confirmHeading}
+      body={<p>{info.hasPassword ? t.confirmBody : t.googleOnlyBody}</p>}>
+      <div className={styles.identity}>
+        <Mail size={20} strokeWidth={1.6} aria-hidden="true" />
+        <div className={styles.identityCopy}>
+          <p className={styles.accountLabel}>{t.accountLabel}</p>
+          <p className={styles.email}>{info.email}</p>
+        </div>
+      </div>
 
       {info.hasPassword ? (
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
+        <form ref={formRef} onSubmit={handleSubmit} className={styles.form} aria-busy={submitting}
+          aria-describedby={actionError ? "account-link-error" : undefined} noValidate>
           <AuthField
             id="password"
             type="password"
             label={t.passwordLabel}
             value={password}
-            onChange={setPassword}
+            onChange={(value) => {
+              setPassword(value);
+              setPasswordError(null);
+              setActionError(null);
+            }}
             error={passwordError ?? undefined}
             autoComplete="current-password"
+            disabled={submitting}
+            required
             showPasswordLabel={dict.fields.showPassword}
             hidePasswordLabel={dict.fields.hidePassword}
           />
-
-          {submitError && (
-            <InlineError
-              className="rounded-[10px] border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2"
-            >
-              {submitError}
+          {actionError !== null && (
+            <InlineError id="account-link-error">
+              {authErrorMessage(actionError, dict.errors, dictionary.errors)}
             </InlineError>
           )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            aria-label={t.confirm}
-            aria-busy={submitting}
-            className="relative mt-2 w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <span className={submitting ? "invisible" : undefined} aria-hidden={submitting || undefined}>
-              {t.confirm}
-            </span>
-            {submitting && (
-              <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
-                <Spinner size={16} color="currentColor" />
-              </span>
-            )}
-          </button>
-          <span role="status" className="sr-only">
-            {submitting ? t.confirming : ""}
-          </span>
+          <Button type="submit" size="lg" loading={submitting} className={styles.submit}
+            style={{ whiteSpace: "normal", lineHeight: 1.4 }}>
+            {t.confirm}
+          </Button>
+          <span role="status" className="sr-only">{submitting ? t.confirming : ""}</span>
 
           {GOOGLE_CLIENT_ID && info.googleLinked && (
             <div>
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-zinc-200" />
-                <span className="text-xs text-zinc-500">{t.orDivider}</span>
-                <div className="h-px flex-1 bg-zinc-200" />
-              </div>
-              <div className="mt-4">
-                <GoogleSignInButton intent="login" locale={locale} />
-              </div>
+              <div className={styles.divider}>{t.orDivider}</div>
+              <GoogleSignInButton intent="login" locale={locale} disabled={submitting} />
             </div>
           )}
+          {backLink}
         </form>
       ) : (
-        <div className="mt-8">
+        <div className={styles.googleOnly}>
           <GoogleSignInButton intent="login" locale={locale} />
+          {backLink}
         </div>
       )}
-    </main>
+    </VerificationLayout>
   );
 }

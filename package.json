@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",
+    "test:unit": "node --test \"src/**/*.test.mjs\"",
     "test:e2e": "playwright test",
     "test:e2e:explore": "playwright test --config=playwright.explore.config.ts",
     "test:e2e:ui": "playwright test --ui",

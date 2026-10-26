@@ -1,0 +1,52 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.floating {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 1px 4px rgba(28, 28, 26, 0.12);
+}
+
+.root:focus-visible {
+  outline: 2px solid var(--c-ink);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .root[aria-disabled="false"]:hover {
+    background: rgba(28, 28, 26, 0.06);
+    transform: translateY(-1px);
+  }
+
+  .floating[aria-disabled="false"]:hover {
+    background: var(--c-50);
+    box-shadow: var(--sh-md);
+  }
+}
+
+.root[aria-disabled="false"]:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    transition: none;
+  }
+
+  .root[aria-disabled="false"]:hover,
+  .root[aria-disabled="false"]:active {
+    transform: none;
+  }
+
+  .root :global(.zv-heart-pop) {
+    animation: none;
+  }
+}

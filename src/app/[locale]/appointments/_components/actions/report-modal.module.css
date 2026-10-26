@@ -1,0 +1,50 @@
+.modal {
+  --action-modal-title-size: 24px;
+  --action-modal-header-padding: 22px 28px 18px;
+  --action-modal-body-padding: 24px 28px;
+  --action-modal-footer-padding: 18px 28px 22px;
+}
+
+.booking { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; column-gap: 20px; row-gap: 18px; padding-bottom: 22px; border-bottom: 1px solid var(--c-200); }
+.photo { width: 112px; height: 112px; border-radius: 18px; overflow: hidden; }
+.summary { min-width: 0; }
+.summary h2 { margin: 0 0 8px; color: var(--c-900); font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.025em; overflow-wrap: anywhere; }
+.summary p { margin: 2px 0 0; color: var(--c-600); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.summary .more { color: var(--c-800); }
+.schedule { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 6px; margin: 0; color: var(--c-800); font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.date { display: inline-flex; align-items: center; gap: 7px; }
+.schedule > span { white-space: nowrap; }
+.intro { margin: 20px 0; color: var(--c-600); font-size: 14px; line-height: 1.6; }
+.topics { min-width: 0; margin: 0; padding: 0; border: 0; }
+.topics legend { display: block; margin-bottom: 9px; padding: 0; color: var(--c-800); font-size: 14px; font-weight: 500; line-height: 1.5; }
+.choices { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 4px; border-radius: var(--r-full); background: var(--c-200); }
+.choices::before { content: ""; position: absolute; z-index: -1; inset: 4px auto 4px 4px; width: calc(50% - 4px); border-radius: var(--r-full); background: var(--c-ink); transform: translateX(0); pointer-events: none; transition: transform 220ms var(--ease-out); }
+.choices[data-category="question"]::before { transform: translateX(100%); }
+.choice { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 12px; box-sizing: border-box; border-radius: var(--r-full); color: var(--c-800); font-size: 14px; line-height: 1.5; cursor: pointer; transition: color 160ms var(--ease-out); }
+.choice:has(input:checked) { color: var(--c-50); }
+.choice:has(input:focus-visible) > span { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.topics:disabled .choices { opacity: 0.6; }
+.topics:disabled .choice { cursor: default; }
+.message { margin-top: 22px; }
+.replies { margin: 14px 0 0; color: var(--c-600); font-size: 12.5px; line-height: 1.5; }
+.actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 12px; width: 100%; }
+.actions > button { min-height: 54px; padding: 14px 16px !important; white-space: normal !important; line-height: 1.4; }
+
+@media (max-width: 600px) {
+  .modal {
+    --action-modal-title-size: 22px;
+    --action-modal-header-padding: 18px 20px 14px;
+    --action-modal-body-padding: 20px;
+    --action-modal-footer-padding: 16px 20px 18px;
+  }
+  .booking { grid-template-columns: 80px minmax(0, 1fr); column-gap: 14px; row-gap: 16px; padding-bottom: 20px; }
+  .photo { width: 80px; height: 80px; border-radius: 16px; }
+  .summary h2 { font-size: 18px; }
+  .intro { margin: 18px 0; }
+  .actions { gap: 10px; }
+  .actions > button { padding: 13px 12px !important; font-size: 14px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choices::before, .choice { transition: none; }
+}

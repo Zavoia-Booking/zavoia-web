@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Inline error messages
 
-Use `src/components/ui/inline-error.tsx` for inline validation, action and request errors throughout the web app. Follow the inline-error rule in `DESIGN.md` under **Inputs / Fields**, including the explicit text-only sign-in exception and error messages that grow the layout without reserved blank rows.
+Use `src/components/ui/inline-error.tsx` for field validation and field-specific API rejections. Use the shared toast for non-blocking action/request failures, preserving usable content and drafts; use `PageError` for failures that block the page, with relevant recovery actions. Follow the error-feedback and inline-error rules in `DESIGN.md` under **Inputs / Fields**, including the explicit text-only sign-in exception and error messages that grow the layout without reserved blank rows.
 
 ## Loading feedback
 

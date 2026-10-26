@@ -29,6 +29,7 @@
 .mc-tmr-track[data-drag="1"] { transition: none; }
 
 .mc-tmr-slide { margin: 0; flex: 0 0 clamp(228px, 34cqw, 360px); cursor: pointer; transition: opacity 0.55s var(--ease-out-strong); }
+.mc-tmr-profile { display: block; height: 100%; }
 .mc-tmr-slide .mc-portrait-inner {
   transform: scale(0.84);
   filter: saturate(0.68) brightness(0.9);

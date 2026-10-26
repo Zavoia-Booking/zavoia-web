@@ -40,11 +40,16 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [payload, setPayload] = useState<OpenBookingPayload | null>(null);
+  const payloadRef = useRef<OpenBookingPayload | null>(null);
   const { status } = useAuth();
   // No re-render needed when this flips — only read inside the auth effect.
   const pendingReopenRef = useRef(false);
 
   const openBooking = useCallback((p: OpenBookingPayload) => {
+    if (payloadRef.current !== p) {
+      payloadRef.current?.profileOrigin?.onDismiss();
+    }
+    payloadRef.current = p;
     pendingReopenRef.current = false;
     setPayload(p);
     setMounted(true);
@@ -52,9 +57,24 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const closeBooking = useCallback(() => {
+    const origin = payloadRef.current?.profileOrigin;
+    payloadRef.current = null;
     pendingReopenRef.current = false;
     setOpen(false);
     setMounted(false);
+    setPayload(null);
+    origin?.onDismiss();
+  }, []);
+
+  const returnToProfile = useCallback(() => {
+    const origin = payloadRef.current?.profileOrigin;
+    if (!origin?.isAvailable()) return;
+    payloadRef.current = null;
+    pendingReopenRef.current = false;
+    setOpen(false);
+    setMounted(false);
+    setPayload(null);
+    origin.onReturn();
   }, []);
 
   const closeForAuth = useCallback(() => {
@@ -71,8 +91,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   }, [status, payload]);
 
   const api = useMemo<BookingApi>(
-    () => ({ openBooking, closeBooking, closeForAuth }),
-    [openBooking, closeBooking, closeForAuth],
+    () => ({ openBooking, closeBooking, returnToProfile, closeForAuth }),
+    [openBooking, closeBooking, returnToProfile, closeForAuth],
   );
 
   return (
