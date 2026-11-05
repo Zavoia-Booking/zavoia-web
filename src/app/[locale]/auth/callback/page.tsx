@@ -20,7 +20,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isLocale(locale)) return {};
 
   return {
-    title: dictionaries[locale].auth.googleCallback.pageTitle,
+    // This copy already names Zavoia, so skip the layout's "| Zavoia" suffix.
+    title: { absolute: dictionaries[locale].auth.googleCallback.pageTitle },
     robots: { index: false, follow: false },
   };
 }

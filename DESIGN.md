@@ -198,7 +198,7 @@ indices, counts, and reading-time tags. Fonts load via `next/font` in
 `src/styles/fonts.ts` — the single place fonts are declared.
 
 ### Hierarchy
-- **Display** (600, clamp(48px, 6.6vw, 88px), lh 0.93, ls −0.052em): the home hero only. Its second line uses `--c-600` to retain contrast against the hero gradient.
+- **Display** (600, clamp(48px, 6.6vw, 88px), lh 0.93, ls −0.052em): the home hero and the business pages' heroes. Its second line uses `--c-600` to retain contrast against the hero gradient on home; the business pages end on one handwritten signature word instead (see Business marketing pages).
 - **Headline** (700, clamp(22px, 2.4vw, 30px), lh 1.06, ls −0.03em): SectionTitle's `h2`, always `txt-balance`, always `--c-900`, usually preceded by a Kicker with 8px gap.
 - **Title** (600, 16–18px, lh 1.15–1.35, ls −0.016 to −0.022em): card names, row titles, question titles. Card titles truncate with ellipsis on one line.
 - **Body** (400, 13.5–15.5px, lh 1.4–1.75, ls −0.003 to −0.005em, `--c-700`): prose at 15.5/1.75 in reading columns (58ch measure), card blurbs at 13.5/1.4. Reading columns cap at ~58ch/720px.
@@ -681,18 +681,136 @@ Google handoff and localized success destination. The marketplace footer stays
 outside this view and is unchanged.
 
 ### Detail-Page Grammar (signature)
-Location (`/business/[slug]`) and brand (`/brand/[slug]`) pages share one
-grammar: a quiet back control (13.5px/600 `--c-600`, `back` icon, history-aware);
-an identity band (Avatar with ring, `txt-balance` name, tagline); **fused meta
-rows** — segments joined by `--c-400` "·" separators via a `joinDot()` helper
-that interleaves only present segments (no dangling dots), with each separator
-kept in the same `nowrap` span as the item it introduces so a wrap never strands
-a dot at line-end; a gallery grid (2fr/1fr + stacked, collapsing to a single
-hero ≤920px, `clamp(280px, 36vw, 440px)` tall, 24px radius); tabs (Services /
-Team / Reviews / About); a sticky booking rail on desktop that becomes a fixed
-frosted bottom bar on mobile; and centered modals using `.zw-modal-in/out`
-scale-fade. Team-member profiles open as modals on the team tab
-(`?tab=team&member=<id>` deep link).
+Location (`/business/[slug]`) pages lead with a 44px back control and quiet
+Share/save actions, then identity beside photography on desktop. Toolbar hover
+and press feedback stays local: background/color changes, no transforms, filters
+or hover shadows. Transform promotion here repaints a large Chromium page layer.
+Keep the labeled Share action, its pending spinner, and the shared heart's
+unresolved/unavailable/pending states. A failed native share offers an explicit
+Copy link action, giving clipboard access a fresh user gesture.
+
+Put the labeled See on map action immediately before Share in the toolbar. It
+opens the existing Explore map focused on this venue. Preserve its wording on
+phones: Share becomes a 44px icon control below 600px; below 370px, Back becomes
+a 44px icon control and the map pin is omitted. Keep localized accessible names
+on these compact controls and retain local background-only hover feedback.
+
+Lead the identity with the canonical industry icon and localized industry label,
+followed on the same eyebrow row by the opening status. Keep closing-time detail
+after the status, allowing it to wrap when space is tight. Place the sole location
+H1 beneath the eyebrow at 52–60px/600. Names longer than 24 Unicode characters
+use a compact 38–44px title (36px on phones, 34px below 370px). Show the full name,
+wrap at natural word boundaries, and allow emergency wrapping for unbroken text;
+never truncate or clamp the title. Give the desktop overview a 360px identity
+column, or 300px at 1100px, independently of the booking rail. Place the owning
+brand last in the identity column, beneath the address, with a full-width divider
+above it, 12px top padding, a 32px logo and a 17px/600 brand link.
+
+Use a dedicated 44px review action with a 20px star, 28px score and 18px localized
+written review count aligned to the score's typographic baseline. Keep optional
+distance on a secondary line. Show the 15px full address as a wrapping Google Maps
+place link with a 20px pin and quiet external-link arrow. Use the address as the
+place query, falling back to its coordinates. Open it in a new tab. Keep the
+address in the identity header on every tab, including About. Do not duplicate
+it in Contact. The toolbar's See on map action remains in place.
+A city without coordinates or a street address stays
+static. Keep 12px between identity groups and local
+color/underline hover feedback. At 920px the identity and gallery stack; phones
+use a 40px short name. Use the professional page's
+fine outer frame, inset content and faded dividers to connect header and catalog.
+Confine warm material to the overview and keep the shared 1400px container.
+Brand pages retain their own identity-led layout and location cards.
+
+The location gallery is an asymmetric photo collage with a tall central image,
+offset supporting photographs and a dedicated See all tile. A diffuse warm
+gradient blends into the page behind the composition; avoid an enclosing card.
+Show up to four distinct previews on desktop and three on phones. Adapt the
+composition to two or three photos without duplicating images or empty tiles.
+Use an 8px gap/corner radius (6px on phones), a 320px desktop height, 280px on
+short laptops, 300px on tablets and 264px on phones. The localized ink See all tile
+contains the full photo count and opens the shared ImageViewer. One photo fills
+the gallery without a redundant See all tile; zero photos retains the compact,
+noninteractive shared fallback. Every unique photo remains in the viewer,
+including those omitted from the preview. Preserve thumbnails, keyboard/swipe
+navigation and focus return to the originating photo or See all tile. Only
+visible previews participate in image transitions; other photos fade. Hover
+never lifts or zooms photographs or controls. Match image sizes and the route
+skeleton to the collage's responsive geometry.
+
+Between 921px and 1100px, place the fourth preview beneath the left supporting
+photo and widen See all across the right cluster, keeping localized copy inside
+the tile as the identity and collage share a narrower viewport.
+
+Services / Team / Reviews / About tabs remain sticky beneath the site header,
+with ink active rules, mono counts and native keyboard navigation. The service
+menu has a 30px heading, compact search, category filters and 21px category
+headings. Use 19px service names (18px on phones), readable descriptions and
+mono durations, with prices aligned in their own desktop column. Phones place
+price beneath the service details. Circular 44px plus/check indicators retain
+the professional profile's selection grammar. Each bookable
+row is one native toggle button; unavailable rows remain static. Search and
+category filters preserve their state, as do service selections across tabs.
+Team cards use portraits beside readable identity and a quiet profile link,
+retaining grid/list views and contextual professional modals. Team-member
+profiles preserve the `?tab=team&member=<id>` deep link.
+
+The desktop booking rail follows the framed page grid: 360px, narrowing to
+320px below 1440px and 280px below 1100px. Use the appointment receipt's two
+paper halves, subtle warm shading, 9px side cutouts, inset hairline and
+perforation before the total/actions. The receipt holds real ordered selections,
+separate duration/prices and a prominent 28px total, without invented dates,
+availability or confirmation states. Cap it to the viewport so long
+selections leave the booking action reachable; short desktop viewports use
+document scrolling. Below 920px, use an opaque canvas action bar above mobile
+navigation with an expandable, height-bounded receipt. Keep ordered service
+and package selections, staff-dependent price/duration ranges, hidden pricing,
+and the existing call/contact fallbacks. The route skeleton mirrors this layout.
+
+Reviews retain the merged feed, histogram, sorting and pagination. Failed actions
+preserve successful content and use owned error toasts with Retry, cleared on
+recovery or unmount. Empty reviews reuse the professional review illustration;
+empty services, team and search use related warm-paper SVG linework. About uses
+flat contact/hours sections, 18px headings, fine rules and 44px contact/social
+targets, keeping unknown hours explicit and location/brand descriptions distinct.
+
+About opens with a 30px/700 section title, reduced to 26-28px on phones, and the
+optional location description beneath it at 16-17px. Contact and Opening hours
+share two columns from 600px of content width; phones stack them. Contact contains
+published phone/email details with plain 19px leading glyphs. Give the values
+22px/700 type, reduced to 20px on phones, followed by quiet 14px action labels.
+Keep full values wrappable. Align each icon with
+the value's first line. Contact and hours content start 16px below their headings;
+contact rows have no extra vertical padding and retain 48px minimum targets.
+Do not put circles,
+badges or separate icon buttons around these glyphs. Reuse the appointment
+management rows' local background feedback and ink keyboard focus outlines.
+Keep address and map navigation in the header on all tabs; render Contact only
+when phone/email is published. Do not add a separate Directions action.
+Supporting amenities, policy and brand headings retain the
+readable 18px profile scale.
+
+Opening hours sit directly on the page with no enclosing background, gradient,
+border, radius or shadow. Use a 20px heading, compact 16px live status and quieter
+next-opening detail. The stable seven-day list uses 15px tabular times and compact
+36px rows. Stronger type, a quiet shade band and aria-current=date identify the
+current weekday. The band extends 10px beyond the row without shifting its text;
+do not add visible Today wording or badges. Align next-opening detail with its
+status text. Use the shared Skeleton
+in the status summary while the clock resolves, preserving its footprint. A
+single shared clock refreshes the header and About on visibility and page
+restoration. Reuse the validated interval parser for status, next opening and
+displayed hours: normalize HH:mm, distinguish missing/invalid from closed, and
+reserve all-day meaning for explicit 24/7. Label overnight endings as next day
+and explain active hours carried from the previous weekday without rewriting
+the published schedule.
+
+The API resolves the venue timezone from location, business, then UTC and supplies
+it in both detail timezone fields. Use that venue zone for status and Today, and
+keep published weekly times as venue-local wall times. A differing visitor zone
+adds a quiet localized timezone note; invalid supplied zones suppress derived
+status/Today/context rather than falling back to the visitor's clock. Preserve
+the web's 24-hour convention. Holiday hours and split shifts require additional
+API data; opening hours never imply appointment availability.
 
 The shared professional profile uses a 960px dialog with a warm content surface,
 a 280px identity rail and a stable height capped by the viewport. A fixed toolbar
@@ -935,12 +1053,387 @@ a price as a literal. Counts come from the real registry — Web Studio's 12
 sections, 47 styles, 14 fonts and 30 accents are computed from `SECTION_META` /
 `SECTION_TYPES`, `FONT_CATALOG` and `BRAND_ACCENT_CATALOG`, and the page throws
 at module load if its reading order ever lists fewer sections than the registry
-holds. Money comes from `src/lib/marketing/pricing.ts` (`getPricing`,
+holds. Money comes from `src/lib/marketing/pricing.ts` (`getPlanPricing`,
 `premiumStylePrices`, `formatPrice`, `TRIAL_DAYS`), never from the
 dictionaries — the figure is interpolated into copy, in the locale's own
-currency. A commercial figure that does not yet exist is **marked, not
-invented**: the price plate carries a dashed-border "price to confirm" panel
-rather than a plausible number.
+currency. Web Studio quotes the same Plus price and additional-member cost as
+the business pages, and explains that the trial starts on Base. Every business
+trial action, including Web Studio's, uses the shared business registration URL.
+A commercial figure that does not yet exist is marked rather than invented.
+
+### Business marketing pages (/for-business, /pricing)
+
+Character: the shop window seen from behind the counter. The same warm paper,
+ink and one terracotta, written for an owner deciding whether to list. Shared
+pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
+
+- **Site chrome:** these pages keep the marketplace header, phone tab bar and
+  footer like every other page. Business signup lives in the page's conversion
+  sections as links to the business app. For Business keeps its hero focused on
+  the trial and pricing; returning-business sign-in remains in the closing band.
+- **Headlines:** the display H1 ends on one handwritten signature word: Caveat
+  700 from `fonts.ts` (`caveat.variable` on the page root, latin-ext for
+  Romanian), 1.2em, `--p-500`, rotated −4°. Closing bands may carry a second.
+  The For Business hero uses a scoped two-line composition on desktop, with a
+  smaller Romanian display scale and a deliberate three-line phone fallback.
+  Give the signature a full line-height and descender clearance. Keep Next font
+  variables on `html` so the root sans/mono aliases resolve; Tailwind font
+  mappings reference the underlying font variables directly.
+  Section titles follow the homepage editorial bands: 38–54px, 500, −0.045em,
+  `txt-balance`; these pages carry no kickers.
+- **Actions:** the bands' 54px pill (14px/550, 22px icon gap): ink for the
+  trial, a white hairline pill for the second plan, hover #363630 plus a 1px
+  lift, press 0.97. Secondary routes are underlined text links with 44px targets.
+  Every trial action is a link to the business app's sign-up, never a button.
+- **For Business conversion block:** separate the discovery benefit from its
+  operational explanation with explicit localized strings. The benefit uses
+  22-28px medium ink type with balanced wrapping; the supporting sentence uses
+  17-18px secondary text. Pair a 64px ink trial pill and its circular arrow well
+  with a plain underlined pricing link and a 44px target. Use a 60px trial action
+  on phones/intermediate laptops; stack the actions on narrow phones. The hero's
+  trial label includes the localized duration from the shared trial-day setting;
+  keep its no-card reassurance in the illustrated benefits band. The pricing
+  anchor smoothly scrolls to the plans below the sticky header, preserving the
+  hash and moving focus to that section. Reduced motion makes the jump instant.
+  The hero contains only the description and these two actions
+  beside the headline, followed by the interactive street. Keep
+  sign-in and trial-term artwork outside the hero.
+- **Business benefits band:** immediately below the street, give
+  the three trial promises their own full-width section with generous 56-64px
+  vertical space, quiet hairline edges and three flat columns. Each has a
+  bespoke warm-paper illustration around 228x152px, a 22-26px heading and a
+  concise localized description. Use a tear-off calendar and clock with the
+  derived trial-day count, a card tucked into a sleeve beside an access key,
+  and a zero-commission receipt with coins. Keep the native SVG artwork
+  decorative and static, using the same ink/mist/terracotta materials as the
+  streetscape. Below 700px, stack compact artwork-and-text rows, retaining full
+  readable labels and descriptions. No enclosing cards or additional CTAs.
+- **Marketplace discovery:** show all four benefits as ordinary visible copy.
+  This is a marketing section: services, availability, completed-visit reviews and
+  sharing never sit behind tabs, accordions or another click. Keep one underlined
+  link to marketplace search. Each benefit has a small paper-object illustration:
+  service tickets, a planner and clock, a completed-visit review slip, and a public
+  page with linked loops. Use the trial band's ink/mist/terracotta materials,
+  layered edges and quiet ground shadows. Paper faces have soft warm shadows;
+  raised details get smaller contact shadows and restrained edge highlights.
+  Give each benefit its own full-width illustrated row, with the artwork beside
+  one uninterrupted text column at every width. Avoid narrow two-column tiles
+  that force titles and descriptions into competing wraps. Use 22px semibold
+  headings (20px on narrow layouts), 16px muted body copy and a 10px title-to-body
+  gap. Separate the rows with quiet hairlines, without enclosing cards. Use
+  explicit grids and heading/list semantics.
+  Keep illustrations decorative and text-free;
+  fine-pointer lifts are disabled for reduced motion. Product mockups are
+  noninteractive illustrations,
+  with no fullscreen viewer, enlargement affordance, simulated controls or client
+  state. Use the actual service-page capture and verified native map screenshot.
+  The app phone is the larger foreground subject; the browser recedes behind it
+  while keeping service names exposed. Match the homepage's device construction:
+  narrow graphite edge planes, rim highlights, side buttons, shallow opposing
+  angles and layered contact shadows. Keep native screen content intact and record
+  example-data provenance with the assets. Select actual English/Romanian captures
+  from `src/lib/marketing/mockups.ts` using the page locale. Capture both the
+  interface and authored demonstration content in that language; never overlay
+  translated text on a bitmap. On phones,
+  retain a large app device and a smaller browser backdrop, then all four visible
+  benefits. Fine-pointer hover may lift the hardware mounts a few pixels over
+  320ms; reduced motion removes the lift. No autoplay or parallax. Describe
+  services, durations and prices, retaining enabled online booking and
+  completed-visit review rules. Do not promise an owner-controlled price-visibility
+  choice until its dashboard control is verified; renderer/API support alone is
+  insufficient.
+- **Client journey:** follow marketplace discovery, before the business calendar.
+  Pair the genuine consumer Schedule screen with five
+  ordered, visible steps. On phones the order is introduction, phone, steps.
+  This is the client's booking history, not a business calendar. Record example
+  data in the capture manifest and use the matching localized native capture.
+  Native status dots sit in the same centered row as each appointment's time
+  range; capture the corrected app rendering rather than adjusting bitmap text.
+  Give only the reminder step a quiet terracotta emphasis. Copy distinguishes automatic confirmation from
+  owner review, configured reminders for confirmed bookings, direct payment,
+  completed-visit reviews and a new booking from history.
+- **Business calendar:** follow the client journey with one cohesive introduction
+  above the working-day demonstration and six visible benefits. Capture the actual
+  admin application's desktop day time-grid with staff columns; select the view
+  and collapse its navigation and filter pane through the app's own controls.
+  Show varied appointment lengths, a reserved break and localized illustrative
+  data. Verify that the time pill and line share the same center in the real
+  renderer before export; fix source geometry instead of compensating inside an
+  image. Preserve product UI unchanged. Never use the consumer Schedule screen
+  to represent the business calendar.
+  Above 1176px, place the complete browser on the left and a 300px phone on the
+  right, bottom-aligned with a real 32px gap. Cap the browser at 1040px and show
+  the six illustrated benefits below in two broad columns. Neither screen covers
+  the other. Between 761px and 1176px, place the introduction and all six benefit
+  rows beside the phone, then show the complete browser below; center the phone
+  vertically against the reading column. At 760px and below, use introduction,
+  phone, browser, then one column of benefits. The phone reduces to 268px below
+  361px. Its localized responsive-browser capture shows the actual default,
+  unfiltered Day List, with location controls and the day summary visible.
+  Keep both examples intact. Use narrow graphite edges, paper browser chrome and
+  soft contact shadows rather than perspective on screen content.
+  The benefits cover location/person calendars, booking rules and breaks,
+  cancellation and rescheduling updates, team access, services/bundles and client
+  history. Pair each with a small paper-object illustration beside one text
+  column: a staff planner, blocked time and clock, previous and updated appointment
+  slips, staff pass and key, bundled service tickets, and a client folder with an
+  export sheet. Keep the previous slot visible and connect the two slips with a
+  clear curved arrow above their paper edges. Reuse the discovery illustrations'
+  shadows, highlights and 22px/16px text hierarchy; mobile headings are 20px.
+  Benefits never require a click. There are no tabs, fullscreen controls, fake app
+  interactions or autoplay. Fine-pointer hover may lift the browser by 1px over
+  260ms, the phone by 3px over 260ms and the illustrations by 2px over 220ms;
+  reduced motion removes these movements. Document source captures and
+  illustrative fixture data beside the assets.
+- **Business app:** follow the business calendar with a warm-ink section using
+  the same full 1400px content width as its neighbours. Use Web Studio's static
+  paper grain, ivory type and muted buff copy, with a stronger central terracotta haze.
+  Share one continuous textured surface with the next Studio section; no canvas
+  strip or separate background seam between them. Omit eyebrows and decorative
+  step numbers. Keep the calendar's
+  accepted desktop-and-phone pair unchanged. This section demonstrates two other
+  owner workflows through genuine native screens: the Assignments page itself,
+  showing a varied location service menu with category, price and duration (no
+  drawer), and a
+  location's marketplace photo portfolio. Assignments connect services, staff and locations;
+  they do not delegate appointments. These management pages belong to the owner
+  account, so do not imply that every team member can use them.
+  Put the headline and lead across the top. Group the platform badges and web
+  sign-in under an explicit download heading and a short explanation that the
+  business app is separate from the client booking app. Keep this group alongside
+  the introduction, moving below it at 920px. Above 1200px, centre two
+  separate 340px and 316px phones between open benefit notes, with a 68px vertical
+  stagger and opposing 2° rotations; neither screen overlaps the other. Notifications
+  form a quiet full-width line beneath the stage. At 761–1200px, use 316px phones
+  above their corresponding benefits. At 760px and below, pair each benefit with
+  its full-size phone, then notifications. Keep each phone readable
+  at 300px, reducing to 268px below 361px, rather than shrinking both into a narrow
+  device pair. All benefits remain visible without tabs, carousels or disclosure.
+  Use actual Android Capacitor captures, selected by page locale through the
+  shared mockup inventory. Derive each screen ratio from its intrinsic dimensions
+  and preserve genuine OS status/navigation chrome. Capture both app and Android
+  locale correctly. Use real navigation and drawer controls to reach the intended
+  state; never add synthetic system bars, reconstruct interface content or use a
+  responsive browser capture as native-app evidence. Keep example-data provenance
+  and native runtime evidence with the assets, without decorative captions below
+  the phones. Do not imply offline support or guaranteed notification delivery.
+  User-requested platform labels may match the homepage's store artwork as
+  noninteractive spans. Turn them into download links only after their official
+  destinations are verified; do not add availability or coming-soon claims
+  without confirmation. The quiet web sign-in link identifies its actual
+  destination. Devices are noninteractive, with no fullscreen action, simulated
+  controls or autoplay. Reduced motion removes movement, and keyboard focus
+  never animates the link's arrow. The device wrappers may enter once with an 18px rise over 480ms,
+  staggered by 80ms. The server-rendered content remains visible without JavaScript;
+  skip entrances for reduced motion, visible content on hydration and locale
+  changes. Business-app devices and their benefit notes have no hover motion;
+  preserve their static angles. Do not inherit the calendar phone’s hover styles,
+  loop, autoplay or move screenshots independently of their hardware frames.
+- **Web Studio interlude:** use the actual Lumi Beauty browser and Paw & Co
+  phone captures, identifying both as separate examples. Keep the larger phone
+  in the foreground on every screen size. Show all three benefits without
+  interaction: existing content, design choices and Plus publishing. Drafts are
+  available on any plan; premium styles cost extra. A dark paper surface and
+  shallow warm haze separate the website offer from the business workflow.
+  Replace small feature glyphs with three bespoke paper-object illustrations:
+  a content folio with service/photo/team sheets, layout studies with colour
+  swatches, and a published page with link and QR sharing. Use buff paper faces,
+  darker side planes, fine rim highlights and quiet warm-black shadows so the
+  objects belong on the ink surface. Keep them decorative and text-free, beside
+  one uninterrupted title/body column. Use the discovery section's 22px semibold
+  headings and 16px body text with a 10px gap; reduce headings to 20px on narrower
+  layouts. Keep all three illustrated rows visible at every width, including
+  tablets. Illustrations lift 2px over 220ms on fine-pointer hover; hardware keeps
+  its small hover lift. Reduced motion disables both. Preserve the Plus label,
+  underlined Studio link and optional premium-style note. Avoid auto-sync arrows,
+  custom-domain imagery or an automatic-publishing implication.
+- **Product capture localization:** the homepage and business sections share
+  explicit EN/RO masters, including all consumer, business and Studio scenes.
+  Generate responsive derivatives with Next Image or `getImageProps`; preserve
+  each pair's intrinsic dimensions, framing and accessible descriptions. The
+  website language control must switch the pixels inside the devices as well as
+  surrounding text. Localize synthetic demo services, categories, descriptions,
+  reviews and tags while preserving identities, prices, dates and geography.
+  Real merchant-authored content remains unchanged. Finished captures live under
+  `public/images/marketing/` and `public/images/for-business/calendar/`, selected
+  through `src/lib/marketing/mockups.ts`. Run `node scripts/check-marketing-mockups.mjs`
+  and `node scripts/check-marketing-locales.mjs`, then visually inspect the actual
+  image text in both languages. A correct filename is not sufficient.
+- **For Business plan comparison:** Base and Plus are static, server-rendered
+  receipt tickets using the shared 1400px content width. `PlanCards` shares this
+  presentation and copy with `/pricing`; section wrappers own their headings
+  and background. Heading level and ID prefix follow each page’s hierarchy. No team counter, calculator
+  provider, computed team totals, price animation, live announcement or sticky
+  controls belong in this section. Show one fixed monthly plan price and owner
+  inclusion on each ticket. State the monthly additional-member charge once above
+  the cards. Base supports 20 additional members besides the owner; Plus has no
+  customer-facing team-size limit. State these differences in the benefits, and
+  charge each additional member on either plan. Capacity applies across the
+  business's locations. Put each plan's location limit in its benefits.
+  Derive prices, limits and trial days from `getPlanPricing`. Use
+  28px plan names and 60px prices on desktop; phones use 28px names and 52px
+  prices. Desktop benefit headings are 20px, with 16px capability labels and
+  15px supporting text; phones use 18/16/15px. At desktop viewport heights up to
+  820px, tighten spacing and use 26px names, 50px prices and 18px benefit headings,
+  while retaining 15px body text and 52px actions. Fit the complete cards below
+  the sticky header at common laptop sizes without fixed heights or clipped copy.
+  Split desktop space 45/55:
+  Both actions fill the available width. On fine-pointer card hover, gently
+  scale its action to 1.015 over 240ms with the shared ease-out; return smoothly
+  on exit. Keyboard focus uses the same emphasis; pressing retains the shared
+  press feedback. Respect reduced motion and avoid hover scaling on touch.
+  Base uses warm paper, no artwork and an
+  outline action labelled with the free-trial duration. Plus uses warm ink, a broad
+  terracotta glow, pronounced static paper grain and ivory pricing. Its flat ivory action has no
+  dimensional rim or shadow and a 40px terracotta arrow well (36px on short
+  desktops, 44px on phones). Label it “Get started” / “Începe acum” to cover the
+  full plan and match the registration destination. A clear note below explains
+  that the trial includes Base features and
+  website publication requires subscribing to Plus. Plus has compact, layered
+  website/link/QR artwork in its header, without a badge. Keep header
+  artwork from creating a large gap above prices; use a 12px price margin on
+  desktop, 8px on short desktops and 16px on phones. Align both plan names at the top. A faint grain
+  gradient behind the section blends into the canvas; textures
+  remain static. Two masked paper halves create genuinely transparent notches at
+  the dotted tear seam, revealing the section gradient rather than painting pale
+  discs over it. Nested CSS subgrids align prices, tear lines and actions; stretch
+  the painted receipt halves to equal heights when the cards sit side by side.
+  Keep benefit text readable and top-aligned. Let the three Plus rows share the
+  available benefits height with automatic tracks, so spare space is spread
+  across the rows without multiplying the height of the longer website row. Group
+  Base's complete capabilities into four visible outcomes without a separate
+  benefits heading; use the freed space for more breathing room between rows.
+  Plus leads with
+  “Everything in Base” with a green checkmark and three included upgrades: website
+  publishing with link/QR sharing, unlimited team size, and more locations. Explain
+  these in three rows, each with a shared terracotta plus icon. Make clear that
+  unlimited capacity still uses paid additional-member places. Publishing and
+  sharing are two uses of the same website entitlement.
+  Place a quiet underlined Web Studio link with an arrow beneath the Plus website
+  benefit, using a 44px target and the active locale's route. The full-width
+  registration action remains visually primary.
+  Below 961px, stack complete tickets at their natural heights so narrower
+  translated benefit rows do not create large gaps. Keep the detailed comparison,
+  currency, billing-country, cancellation, optional-extra and larger-team terms
+  on `/pricing`; do not repeat a details block below these cards. Do not label
+  the fixed subscription as a team total.
+- **Dedicated pricing page:** `/pricing` uses fixed subscription prices and
+  the same Base/Plus card design and localized copy as the business overview.
+  Keep each full-width action and its Base-trial disclosure at the bottom of
+  the card, beneath the benefits. Retain every benefit in view.
+  On stacked layouts, offer compact Base/Plus price anchors above the receipts
+  so either plan is immediately discoverable. Do not add a calculator, editable team count,
+  estimated totals, or a collapsed calculator. State the additional-member
+  charge and owner inclusion clearly; keep display-currency and billing-country
+  information near the cards. State that additional staff require paid places
+  even without appointments, and that one place covers the business's locations.
+  Detailed purchased-capacity explanations stay in
+  the pricing FAQ rather than repeating beneath the cards. Base supports 20
+  additional members; Plus has no customer-facing team-size limit. An internal
+  threshold must be expandable to support the public policy. The comparison
+  describes features and capacity without repeating prices as team totals.
+  Lead the comparison with website publishing, then location and team limits.
+  Keep optional premium-style purchases in the extras section, with included
+  website styles and email reminders stated clearly. Use clear numeric capacity
+  values and plan labels. On phones, each feature labels adjacent Base
+  and Plus values, retaining table semantics and requiring no sideways scrolling.
+  Give shared capabilities the full available width with the established paper
+  artwork, readable titles and green checks. Keep all core benefits visible and
+  optional SMS/style purchases separate. Do not infer production Stripe prices
+  from development seeds. On narrow phones, pair each extra's artwork with its
+  title and let the body use the full width beneath. Pricing uses the standard
+  site header, marketplace search and mobile tabs, matching the other pages.
+  Retain in-page plan anchors, keyboard focus and reduced-motion scrolling.
+  Carry the active language
+  explicitly into web registration, where the dashboard validates the choice
+  before rendering. Plan-click analytics require the existing analytics consent;
+  never block navigation or claim a click is a completed registration.
+- **Business exhibits:** captures sit in quiet browser frames or ink phone frames.
+  Keep both device examples available on phones, with localized image descriptions.
+  These business mockups have no visible explanatory or example-data captions.
+  Keep synthetic-data provenance in the capture manifests and asset documentation.
+  The separate Web Studio live-catalogue captions still provide preview-change
+  announcements and retain their own rules.
+- **FAQ:** native `<details>` sharing one `name`, so one answer is open at a
+  time (the first starts open), with the disclosure motion module; works
+  without JavaScript. Keyboard toggles are immediate. The help introduction
+  remains sticky on desktop. Core benefits, pricing and plan terms stay visible
+  above this section rather than depending on these disclosures.
+  `MarketingFaq` shares the accepted presentation between For Business and
+  pricing, with supplied localized copy and unique heading/disclosure IDs. Lead with the trial question, then
+  commission, paid team capacity, website publishing and cancellation. Use a concise introduction,
+  the paper guide/question-and-answer artwork and a 44px underlined link to the
+  localized help centre. This destination provides help topics and issue
+  reporting; do not imply a live chat or a sales conversation. At wide widths,
+  pair a 280–360px sticky introduction with a single list of roomy question rows
+  and a 32–64px column gap. Align question and answer text with the list's rules,
+  without horizontal item insets. Open answers retain the page background;
+  question text and the plus/minus indicator use terracotta when open.
+  Question text is 20px/550, answer text 16px/1.65,
+  with long answers split into short paragraphs. Native exclusive opening and
+  closing retain the shared motion; all keyboard transitions are immediate.
+  Below 921px, unstick the introduction. Phones use a 34px heading, compact
+  artwork beside the help link, 17.5px questions and 15.5px answers. Avoid a
+  large illustration-only gap before the questions. Keep all ten question
+  labels visible without category filters or tabs. State that the Base trial
+  begins when the business is created, that expired trial listings are hidden
+  and scheduled client reminders stop. Existing appointments are not automatically
+  cancelled; calendar reads remain available, while adding or changing appointments
+  requires an active subscription. Do not describe the entire account as read-only
+  or promise indefinite retention. Cancellation preserves the paid period. Explain
+  that clients need an account to complete a booking, but do not need the app.
+  Distinguish website drafts on either plan from Plus publishing and the locations'
+  public Zavoia pages. Team charges follow purchased capacity; a member working
+  across locations of the same business only needs one paid place. Interpolate
+  approved prices, trial days and both location limits from the shared pricing data.
+- **Closing section:** For Business uses a scoped `ClosingSection`: group the
+  56–64px headline, approved setup explanation and trial action in one column,
+  beside a single miniature storefront, paper appointment folio and planter.
+  The open doorway and shallow paper depth echo the hero and earlier artwork.
+  Use a 330px-wide, 64px ink trial action with a terracotta arrow well, deriving
+  the duration in its label from pricing. Place no-card and no-commission
+  reassurance with success-green checkmarks directly below, then a quieter 44px
+  sign-in link. The appointment folio's confirmation check uses the same green.
+  Use the plain page canvas with static fine grain fading at both edges;
+  do not add a colored background gradient. Reduce bottom whitespace instead of
+  adding a containing card. On
+  phones, put the copy and 60px action before the compact 220–260px illustration;
+  preserve natural reading order and full signature descender clearance. Fine
+  pointer hover lifts the trial action 2px and its paper note 3px, with a 2px arrow
+  movement; keyboard and reduced-motion actions remain immediate. Explain that
+  owners publish their page and enable online booking; setup alone does not
+  publish a listing. The pricing page ends with its billing FAQ, without a
+  duplicated closing trial section.
+- **Hero artwork:** eight storefronts represent beauty, automotive, health,
+  creative services, fitness, wellness, pets and education. Preserve the fine
+  rounded SVG linework, paper/mist surfaces and canonical industry colors. Each
+  has a 48px HTML industry marker with a 24px glyph. The studio carries its
+  camera marker; the hero has no booking receipt or separate industry list.
+  Give the street shallow depth through narrow side walls, cornice undersides,
+  recessed glazing, fine highlights and grounded contact shadows. Keep these
+  tonal SVG planes static, without blur filters. The hero's warm gradient carries
+  a dedicated, tiled paper-grain SVG using a transparent ink texture in multiply
+  blending at 11% opacity. A shared isolated region lets the hero's decorative
+  layers continue 220-280px into the benefits band. Both layers fade together,
+  starting gently above the pavement and reaching the plain canvas partway
+  through the next section. Keep the benefits background and top divider
+  transparent so the transition has no horizontal seam.
+  Keep geometry server-rendered and isolate discrete hover/focus/tap state in
+  the small interaction leaf. One shared geometry table positions both drawing
+  and controls. Below 920px, use a native horizontally scrollable 1120px street
+  so all eight businesses remain readable and reachable with swipe or Tab.
+  Native buttons cover each building and marker, with localized industry names
+  and an explicit keyboard ring. A floating visual label repeats that name and
+  stays hidden from assistive technology; do not duplicate it as an ARIA
+  description or imply menu/selection semantics. Keep labels inside the rail's
+  visible edges and bridge the hover gap. Tap/click toggles a label; Escape,
+  outside interaction and leaving the group dismiss it without moving focus.
+- **Motion:** hero copy uses `.zw-rise`; trial controls have no extra stagger.
+  Pointer hover gently lifts the active building and marker over 220ms while
+  its windows take a faint industry tint. No ongoing ambient animation.
+  Keyboard interaction and reduced motion show labels and feedback immediately,
+  without positional motion. Reduced motion also removes action-button
+  hover/press transforms.
 
 ### Motion Vocabulary (applies across components)
 Three eases: `--ease-out` (.2,.7,.3,1) for movement, `--ease-soft` (.4,0,.2,1)

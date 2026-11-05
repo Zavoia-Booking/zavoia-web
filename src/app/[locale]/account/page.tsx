@@ -35,7 +35,8 @@ export async function generateMetadata({
   ) as Record<Locale, string>;
 
   return {
-    title: dict.account.title,
+    // This copy already names Zavoia, so skip the layout's "| Zavoia" suffix.
+    title: { absolute: dict.account.title },
     robots: { index: false, follow: false },
     alternates: {
       canonical: localeHref(locale, "account"),

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { SITE_URL } from "@/lib/site";
+import { DEFAULT_SOCIAL_IMAGE, OPEN_GRAPH_LOCALES, SITE_URL } from "@/lib/site";
 import { ApiError } from "@/lib/api/http";
 import { getBrand } from "@/lib/api/marketplace/public";
 import { BRAND_TAG, brandTag } from "@/lib/cache/tags";
@@ -11,6 +11,7 @@ import type { BrandDetail as BrandDetailData } from "@/lib/api/marketplace/types
 import { BrandDetail } from "../_components/brand-detail";
 import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
 import { notFoundMetadata } from "@/app/_components/not-found/metadata";
+import { brandStructuredData, serializeJsonLd } from "@/lib/seo/page-structured-data";
 
 // ISR, same shape as the business detail route. The param is a businessSlug
 // (vanity URL) or a numeric business id — non-enumerable, so nothing is
@@ -43,7 +44,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     const title = brand.name;
     const description = brand.description ?? undefined;
-    const image = brand.logo ?? undefined;
+    const image = brand.logo?.trim();
+    // A logo suits the compact card; without one, the shared brand artwork.
+    const socialImage = image ? { url: image, alt: title } : DEFAULT_SOCIAL_IMAGE;
 
     // One canonical per locale, the pair declared as alternates — see the
     // business detail route for the reasoning.
@@ -60,10 +63,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
       openGraph: {
         type: "website",
+        siteName: "Zavoia",
         title,
         description,
         url: `${SITE_URL}${localeHref(locale, "brand", slug)}`,
-        images: image ? [image] : undefined,
+        locale: OPEN_GRAPH_LOCALES[locale],
+        alternateLocale: LOCALES.filter((language) => language !== locale).map((language) => OPEN_GRAPH_LOCALES[language]),
+        images: [socialImage],
+      },
+      twitter: {
+        card: image ? "summary" : "summary_large_image",
+        title,
+        description,
+        images: [socialImage],
       },
     };
   } catch (error) {
@@ -94,5 +106,14 @@ export default async function BrandPage({ params }: Props) {
     throw error;
   }
 
-  return <BrandDetail brand={brand} locale={locale} />;
+  // The canonical path, exactly as generateMetadata declares it.
+  const jsonLd = brandStructuredData(brand, locale, localeHref(locale, "brand", slug));
+  return (
+    <>
+      {jsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
+      )}
+      <BrandDetail brand={brand} locale={locale} />
+    </>
+  );
 }

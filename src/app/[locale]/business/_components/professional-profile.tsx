@@ -142,6 +142,8 @@ export interface ProfessionalProfileProps {
   locationId?: number;
   /** Website context uses the same location-scoped professional booking journey. */
   websiteSlug?: string;
+  /** The location tab the modal opened from, kept in the URL beside `member`. */
+  locationTab?: "team" | "reviews";
   locale: Locale;
   onClose?: () => void;
   presentation?: "modal" | "page";
@@ -160,6 +162,7 @@ export function ProfessionalProfile({
   businessId,
   locationId,
   websiteSlug,
+  locationTab = "team",
   locale,
   onClose = noop,
   presentation = "modal",
@@ -345,7 +348,7 @@ export function ProfessionalProfile({
   useEffect(() => {
     if (typeof window === "undefined" || !syncUrl || bookingActive) return;
     const url = new URL(window.location.href);
-    url.searchParams.set("tab", "team");
+    url.searchParams.set("tab", locationTab);
     url.searchParams.set("member", String(member.id));
     window.history.replaceState(null, "", url);
     return () => {
@@ -355,7 +358,7 @@ export function ProfessionalProfile({
       u.searchParams.delete("member");
       window.history.replaceState(null, "", u);
     };
-  }, [member.id, syncUrl, bookingActive]);
+  }, [member.id, syncUrl, bookingActive, locationTab]);
 
   // Lock the page scroll behind the dialog.
   useEffect(() => {
@@ -614,6 +617,7 @@ export function ProfessionalProfile({
         businessId: listing.businessId,
         listingId: listing.listingId,
         locationId: listing.locationId,
+        venue: { businessName: listing.name, locationName: listing.location?.name ?? null },
         timezone,
         currency,
         showPricing,
@@ -626,6 +630,7 @@ export function ProfessionalProfile({
         businessId: selectedVenue.business.id,
         listingId: selectedVenue.business.listingId,
         locationId: selectedVenue.location.id,
+        venue: { businessName: selectedVenue.business.name, locationName: selectedVenue.location.name },
         timezone,
         currency,
         showPricing,
@@ -790,7 +795,7 @@ export function ProfessionalProfile({
           <aside className={`zw-member-rail ${styles.rail}`}>
             <div className={styles.identity}>
               <div className={styles.portrait}>
-                <Avatar src={profile?.profileImage ?? member.profileImage ?? undefined} name={displayName} size={112} ring />
+                <Avatar src={profile?.profileImage ?? member.profileImage ?? undefined} name={displayName} size={112} ring monogram={isModal} />
               </div>
               <div className={styles.identityText}>
                 <Name className={`txt-balance ${styles.name}`}>
@@ -860,13 +865,14 @@ export function ProfessionalProfile({
 
             {socials.length > 0 && (
               <div className={styles.socials}>
+                {/* The professional enters these addresses: linked without vouching for them. */}
                 {socials.map((s) => (
                   <a
                     key={s.key}
                     className={`tap ${styles.social}`}
                     href={s.href}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="nofollow ugc noreferrer"
                     aria-label={s.key}
                   >
                     <Icon name={s.icon} size={17} color="currentColor" />

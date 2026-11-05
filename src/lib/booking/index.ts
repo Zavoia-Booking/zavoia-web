@@ -5,6 +5,7 @@ export { useRebook } from "./useRebook";
 export { zonedWallTimeToUtcISO, todayInTz } from "./tz";
 export type {
   BookingApi,
+  BookingPick,
   BookingSelectionItem,
   OpenBookingPayload,
 } from "./types";

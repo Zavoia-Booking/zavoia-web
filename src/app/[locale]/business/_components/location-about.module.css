@@ -2,236 +2,836 @@
   display: flex;
   flex-direction: column;
   gap: 32px;
+  min-width: 0;
 }
 
-.title {
-  margin: 0 0 15px;
+.sheet {
+  --about-gap: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.label {
+  margin: 0;
   color: var(--c-900);
   font-size: 18px;
   font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.022em;
+  line-height: 1.4;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
 }
 
-.description {
-  max-width: 65ch;
+.title {
   margin: 0;
+  color: var(--c-900);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.introduction {
+  min-width: 0;
+}
+
+.lead {
+  max-width: 62ch;
+  margin: 14px 0 0;
   color: var(--c-700);
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.7;
+  letter-spacing: -0.008em;
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
 
-.details {
+.visit {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 36px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
 }
 
-.address,
-.city {
+.contactSection,
+.hoursSection {
+  min-width: 0;
+}
+
+.contactHeading,
+.hoursHeading {
   margin: 0;
-  color: var(--c-700);
-  font-size: 14.5px;
-  font-style: normal;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
+  color: var(--c-900);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
 }
 
 .contacts {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  margin-top: 18px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.contactLink {
-  display: inline-flex;
+/* Hairline rows, like the week beside them. */
+.contacts li + li {
+  border-top: 1px solid var(--c-200);
+}
+
+/* One plain glyph and a full-row target; the pill names what a tap does. */
+.contact {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 9px;
-  max-width: 100%;
-  color: var(--c-700);
-  font-size: 14px;
+  column-gap: 14px;
+  min-width: 0;
+  min-height: 64px;
+  padding-block: 10px;
+  border-radius: 4px;
+  color: var(--c-900);
   text-decoration: none;
 }
 
-.contactLink svg {
-  flex-shrink: 0;
+.contact > svg {
+  color: var(--c-600);
 }
 
-.contactLink span {
+.contactValue {
+  min-width: 0;
+  color: var(--c-900);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
   overflow-wrap: anywhere;
 }
 
-.contactLink:hover span {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.directions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 20px;
-  padding: 10px 16px;
+/* The shared secondary button at its small size. Only the pill reacts, so the
+   row itself never lifts or fills. */
+.contactAction {
+  padding: 7px 14px;
   border: 1px solid rgba(28, 28, 26, 0.14);
   border-radius: var(--r-full);
   background: #fff;
   color: var(--c-900);
   font-size: 13px;
   font-weight: 600;
-  text-decoration: none;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out);
 }
 
-.note,
-.alwaysOpen {
+a.contact:active .contactAction {
+  background: var(--c-mist);
+}
+
+.hoursSummary {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-height: 24px;
+  margin-top: 16px;
+}
+
+.statusSkeleton {
+  display: grid;
+}
+
+/* The header's status, set as one line: dot, state, then what happens next. */
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 0;
+  color: var(--c-900);
+  font-size: 17px;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+}
+
+.statusDot {
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--c-600);
+}
+
+.status[data-tone="open"] .statusDot {
+  background: var(--s-success-600);
+}
+
+.statusLabel {
+  font-weight: 600;
+}
+
+.statusSeparator {
+  color: var(--c-400);
+}
+
+.statusNote {
+  color: var(--c-600);
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
+}
+
+.statusDetail {
   margin: 0;
   color: var(--c-600);
   font-size: 14px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
-.alwaysOpen {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--c-700);
-  font-weight: 500;
+/* Continuation lines start under the state, past the dot. */
+.status + .statusDetail {
+  padding-inline-start: 16px;
 }
 
-.openDot {
-  width: 6px;
-  height: 6px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--s-success-600);
-}
-
-.hours {
-  margin: -5px 0 0;
-}
-
-.hoursRow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 8px 0;
+.note {
+  margin: 16px 0 0;
   color: var(--c-600);
-  font-size: 13.5px;
-  line-height: 1.35;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
-.hoursRow dt {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 7px;
+/* The schedule stays on the canvas; today's shade preserves every text edge. */
+.week {
+  display: grid;
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-200);
+  font-size: 15px;
 }
 
-.hoursRow dd {
-  flex-shrink: 0;
-  margin: 0;
-  font-variant-numeric: tabular-nums;
+.day {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 36px;
+  padding-block: 6px;
+  color: var(--c-700);
+  line-height: 1.5;
 }
 
-.hoursRow[data-today] {
+.day[aria-current="date"] {
   color: var(--c-900);
   font-weight: 600;
 }
 
-.today {
+.day[aria-current="date"]::before {
+  content: "";
+  position: absolute;
+  inset: 1px -10px;
+  z-index: -1;
+  border-radius: var(--r-md);
+  background: var(--c-shade);
+  pointer-events: none;
+}
+
+.day dt,
+.day dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.day dd {
+  text-align: end;
+}
+
+.times {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.times > span:first-child {
+  white-space: nowrap;
+}
+
+.nextDay {
   color: var(--c-600);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
 }
 
+.dayNote {
+  color: var(--c-600);
+  font-size: 14px;
+}
+
+.timezone {
+  margin: 12px 0 0;
+  color: var(--c-600);
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.groupTitle {
+  margin: 0 0 10px;
+  color: var(--c-900);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.features,
+.policy,
 .brand {
   padding-top: 28px;
-  border-top: 1px solid rgba(28, 28, 26, 0.08);
+  border-top: 1px solid var(--c-200);
 }
 
-.brandLink {
+.featureColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.featureColumn {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  width: fit-content;
-  max-width: 100%;
-  margin-top: 22px;
-  color: var(--c-900);
-  text-decoration: none;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
 }
 
+.featureList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.featureList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  color: var(--c-800);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+/* The dashboard's glyph for each tag, at the stroke of the page's own icons. */
+.featureList svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--c-700);
+}
+
+.featureList span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.featureText {
+  margin: 0;
+  color: var(--c-800);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.policyText {
+  max-width: 62ch;
+  margin: 10px 0 0;
+  color: var(--c-800);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.policyTerms {
+  display: grid;
+  gap: 16px;
+  margin: 14px 0 0;
+}
+
+.policyTerms > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.policyTerms dt {
+  color: var(--c-900);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.policyTerms dd {
+  margin: 0;
+  color: var(--c-800);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.brand {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+}
+
+.brandMain,
+.brandAside {
+  min-width: 0;
+}
+
+/* The brand leads its section: a large logo beside its name, which says how
+   this location relates to it. */
 .brandIdentity {
   display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.brandIdentity > :first-child {
+  flex-shrink: 0;
+}
+
+.brandText {
+  min-width: 0;
+}
+
+.brandHeading {
+  margin: 0;
+}
+
+.brandEyebrow {
+  display: block;
+  color: var(--c-600);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.brandName {
+  display: block;
+  margin-top: 2px;
+  color: var(--c-900);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.brandMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 8px 0 0;
+  color: var(--c-600);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.brandDescription {
+  max-width: 62ch;
+  margin: 20px 0 0;
+  color: var(--c-700);
+  font-size: 16px;
+  line-height: 1.7;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* The brand page and its own links, as one row of white pills. */
+.brandActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+/* The shared secondary button, as a link. */
+.brandAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 11px 20px;
+  border: 1px solid rgba(28, 28, 26, 0.14);
+  border-radius: var(--r-full);
+  background: #fff;
+  color: var(--c-900);
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brandAction > svg {
+  color: var(--c-600);
+}
+
+.locations {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The profile's venue choice: photo-led, warm paper, 18px corners. */
+.locationCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 10px 16px 10px 10px;
+  border: 1px solid var(--c-300);
+  border-radius: 18px;
+  background: var(--c-50);
+  box-shadow: 0 2px 6px rgba(28, 28, 26, 0.025);
+  color: var(--c-900);
+  text-decoration: none;
+  transition: border-color 160ms var(--ease-out), background-color 160ms var(--ease-out);
+}
+
+.locationPhoto {
+  position: relative;
+  display: block;
+  width: 80px;
+  height: 96px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.locationPhotoImage { width: 100%; height: 100%; }
+
+.locationText {
+  display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
 }
 
-.brandName {
-  font-size: 14.5px;
+.locationName {
+  font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
   overflow-wrap: anywhere;
 }
 
-.brandLink:hover .brandName {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.locationAddress {
+  color: var(--c-600);
+  font-size: 13.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
-.industry {
-  color: var(--c-600);
-  font-size: 12.5px;
+.locationRating {
+  display: inline-flex;
+  margin-top: 3px;
+}
+
+.locationCard > svg {
+  flex-shrink: 0;
+  color: var(--c-500);
+  transition: color 160ms var(--ease-out);
 }
 
 .socials {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 22px;
-  margin-top: 22px;
+  gap: 8px;
 }
 
-.socials a,
+/* The system's chip: a white pill on a 12% hairline. */
+.socials a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(28, 28, 26, 0.12);
+  border-radius: var(--r-full);
+  background: #fff;
+  box-shadow: var(--sh-sm);
+  color: var(--c-900);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+
+.socials svg {
+  flex-shrink: 0;
+}
+
+.socials a > svg:last-child {
+  color: var(--c-500);
+}
+
+/* The tab signs off on the way onward: the header's category link, widened
+   into the city's other places. Rules above and below and a pill closing the
+   row, like the contact rows; no box, no fill. */
+.discover {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 18px;
+  min-width: 0;
+  padding: 28px 0;
+  border-top: 1px solid var(--c-200);
+  border-bottom: 1px solid var(--c-200);
+  color: var(--c-900);
+  text-decoration: none;
+}
+
+.discoverText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* The header's category set large: its glyph on the name's line, in the
+   colour the header gives it. */
+.discoverTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.discoverTitle > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* One supporting line: the invitation, lighter than the name above it. */
+.discoverLead {
+  color: var(--c-700);
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* The contact rows' pill, so every actionable row on the tab ends the same way. */
+.discoverAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid rgba(28, 28, 26, 0.14);
+  border-radius: var(--r-full);
+  background: #fff;
+  color: var(--c-900);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+
+.discoverAction > svg {
+  color: var(--c-500);
+}
+
+.discover:active .discoverAction {
+  background: var(--c-mist);
+}
+
 .report {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 5px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   color: var(--c-600);
+  font-family: inherit;
   font-size: 13px;
   text-decoration: underline;
   text-decoration-color: rgba(28, 28, 26, 0.24);
   text-underline-offset: 4px;
-}
-
-.socials a:hover,
-.report:hover {
-  color: var(--c-900);
-  text-decoration-color: currentColor;
-}
-
-.report {
-  align-self: flex-start;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  font-family: inherit;
+  overflow-wrap: anywhere;
   cursor: pointer;
 }
 
-@media (max-width: 600px) {
-  .details {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 30px;
+.contact:focus-visible,
+.discover:focus-visible,
+.brandAction:focus-visible,
+.locationCard:focus-visible,
+.socials a:focus-visible,
+.report:focus-visible {
+  outline: 2px solid var(--c-ink);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Shade is the hover fill for white pills, and the hairline rises toward 26%. */
+  a.contact:hover .contactAction {
+    border-color: rgba(28, 28, 26, 0.26);
+    background: var(--c-shade);
   }
 
-  .contactLink,
-  .socials a,
-  .report {
-    min-height: 32px;
+  .discover:hover .discoverAction {
+    border-color: rgba(28, 28, 26, 0.26);
+    background: var(--c-shade);
+  }
+
+  /* The card answers locally, without a lift, like the profile's venues. */
+  .locationCard:hover {
+    border-color: var(--c-400);
+    background: #fff;
+  }
+
+  .locationCard:hover > svg {
+    color: var(--c-900);
+  }
+
+  /* Shade is the hover fill for white pills, and the hairline rises toward 26%. */
+  .socials a:hover {
+    border-color: rgba(28, 28, 26, 0.26);
+    background: var(--c-shade);
+  }
+
+  .report:hover {
+    color: var(--c-900);
+    text-decoration-color: currentColor;
+  }
+}
+
+/* Two readable practical columns also fit beside the rail on small laptops. */
+@container (min-width: 600px) {
+  .visit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--about-gap);
+  }
+}
+
+@container (min-width: 720px) {
+  .featureColumns,
+  .policyTerms,
+  .brand[data-aside] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--about-gap);
+    align-items: start;
+  }
+}
+
+/* The page's own column rule: a hairline centred in the gap, fading at both ends.
+   It is drawn only where two columns actually sit side by side. */
+.visit,
+.featureColumns,
+.policyTerms,
+.brand {
+  position: relative;
+}
+
+.visit::after,
+.featureColumns::after,
+.policyTerms::after,
+.brand::after {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  width: 1px;
+  background: var(--location-rule, rgba(28, 28, 26, 0.1));
+  mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+  pointer-events: none;
+}
+
+/* Below the section's top rule and padding. */
+.brand::after {
+  inset-block-start: 28px;
+}
+
+@container (min-width: 600px) {
+  .visit:has(> :nth-child(2))::after {
+    content: "";
+  }
+}
+
+@container (min-width: 720px) {
+  .featureColumns:has(> :nth-child(2))::after,
+  .policyTerms::after,
+  .brand[data-aside]::after {
+    content: "";
+  }
+}
+
+@container (min-width: 600px) and (max-width: 800px) {
+  .visit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+  }
+
+}
+
+@container (max-width: 599px) {
+  .title { font-size: 28px; }
+  .lead { font-size: 16px; }
+  .brandName { font-size: 23px; }
+  .discover { column-gap: 14px; padding: 22px 0; }
+  .discoverTitle { gap: 10px; font-size: 20px; }
+  .discoverTitle > svg { width: 22px; height: 22px; }
+  .discoverLead { font-size: 15px; }
+}
+
+.hoursSection:only-child {
+  grid-column: 1 / -1;
+  max-width: 520px;
+}
+
+/* The same unboxed list fits narrow phones. */
+@container (max-width: 360px) {
+  .title { font-size: 26px; }
+  .contact { gap: 12px; }
+  .day { column-gap: 8px; }
+  .brandIdentity { gap: 14px; }
+  .locationCard { gap: 12px; }
+  .locationPhoto { width: 64px; height: 80px; }
+  /* The pill drops under the text when the row is narrow. */
+  .discover { grid-template-columns: minmax(0, 1fr); row-gap: 14px; }
+  .discoverAction { justify-self: start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discoverAction,
+  .contactAction,
+  .locationCard,
+  .locationCard > svg,
+  .socials a {
+    transition: none;
   }
 }

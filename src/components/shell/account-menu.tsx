@@ -19,6 +19,7 @@ import { Popover } from "./popover";
 
 type Props = {
   locale: Locale;
+  triggerId: string;
   onClose: () => void;
 };
 
@@ -74,7 +75,7 @@ function MenuIcon({ icon, color }: { icon: IconName | LucideIcon; color: string 
   );
 }
 
-export function AccountMenu({ locale, onClose }: Props) {
+export function AccountMenu({ locale, triggerId, onClose }: Props) {
   const { status, user, logout, initializing, optimisticUser, refresh } = useAuth();
   const [retryingSession, setRetryingSession] = useState(false);
   const { dict } = useTranslation();
@@ -150,7 +151,7 @@ export function AccountMenu({ locale, onClose }: Props) {
   };
 
   return (
-    <Popover onClose={onClose} label={dict.nav.account} width={300}>
+    <Popover triggerId={triggerId} onClose={onClose} label={dict.nav.account} width={300}>
       <span role="status" className="sr-only">
         {pendingSession || retryingSession ? dict.account.loading : ""}
       </span>

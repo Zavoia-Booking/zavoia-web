@@ -31,20 +31,16 @@ export class ApiError extends Error {
  * either dotted (`CUSTOMER_AUTH.E38`) or contain an underscore
  * (`EMAIL_TAKEN`), and these are single bare words.
  *
- * A transport failure carries `status: 0` — no response ever arrived, so
- * there is no status line, no body, and nothing to map to a domain message.
+ * A transport failure carries `status: 0` — no complete response arrived,
+ * so there is no usable payload to map to a domain message.
  */
 export const NETWORK_ERROR_CODE = "NETWORK";
 export const TIMEOUT_ERROR_CODE = "TIMEOUT";
 
 /**
- * How long a BROWSER request may hang before we give up on it.
- *
- * Server-side fetches are deliberately left without a timeout or a signal:
- * they run inside Next's own request lifecycle and carry `next: { tags }`
- * cache hints, so attaching an AbortSignal there would change caching and ISR
- * behaviour to fix a problem that only exists in a browser — nobody is
- * staring at a stuck button during a prerender.
+ * Browser deadline for one exchange, including response-body consumption.
+ * Server-side fetches keep their existing lifecycle and cache hints; this
+ * wrapper does not add a timeout or signal to those requests.
  */
 const DEFAULT_TIMEOUT_MS = 15_000;
 
@@ -53,27 +49,31 @@ function isAbortError(e: unknown): boolean {
 }
 
 /**
- * `fetch`, with the two failures it can produce that never reach `parseError`
- * turned into ApiErrors: a dead network (fetch rejects with a TypeError, no
- * response at all) and our own timeout.
+ * Keep cancellation active until the response has been consumed. A fetch
+ * failure before headers and our own deadline become transport ApiErrors;
+ * parsing errors and HTTP ApiErrors retain their existing meaning.
  *
  * A caller's own abort passes through untouched, so `AbortController`-based
  * stale-response guards keep working and are never reported as a timeout.
  */
-async function guardedFetch(
+async function guardedFetch<T>(
   url: string,
   init: RequestInit,
+  consume: (response: Response) => Promise<T>,
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
-): Promise<Response> {
+): Promise<T> {
   const callerSignal = init.signal ?? null;
-
-  if (typeof window === "undefined") {
+  const fetchResponse = async (requestInit: RequestInit): Promise<Response> => {
     try {
-      return await fetch(url, init);
+      return await fetch(url, requestInit);
     } catch (e) {
       if (isAbortError(e)) throw e;
       throw new ApiError("Network request failed", 0, NETWORK_ERROR_CODE);
     }
+  };
+
+  if (typeof window === "undefined") {
+    return consume(await fetchResponse(init));
   }
 
   // `abort` fires once, at the moment of aborting: a listener attached after
@@ -85,24 +85,26 @@ async function guardedFetch(
   }
 
   const controller = new AbortController();
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
+  let abortCause: "caller" | "timeout" | null = null;
+  const abort = (cause: "caller" | "timeout") => {
+    // Body rejection may arrive after another cancellation source fires.
+    // Preserve whichever cancellation actually started the abort.
+    if (abortCause !== null) return;
+    abortCause = cause;
     controller.abort();
-  }, timeoutMs);
-  const forwardAbort = () => controller.abort();
+  };
+  const timer = setTimeout(() => abort("timeout"), timeoutMs);
+  const forwardAbort = () => abort("caller");
   callerSignal?.addEventListener("abort", forwardAbort);
 
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetchResponse({ ...init, signal: controller.signal });
+    return await consume(response);
   } catch (e) {
-    if (isAbortError(e)) {
-      if (timedOut) {
-        throw new ApiError("Request timed out", 0, TIMEOUT_ERROR_CODE);
-      }
-      throw e; // the caller cancelled on purpose
+    if (isAbortError(e) && abortCause === "timeout") {
+      throw new ApiError("Request timed out", 0, TIMEOUT_ERROR_CODE);
     }
-    throw new ApiError("Network request failed", 0, NETWORK_ERROR_CODE);
+    throw e;
   } finally {
     clearTimeout(timer);
     callerSignal?.removeEventListener("abort", forwardAbort);
@@ -198,8 +200,10 @@ async function parseError(response: Response): Promise<ApiError> {
   let data: unknown = null;
   try {
     data = await response.json();
-  } catch {
-    // body empty or non-JSON
+  } catch (error) {
+    // Empty/non-JSON error bodies still use HTTP metadata. Cancellation and
+    // interrupted body reads must reach the transport guard instead.
+    if (!(error instanceof SyntaxError)) throw error;
   }
   const body = data as
     | { message?: string | string[]; code?: string }
@@ -227,6 +231,16 @@ async function parseError(response: Response): Promise<ApiError> {
     error.retryAfterSeconds = parseRetryAfter(response);
   }
   return error;
+}
+
+type ParsedResponse<T> =
+  | { response: Response; data: T }
+  | { response: Response; error: ApiError };
+
+async function readResponse<T>(response: Response): Promise<ParsedResponse<T>> {
+  if (!response.ok) return { response, error: await parseError(response) };
+  const data = response.status === 204 ? undefined as T : await response.json() as T;
+  return { response, data };
 }
 
 function isExpiredTokenError(error: ApiError, response: Response): boolean {
@@ -356,21 +370,16 @@ async function performRefresh(signal: AbortSignal): Promise<string> {
   });
   if (csrf) headers.set("x-csrf-token", csrf);
 
-  const response = await guardedFetch(`${API_URL}${REFRESH_PATH}`, {
+  const result = await guardedFetch(`${API_URL}${REFRESH_PATH}`, {
     signal,
     method: "POST",
     credentials: "include",
     headers,
     body: JSON.stringify({}),
-  });
+  }, readResponse<RefreshResponse>);
 
-  if (!response.ok) {
-    const error = await parseError(response);
-    throw error;
-  }
-
-  const data = (await response.json()) as RefreshResponse;
-  return data.accessToken;
+  if ("error" in result) throw result.error;
+  return result.data.accessToken;
 }
 
 async function ensureFreshToken(path: string): Promise<void> {
@@ -432,18 +441,14 @@ export async function apiFetch<T>(
   const headers = buildHeaders(path, init, accessToken);
   const safeInit = accessToken ? stripCacheHints(init) : init;
 
-  const response = await guardedFetch(`${API_URL}${path}`, {
+  const result = await guardedFetch(`${API_URL}${path}`, {
     ...safeInit,
     headers,
     credentials: anonymousFallback ? "omit" : "include",
-  });
+  }, readResponse<T>);
 
-  if (response.ok) {
-    if (response.status === 204) return undefined as T;
-    return (await response.json()) as T;
-  }
-
-  const error = await parseError(response);
+  if ("data" in result) return result.data;
+  const { response, error } = result;
 
   if (
     response.status === 401 &&
@@ -472,17 +477,14 @@ export async function apiFetch<T>(
         if (locale) retryHeaders.set(LOCALE_HEADER, locale);
       }
       retryHeaders.set("Authorization", `Bearer ${newToken}`);
-      const retryResponse = await guardedFetch(`${API_URL}${path}`, {
+      const retryResult = await guardedFetch(`${API_URL}${path}`, {
         // Reached only with a token in hand — never cache this response.
         ...stripCacheHints(init),
         headers: retryHeaders,
         credentials: "include",
-      });
-      if (retryResponse.ok) {
-        if (retryResponse.status === 204) return undefined as T;
-        return (await retryResponse.json()) as T;
-      }
-      throw await parseError(retryResponse);
+      }, readResponse<T>);
+      if ("data" in retryResult) return retryResult.data;
+      throw retryResult.error;
     } catch (refreshError) {
       throw refreshError;
     }

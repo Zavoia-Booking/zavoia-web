@@ -8,6 +8,7 @@ import { DEFAULT_SOCIAL_IMAGE, SITE_URL } from "@/lib/site";
 import { getProfessionalPageBookingContext, getProfessionalPageProfile } from "@/lib/professionals/server";
 import { professionalHref } from "@/lib/professionals/urls";
 import { format } from "@/i18n/format";
+import { professionalStructuredData, serializeJsonLd } from "@/lib/seo/page-structured-data";
 
 type Props = {
   params: Promise<{ locale: string; uuid: string }>;
@@ -72,24 +73,35 @@ export default async function ProfessionalPage({ params }: Props) {
   const profile = await getProfessionalPageProfile(uuid);
   if (!profile) notFound();
   const bookingContext = await getProfessionalPageBookingContext(profile.id);
+  // Employers come only from a loaded booking context; a failed one adds none.
+  const jsonLd = professionalStructuredData(
+    profile,
+    locale,
+    bookingContext.status === "ready" ? bookingContext.context.businesses : [],
+  );
 
   return (
-    <ProfessionalProfile
-      key={profile.uuid}
-      presentation="page"
-      initialProfile={profile}
-      initialBookingContext={bookingContext}
-      locale={locale}
-      member={{
-        id: profile.id,
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        displayName: profile.about?.displayName ?? null,
-        profileImage: profile.profileImage,
-        professionalTitle: profile.about?.professionalTitle ?? null,
-        averageRating: profile.reviewStats.averageRating,
-        totalReviews: profile.reviewStats.totalCount,
-      }}
-    />
+    <>
+      {jsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
+      )}
+      <ProfessionalProfile
+        key={profile.uuid}
+        presentation="page"
+        initialProfile={profile}
+        initialBookingContext={bookingContext}
+        locale={locale}
+        member={{
+          id: profile.id,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          displayName: profile.about?.displayName ?? null,
+          profileImage: profile.profileImage,
+          professionalTitle: profile.about?.professionalTitle ?? null,
+          averageRating: profile.reviewStats.averageRating,
+          totalReviews: profile.reviewStats.totalCount,
+        }}
+      />
+    </>
   );
 }

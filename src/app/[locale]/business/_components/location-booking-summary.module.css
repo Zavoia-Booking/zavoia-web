@@ -1,0 +1,152 @@
+.bookingRail {
+  position: sticky;
+  top: calc(var(--nav-h) + 28px);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: calc(100dvh - var(--nav-h) - 56px);
+}
+
+/* A plain card. The menu's tickets carry the receipt look, so the summary
+   stays quiet: one paper surface, a hairline and full-width section rules. */
+.summary {
+  --summary-pad: 24px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  max-height: inherit;
+  border: 1px solid var(--c-200);
+  border-radius: 18px;
+  background: var(--c-50);
+  box-shadow: var(--sh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--summary-pad) var(--summary-pad) 0;
+}
+
+.identity { flex-shrink: 0; min-width: 0; padding-bottom: 16px; }
+.summaryLabel { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
+.summaryLabel h2, .summaryLabel > span { margin: 0; color: var(--c-600); font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; line-height: 1.5; letter-spacing: .065em; text-transform: uppercase; }
+.venueName { margin: 8px 0 0; color: var(--c-900); font-size: 17px; font-weight: 600; line-height: 1.35; letter-spacing: -.02em; overflow-wrap: anywhere; text-wrap: balance; }
+.bookingIntro { max-width: 30ch; margin: 0 0 24px; color: var(--c-600); font-size: 14px; line-height: 1.65; text-wrap: pretty; }
+
+/* Long selections scroll without a scrollbar. A soft shade shows at an edge
+   only while items sit past it: the paper-coloured covers travel with the
+   content and hide each shade once its end is reached. */
+.selectionList {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--summary-pad));
+  padding: 0 var(--summary-pad);
+  border-top: 1px solid var(--c-200);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  list-style: none;
+  background:
+    linear-gradient(var(--c-50) 40%, transparent) top / 100% 24px no-repeat local,
+    linear-gradient(transparent, var(--c-50) 60%) bottom / 100% 24px no-repeat local,
+    linear-gradient(rgba(28, 28, 26, .07), transparent) top / 100% 10px no-repeat scroll,
+    linear-gradient(transparent, rgba(28, 28, 26, .07)) bottom / 100% 10px no-repeat scroll,
+    var(--c-50);
+}
+.selectionList::-webkit-scrollbar { display: none; }
+.selectionList > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4px 12px; min-width: 0; padding: 14px 0; }
+.selectionList > li + li { border-top: 1px solid var(--c-200); }
+.selectionList[data-indexed] > li { grid-template-columns: 14px minmax(0, 1fr) auto; }
+/* Lines counted from the end place the name, remove action and meta the same
+   way with or without the index column. */
+.itemIndex { grid-row: 1; grid-column: 1; color: var(--c-600); font-family: var(--font-mono); font-size: 11px; font-weight: 500; line-height: 1.4; }
+.itemName { grid-row: 1; grid-column: -3 / -2; color: var(--c-900); font-size: 15px; font-weight: 600; line-height: 1.4; letter-spacing: -.015em; overflow-wrap: anywhere; }
+/* Centred on the name's first line, with its icon flush with the prices. The
+   hit area grows to 44px without moving anything. */
+.itemRemove { position: relative; grid-row: 1; grid-column: -2 / -1; align-self: start; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-block: -3.5px; margin-inline-end: -7px; padding: 0; border: 0; border-radius: 50%; color: var(--c-600); background: transparent; cursor: pointer; transition: color 160ms var(--ease-out), background-color 160ms var(--ease-out); }
+.itemRemove::before { content: ""; position: absolute; inset: -8px; }
+.itemMeta { grid-row: 2; grid-column: -3 / -1; display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 12px; min-width: 0; }
+.itemDuration { color: var(--c-600); font-family: var(--font-mono); font-size: 12px; font-weight: 500; line-height: 1.5; }
+.itemPrice { margin-inline-start: auto; color: var(--c-800); font-size: 14px; font-weight: 500; line-height: 1.5; text-align: end; }
+.itemPrice > span { color: var(--c-600); font-size: 12px; font-weight: 400; }
+
+.summaryFooter {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 16px;
+  padding: 20px var(--summary-pad) var(--summary-pad);
+  border-top: 1px solid var(--c-200);
+}
+
+/* The label sits on the amount's baseline; the duration reads beneath it. */
+.selectionTotal { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 2px 16px; min-width: 0; }
+.totalLabel { color: var(--c-900); font-size: 15px; font-weight: 600; line-height: 1.4; text-transform: capitalize; }
+.totalAmount { grid-row: 1; grid-column: 2; justify-self: end; color: var(--c-900); font-size: 26px; font-weight: 600; line-height: 1.2; letter-spacing: -.03em; text-align: end; overflow-wrap: anywhere; }
+.totalAmount.quote { font-size: 17px; line-height: 1.4; letter-spacing: -.02em; }
+.totalDuration { grid-column: 1; color: var(--c-600); font-family: var(--font-mono); font-size: 12px; font-weight: 500; line-height: 1.5; }
+.priceFrom { color: var(--c-600); font-size: 12px; font-weight: 400; letter-spacing: 0; }
+.bookAction { width: 100%; min-height: 54px; white-space: normal !important; line-height: 1.4; overflow-wrap: anywhere; }
+.callAction { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 54px; padding: 12px 20px; border: 1px solid var(--c-ink); border-radius: var(--r-full); color: var(--c-50); background: var(--c-ink); font-size: 14px; font-weight: 600; text-decoration: none; }
+.bookingNotice, .unavailableAction { margin: 0; color: var(--c-600); font-size: 13px; line-height: 1.6; }
+.mobileBooking { display: none; }
+.itemRemove:focus-visible, .bookAction:focus-visible, .callAction:focus-visible, .selectionDisclosure > summary:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; }
+
+@media (hover: hover) {
+  .itemRemove:hover { color: var(--c-900); background: var(--c-200); }
+  .callAction:hover { background: var(--c-800); }
+}
+
+@media (min-width: 921px) and (max-height: 600px) {
+  .bookingRail { position: static; max-height: none; }
+  .selectionList { max-height: 260px; }
+}
+
+@media (max-width: 920px) {
+  .bookingRail { display: none; }
+  .mobileBooking { position: fixed; z-index: 80; inset-inline: 0; bottom: var(--mobile-tabs-h); display: flex; align-items: center; gap: 16px; min-height: 70px; padding: 10px var(--gutter); border-top: 1px solid rgba(28, 28, 26, .10); background: var(--c-canvas); }
+  .mobileBooking .bookAction, .mobileBooking .callAction { width: auto; flex-shrink: 0; max-width: 48%; min-height: 46px; }
+  .mobileBookingPrompt { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+  .mobileBookingPrompt > strong { overflow: hidden; color: var(--c-900); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+  .mobileBookingPrompt > span { color: var(--c-600); font-size: 13px; line-height: 1.4; }
+  .selectionDisclosure { min-width: 0; flex: 1; }
+  .selectionDisclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; border-radius: 4px; color: var(--c-900); list-style: none; cursor: pointer; }
+  .selectionDisclosure > summary::-webkit-details-marker { display: none; }
+  .selectionDisclosure > summary > span { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
+  .selectionDisclosure summary strong { display: block; color: var(--c-900); font-size: 16px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+  .selectionDisclosure summary > span > span { color: var(--c-600); font-size: 12px; line-height: 1.5; }
+  .selectionDisclosure summary > svg { transform: rotate(90deg); flex-shrink: 0; }
+  .selectionDisclosure[open] summary > svg { transform: rotate(-90deg); }
+  /* The opened selection floats above the action bar. */
+  .mobileSelection { position: absolute; bottom: calc(100% + 10px); inset-inline: var(--gutter); max-height: calc(100dvh - var(--nav-h) - var(--mobile-tabs-h) - 130px); box-shadow: var(--sh-xl); }
+  .mobileSelection .summaryBody { padding-top: 20px; }
+  .mobileSummaryFooter { padding-block: 16px 20px; }
+  .mobileSummaryFooter .totalAmount { font-size: 24px; }
+  .mobileSummaryFooter .totalAmount.quote { font-size: 17px; }
+}
+
+@media (max-width: 370px) {
+  .mobileBooking { gap: 12px; }
+  .mobileSelection { --summary-pad: 20px; }
+  .mobileSelection .venueName { font-size: 16px; }
+  .summaryLabel h2 { font-size: 10px; }
+}
+
+/* On a short phone viewport, scroll the whole opened selection so its fixed
+   header and total cannot consume the small space available for items. */
+@media (max-width: 920px) and (max-height: 580px) {
+  .mobileSelection { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  .mobileSelection::-webkit-scrollbar { display: none; }
+  .mobileSelection .summaryBody { flex-shrink: 0; }
+  .mobileSelection .selectionList { flex: none; overflow: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .itemRemove { transition: none; }
+}

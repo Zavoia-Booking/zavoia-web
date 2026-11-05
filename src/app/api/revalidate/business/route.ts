@@ -8,6 +8,7 @@ import {
   DISCOVERY_TAG,
   TAXONOMY_TAG,
   BUSINESS_TAG,
+  SITEMAP_TAG,
   WEBSITE_TAG,
   brandTag,
   businessTag,
@@ -17,9 +18,10 @@ import {
 /**
  * Cache invalidation hook for admin-api.
  *
- * Ordinary content updates use background revalidation. Website publication
- * changes use immediate expiration so a previously cached unavailable page or
- * published website cannot be served on the next server request.
+ * Location keys expire immediately. The existing backend contract uses the
+ * same payload for content edits and visibility changes, so background refresh
+ * cannot safely distinguish a stale description from a now-private location.
+ * Brand-only content and ordinary website updates retain background refresh.
  *
  *   POST /api/revalidate/business
  *   x-revalidate-secret: <REVALIDATE_SECRET>
@@ -32,8 +34,9 @@ import {
  * pages addressed by that slug: /brand/<slug> and the published Website Builder
  * microsite at /<slug>. `websites` also names businessSlugs and is used for
  * publish, unpublish and deletion: it expires website data immediately and
- * invalidates each internal locale route plus the sitemap. `{ "all": true }`
- * marks every listing, brand and website page stale for a taxonomy-wide change.
+ * invalidates each internal locale route. Every accepted payload also expires
+ * the sitemap inventory. `{ "all": true }` expires location/brand data and
+ * marks website data stale for a taxonomy-wide change.
  *
  * The response acknowledges cache invalidation; it does not warm pages or
  * invalidate copies already held by a visitor's browser or social platform.
@@ -52,11 +55,11 @@ function authorized(req: NextRequest): boolean {
   return timingSafeEqual(a, b);
 }
 
-function slugList(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
-    .slice(0, MAX_ENTRIES);
+function slugList(value: unknown): string[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > MAX_ENTRIES
+    || value.some(v => typeof v !== "string" || !v.trim())) return null;
+  return [...new Set(value.map((v: string) => v.trim()))];
 }
 
 type Payload = {
@@ -85,21 +88,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const revalidated: string[] = [];
-
-  if (body.all === true) {
-    revalidateTag(BUSINESS_TAG, "max");
-    revalidateTag(BRAND_TAG, "max");
-    revalidateTag(WEBSITE_TAG, "max");
-    revalidateTag(DISCOVERY_TAG, { expire: 0 });
-    revalidateTag(TAXONOMY_TAG, { expire: 0 });
-    revalidated.push(BUSINESS_TAG, BRAND_TAG, WEBSITE_TAG, DISCOVERY_TAG, TAXONOMY_TAG);
-    return NextResponse.json({ revalidated });
+  if (!body || typeof body !== "object" || Array.isArray(body)
+    || (body.all !== undefined && typeof body.all !== "boolean")) {
+    return NextResponse.json({ error: "Invalid revalidation payload" }, { status: 400 });
   }
 
   const locations = slugList(body.locations);
   const brands = slugList(body.brands);
   const websites = slugList(body.websites);
+  if (!locations || !brands || !websites) {
+    return NextResponse.json({ error: `Keys must be arrays of at most ${MAX_ENTRIES} nonempty strings` }, { status: 400 });
+  }
+
+  const revalidated: string[] = [];
+  const revalidatedPaths: string[] = [];
+  const invalidatePath = (path: string) => {
+    revalidatePath(path);
+    revalidatedPaths.push(path);
+  };
+  const invalidateSitemap = () => {
+    revalidateTag(SITEMAP_TAG, { expire: 0 });
+    revalidated.push(SITEMAP_TAG);
+    invalidatePath("/sitemap.xml");
+  };
+
+  if (body.all === true) {
+    revalidateTag(BUSINESS_TAG, { expire: 0 });
+    revalidateTag(BRAND_TAG, { expire: 0 });
+    revalidateTag(WEBSITE_TAG, "max");
+    revalidateTag(DISCOVERY_TAG, { expire: 0 });
+    revalidateTag(TAXONOMY_TAG, { expire: 0 });
+    revalidated.push(BUSINESS_TAG, BRAND_TAG, WEBSITE_TAG, DISCOVERY_TAG, TAXONOMY_TAG);
+    // Include cached unavailable routes whose upstream 404 had no data entry.
+    revalidatePath("/[locale]/business/[slug]", "page");
+    revalidatePath("/[locale]/brand/[slug]", "page");
+    revalidatedPaths.push("/[locale]/business/[slug]", "/[locale]/brand/[slug]");
+    invalidateSitemap();
+    return NextResponse.json({ revalidated, revalidatedPaths });
+  }
+
   const lifecycleWebsiteTags = new Set(websites.map(websiteTag));
 
   if (!locations.length && !brands.length && !websites.length) {
@@ -119,20 +146,27 @@ export async function POST(req: NextRequest) {
 
   for (const slug of locations) {
     const tag = businessTag(slug);
-    revalidateTag(tag, "max");
+    revalidateTag(tag, { expire: 0 });
     revalidated.push(tag);
+    // English public URLs are rewritten to the internal /en route.
+    for (const locale of LOCALES) invalidatePath(`/${locale}/business/${encodeURIComponent(slug)}`);
   }
   for (const slug of brands) {
-    // One payload key, two pages: the brand page and the microsite.
-    for (const tag of [brandTag(slug), websiteTag(slug)]) {
-      // A lifecycle request must expire this tag only once, below.
-      if (lifecycleWebsiteTags.has(tag)) continue;
-      revalidateTag(tag, "max");
-      revalidated.push(tag);
+    const tag = brandTag(slug);
+    // Locations also use brand data for sibling cards. Visibility changes must
+    // not keep advertising the removed branch through a stale brand response.
+    revalidateTag(tag, locations.length ? { expire: 0 } : "max");
+    revalidated.push(tag);
+    if (locations.length) {
+      for (const locale of LOCALES) invalidatePath(`/${locale}/brand/${encodeURIComponent(slug)}`);
+    }
+    const website = websiteTag(slug);
+    if (!lifecycleWebsiteTags.has(website)) {
+      revalidateTag(website, "max");
+      revalidated.push(website);
     }
   }
 
-  const revalidatedPaths: string[] = [];
   for (const slug of websites) {
     const tag = websiteTag(slug);
     revalidateTag(tag, { expire: 0 });
@@ -141,14 +175,10 @@ export async function POST(req: NextRequest) {
     // English URLs are rewritten to /en/<slug>; invalidate the destination.
     for (const locale of LOCALES) {
       const path = `/${locale}/${encodeURIComponent(slug)}`;
-      revalidatePath(path);
-      revalidatedPaths.push(path);
+      invalidatePath(path);
     }
   }
-  if (websites.length) {
-    revalidatePath("/sitemap.xml");
-    revalidatedPaths.push("/sitemap.xml");
-  }
+  invalidateSitemap();
 
   return NextResponse.json({ revalidated, revalidatedPaths });
 }

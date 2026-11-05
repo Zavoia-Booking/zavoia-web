@@ -7,16 +7,16 @@
  * invalidate the same tag. admin-api never needs to know which sub-resource
  * changed; it only needs to name the business.
  *
- * Slugs are lower-cased because cache tags are case-sensitive while the URL
- * and the backend's slug resolution are not: without this, a visitor arriving
- * at /business/Salon-X would populate a tag that a `salon-x` webhook payload
- * would never match.
+ * Keep the existing case-folded cache keys for invalidation compatibility.
+ * This does not change URL resolution: the API still resolves slugs exactly.
  */
 
 /** Coarse tags — invalidate every listing / brand / website page at once. */
 export const BUSINESS_TAG = "business";
 export const BRAND_TAG = "brand";
 export const WEBSITE_TAG = "website";
+/** Public URL inventory, independent of any one location or brand cache. */
+export const SITEMAP_TAG = "marketplace-sitemap";
 /** Anonymous homepage data, shared across locales. */
 export const DISCOVERY_TAG = "discovery";
 export const TAXONOMY_TAG = "taxonomy";
@@ -44,12 +44,12 @@ export function websiteTag(idOrSlug: string): string {
 }
 
 /**
- * Time-based floor for the listing / brand / website pages, in seconds.
+ * Time-based revalidation interval for listing / brand / website pages.
  *
  * This is the safety net, NOT the primary freshness mechanism: if the
  * revalidate webhook is never wired up, misfires, or admin-api forgets a call
- * site, every page still self-heals within this window. The webhook only makes
- * the important cases (publish / unpublish) fast.
+ * site, a later request can refresh stale content. It is not a strict maximum
+ * age: background regeneration or an unavailable upstream can delay freshness.
  *
  * Route segment `revalidate` exports must be statically analysable, so the
  * pages repeat the literal rather than importing this — keep them in sync.

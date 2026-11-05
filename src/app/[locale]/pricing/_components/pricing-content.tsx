@@ -1,55 +1,97 @@
+import Link from "next/link";
+import clsx from "clsx";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
-import { format } from "@/i18n/format";
-import { CtaBand, FaqList, PageHead, SectionTitle } from "@/components/ui";
-import { getPricing } from "@/lib/marketing/pricing";
-import { PricingCalc } from "./pricing-calc";
-import { PricingCompare } from "./pricing-compare";
+import { format, formatCount } from "@/i18n/format";
+import { localeHref } from "@/i18n/routes";
+import { Icon } from "@/components/ui/icon";
+import { formatPrice, getPlanPricing } from "@/lib/marketing/pricing";
+import { caveat } from "@/styles/fonts";
+import { PlanCards } from "@/app/_components/for-business/plan-cards";
+import { MarketingFaq } from "@/app/_components/for-business/faq-section";
+import { StudioFeatureArt } from "@/app/_components/for-business/studio-feature-art";
+import m from "@/app/_components/for-business/marketing.module.css";
+import { PricingComparison } from "./pricing-comparison";
+import { SmsArtwork } from "./pricing-artwork";
+import styles from "./pricing.module.css";
 
-// Pricing page composition (server component). Mirrors ZwPricingPage
-// (docs/web-pricing.jsx:252-272): page head → plan+calculator → "the
-// difference" receipt → FAQ → CTA band. Prices come from the PRICING
-// constant and are interpolated into the i18n copy.
+/** Fixed subscriptions, visible plan differences and the full included capabilities. */
 export function PricingContent({ locale }: { locale: Locale }) {
-  const t = dictionaries[locale].pricing;
-  const pricing = getPricing(locale);
-  const trial = String(pricing.trialDays);
-
-  const faqItems = t.faq.items.map((it) => ({
-    q: it.q,
-    a: format(it.a, { trial }),
-  }));
+  const dict = dictionaries[locale];
+  const t = dict.pricing;
+  const b = dict.businessMarketing;
+  const pricing = getPlanPricing(locale);
+  const days = formatCount(pricing.trialDays, locale, b.counts.days);
+  const baseTeamMembers = formatCount(pricing.teamMemberLimits.base, locale, b.counts.teamMembers);
+  const memberPrice = format(t.hero.memberPrice, {
+    price: formatPrice(pricing.teamMember, pricing.currency),
+  });
+  const values = { days, seat: formatPrice(pricing.teamMember, pricing.currency), baseTeamMembers };
 
   return (
-    <main>
-      <PageHead
-        kicker={t.head.kicker}
-        title={t.head.title}
-        sub={format(t.head.sub, {
-          monthly: String(pricing.monthly),
-        })}
-      />
-
-      <PricingCalc copy={{ plan: t.plan, calc: t.calc }} />
-
-      <PricingCompare copy={t.compare} />
-
-      <section
-        className="zw-container"
-        style={{
-          paddingTop: "clamp(64px, 8vw, 96px)",
-          maxWidth: "min(var(--content-max), 860px)",
-        }}
-      >
-        <SectionTitle kicker={t.faq.kicker} title={t.faq.title} />
-        <FaqList items={faqItems} />
+    <main className={clsx(caveat.variable, styles.page)} data-pricing-page="">
+      <section className={styles.opening} aria-labelledby="pricing-title">
+        <div className="zw-container">
+          <header className={styles.head}>
+            <h1 className={styles.title} id="pricing-title">
+              <span>{t.hero.titleLead}</span>{" "}
+              <span>{t.hero.titlePre}<span className={clsx(m.signature, styles.signature)}>{t.hero.titleAccent}</span></span>
+            </h1>
+            <p className={styles.lead}>{t.hero.lead}</p>
+            <p className={styles.memberPrice}>{memberPrice}</p>
+            <nav className={styles.planShortcuts} aria-label={t.plansLabel}>
+              {(["base", "plus"] as const).map(id => (
+                <a key={id} href={`#pricing-plan-${id}`}>
+                  <strong>{b.plans[id].name}</strong>
+                  <span>{formatPrice(pricing.plans[id].monthly, pricing.currency)} <span>{b.plans.perMonth}</span></span>
+                </a>
+              ))}
+            </nav>
+          </header>
+          <div className={styles.plans} id="pricing-plans" tabIndex={-1} aria-label={t.plansLabel}>
+            <PlanCards locale={locale} headingLevel={2} idPrefix="pricing-plan" source="pricing" />
+          </div>
+          <div className={styles.billing}>
+            <p>{format(t.billing.currencyNote, { currency: pricing.currency })}</p>
+            <p>{t.billing.terms}</p>
+          </div>
+        </div>
       </section>
 
-      <CtaBand
-        kicker={t.cta.kicker}
-        title={t.cta.title}
-        sub={format(t.cta.sub, { trial })}
-        primaryLabel={t.cta.primary}
+      <PricingComparison locale={locale} />
+
+      <section className={styles.extras} aria-labelledby="addons-title">
+        <div className="zw-container">
+          <header className={styles.sectionHead}>
+            <h2 className={m.h2} id="addons-title">{t.addons.title}</h2>
+            <p className={styles.sectionLead}>{t.addons.lead}</p>
+          </header>
+          <div className={styles.addons}>
+            {t.addons.items.map((addon, index) => (
+              <article key={addon.title} className={styles.addon}>
+                <div className={styles.addonArtwork} aria-hidden="true">
+                  {index === 0 ? <SmsArtwork /> : <StudioFeatureArt kind="design" />}
+                </div>
+                <h3>{addon.title}</h3>
+                <div className={styles.addonCopy}>
+                  <p>{addon.body}</p>
+                  <p className={styles.availability}>{addon.availability}</p>
+                  {index === 1 && <Link href={localeHref(locale, "web-studio")} className={styles.textLink}>{t.addons.studioLink}<Icon name="arrowR" size={16} /></Link>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <MarketingFaq
+        locale={locale}
+        headingId="billing-faq-title"
+        title={t.faq.title}
+        lead={t.faq.lead}
+        helpPrompt={t.faq.helpPrompt}
+        helpLink={t.faq.helpLink}
+        items={t.faq.items.map(item => ({ q: item.q, a: format(item.a, values) }))}
       />
     </main>
   );

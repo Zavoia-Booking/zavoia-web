@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { localeHref } from "@/i18n/routes";
-import { InlineError } from "@/components/ui/inline-error";
+import type { ToastHandle } from "@/components/ui/toast";
 import {
   Avatar,
-  CatDot,
+  Button,
   HeartButton,
   Icon,
   Rating,
@@ -16,9 +16,12 @@ import {
   useToast,
 } from "@/components/ui";
 import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
+import { industryVisual } from "@/lib/marketplace/industry-visuals";
+import { getPendingFavoriteIds, subscribeFavoriteIds } from "@/lib/favorites/store";
 import { openStatus } from "@/lib/marketplace/working-hours";
+import { useVenueClock } from "@/lib/marketplace/use-venue-clock";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/format";
+import { format, formatCount } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
 import {
   formatSelectionSpread,
@@ -31,6 +34,7 @@ import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { SEARCH_RADIUS_KM } from "@/components/search/constants";
 import { TeamMemberProfileModal } from "./team-member-profile-modal";
 import { professionalHref } from "@/lib/professionals/urls";
+import { locationHref, locationName } from "@/lib/locations/identity";
 import { EmptyState } from "./empty-state";
 import styles from "./business-detail.module.css";
 import { LocationGallery } from "./location-gallery";
@@ -42,7 +46,9 @@ import type {
   IndustryRef,
   ListingDetail,
   ListingTeamMember,
+  VenueTagDictionaries,
 } from "@/lib/api/marketplace/types";
+import type { LocationBrandSummary } from "@/lib/marketplace/location-brand.server";
 
 type Tab = "services" | "team" | "reviews" | "about";
 
@@ -50,9 +56,15 @@ interface Props {
   listing: ListingDetail;
   locale: Locale;
   categoryHref?: string | null;
+  /** Whether the header's category page lists a place other than this one. */
+  categoryHasOthers?: boolean;
+  /** This location's own venue tags, resolved on the server; null when it has none. */
+  venueTags?: VenueTagDictionaries | null;
+  /** The brand page's details for the other locations; null when unavailable. */
+  brand?: LocationBrandSummary | null;
 }
 
-export function BusinessDetail({ listing, locale, categoryHref }: Props) {
+export function BusinessDetail({ listing, locale, categoryHref, categoryHasOthers = false, venueTags = null, brand = null }: Props) {
   const { dict } = useTranslation();
   const toast = useToast();
   const t = dict.business;
@@ -65,11 +77,18 @@ export function BusinessDetail({ listing, locale, categoryHref }: Props) {
   const showPricing = !(listing.additionalSettings && typeof listing.additionalSettings === "object" && "showPricing" in listing.additionalSettings && listing.additionalSettings.showPricing === false);
   const router = useRouter();
   const panelId = useId();
-  const now = useSyncExternalStore(subscribeClock, minuteSnapshot, serverClockSnapshot);
-  const [shareError, setShareError] = useState(false);
+  const now = useVenueClock();
+  const shareToast = useRef<ToastHandle | null>(null);
+  const sharePending = useRef(false);
+  const shareActive = useRef(true);
+  const [sharing, setSharing] = useState(false);
+  useEffect(() => {
+    shareActive.current = true;
+    return () => { shareActive.current = false; shareToast.current?.dismiss(); };
+  }, []);
   // The page is a LOCATION page — lead with the location's name (the
   // business-level listing name is the fallback for legacy payloads).
-  const displayName = listing.location?.name || listing.name;
+  const displayName = locationName(listing);
 
   // Distance from the visitor (client-only geolocation). Null until resolved or
   // when coords/listing position are unavailable → the segment is simply omitted.
@@ -92,20 +111,24 @@ export function BusinessDetail({ listing, locale, categoryHref }: Props) {
   // Keep the location's base content in ISR HTML. Query-only deep links are
   // applied by a small Suspense child, rather than suspending this whole page.
   const [tab, setTab] = useState<Tab>("services");
-  const [visitedTabs, setVisitedTabs] = useState<Set<Tab>>(() => new Set(["services"]));
   const [memberId, setMemberId] = useState<number | null>(null);
   const initialUrlApplied = useRef(false);
   const selectTab = useCallback((next: Tab) => {
     // A user's local selection wins if the URL resolver hydrates later.
     initialUrlApplied.current = true;
     setTab(next);
-    setVisitedTabs(previous => previous.has(next) ? previous : new Set([...previous, next]));
+    // The address follows the visible tab, so a refresh or a copied link reopens it.
+    // Replacing the entry keeps Back leaving the page rather than stepping through tabs.
+    const url = new URL(window.location.href);
+    if (next === "services") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", next);
+    url.searchParams.delete("member");
+    if (url.href !== window.location.href) window.history.replaceState(null, "", url);
   }, []);
   const applyInitialUrl = useCallback((next: Tab, nextMemberId: number | null) => {
     if (initialUrlApplied.current) return;
     initialUrlApplied.current = true;
     setTab(next);
-    setVisitedTabs(previous => previous.has(next) ? previous : new Set([...previous, next]));
     setMemberId(next === "team" ? nextMemberId : null);
   }, []);
 
@@ -234,11 +257,12 @@ export function BusinessDetail({ listing, locale, categoryHref }: Props) {
     if (!canBook) return;
     // Book CTA hands over the BOOKING listingId (NOT the route locationId).
     // `catalog` lets the drawer render its own in-drawer service picker
-    // (Step 1) when no services were pre-selected on this page.
+    // (Step 1); whatever changes there flows back into this page's selection.
     openBooking({
       businessId: listing.businessId,
       listingId: listing.listingId,
       locationId: listing.locationId,
+      venue: { businessName: listing.name, locationName: listing.location?.name ?? null },
       timezone: listing.timezone,
       currency,
       showPricing,
@@ -249,90 +273,151 @@ export function BusinessDetail({ listing, locale, categoryHref }: Props) {
         services: listing.services,
         bundles: listing.bundles,
       },
+      onServicesChange: (picks) => setSelection(picks),
     });
   }, [canBook, openBooking, listing, currency, showPricing, selectedItems]);
 
-  const onShare = useCallback(async () => {
-    setShareError(false);
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: displayName, url });
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
+  const copyLink = useCallback(async (url: string) => {
+    if (!shareActive.current) return;
+    shareToast.current?.dismiss();
     try {
-      if (!navigator.clipboard) throw new Error("Clipboard unavailable");
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
       await navigator.clipboard.writeText(url);
-      toast(t.shareCopied, "copy");
+      if (shareActive.current) shareToast.current = toast(t.shareCopied, "copy");
     } catch {
-      setShareError(true);
+      if (shareActive.current) shareToast.current = toast(dict.locationPage.shareError, "warn", undefined, "error");
     }
-  }, [displayName, t.shareCopied, toast]);
+  }, [t.shareCopied, dict.locationPage.shareError, toast]);
+
+  const onShare = useCallback(async () => {
+    if (sharePending.current) return;
+    sharePending.current = true;
+    setSharing(true);
+    shareToast.current?.dismiss();
+    const sharedUrl = new URL(locationHref(locale, listing), window.location.origin);
+    if (tab !== "services") sharedUrl.searchParams.set("tab", tab);
+    const url = sharedUrl.href;
+    try {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: displayName, url });
+          return;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          if (shareActive.current) shareToast.current = toast(dict.locationPage.shareFailed, "warn", {
+            label: dict.locationPage.copyLink,
+            onClick: () => { void copyLink(url); },
+          }, "error");
+        }
+      } else {
+        await copyLink(url);
+      }
+    } finally {
+      sharePending.current = false;
+      if (shareActive.current) setSharing(false);
+    }
+  }, [displayName, locale, listing, tab, copyLink, dict.locationPage.shareFailed, dict.locationPage.copyLink, toast]);
 
   const industry = listing.industry as IndustryRef | null;
   const cat = toCat(industry);
-  const industryLabel = industry ? taxonomyLabel(industry, locale) : null;
-  const { status, closesAt } = now === null ? {} : openStatus({ ...listing.location, timezone: listing.timezone }, new Date(now));
+  const visual = industryVisual(cat);
+  const industryLabel = industry ? taxonomyLabel({ ...industry, slug: cat }, locale, dict.industries) : null;
+  const { status, closesAt } = now === null ? {} : openStatus({ ...listing.location, timezone: listing.location.timezone?.trim() || listing.timezone?.trim() || "" }, new Date(now));
   const phone = listing.location.phone || listing.phone;
-  const directionsHref = buildDirectionsHref(listing);
+  const placeHref = buildPlaceHref(listing);
   const brandHref = localeHref(locale, "brand", listing.businessSlug ?? String(listing.businessId));
   const mapHref = listing.location.latitude != null && listing.location.longitude != null
     ? `${localeHref(locale, "search")}?lat=${listing.location.latitude}&lng=${listing.location.longitude}&radius=${SEARCH_RADIUS_KM}&focus=${locationId}`
     : null;
+  const addressLabel = listing.location.address || listing.location.city;
+  const compactTitle = Array.from(displayName.trim()).length > 24;
+  const formattedRating = listing.averageRating != null
+    ? new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(listing.averageRating)
+    : null;
+  const reviewCountLabel = formatCount(listing.totalReviews, locale, {
+    one: t.reviewsCountOne,
+    few: t.reviewsCount,
+    other: t.reviewsCountMany,
+  });
+  const hasOpeningStatus = now === null || !!status;
   const servicesLabel = format(listing.services.length === 1 ? dict.locationPage.servicesCountOne : dict.locationPage.servicesCount, { count: String(listing.services.length) });
 
-  return <main className={`zw-container ${styles.page}`}>
+  return <main className={styles.page}><div className={`zw-container ${styles.frame}`}>
     <Suspense fallback={null}>
       <InitialLocationUrl onResolve={applyInitialUrl} />
     </Suspense>
-    <button type="button" className={styles.back} onClick={() => {
-      if (window.history.length > 1) router.back();
-      else router.push(localeHref(locale, "search"));
-    }}><Icon name="back" size={15} />{t.back}</button>
+    <div className={styles.toolbar}>
+      <button type="button" className={styles.back} aria-label={t.back} onClick={() => {
+        if (window.history.length > 1) router.back();
+        else router.push(localeHref(locale, "search"));
+      }}><Icon name="back" size={16} /><span className={styles.backLabel}>{t.back}</span></button>
+      <div className={styles.identityActions}>
+        {mapHref && <Link href={mapHref} prefetch={false} className={styles.toolbarMapAction} aria-label={t.seeOnMap}><Icon name="pin" size={18} />{t.seeOnMap}</Link>}
+        <Button kind="ghost" size="sm" className={styles.shareAction} loading={sharing} aria-label={t.share} onClick={onShare}><Icon name="share" size={18} /><span className={styles.shareLabel}>{t.share}</span></Button>
+        <span className={styles.saveAction}><FavoriteHeart locationId={locationId} /></span>
+      </div>
+    </div>
 
-    <LocationGallery listing={listing} cat={cat} />
+    <div className={styles.overview}>
+      <header className={styles.identity}>
+        <div className={styles.identityText}>
+          {(industryLabel || hasOpeningStatus) && <div className={styles.eyebrow}>
+            {industryLabel && (categoryHref ? <Link href={categoryHref} prefetch={false} className={styles.categoryLink}><Icon name={visual.icon} color={visual.accent} size={18} />{industryLabel}</Link> : <span className={styles.categoryLink}><Icon name={visual.icon} color={visual.accent} size={18} />{industryLabel}</span>)}
+            {hasOpeningStatus && <span className={styles.openingStatus}>
+              {now === null ? <Skeleton w={55} h={19} style={{ display: "inline-block" }} /> : status && <StatusPill status={status} />}
+              {status === "open" && closesAt && <span className={styles.closingTime}>{format(dict.common.closesAt, { time: closesAt })}</span>}
+            </span>}
+          </div>}
+          <h1 data-long-name={compactTitle || undefined}>{displayName}</h1>
+        </div>
+        {(formattedRating !== null || distanceStr) && <div className={styles.trust}>
+          {formattedRating !== null && <button
+            type="button"
+            className={styles.ratingLink}
+            aria-label={`${dict.locationPage.readReviews}: ${format(dict.locationPage.ratingLabel, { rating: formattedRating })}, ${reviewCountLabel}`}
+            onClick={() => selectTab("reviews")}
+          >
+            <Icon name="star" size={20} color="var(--p-500)" />
+            <span className={styles.ratingValue}>{formattedRating}</span>
+            <span className={styles.reviewCount}>{reviewCountLabel}</span>
+            <Icon name="chevR" size={16} />
+          </button>}
+          {distanceStr && <div className={styles.meta}><span>{distanceStr}</span></div>}
+        </div>}
+        {addressLabel && (placeHref ? <a
+          href={placeHref}
+          target="_blank"
+          rel="noreferrer"
+          className={`${styles.where} ${styles.addressLink}`}
+          aria-label={`${dict.locationPage.openInMaps}: ${addressLabel}`}
+        >
+          <Icon name="pin" size={20} />
+          <span className={styles.addressContent}><span className={styles.addressLine}>{addressLabel}</span></span>
+          <Icon name="arrowUR" size={14} />
+        </a> : <div className={styles.where}>
+          <Icon name="pin" size={20} />
+          <span className={styles.addressContent}><span className={styles.addressLine}>{addressLabel}</span></span>
+        </div>)}
+        <Link href={brandHref} className={styles.brandLink}><Avatar src={listing.logo ?? undefined} name={listing.name} size={32} decorative /><span>{listing.name}</span><Icon name="arrowUR" size={16} /></Link>
+      </header>
+      <LocationGallery listing={listing} cat={cat} />
+    </div>
 
     <div className={styles.columns}>
       <div className={styles.content}>
-        <header className={styles.identity}>
-          <div className={styles.identityTop}>
-            <div className={styles.identityText}>
-              <Link href={brandHref} className={styles.brandLink}><Avatar src={listing.logo ?? undefined} name={listing.name} size={22} /><span>{listing.name}</span><Icon name="arrowUR" size={12} /></Link>
-              <h1>{displayName}</h1>
-            </div>
-            <div className={styles.identityActions}>
-              {mapHref && <Link href={mapHref} className={`${styles.iconAction} ${styles.mapAction}`} aria-label={t.seeOnMap} title={t.seeOnMap}><Icon name="pin" size={17} /></Link>}
-              <button type="button" className={styles.iconAction} aria-label={t.share} title={t.share} onClick={onShare}><Icon name="share" size={17} /></button>
-              <FavoriteHeart locationId={locationId} />
-            </div>
-          </div>
-          <div className={styles.meta}>
-            {listing.averageRating != null && <button type="button" className={styles.ratingLink} onClick={() => selectTab("reviews")}><Rating rating={listing.averageRating} reviews={listing.totalReviews} size={14} /></button>}
-            {industryLabel && (categoryHref ? <Link href={categoryHref} prefetch={false} className={styles.categoryLink}><CatDot cat={cat} size={7} />{industryLabel}</Link> : <span className={styles.categoryLink}><CatDot cat={cat} size={7} />{industryLabel}</span>)}
-            {distanceStr && <span>{distanceStr}</span>}
-            {now === null ? <Skeleton w={105} h={16} style={{ display: "inline-block" }} /> : status && <StatusPill status={status} closesAt={closesAt} />}
-          </div>
-          {(listing.location.address || listing.location.city) && <div className={styles.addressLine}><Icon name="pin" size={15} />{directionsHref ? <a href={directionsHref} target="_blank" rel="noreferrer">{listing.location.address || listing.location.city}</a> : <span>{listing.location.address || listing.location.city}</span>}</div>}
-          {shareError && <InlineError>{dict.locationPage.shareError}</InlineError>}
-        </header>
-
         <Tabs tab={tab} setTab={selectTab} listing={listing} panelId={panelId} />
+        {/* Public content is present in the initial HTML; tabs only control visibility. */}
         {(["services", "team", "reviews", "about"] as const).map(key => <div key={key} role="tabpanel" id={`${panelId}-${key}-panel`} aria-labelledby={`${panelId}-${key}-tab`} hidden={tab !== key} tabIndex={0} className={styles.tabPanel}>
-          {(key === "team" || visitedTabs.has(key)) && <>
-            {key === "services" && <LocationServices listing={listing} locale={locale} picked={picked} pickedBundles={pickedBundles} togglePick={togglePick} toggleBundle={toggleBundle} canSelect={canBook} showPricing={showPricing} />}
-            {key === "team" && <TeamTab members={listing.teamMembers} memberId={tab === "team" ? memberId : null} setMemberId={setMemberId} listing={listing} locale={locale} />}
-            {key === "reviews" && <LocationReviews listing={listing} locale={locale} />}
-            {key === "about" && <LocationAbout listing={listing} locale={locale} phone={phone} directionsHref={directionsHref} />}
-          </>}
+          {key === "services" && <LocationServices listing={listing} locale={locale} picked={picked} pickedBundles={pickedBundles} togglePick={togglePick} toggleBundle={toggleBundle} canSelect={canBook} showPricing={showPricing} />}
+          {key === "team" && <TeamTab members={listing.teamMembers} memberId={tab === "team" ? memberId : null} setMemberId={setMemberId} listing={listing} locale={locale} />}
+          {key === "reviews" && <LocationReviews listing={listing} locale={locale} memberId={tab === "reviews" ? memberId : null} setMemberId={setMemberId} />}
+          {key === "about" && <LocationAbout listing={listing} locale={locale} phone={phone} now={now} canBook={canBook} venueTags={venueTags} brand={brand} discover={categoryHref && categoryHasOthers && industryLabel ? { href: categoryHref, industry: industryLabel, visual } : null} />}
         </div>)}
       </div>
       <LocationBookingSummary selectedItems={selectedItems} removePick={removePick} removeBundle={removeBundle} onBook={onBook} canBook={canBook} hasCatalog={hasCatalog} showPricing={showPricing} phone={phone} displayName={displayName} totals={totalsFmt} currency={currency} locale={locale} />
     </div>
     <span className="sr-only">{servicesLabel}</span>
-  </main>;
+  </div></main>;
 }
 
 /** Query changes after initialization do not override local tab/profile state. */
@@ -353,20 +438,74 @@ function InitialLocationUrl({ onResolve }: { onResolve: (tab: Tab, memberId: num
 
 function FavoriteHeart({ locationId }: { locationId: number }) {
   const { isFavorited, toggle } = useFavoriteToggle("location");
-  return <HeartButton active={isFavorited(locationId)} floating={false} size={44} onClick={() => { toggle(locationId); }} />;
+  const pending = useSyncExternalStore(subscribeLocationFavorites, () => getPendingFavoriteIds("location").has(locationId), () => false);
+  return <HeartButton active={isFavorited(locationId)} loading={pending} floating={false} size={44} iconSize={20} onClick={() => { toggle(locationId); }} />;
 }
+
+const subscribeLocationFavorites = (listener: () => void) => subscribeFavoriteIds("location", listener);
 
 function Tabs({ tab, setTab, listing, panelId }: { tab: Tab; setTab: (tab: Tab) => void; listing: ListingDetail; panelId: string }) {
   const { dict } = useTranslation();
+  const listRef = useRef<HTMLDivElement>(null);
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [indicator, setIndicator] = useState<{ x: number; scale: number } | null>(null);
+  const [hover, setHover] = useState<{ left: number; right: number; visible: boolean; instant: boolean } | null>(null);
   const items: Array<{ key: Tab; label: string; count?: number }> = [
     { key: "services", label: dict.business.tabServices, count: listing.services.length + listing.bundles.length },
     { key: "team", label: dict.business.tabTeam, count: listing.teamMembers.length },
     { key: "reviews", label: dict.business.tabReviews, count: listing.totalReviews },
     { key: "about", label: dict.business.tabAbout },
   ];
-  return <div role="tablist" aria-label={dict.business.location} className={styles.tabs}>
-    {items.map((item, index) => <button key={item.key} ref={element => { refs.current[index] = element; }} type="button" role="tab" id={`${panelId}-${item.key}-tab`} aria-controls={`${panelId}-${item.key}-panel`} aria-selected={tab === item.key} tabIndex={tab === item.key ? 0 : -1} onClick={() => setTab(item.key)} onKeyDown={event => {
+  const activeIndex = items.findIndex(item => item.key === tab);
+
+  // The ink rule springs between tabs once measured. Until then the selected tab
+  // keeps its own border, so server HTML and the first paint already show it.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const active = refs.current[activeIndex];
+    if (!list || !active) return;
+    const measure = () => {
+      if (!list.clientWidth) return;
+      const x = active.offsetLeft;
+      const scale = active.offsetWidth / list.clientWidth;
+      setIndicator(previous => previous?.x === x && previous.scale === scale ? previous : { x, scale });
+    };
+    measure();
+    // Fonts settling, viewport changes and the hidden phone counts all move labels.
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    for (const element of refs.current) if (element) observer.observe(element);
+    return () => observer.disconnect();
+  }, [activeIndex]);
+
+  // From deep in a long panel, a shorter one would open at the footer. Start
+  // the new panel just under the stuck bar instead. The bar opens the content
+  // column, so the column's top is where the bar sits before it sticks.
+  const choose = (key: Tab) => {
+    const list = listRef.current;
+    const column = list?.parentElement;
+    if (key !== tab && list && column) {
+      const offset = column.getBoundingClientRect().top - (parseFloat(getComputedStyle(list).top) || 0);
+      if (offset < -1) window.scrollTo({ top: window.scrollY + offset, behavior: "instant" });
+    }
+    setTab(key);
+  };
+
+  // One hover fill glides between tabs; entering the bar shows it in place.
+  const showHover = (index: number) => {
+    const list = listRef.current;
+    const target = refs.current[index];
+    if (!list || !target) return;
+    const left = target.offsetLeft;
+    const right = list.clientWidth - left - target.offsetWidth;
+    setHover(previous => ({ left, right, visible: true, instant: !previous?.visible }));
+  };
+
+  return <div ref={listRef} role="tablist" aria-label={dict.business.location} className={styles.tabs} data-indicator={indicator ? "" : undefined}
+    onPointerLeave={() => setHover(previous => previous?.visible ? { ...previous, visible: false } : previous)}>
+    <span aria-hidden="true" className={styles.tabHover} data-visible={hover?.visible || undefined} data-instant={hover?.instant || undefined}
+      style={hover ? { clipPath: `inset(0 ${hover.right}px 0 ${hover.left}px round 999px)` } : undefined} />
+    {items.map((item, index) => <button key={item.key} ref={element => { refs.current[index] = element; }} type="button" role="tab" id={`${panelId}-${item.key}-tab`} aria-controls={`${panelId}-${item.key}-panel`} aria-selected={tab === item.key} tabIndex={tab === item.key ? 0 : -1} onClick={() => choose(item.key)} onPointerEnter={event => { if (event.pointerType === "mouse") showHover(index); }} onKeyDown={event => {
       let next: number;
       if (event.key === "ArrowRight") next = (index + 1) % items.length;
       else if (event.key === "ArrowLeft") next = (index - 1 + items.length) % items.length;
@@ -374,9 +513,10 @@ function Tabs({ tab, setTab, listing, panelId }: { tab: Tab; setTab: (tab: Tab) 
       else if (event.key === "End") next = items.length - 1;
       else return;
       event.preventDefault();
-      setTab(items[next].key);
+      choose(items[next].key);
       refs.current[next]?.focus();
-    }}>{item.label}{item.count != null && <span className={styles.tabCount}>{item.count}</span>}</button>)}
+    }}><span className={styles.tabLabel}>{item.label}{item.count != null && <span className={styles.tabCount}>{item.count}</span>}</span></button>)}
+    {indicator && <span aria-hidden="true" className={styles.tabIndicator} style={{ transform: `translateX(${indicator.x}px) scaleX(${indicator.scale})` }} />}
   </div>;
 }
 
@@ -393,9 +533,11 @@ function TeamTab({ members, memberId, setMemberId, listing, locale }: { members:
     <div className={view === "grid" ? styles.teamGrid : styles.teamList}>{members.map(member => {
       const name = member.displayName || [member.firstName, member.lastName].filter(Boolean).join(" ");
       const content = <>
-        <Avatar src={member.profileImage ?? undefined} name={name} size={80} ring />
+        {/* The name follows in text; the photo would only repeat it. */}
+        <span className={styles.teamPortrait} aria-hidden="true"><Avatar src={member.profileImage ?? undefined} name={name} size={80} ring monogram loading="lazy" decorative /></span>
         <span className={styles.teamIdentity}><strong>{name}</strong>{member.professionalTitle && <span>{member.professionalTitle}</span>}{member.averageRating != null && <Rating rating={member.averageRating} reviews={member.totalReviews} size={13} />}</span>
-        <span className={styles.profileLink}>{dict.locationPage.viewProfile}<Icon name="arrowUR" size={14} /></span>
+        {/* The profile opens here, so a right arrow, not the leave-the-site one. */}
+        <span className={styles.profileLink}><span className={styles.profileLinkLabel}>{dict.locationPage.viewProfile}</span><Icon name="arrowR" size={14} /></span>
       </>;
       return member.publicProfileAvailable === true && member.uuid ? (
         <Link key={member.id} href={professionalHref(locale, member.uuid)} prefetch={false} className={styles.teamCard}
@@ -411,14 +553,6 @@ function TeamTab({ members, memberId, setMemberId, listing, locale }: { members:
     {selected && <TeamMemberProfileModal member={selected} listing={listing} locale={locale} onClose={() => setMemberId(null)} />}
   </div>;
 }
-
-function subscribeClock(listener: () => void) {
-  const interval = window.setInterval(listener, 30_000);
-  document.addEventListener("visibilitychange", listener);
-  return () => { window.clearInterval(interval); document.removeEventListener("visibilitychange", listener); };
-}
-const minuteSnapshot = () => Math.floor(Date.now() / 60_000) * 60_000;
-const serverClockSnapshot = () => null;
 
 function useUserCoords(): { lat: number; lng: number } | null {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -441,8 +575,9 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
   return 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, distance)));
 }
 
-function buildDirectionsHref(listing: ListingDetail): string | null {
+/** Shows the place without starting a route. Google labels an address search; bare coordinates only drop a pin. */
+function buildPlaceHref(listing: ListingDetail): string | null {
   const { latitude, longitude, address } = listing.location;
-  if (latitude != null && longitude != null) return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-  return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null;
+  const query = address?.trim() || (latitude != null && longitude != null ? `${latitude},${longitude}` : null);
+  return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : null;
 }

@@ -237,6 +237,7 @@ export function useRebook(): {
           businessId: listing.businessId,
           listingId: listing.listingId,
           locationId: listing.locationId,
+          venue: { businessName: listing.name, locationName: listing.location?.name ?? null },
           timezone: listing.timezone,
           currency: listing.businessCurrency,
           showPricing: !(listing.additionalSettings &&

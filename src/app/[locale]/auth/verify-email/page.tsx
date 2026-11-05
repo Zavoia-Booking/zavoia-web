@@ -32,7 +32,8 @@ export async function generateMetadata({
   ) as Record<Locale, string>;
 
   return {
-    title: dict.verifyEmail.pageTitle,
+    // This copy already names Zavoia, so skip the layout's "| Zavoia" suffix.
+    title: { absolute: dict.verifyEmail.pageTitle },
     description: dict.verifyEmail.pageDescription,
     robots: { index: false, follow: false },
     alternates: {

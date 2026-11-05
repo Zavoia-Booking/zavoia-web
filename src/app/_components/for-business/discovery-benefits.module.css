@@ -1,0 +1,85 @@
+.benefits {
+  grid-area: features;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.benefit {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 24px;
+  min-width: 0;
+  padding: 20px 0;
+}
+
+.benefit:first-child { padding-top: 0; }
+.benefit:last-child { padding-bottom: 0; }
+.benefit + .benefit { border-top: 1px solid oklch(15% .004 70 / .1); }
+
+.illustration {
+  width: 112px;
+  max-width: 100%;
+  aspect-ratio: 3 / 2;
+}
+
+.illustration > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.copy { min-width: 0; }
+
+.heading {
+  margin: 0;
+  color: var(--c-900);
+  font-family: var(--font-sans);
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+  text-wrap: pretty;
+}
+
+.description {
+  max-width: 46ch;
+  margin: 10px 0 0;
+  color: var(--c-600);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: -.008em;
+  text-wrap: pretty;
+}
+
+@media (min-width: 921px) and (max-width: 1100px) {
+  .benefit { grid-template-columns: 96px minmax(0, 1fr); column-gap: 20px; padding-block: 18px; }
+  .benefit:first-child { padding-top: 0; }
+  .benefit:last-child { padding-bottom: 0; }
+  .illustration { width: 96px; }
+  .heading { font-size: 1.25rem; }
+}
+
+@media (max-width: 600px) {
+  .benefit { grid-template-columns: 88px minmax(0, 1fr); align-items: start; column-gap: 20px; padding-block: 20px; }
+  .benefit:first-child { padding-top: 0; }
+  .benefit:last-child { padding-bottom: 0; }
+  .illustration { width: 88px; }
+  .heading { font-size: 1.25rem; line-height: 1.25; }
+}
+
+@media (max-width: 360px) {
+  .benefit { grid-template-columns: 80px minmax(0, 1fr); column-gap: 16px; }
+  .illustration { width: 80px; }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .illustration > svg { transition: transform 220ms var(--ease-out); }
+  .benefit:hover .illustration > svg { transform: translateY(-2px); }
+}

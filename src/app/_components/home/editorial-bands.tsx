@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- App captures use getImageProps; the scaled SVG scene uses pre-sized native srcSet. */
+/* eslint-disable @next/next/no-img-element -- Product captures use getImageProps, including images inside the scaled SVG scene. */
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import localFont from "next/font/local";
@@ -7,6 +7,7 @@ import clsx from "clsx";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
+import { getMarketingMockup } from "@/lib/marketing/mockups";
 import styles from "./editorial-bands.module.css";
 
 const caveat = localFont({
@@ -30,12 +31,10 @@ function Arrow() {
   );
 }
 
-function AppPhone({ variant, alt }: { variant: "schedule" | "map"; alt: string }) {
+function AppPhone({ variant, alt, locale }: { variant: "schedule" | "map"; alt: string; locale: Locale }) {
   const map = variant === "map";
   const image = getImageProps({
-    src: `${assets}/${map ? "native-map-en" : "aligned-schedule-en"}.webp`,
-    width: 1080,
-    height: 2424,
+    ...getMarketingMockup(map ? "consumerMap" : "consumerSchedule", locale),
     alt,
     sizes: map
       ? "(max-width: 374px) 220px, (max-width: 900px) 248px, (max-width: 1060px) 212px, (max-width: 1250px) 232px, 246px"
@@ -53,6 +52,8 @@ function AppPhone({ variant, alt }: { variant: "schedule" | "map"; alt: string }
           <div className={styles.screen}>
             <img
               {...image}
+              data-product-scene={map ? "consumerMap" : "consumerSchedule"}
+              data-product-locale={locale}
               alt={alt}
               title={alt}
             />
@@ -90,8 +91,8 @@ export function AppBand({ locale, children }: { locale: Locale; children?: React
           </div>
         </div>
         <div className={styles["device-stage"]}>
-          <AppPhone variant="map" alt={s.mapAlt} />
-          <AppPhone variant="schedule" alt={s.scheduleAlt} />
+          <AppPhone variant="map" alt={s.mapAlt} locale={locale} />
+          <AppPhone variant="schedule" alt={s.scheduleAlt} locale={locale} />
         </div>
       </section>
       {children}
@@ -123,6 +124,20 @@ export function TrustBand({ locale }: { locale: Locale }) {
 
 export function WebStudioBand({ locale }: { locale: Locale }) {
   const s = dictionaries[locale].homeSections.webStudio;
+  const desktopImage = getImageProps({
+    ...getMarketingMockup("studioBeauty", locale),
+    alt: s.desktopAlt,
+    sizes: "(max-width: 600px) 80vw, (max-width: 900px) 600px, 700px",
+    loading: "lazy",
+    decoding: "async",
+  }).props;
+  const phoneImage = getImageProps({
+    ...getMarketingMockup("studioPet", locale),
+    alt: "",
+    sizes: "(max-width: 600px) 150px, 280px",
+    loading: "lazy",
+    decoding: "async",
+  }).props;
   return (
     <section className={clsx(theme, styles["studio-option"])} id="web-studio" aria-labelledby="web-studio-heading">
       <div className={styles["studio-option-inner"]}>
@@ -133,7 +148,7 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
               <foreignObject width="1536" height="1240">
                 <div className={styles["sa-browser"]} style={{ transform: "matrix(0.81887622,0.04291548,-0.04291548,0.81887622,310,30)" }}>
                   <div className={styles["sa-browser-bar"]} aria-hidden="true"><span className={styles["sa-browser-dots"]}><i /><i /><i /></span>zavoia.com/lumi-beauty</div>
-                  <img src={`${assets}/beauty-desktop.webp`} srcSet={`${assets}/beauty-desktop-560.webp 560w, ${assets}/beauty-desktop-1120.webp 1120w, ${assets}/beauty-desktop.webp 1440w`} sizes="(max-width: 600px) 80vw, (max-width: 900px) 600px, 700px" width={1440} height={960} alt={s.desktopAlt} title={s.desktopAlt} loading="lazy" decoding="async" />
+                  <img {...desktopImage} alt={s.desktopAlt} title={s.desktopAlt} data-product-scene="studioBeauty" data-product-locale={locale} />
                 </div>
               </foreignObject>
               <foreignObject width="1536" height="1240">
@@ -147,7 +162,7 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
                       </span>
                     </div>
                     <span className={styles["dynamic-island"]} />
-                    <img className={styles["sa-screen"]} src={`${assets}/pet-phone.webp`} srcSet={`${assets}/pet-phone-390.webp 390w, ${assets}/pet-phone.webp 780w`} sizes="(max-width: 600px) 150px, 280px" width={780} height={1520} alt="" title={s.phoneAlt} loading="lazy" decoding="async" />
+                    <img {...phoneImage} className={styles["sa-screen"]} alt="" title={s.phoneAlt} data-product-scene="studioPet" data-product-locale={locale} />
                     <span className={styles["sa-home"]} />
                   </div>
                 </div>

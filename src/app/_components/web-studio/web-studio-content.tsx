@@ -37,11 +37,12 @@ import { localeHref } from "@/i18n/routes";
 import { format } from "@/i18n/format";
 import { useTranslation } from "@/i18n/useTranslation";
 import {
-  getPricing,
+  getPlanPricing,
   formatPrice,
   premiumStylePrices,
   TRIAL_DAYS,
 } from "@/lib/marketing/pricing";
+import { REGISTER_URL } from "@/app/_components/for-business/links";
 import { Kicker } from "@/components/ui/kicker";
 import { Icon } from "@/components/ui/icon";
 import { FaqList } from "@/components/ui/faq-list";
@@ -299,7 +300,7 @@ export function WebStudioContent({
 }) {
   const { dict } = useTranslation();
   const w = dict.webStudio;
-  const pricing = getPricing(locale);
+  const pricing = getPlanPricing(locale);
   const premium = premiumStylePrices(locale);
 
   // The visitor drives the accent + face from the type plate, and every live
@@ -325,7 +326,7 @@ export function WebStudioContent({
   );
   const specimenName = showcaseName ?? authored.businessName;
 
-  const registerHref = localeHref(locale, "register");
+  const registerHref = REGISTER_URL;
   const trialLabel = format(w.cover.ctaPrimary, { days: String(TRIAL_DAYS) });
 
   return (
@@ -1410,7 +1411,7 @@ function PricePlate({
   locale,
 }: {
   w: W;
-  pricing: ReturnType<typeof getPricing>;
+  pricing: ReturnType<typeof getPlanPricing>;
   premium: { min: string; range: string };
   registerHref: string;
   trialLabel: string;
@@ -1494,40 +1495,49 @@ function PricePlate({
               {w.price.planBody}
             </p>
 
-            {/* Commercial claim we do not have: marked, not invented. */}
             <div
               style={{
                 marginTop: 22,
-                padding: "14px 16px",
-                borderRadius: "var(--r-lg)",
-                border: "1px dashed rgba(255,255,255,0.32)",
-                background: "rgba(255,255,255,0.05)",
+                paddingTop: 20,
+                borderTop: "1px solid rgba(255,255,255,0.2)",
               }}
             >
-              <div
+              <p
                 style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--p-400)",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "baseline",
+                  gap: "4px 10px",
+                  margin: 0,
                 }}
               >
-                {w.price.placeholderLabel}
-              </div>
-              <div
+                <strong
+                  style={{
+                    fontSize: "clamp(32px, 3.2vw, 42px)",
+                    fontWeight: 600,
+                    letterSpacing: "-0.035em",
+                    lineHeight: 1.1,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {formatPrice(pricing.plans.plus.monthly, pricing.currency)}
+                </strong>
+                <span style={{ fontSize: 14, color: "rgba(255,255,255,0.78)" }}>
+                  {w.price.perMonth}
+                </span>
+              </p>
+              <p
                 style={{
-                  marginTop: 6,
+                  margin: "10px 0 0",
                   fontSize: 14,
                   lineHeight: 1.55,
                   color: "rgba(255,255,255,0.78)",
                 }}
               >
-                {format(w.price.placeholderBody, {
-                  base: formatPrice(pricing.monthly, pricing.currency),
+                {format(w.price.teamPrice, {
+                  seat: formatPrice(pricing.teamMember, pricing.currency),
                 })}
-              </div>
+              </p>
             </div>
 
             <ul
@@ -1559,6 +1569,9 @@ function PricePlate({
 
             <div style={{ marginTop: 26 }}>
               <TrialLink href={registerHref} label={trialLabel} />
+              <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.5, color: "rgba(255,255,255,0.78)" }}>
+                {format(w.price.trialNote, { days: String(pricing.trialDays) })}
+              </p>
             </div>
           </div>
         </div>

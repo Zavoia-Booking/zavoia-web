@@ -1,0 +1,94 @@
+.section { padding: 0 0 clamp(80px, 8vw, 120px); }
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "art intro" "art steps";
+  align-items: start;
+  column-gap: clamp(40px, 6vw, 100px);
+  row-gap: 30px;
+}
+
+.intro { grid-area: intro; min-width: 0; padding-top: 24px; }
+.intro > p { max-width: 49ch; }
+
+.artwork { grid-area: art; align-self: center; justify-self: center; width: 100%; max-width: 480px; min-width: 0; margin: 0; }
+.composition { position: relative; isolation: isolate; display: grid; place-items: center; height: 700px; perspective: 1600px; perspective-origin: 50% 44%; }
+.contactShadow { position: absolute; z-index: -1; bottom: 17px; left: 22%; right: 20%; height: 14px; border-radius: 50%; background: rgba(28, 28, 26, .065); filter: blur(12px); pointer-events: none; }
+.phoneMount { position: relative; width: 300px; transform-style: preserve-3d; }
+.phone { position: relative; border-radius: 42px; transform: rotateX(3deg) rotateY(-7deg) rotateZ(-2deg); transform-style: preserve-3d; }
+.phoneEdge { position: absolute; inset: 0; border-radius: inherit; background: oklch(37% .008 70); transform: translateZ(var(--depth)); }
+.phoneEdge:nth-child(2) { background: oklch(46% .008 70); }
+.phoneEdge:nth-child(3) { background: oklch(29% .006 70); }
+.phoneEdge:nth-child(4) { background: oklch(53% .008 70); }
+
+.phoneFace {
+  position: relative;
+  transform: translateZ(0);
+  padding: 5px;
+  border: 1px solid oklch(57% .008 70);
+  border-radius: inherit;
+  background: oklch(20% .004 70);
+  box-shadow:
+    inset 0 0 0 1px oklch(38% .008 70),
+    inset 0 1px 0 rgba(250, 250, 247, .35),
+    0 2px 3px -1px rgba(28, 28, 26, .17),
+    8px 20px 28px -14px rgba(28, 28, 26, .18),
+    18px 38px 60px -24px rgba(28, 28, 26, .16);
+}
+
+.phoneFace::before, .phoneFace::after { content: ""; position: absolute; width: 2px; background: oklch(46% .008 70); }
+.phoneFace::before { right: -3px; top: 125px; height: 42px; border-radius: 0 2px 2px 0; }
+.phoneFace::after { left: -3px; top: 106px; height: 32px; border-radius: 2px 0 0 2px; }
+.phoneScreen { position: relative; overflow: hidden; aspect-ratio: 1080 / 2424; border-radius: 35px; background: var(--c-canvas); }
+.phoneScreen > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+.steps { grid-area: steps; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.step { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 18px; padding-bottom: 27px; }
+.step::before { content: ""; position: absolute; top: 31px; bottom: 4px; left: 13px; border-left: 1px solid rgba(28, 28, 26, .16); }
+.step:last-child { padding-bottom: 0; }
+.step:last-child::before { display: none; }
+.number { padding-top: 4px; color: var(--c-600); font-family: var(--font-mono); font-size: 11px; font-weight: 600; line-height: 1.5; letter-spacing: .04em; text-align: center; font-variant-numeric: tabular-nums; }
+.step h3 { margin: 0 0 6px; color: var(--c-900); font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -.02em; }
+.step p { max-width: 53ch; margin: 0; color: var(--c-600); font-size: 14.5px; line-height: 1.6; text-wrap: pretty; }
+.step[data-reminder="true"] .number, .step[data-reminder="true"] h3 { color: var(--p-600); }
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .phoneMount { transition: transform 320ms var(--ease-out); }
+  .composition:hover .phoneMount { transform: translateY(-3px); }
+}
+
+@media (max-width: 1100px) and (min-width: 921px) {
+  .layout { grid-template-columns: minmax(0, 4.7fr) minmax(0, 7.3fr); column-gap: 36px; }
+  .phoneMount { width: 280px; }
+  .composition { height: 660px; }
+  .intro { padding-top: 8px; }
+  .step { column-gap: 14px; padding-bottom: 24px; }
+}
+
+@media (max-width: 920px) {
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; grid-template-areas: "intro" "art" "steps"; row-gap: 28px; }
+  .intro { padding-top: 0; }
+  .intro > p { max-width: 58ch; }
+  .steps { width: 100%; max-width: 680px; margin-inline: auto; }
+}
+
+@media (max-width: 600px) {
+  .section { padding-bottom: 80px; }
+  .layout { row-gap: 26px; }
+  .composition { height: 555px; }
+  .phoneMount { width: 240px; }
+  .phone { border-radius: 36px; transform: rotateX(2deg) rotateY(-6deg) rotateZ(-2deg); }
+  .phoneScreen { border-radius: 29px; }
+  .phoneFace::before { top: 104px; height: 36px; }
+  .phoneFace::after { left: -3px; top: 88px; height: 28px; }
+  .contactShadow { bottom: 12px; left: 18%; right: 17%; height: 13px; filter: blur(10px); }
+  .step { column-gap: 14px; padding-bottom: 24px; }
+  .step h3 { font-size: 17px; }
+  .step p { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composition .phoneMount { transition: none; transform: none; }
+}

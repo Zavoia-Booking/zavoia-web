@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import {
-  DEFAULT_LOCALE,
-  LOCALES,
-  isLocale,
-  type Locale,
-} from "@/i18n/locales";
+import { LOCALES, isLocale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
-import { localeHref } from "@/i18n/routes";
+import { format, formatCount } from "@/i18n/format";
+import { TRIAL_DAYS } from "@/lib/marketing/pricing";
 import { ForBusinessContent } from "@/app/_components/for-business/for-business-content";
+import { businessPageMetadata } from "@/app/_components/for-business/metadata";
 
 export const dynamicParams = false;
 
@@ -22,23 +19,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const dict = dictionaries[locale];
-
-  const languages = Object.fromEntries(
-    LOCALES.map((l) => [l, localeHref(l, "for-business")]),
-  ) as Record<Locale, string>;
+  const days = formatCount(TRIAL_DAYS, locale, dict.businessMarketing.counts.days);
 
   // Indexable marketing page — no robots noindex.
-  return {
-    title: dict.forBusiness.pageTitle,
-    description: dict.forBusiness.pageDescription,
-    alternates: {
-      canonical: localeHref(locale, "for-business"),
-      languages: {
-        ...languages,
-        "x-default": localeHref(DEFAULT_LOCALE, "for-business"),
-      },
-    },
-  };
+  return businessPageMetadata(
+    locale,
+    "for-business",
+    dict.forBusiness.pageTitle,
+    format(dict.forBusiness.pageDescription, { days }),
+  );
 }
 
 export default async function ForBusinessPage({ params }: Props) {

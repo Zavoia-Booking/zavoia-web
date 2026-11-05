@@ -1,0 +1,129 @@
+/* Shared typography and actions for /for-business and /pricing.
+   Section titles and actions follow the homepage editorial bands. */
+
+/* ── Type ── */
+.h1 {
+  margin: 0;
+  font-size: clamp(48px, 6.6vw, 88px);
+  font-weight: 600;
+  line-height: .93;
+  letter-spacing: -.052em;
+  text-wrap: balance;
+}
+
+.h2 {
+  margin: 0;
+  font-size: clamp(38px, 3.6vw, 54px);
+  font-weight: 500;
+  line-height: 1.06;
+  letter-spacing: -.045em;
+  text-wrap: balance;
+}
+
+.lead {
+  max-width: 54ch;
+  margin: 20px 0 0;
+  color: var(--c-700);
+  font-size: clamp(16px, 1.3vw, 18.5px);
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+/* The one handwritten word in a headline. */
+.signature {
+  display: inline-block;
+  margin-left: .04em;
+  color: var(--p-500);
+  font-family: var(--font-caveat), cursive;
+  font-size: 1.2em;
+  font-weight: 700;
+  line-height: .8;
+  letter-spacing: -.025em;
+  transform: rotate(-4deg);
+  transform-origin: 50% 65%;
+}
+
+/* ── Actions ── */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  min-height: 54px;
+  padding: 14px 24px;
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 160ms var(--ease-out),
+    box-shadow 200ms var(--ease-out),
+    background-color 160ms var(--ease-soft),
+    border-color 160ms var(--ease-soft);
+}
+
+.buttonInk {
+  background: var(--c-ink);
+  color: var(--c-canvas);
+}
+
+.buttonLine {
+  border-color: rgba(28, 28, 26, .14);
+  background: #fff;
+  color: var(--c-900);
+}
+
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--c-900);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  text-decoration-color: rgba(28, 28, 26, .35);
+  transition: text-decoration-color 160ms var(--ease-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .buttonInk:hover {
+    background: #363630;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(28, 28, 26, .18);
+  }
+
+  .buttonLine:hover {
+    border-color: rgba(28, 28, 26, .28);
+    transform: translateY(-1px);
+    box-shadow: var(--sh-md);
+  }
+
+  .textLink:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+.button:active {
+  transform: scale(.97);
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 28px;
+  margin-top: 34px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button:hover,
+  .button:active {
+    transform: none;
+  }
+}

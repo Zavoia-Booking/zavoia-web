@@ -8,47 +8,26 @@ import { getCategoryDiscoveryGroups } from "@/lib/seo/category-discovery";
 import { listPostsForSitemap } from "@/sanity/queries";
 import { getPostAlternates } from "@/lib/blog/alternates";
 import { LEGAL_DOCUMENTS } from "@/data/legal";
-import { getIndustries, getSitemapEntries } from "@/lib/api/marketplace/public";
-import {
-  BRAND_TAG,
-  BUSINESS_TAG,
-  LISTING_REVALIDATE_SECONDS,
-  WEBSITE_TAG,
-} from "@/lib/cache/tags";
+import { getIndustries } from "@/lib/api/marketplace/public";
+import { loadSitemapFeed } from "@/lib/seo/sitemap-feed.server";
+import { webUrl } from "@/lib/locations/structured-data";
 import type { Industry, MarketplaceSitemap } from "@/lib/api/marketplace/types";
 
 // The marketplace URL families are live data, so this file is no longer a
-// build-time constant: it is regenerated on the same cadence as the pages it
-// advertises, and the same publish/unpublish webhook that flushes a listing
-// flushes this too (the fetch carries all three coarse tags).
+// build-time constant. Public-page invalidations expire its inventory tag and
+// route; the interval is a fallback for edits whose webhook was not delivered.
 export const revalidate = 600;
 
-const EMPTY_SITEMAP: MarketplaceSitemap = {
-  locations: [],
-  brands: [],
-  websites: [],
-  professionals: [],
-};
-
 /**
- * A crawler must never be sent to a page that 404s, but a sitemap that fails to
- * build must not take the whole file down either: an unreachable backend
- * degrades to the static marketing URLs rather than throwing.
+ * An upstream failure is not an empty public inventory. Let Next preserve the
+ * last successful regeneration, or fail a cold request, rather than publish a
+ * successful sitemap that has silently lost every marketplace URL.
  */
-async function loadMarketplaceEntries(): Promise<MarketplaceSitemap> {
-  try {
-    return await getSitemapEntries({
-      revalidate: LISTING_REVALIDATE_SECONDS,
-      tags: [BUSINESS_TAG, BRAND_TAG, WEBSITE_TAG],
-    });
-  } catch {
-    return EMPTY_SITEMAP;
-  }
+function loadMarketplaceEntries(): Promise<MarketplaceSitemap> {
+  return loadSitemapFeed();
 }
 
-// Same degrade-not-fail contract as `loadMarketplaceEntries` above, applied
-// to the Sanity fetch: a blip there previously took the whole `/sitemap.xml`
-// down with it (no `.catch`) instead of just omitting the blog URLs.
+// Blog availability retains its existing independent fallback policy.
 async function loadBlogEntries(): Promise<
   Awaited<ReturnType<typeof listPostsForSitemap>>
 > {
@@ -91,6 +70,19 @@ function abs(path: string): string {
   return `${SITE_URL}${path}`;
 }
 
+/** Public photo URLs for an image sitemap entry. Next writes each one into the
+ * XML verbatim, so a query string's "&" must arrive already escaped.
+ */
+function sitemapImages(values: string[] | undefined): string[] {
+  const urls = (values ?? []).map((value) => webUrl(value, true)).filter((url): url is string => Boolean(url));
+  return [...new Set(urls)].map((url) => url
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;"));
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const homeLanguages = Object.fromEntries(
     LOCALES.map((l) => [l, abs(localeHref(l))]),
@@ -122,6 +114,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     },
   }));
+
+  // The business marketing pages and the help centre share one route in both languages.
+  const businessEntries: MetadataRoute.Sitemap = (["for-business", "pricing", "web-studio", "help"] as const).flatMap((segment) => {
+    const languages = Object.fromEntries(
+      LOCALES.map((l) => [l, abs(localeHref(l, segment))]),
+    ) as Record<Locale, string>;
+    return LOCALES.map((locale) => ({
+      url: languages[locale],
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+      alternates: { languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] } },
+    }));
+  });
 
   const blogIndexLanguages = Object.fromEntries(
     LOCALES.map((l) => [l, abs(localeHref(l, "blog"))]),
@@ -213,15 +218,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     toPath: (locale: Locale, slug: string) => string,
     priority: number,
     changeFrequency: "daily" | "weekly" | "monthly",
+    includeLastModified = true,
   ): MetadataRoute.Sitemap =>
     entries.flatMap((entry) => {
       const languages = Object.fromEntries(
         LOCALES.map((l) => [l, abs(toPath(l, entry.slug))]),
       ) as Record<Locale, string>;
-      const lastModified = new Date(entry.updatedAt);
+      // Both languages show the same gallery, including photos only the viewer opens.
+      const images = sitemapImages(entry.images);
       return LOCALES.map((locale) => ({
         url: abs(toPath(locale, entry.slug)),
-        lastModified,
+        ...(includeLastModified ? { lastModified: new Date(entry.updatedAt) } : {}),
         changeFrequency,
         priority,
         alternates: {
@@ -230,6 +237,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             "x-default": languages[DEFAULT_LOCALE],
           },
         },
+        ...(images.length > 0 && { images }),
       }));
     });
 
@@ -238,6 +246,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     (locale, slug) => localeHref(locale, "business", slug),
     0.9,
     "weekly",
+    // The location row does not establish the last significant change across
+    // all of its services, team and brand data. Omit an unproven page timestamp.
+    false,
   );
 
   const brandEntries = localizedEntries(
@@ -269,6 +280,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...homeEntries,
     ...industryDirectoryEntries,
+    ...businessEntries,
     ...categoryEntries(marketplace, industries),
     ...listingEntries,
     ...websiteEntries,

@@ -10,6 +10,7 @@ import {
   readingMinutes,
 } from "@/lib/blog";
 import { urlForImage } from "@/sanity/image";
+import { blogPostStructuredData, serializeJsonLd } from "@/lib/seo/page-structured-data";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { FaqList } from "@/components/ui/faq-list";
 import { Img } from "@/components/ui/image";
@@ -87,6 +88,18 @@ export function BlogPost({
         }
       : null;
 
+  const postSlug = post.slug[locale]?.current;
+  const articleJsonLd = postSlug
+    ? blogPostStructuredData({
+        locale,
+        path: localeHref(locale, "blog", postSlug),
+        headline: title,
+        description: excerpt,
+        datePublished: post.publishedAt,
+        image: cover,
+      })
+    : null;
+
   const breadcrumbItems = [
     { label: dict.breadcrumbHome, href: localeHref(locale) },
     { label: dict.blog.breadcrumbJournal, href: localeHref(locale, "blog") },
@@ -95,10 +108,17 @@ export function BlogPost({
 
   return (
     <div className="zw-post-shell">
+      {articleJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleJsonLd) }}
+        />
+      )}
       {faqJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          // Editor-supplied answers must not be able to close the script element.
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
         />
       )}
       <ReadingChrome title={title} />

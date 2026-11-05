@@ -6,7 +6,9 @@ import { ABOUT, UUID, availabilityFixture, contextFixture, favoritesFixture, lis
 const port = Number(process.env.PROFESSIONALS_FIXTURE_PORT || 4317);
 const defaultState = () => ({
   profile: profileFixture(), listing: listingFixture(), bookingContext: contextFixture(), favorites: favoritesFixture(), signedIn: false,
-  profileStatus: 200, contextStatus: 200, requests: [], blockedMutations: [],
+  profileStatus: 200, contextStatus: 200, listingStatus: 200, sitemapStatus: 200,
+  sitemap: { locations: [], brands: [], websites: [], professionals: [{ uuid: UUID }] },
+  requests: [], blockedMutations: [],
 });
 let state = defaultState();
 const token = [
@@ -87,9 +89,11 @@ const server = createServer(async (request, response) => {
   if (path === '/marketplace/public/team-member/301/reviews' && method === 'GET') {
     return json({ data: [], pagination: { total: 0, offset: 0, limit: 10, hasMore: false } });
   }
-  if ((['/marketplace/public/listing/201', '/marketplace/public/listing/share-old-town'].includes(path)
+  if ((['/marketplace/public/listing/201', '/marketplace/public/listing/share-old-town', `/marketplace/public/listing/${state.listing.locationId}`, `/marketplace/public/listing/${state.listing.slug}`].includes(path)
     || /^\/marketplace\/public\/listing\/share-(pending|legacy)-profile$/.test(path)) && method === 'GET') {
-    return json(state.listing);
+    return state.listingStatus === 200
+      ? json(state.listing)
+      : json({ message: 'Fixture location unavailable', code: 'MARKETPLACE_PUBLIC.E3' }, state.listingStatus);
   }
   const scopedMember = path.match(/^\/marketplace\/public\/listing\/11\/team-member\/(30[1-3])$/);
   if (scopedMember && method === 'GET') {
@@ -124,7 +128,9 @@ const server = createServer(async (request, response) => {
   if (path === '/marketplace/public/industries' && method === 'GET') return json([]);
   if (path === '/marketplace/public/venue-tags' && method === 'GET') return json([]);
   if (path === '/marketplace/public/sitemap' && method === 'GET') {
-    return json({ locations: [], brands: [], websites: [], professionals: [{ uuid: UUID }] });
+    return state.sitemapStatus === 200
+      ? json(state.sitemap)
+      : json({ message: 'Fixture sitemap unavailable' }, state.sitemapStatus);
   }
 
   if (!['GET', 'HEAD'].includes(method)) state.blockedMutations.push(`${method} ${path}`);

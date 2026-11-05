@@ -207,6 +207,7 @@ function EditableRow({
   locale = "en",
   emptyLabel,
   saving,
+  saveDisabled = false,
   loading = false,
   buttons,
   onSave,
@@ -223,9 +224,10 @@ function EditableRow({
   locale?: string;
   emptyLabel: string;
   saving: boolean;
+  saveDisabled?: boolean;
   loading?: boolean;
   buttons: AcctDict["buttons"];
-  onSave: (next: string) => void;
+  onSave: (next: string) => Promise<boolean>;
   last?: boolean;
   /** Live client-side check, mirroring the backend rule for this field. */
   validate?: (raw: string) => string | undefined;
@@ -245,12 +247,14 @@ function EditableRow({
   // the way a multi-field form's errors object can.
   const error = editing && validate ? validate(draft) : undefined;
   const errorId = `${id}-error`;
+  const labelId = `${id}-label`;
 
   const start = () => {
     setDraft(value);
     setEditing(true);
   };
-  const commit = () => {
+  const commit = async () => {
+    if (saving || loading || saveDisabled) return;
     // Re-check rather than trust `error`: a keyboard Enter can fire commit()
     // in the same tick as the last keystroke's re-render. If it's still
     // invalid, keep editing open and return focus to the field instead of
@@ -261,10 +265,10 @@ function EditableRow({
       ref.current?.focus();
       return;
     }
-    setEditing(false);
-    onSave(draft.trim());
+    if (await onSave(draft.trim())) setEditing(false);
   };
   const cancel = () => {
+    if (saving || loading) return;
     setEditing(false);
     setDraft(value);
   };
@@ -297,6 +301,7 @@ function EditableRow({
       >
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
+            id={labelId}
             style={{
               fontSize: 14.5,
               fontWeight: 600,
@@ -309,6 +314,7 @@ function EditableRow({
           {editing ? (
             type === "date" ? (
               <DatePicker
+                aria-labelledby={labelId}
                 value={draft}
                 onChange={setDraft}
                 locale={locale}
@@ -319,6 +325,7 @@ function EditableRow({
               <>
                 <input
                   id={id}
+                  aria-labelledby={labelId}
                   ref={ref}
                   type={type}
                   value={draft}
@@ -382,7 +389,7 @@ function EditableRow({
               type="button"
               className="tap"
               onClick={commit}
-              disabled={saving || Boolean(error)}
+              disabled={saving || saveDisabled || Boolean(error)}
               style={{
                 padding: "7px 14px",
                 borderRadius: 999,
@@ -391,7 +398,7 @@ function EditableRow({
                 color: "#fff",
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: saving || error ? "default" : "pointer",
+                cursor: saving || saveDisabled || error ? "default" : "pointer",
                 opacity: error ? 0.6 : 1,
                 fontFamily: "inherit",
               }}
@@ -484,6 +491,7 @@ function AddressRow({
   buttons,
   profile,
   saving,
+  saveDisabled,
   onSave,
   last,
 }: {
@@ -492,7 +500,8 @@ function AddressRow({
   buttons: AcctDict["buttons"];
   profile: CustomerProfile;
   saving: boolean;
-  onSave: (patch: Partial<UpdateProfileBody>) => void;
+  saveDisabled: boolean;
+  onSave: (patch: Partial<UpdateProfileBody>) => Promise<boolean>;
   last?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
@@ -540,7 +549,8 @@ function AddressRow({
     setErrors({});
     setEditing(true);
   };
-  const commit = () => {
+  const commit = async () => {
+    if (saving || saveDisabled) return;
     const nextErrors: Partial<Record<AddressKey, string>> = {};
     for (const key of ADDRESS_FIELD_ORDER) {
       const err = validateAddressField(key, draft[key]);
@@ -552,16 +562,18 @@ function AddressRow({
       if (firstInvalid) fieldRefs.current[firstInvalid]?.focus();
       return;
     }
-    setEditing(false);
-    onSave({
+    const saved = await onSave({
       addressCountry: draft.country.trim(),
       addressCity: draft.city.trim(),
       addressStreet: draft.street.trim(),
       addressNumber: draft.number.trim(),
       addressMentions: draft.mentions.trim(),
     });
+    if (saved) setEditing(false);
   };
-  const cancel = () => setEditing(false);
+  const cancel = () => {
+    if (!saving) setEditing(false);
+  };
 
   const hasError = Object.values(errors).some(Boolean);
 
@@ -709,7 +721,7 @@ function AddressRow({
               type="button"
               className="tap"
               onClick={commit}
-              disabled={saving || hasError}
+              disabled={saving || saveDisabled || hasError}
               style={{
                 padding: "7px 14px",
                 borderRadius: 999,
@@ -718,7 +730,7 @@ function AddressRow({
                 color: "#fff",
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: saving || hasError ? "default" : "pointer",
+                cursor: saving || saveDisabled || hasError ? "default" : "pointer",
                 opacity: hasError ? 0.6 : 1,
                 fontFamily: "inherit",
               }}
@@ -2180,8 +2192,8 @@ function SectionBody({
   onRetryPreferences: () => void;
   setPrefs: (p: NotificationPreferences) => void;
   savingField: string | null;
-  saveField: (field: keyof UpdateProfileBody, value: string) => void;
-  saveAddress: (patch: Partial<UpdateProfileBody>) => void;
+  saveField: (field: keyof UpdateProfileBody, value: string) => Promise<boolean>;
+  saveAddress: (patch: Partial<UpdateProfileBody>) => Promise<boolean>;
   onEmailChanged: (email: string) => void;
   onDeleted: () => Promise<void>;
 }) {
@@ -2206,6 +2218,7 @@ function SectionBody({
           value={profile.firstName ?? ""}
           emptyLabel={t.fields.phoneEmpty}
           saving={savingField === "firstName"}
+          saveDisabled={savingField !== null}
           buttons={t.buttons}
           onSave={(v) => saveField("firstName", v)}
           sanitize={sanitizeName}
@@ -2224,6 +2237,7 @@ function SectionBody({
           value={profile.lastName ?? ""}
           emptyLabel={t.fields.phoneEmpty}
           saving={savingField === "lastName"}
+          saveDisabled={savingField !== null}
           buttons={t.buttons}
           onSave={(v) => saveField("lastName", v)}
           sanitize={sanitizeName}
@@ -2243,6 +2257,7 @@ function SectionBody({
           type="tel"
           emptyLabel={t.fields.phoneEmpty}
           saving={savingField === "phone"}
+          saveDisabled={savingField !== null}
           buttons={t.buttons}
           // Phone is optional — an empty value clears it, so only a non-empty,
           // ill-formed one is an error. Sent normalized (no spaces/dashes),
@@ -2261,6 +2276,7 @@ function SectionBody({
           locale={locale}
           emptyLabel={t.fields.phoneEmpty}
           saving={savingField === "dateOfBirth"}
+          saveDisabled={savingField !== null}
           buttons={t.buttons}
           onSave={(v) => saveField("dateOfBirth", v)}
         />
@@ -2279,6 +2295,7 @@ function SectionBody({
           buttons={t.buttons}
           profile={profile}
           saving={savingField === "address"}
+          saveDisabled={savingField !== null}
           onSave={saveAddress}
           last
         />
@@ -3036,7 +3053,7 @@ function MobileHub({
 // ─────────────────────────────────────────────
 
 function LoadingState({ t, locale }: { t: AcctDict; locale: Locale }) {
-  const noop = () => {};
+  const noop = async () => false;
   const { dict } = useTranslation();
   const { user } = useAuth();
   return (
@@ -3101,6 +3118,8 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
   const [prefsRetrying, setPrefsRetrying] = useState(false);
 
   const [savingField, setSavingField] = useState<string | null>(null);
+  // A ref closes the same-tick gap before disabled Save buttons render.
+  const profileSavePending = useRef(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -3204,15 +3223,19 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
 
   const saveField = useCallback(
     async (field: keyof UpdateProfileBody, value: string) => {
-      if (!profile) return;
+      if (!profile || profileSavePending.current) return false;
+      profileSavePending.current = true;
       setSavingField(field);
       try {
         const updated = await updateProfile({ [field]: value });
         setProfile(updated); // reconcile from response
         toast(t.toasts.profileSaved, "check");
+        return true;
       } catch {
         toast(t.toasts.genericError, "pencil", undefined, "error");
+        return false;
       } finally {
+        profileSavePending.current = false;
         setSavingField(null);
       }
     },
@@ -3223,15 +3246,19 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
   // together); savingField uses the synthetic key "address".
   const saveAddress = useCallback(
     async (patch: Partial<UpdateProfileBody>) => {
-      if (!profile) return;
+      if (!profile || profileSavePending.current) return false;
+      profileSavePending.current = true;
       setSavingField("address");
       try {
         const updated = await updateProfile(patch);
         setProfile(updated); // reconcile from response
         toast(t.toasts.profileSaved, "check");
+        return true;
       } catch {
         toast(t.toasts.genericError, "pencil", undefined, "error");
+        return false;
       } finally {
+        profileSavePending.current = false;
         setSavingField(null);
       }
     },

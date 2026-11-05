@@ -9,9 +9,14 @@ const api = process.env.LOCATION_AUDIT_API_URL ?? "http://localhost:3000";
 test("gallery reaches every photo and returns keyboard focus", async ({ page, request }) => {
   const response = await request.get(`${api}/marketplace/public/listing/${slug}`);
   const listing: ListingDetail = await response.json();
-  const photos = [...new Set([listing.featuredImage, ...listing.portfolioImages.map(photo => typeof photo === "string" ? photo : photo.url)].filter(Boolean))];
+  const photos = [...new Set([listing.featuredImage, ...listing.portfolioImages.map(photo => typeof photo === "string" ? photo : photo.url)]
+    .filter((photo): photo is string => typeof photo === "string" && photo.trim().length > 0)
+    .map(photo => photo.trim()))];
   await page.goto(`/business/${slug}`, { waitUntil: "networkidle" });
-  const trigger = page.getByRole("button", { name: "Show all photos", exact: true });
+  const gallery = page.getByRole("region", { name: `${listing.location.name}, ${photos.length} ${photos.length === 1 ? "photo" : "photos"}`, exact: true });
+  await expect(gallery.getByRole("button", { name: "Next photo", exact: true })).toHaveCount(0);
+  await expect(gallery.getByRole("button", { name: "Previous photo", exact: true })).toHaveCount(0);
+  const trigger = gallery.getByRole("button", { name: `${listing.location.name}, photo 1`, exact: true });
   await trigger.click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText(`Photo 1 of ${photos.length}`, { exact: true })).toBeVisible();
@@ -72,6 +77,116 @@ test("tabs support keyboard navigation and retain reviews across visits", async 
   await expect(page.getByRole("button", { name: "Highest rated", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
+test("sharing keeps its action name while pending and reports failures without changing the page", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+      writeText: (url: string) => new Promise<void>((_, reject) => {
+        const fixture = window as Window & { sharedLocationUrl?: string; rejectLocationShare?: () => void };
+        fixture.sharedLocationUrl = url;
+        fixture.rejectLocationShare = () => reject(new Error("Clipboard unavailable"));
+      }),
+    } });
+  });
+  await page.goto(`/business/${slug}?tab=team`, { waitUntil: "networkidle" });
+  await page.getByRole("tab", { name: /^Services/ }).click();
+  const share = page.getByRole("button", { name: "Share", exact: true });
+  const identity = page.locator("main header").filter({ has: page.getByRole("heading", { level: 1 }) });
+  const before = await identity.boundingBox();
+  await share.click();
+  await expect(share).toBeDisabled();
+  await expect(share).toHaveAttribute("aria-busy", "true");
+  const sharedUrl = await page.evaluate(() => (window as Window & { sharedLocationUrl?: string }).sharedLocationUrl);
+  expect(new URL(sharedUrl!).searchParams.has("tab")).toBe(false);
+  await page.evaluate(() => (window as Window & { rejectLocationShare?: () => void }).rejectLocationShare?.());
+  const errorToast = page.locator('[data-toast-host] [role="alert"]');
+  await expect(errorToast).toContainText("We couldn't share this link.");
+  await expect(share).toBeEnabled();
+  expect(await identity.boundingBox()).toEqual(before);
+  await page.goto("/business/cs-derma-floreasca", { waitUntil: "networkidle" });
+  await expect(errorToast).toHaveCount(0);
+});
+
+test("map, share and save hover stay local without shifting or repainting the location identity", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto(`/business/${slug}`, { waitUntil: "networkidle" });
+  await page.evaluate(() => document.fonts.ready);
+  const main = page.getByRole("main");
+  const identity = main.locator("header").filter({ has: page.getByRole("heading", { level: 1 }) });
+  const controls = [
+    main.getByRole("link", { name: "See on map", exact: true }),
+    main.getByRole("button", { name: "Share", exact: true }),
+    main.getByRole("button", { name: "Save", exact: true }),
+  ];
+
+  for (const control of controls) {
+    await page.mouse.move(0, 0);
+    await expect(control).toHaveCSS("transform", "none");
+    const before = await page.evaluate(() => ({
+      x: scrollX, y: scrollY,
+      width: document.documentElement.scrollWidth,
+      height: document.documentElement.scrollHeight,
+    }));
+    const mainBefore = await main.boundingBox();
+    const identityBefore = await identity.boundingBox();
+    const controlBefore = await control.boundingBox();
+    const pixelsBefore = await identity.screenshot({ animations: "allow" });
+    await control.hover();
+    // Sample the actual transition frames: reduced motion or disabled animations
+    // would hide the layer-promotion regression this interaction previously caused.
+    const transforms = await control.evaluate(async element => {
+      const samples: string[] = [];
+      for (let frame = 0; frame < 16; frame += 1) {
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        samples.push(getComputedStyle(element).transform);
+      }
+      return samples;
+    });
+    expect(transforms).toEqual(Array(16).fill("none"));
+    expect(await control.boundingBox()).toEqual(controlBefore);
+    expect(await main.boundingBox()).toEqual(mainBefore);
+    expect(await identity.boundingBox()).toEqual(identityBefore);
+    expect(await page.evaluate(() => ({
+      x: scrollX, y: scrollY,
+      width: document.documentElement.scrollWidth,
+      height: document.documentElement.scrollHeight,
+    }))).toEqual(before);
+    expect(await identity.screenshot({ animations: "allow" })).toEqual(pixelsBefore);
+  }
+});
+
+test("native sharing failure waits for an explicit Copy link action before using the clipboard", async ({ page }) => {
+  await page.addInitScript(() => {
+    const fixture = window as unknown as Window & { locationShareCalls: ShareData[]; locationClipboardCalls: string[] };
+    fixture.locationShareCalls = [];
+    fixture.locationClipboardCalls = [];
+    Object.defineProperty(navigator, "share", { configurable: true, value: async (data: ShareData) => {
+      fixture.locationShareCalls.push(data);
+      throw new DOMException("Fixture sharing denied", "NotAllowedError");
+    } });
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+      writeText: async (url: string) => { fixture.locationClipboardCalls.push(url); },
+    } });
+  });
+  await page.goto(`/business/${slug}?tab=about`, { waitUntil: "networkidle" });
+  const share = page.getByRole("button", { name: "Share", exact: true });
+  await share.click();
+  const errorToast = page.locator('[data-toast-host] [role="alert"]');
+  const copy = errorToast.getByRole("button", { name: "Copy link", exact: true });
+  await expect(copy).toBeVisible();
+  await expect(share).toBeEnabled();
+  const shared = await page.evaluate(() => (window as unknown as Window & { locationShareCalls: ShareData[] }).locationShareCalls);
+  expect(shared).toHaveLength(1);
+  expect(new URL(shared[0].url!).searchParams.get("tab")).toBe("about");
+  expect(await page.evaluate(() => (window as unknown as Window & { locationClipboardCalls: string[] }).locationClipboardCalls)).toEqual([]);
+  await copy.click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as Window & { locationClipboardCalls: string[] }).locationClipboardCalls)).toEqual([shared[0].url]);
+  await expect(page.locator('[data-toast-host] [role="status"]')).toContainText("Link copied");
+  await expect(errorToast).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "About", exact: true })).toHaveAttribute("aria-selected", "true");
+});
+
 test("mixed review IDs stay distinct and a failed sort preserves data for retry", async ({ page, request }) => {
   const listing: ListingDetail = await (await request.get(`${api}/marketplace/public/listing/${slug}`)).json();
   const original = listing.reviews[0];
@@ -86,11 +201,12 @@ test("mixed review IDs stay distinct and a failed sort preserves data for retry"
   const panel = page.getByRole("tabpanel");
   const before = await panel.getByRole("article").count();
   await panel.getByRole("button", { name: "Highest rated", exact: true }).click();
-  await expect(panel.getByRole("alert")).toBeVisible();
+  const errorToast = page.locator('[data-toast-host] [role="alert"]');
+  await expect(errorToast).toBeVisible();
   await expect(panel.getByRole("article")).toHaveCount(before);
   await expect(panel.getByRole("button", { name: "Most recent", exact: true })).toHaveAttribute("aria-pressed", "true");
   fail = false;
-  await panel.getByRole("button", { name: "Try again", exact: true }).click();
+  await errorToast.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(panel.getByRole("article")).toHaveCount(2);
   await expect(panel.getByText("Location collision fixture", { exact: true })).toBeVisible();
   await expect(panel.getByText("Professional collision fixture", { exact: true })).toBeVisible();

@@ -22,6 +22,8 @@
 .identity { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 20px; min-width: 0; }
 .portrait { --profile-avatar-size: 112px; width: var(--profile-avatar-size); height: var(--profile-avatar-size); flex-shrink: 0; }
 .portrait > * { width: var(--profile-avatar-size) !important; height: var(--profile-avatar-size) !important; font-size: calc(var(--profile-avatar-size) * .42) !important; }
+/* The modal opens from a team card, so it keeps that card's two-initial monogram. */
+.card .portrait > * { font-size: calc(var(--profile-avatar-size) * .3) !important; }
 .identityText { min-width: 0; }
 .name { margin: 0; color: var(--c-900); font-size: 26px; font-weight: 600; letter-spacing: -.035em; line-height: 1.2; overflow-wrap: anywhere; }
 .professionalTitle { margin-top: 7px; color: var(--c-600); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }

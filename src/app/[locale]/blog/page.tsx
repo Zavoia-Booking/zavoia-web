@@ -8,6 +8,7 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
+import { DEFAULT_SOCIAL_IMAGE, OPEN_GRAPH_LOCALES } from "@/lib/site";
 import { listPosts } from "@/sanity/queries";
 import { BlogList } from "@/app/_components/blog/blog-list";
 import { toBlogCardVM } from "@/app/_components/blog/vm";
@@ -37,11 +38,28 @@ export async function generateMetadata({
   ) as Record<Locale, string>;
 
   return {
-    title: dict.blog.listTitle,
+    // This copy already names Zavoia, so skip the layout's "| Zavoia" suffix.
+    title: { absolute: dict.blog.listTitle },
     description: dict.blog.listDescription,
     alternates: {
       canonical: localeHref(locale, "blog"),
       languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] },
+    },
+    openGraph: {
+      title: dict.blog.listTitle,
+      description: dict.blog.listDescription,
+      url: localeHref(locale, "blog"),
+      type: "website",
+      siteName: "Zavoia",
+      locale: OPEN_GRAPH_LOCALES[locale],
+      alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => OPEN_GRAPH_LOCALES[l]),
+      images: [DEFAULT_SOCIAL_IMAGE],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: dict.blog.listTitle,
+      description: dict.blog.listDescription,
+      images: [DEFAULT_SOCIAL_IMAGE],
     },
   };
 }

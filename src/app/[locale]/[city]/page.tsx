@@ -1,9 +1,9 @@
 import { dictionaries } from "@/i18n/dictionaries";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { LOCALES, isLocale, type Locale } from "@/i18n/locales";
+import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { SITE_URL } from "@/lib/site";
+import { OPEN_GRAPH_LOCALES, SITE_URL } from "@/lib/site";
 import { ApiError } from "@/lib/api/http";
 import { getPublicWebsite } from "@/lib/api/marketplace/public";
 import { WEBSITE_TAG, websiteTag } from "@/lib/cache/tags";
@@ -64,15 +64,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: site.identity.description ?? undefined,
       alternates: {
         canonical: localeHref(locale, slug),
-        languages: Object.fromEntries(
-          LOCALES.map((l) => [l, localeHref(l, slug)]),
-        ) as Record<Locale, string>,
+        languages: {
+          ...(Object.fromEntries(
+            LOCALES.map((l) => [l, localeHref(l, slug)]),
+          ) as Record<Locale, string>),
+          "x-default": localeHref(DEFAULT_LOCALE, slug),
+        },
       },
       openGraph: {
         type: "website",
+        siteName: "Zavoia",
         title: site.identity.name,
         description: site.identity.description ?? undefined,
         url: `${SITE_URL}${localeHref(locale, slug)}`,
+        locale: OPEN_GRAPH_LOCALES[locale],
+        alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => OPEN_GRAPH_LOCALES[l]),
+        images: site.identity.logo ? [site.identity.logo] : undefined,
+      },
+      // The share image is the business logo, so the compact card.
+      twitter: {
+        card: "summary",
+        title: site.identity.name,
+        description: site.identity.description ?? undefined,
         images: site.identity.logo ? [site.identity.logo] : undefined,
       },
     };

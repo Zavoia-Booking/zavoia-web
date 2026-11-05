@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState, type CSSProperties } from "react";
+import { Suspense, useEffect, useId, useState, type CSSProperties } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Avatar, Icon } from "@/components/ui";
@@ -210,6 +211,8 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
+  const accountTriggerId = useId();
+  const notificationsTriggerId = useId();
   const [pastHero, setPastHero] = useState(false);
 
   // On the homepage the pill stays hidden until the hero search scrolls away,
@@ -316,13 +319,15 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           title={dict.nav.homeAria}
           style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          {/* 34px tall is about 104px wide, so screens fetch a copy at that size, not the 440px file. */}
+          <Image
             src="/brand/wordmark-cropped.png"
             alt="Zavoia"
             title="Zavoia"
             width={440}
             height={145}
+            sizes="104px"
+            loading="eager"
             style={{ height: 34, width: "auto" }}
           />
         </Link>
@@ -441,8 +446,12 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             {showAuthedCorner ? (
               <>
                 <button
+                  id={notificationsTriggerId}
                   type="button"
                   className="tap zw-hover-row zw-only-desktop"
+                  aria-haspopup="dialog"
+                  aria-expanded={notifOpen}
+                  aria-controls={notifOpen ? `${notificationsTriggerId}-panel` : undefined}
                   aria-label={
                     unreadCount !== null && unreadCount > 0
                       ? format(dict.notifications.unreadAria, {
@@ -487,9 +496,13 @@ export function SiteHeader({ locale }: { locale: Locale }) {
                   )}
                 </button>
                 <button
+                  id={accountTriggerId}
                   type="button"
                   className="tap"
                   aria-label={dict.nav.account}
+                  aria-haspopup="dialog"
+                  aria-expanded={acctOpen}
+                  aria-controls={acctOpen ? `${accountTriggerId}-panel` : undefined}
                   onClick={() => {
                     setNotifOpen(false);
                     setAcctOpen((o) => !o);
@@ -531,9 +544,13 @@ export function SiteHeader({ locale }: { locale: Locale }) {
               />
             ) : (
               <button
+                id={accountTriggerId}
                 type="button"
                 className="tap"
                 aria-label={dict.nav.account}
+                aria-haspopup="dialog"
+                aria-expanded={acctOpen}
+                aria-controls={acctOpen ? `${accountTriggerId}-panel` : undefined}
                 onClick={() => {
                   setNotifOpen(false);
                   setAcctOpen((o) => !o);
@@ -563,9 +580,9 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         </div>
       </div>
 
-      {notifOpen && showAuthedCorner && <NotifPanel onClose={() => setNotifOpen(false)} />}
+      {notifOpen && showAuthedCorner && <NotifPanel triggerId={notificationsTriggerId} onClose={() => setNotifOpen(false)} />}
       {acctOpen && (
-        <AccountMenu locale={locale} onClose={() => setAcctOpen(false)} />
+        <AccountMenu locale={locale} triggerId={accountTriggerId} onClose={() => setAcctOpen(false)} />
       )}
     </header>
   );

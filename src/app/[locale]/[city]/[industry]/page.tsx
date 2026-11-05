@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
-import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locales";
+import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
 import {
-  findCity,
-  findTaxonomy,
   getCategoryAlternates,
   taxonomyDisplayName,
   type CityView,
@@ -13,7 +11,9 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { LocaleRouteAlternates } from "@/i18n/locale-navigation";
-import { getIndustries, searchListings } from "@/lib/api/marketplace/public";
+import { searchListings } from "@/lib/api/marketplace/public";
+import { OPEN_GRAPH_LOCALES } from "@/lib/site";
+import { resolveCategoryRoute } from "@/lib/seo/category-page.server";
 import type {
   Industry,
   LocationCard,
@@ -63,20 +63,9 @@ async function resolve(
       total: number;
     }
 > {
-  const city = findCity(locale, citySlug);
-  if (!city) return { kind: "notFound" };
-
-  // Only a successful taxonomy response can establish that a category is absent.
-  // Let operational failures reach the existing error boundary, preserving ISR
-  // data rather than caching an outage as a missing or empty category.
-  const industries = await getIndustries();
-  if (industries.length === 0) return { kind: "notFound" };
-
-  const { entry, redirectTo } = findTaxonomy(industries, locale, taxonomySlug);
-  if (redirectTo) {
-    return { kind: "redirect", to: localeHref(locale, city.slug, redirectTo) };
-  }
-  if (!entry) return { kind: "notFound" };
+  const route = await resolveCategoryRoute(locale, citySlug, taxonomySlug);
+  if (route.kind !== "ok") return route;
+  const { city, entry, industries } = route;
 
   // Strict, so the server cannot quietly drop the city or the category and
   // backfill from elsewhere: a page titled "Barbershops in Cluj" must never
@@ -121,8 +110,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // A page with nothing to list is still useful to a visitor who arrived from
     // an internal link, but it is thin content and must not be offered to the
     // index. It starts being indexable the moment a business opens here.
-    robots:
-      listings.length === 0 ? { index: false, follow: true } : undefined,
+    // Omit the key otherwise: an undefined robots would replace the layout's.
+    ...(listings.length === 0 && { robots: { index: false, follow: true } }),
     alternates: {
       canonical,
       languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] },
@@ -132,7 +121,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: canonical,
       type: "website",
-      locale: localeParam,
+      locale: OPEN_GRAPH_LOCALES[localeParam],
+      // Only languages with their own translated destination are alternates.
+      alternateLocale: LOCALES.filter((language) => language !== localeParam && languages[language])
+        .map((language) => OPEN_GRAPH_LOCALES[language]),
     },
   };
 }

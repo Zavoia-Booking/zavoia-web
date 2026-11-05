@@ -7,6 +7,8 @@ import {
 } from "@/i18n/locales";
 import { getPostBySlug, listPostSlugs, listPosts } from "@/sanity/queries";
 import { localeHref } from "@/i18n/routes";
+import { DEFAULT_SOCIAL_IMAGE, OPEN_GRAPH_LOCALES } from "@/lib/site";
+import { urlForImage } from "@/sanity/image";
 import { dictionaries } from "@/i18n/dictionaries";
 import { getPostAlternates, getPostTranslation, selectRelated } from "@/lib/blog";
 import { LocaleRouteAlternates } from "@/i18n/locale-navigation";
@@ -62,6 +64,14 @@ export async function generateMetadata({
   const canonical = localeHref(localeParam, "blog", slug);
 
   const languages = getPostAlternates(post);
+  // Link previews use a 1200 x 630 framing of the visible cover, with its alt
+  // text. The image builder never upscales, so no pixel size is declared.
+  const shareImage = post.coverImage?.asset
+    ? {
+        url: urlForImage(post.coverImage).width(1200).height(630).url(),
+        alt: post.coverImage.alt || post.title[localeParam] || title,
+      }
+    : DEFAULT_SOCIAL_IMAGE;
 
   return {
     title,
@@ -75,8 +85,18 @@ export async function generateMetadata({
       description,
       url: canonical,
       type: "article",
-      locale: localeParam,
+      locale: OPEN_GRAPH_LOCALES[localeParam],
+      // Only languages this post is translated into are alternates.
+      alternateLocale: LOCALES.filter((language) => language !== localeParam && languages[language])
+        .map((language) => OPEN_GRAPH_LOCALES[language]),
       publishedTime: post.publishedAt,
+      images: [shareImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [shareImage],
     },
   };
 }

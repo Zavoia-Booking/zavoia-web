@@ -664,6 +664,13 @@ export interface ListingDetail {
 
   otherLocations: OtherLocationRef[];
 
+  // ── Venue tag groups ──
+  // The same ids as the search cards; resolve them against GET venue-tags.
+  // Absent from API builds that predate them — read as [].
+  amenityTagIds?: number[];
+  paymentMethodTagIds?: number[];
+  languageTagIds?: number[];
+
   createdAt: string;
   updatedAt: string;
 }
@@ -1644,6 +1651,8 @@ export interface MarketplaceSitemap {
      * Optional during API rollout. Never infer eligibility when absent.
      */
     category?: { city: string | null; industryId: number | null; tagIds: number[] };
+    /** The page's gallery photo URLs, featured first; absent without photos or from an older API. */
+    images?: string[];
   }>;
   brands: SitemapEntry[];
   websites: SitemapEntry[];

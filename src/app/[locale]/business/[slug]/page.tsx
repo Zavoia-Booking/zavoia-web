@@ -1,17 +1,14 @@
-import { dictionaries } from "@/i18n/dictionaries";
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
+import { dictionaries } from "@/i18n/dictionaries";
+import { isLocale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { SITE_URL } from "@/lib/site";
-import { ApiError } from "@/lib/api/http";
-import { getListing } from "@/lib/api/marketplace/public";
-import { BUSINESS_TAG, businessTag } from "@/lib/cache/tags";
-import type { ListingDetail } from "@/lib/api/marketplace/types";
+import { locationPageTitle } from "@/lib/locations/metadata";
+import { getLocationPageListing } from "@/lib/locations/server";
+import { serializeLocationStructuredData } from "@/lib/locations/structured-data";
 import { BusinessDetail } from "../_components/business-detail";
-import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
-import { notFoundMetadata } from "@/app/_components/not-found/metadata";
-import { getLocationCategoryHref } from "@/lib/seo/location-category.server";
+import { getLocationCategory } from "@/lib/seo/location-category.server";
+import { getLocationVenueTags } from "@/lib/marketplace/location-venue-tags.server";
+import { getLocationBrand } from "@/lib/marketplace/location-brand.server";
 
 // ISR. The route param is a LOCATION slug (non-enumerable — the backend
 // resolves it, or a numeric id, to a listing), so nothing is prerendered at
@@ -19,11 +16,9 @@ import { getLocationCategoryHref } from "@/lib/seo/location-category.server";
 // cached and served from the CDN for everyone after that. No backend call is
 // needed during `next build`.
 //
-// 600s is the FLOOR, not the freshness plan — see `LISTING_REVALIDATE_SECONDS`
-// in @/lib/cache/tags. Publishing a business calls the revalidate webhook,
-// which invalidates this page's tag immediately; the window only covers
-// edits that never fire a webhook. Must be a literal to be statically
-// analysable.
+// The webhook expires location changes immediately. Time-based revalidation
+// is the fallback for missed notifications, not a guaranteed freshness bound
+// during an upstream outage. This export must remain statically analysable.
 export const revalidate = 600;
 
 // Required for ISR even though it enumerates nothing: without a
@@ -38,85 +33,49 @@ type Props = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
-// Both the metadata and the page body fetch the same listing; identical GETs
-// are memoized within one render pass, so this is a single request. Two tags:
-// the specific page, and the coarse `business` tag for a bulk flush.
-const LISTING_CACHE = (slug: string) => ({
-  revalidate: 600,
-  tags: [BUSINESS_TAG, businessTag(slug)],
-});
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale, slug } = await params;
-  if (!isLocale(locale) || !slug) return {};
-  try {
-    const listing = await getListing(slug, LISTING_CACHE(slug));
-
-    // Location page → the location's own name titles the tab (business-level
-    // listing name only as fallback).
-    const title = listing.location?.name || listing.name;
-    const description = listing.description ?? undefined;
-    const image = listing.featuredImage ?? listing.logo ?? undefined;
-    // Numeric aliases resolve the same location and must advertise its actual
-    // canonical slug, rather than compete with that slug in search results.
-    const canonicalSlug = listing.slug?.trim() || listing.location.slug?.trim() || String(listing.locationId);
-
-    // The same URL under both locales renders the same business with different
-    // chrome, so each is canonical for its own locale and the two are declared
-    // as alternates — not as duplicates competing for one canonical.
-    const languages = Object.fromEntries(
-      LOCALES.map((l) => [l, localeHref(l, "business", canonicalSlug)]),
-    ) as Record<Locale, string>;
-
-    return {
-      title,
-      description,
-      alternates: {
-        canonical: localeHref(locale, "business", canonicalSlug),
-        languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] },
-      },
-      openGraph: {
-        type: "website",
-        title,
-        description,
-        url: `${SITE_URL}${localeHref(locale, "business", canonicalSlug)}`,
-        images: image ? [image] : undefined,
-      },
-    };
-  } catch (error) {
-    // An API 404 renders normal fallback JSX below (HTTP 200), so noindex
-    // has to be explicit — nothing throws
-    // `notFound()` to add one. Any other failure gets no metadata and the page
-    // rethrows anyway.
-    if (error instanceof ApiError && error.status === 404) {
-      return notFoundMetadata(locale);
-    }
-    return {};
-  }
-}
-
 export default async function BusinessDetailPage({ params }: Props) {
   const { locale, slug } = await params;
   if (!isLocale(locale)) notFound();
 
   if (!slug) notFound();
 
-  // The render is CACHED, so the two failure modes are different problems.
-  // An upstream 404 is a real answer — no such listing — and is safe to cache
-  // as the not-found state (metadata marks it noindex). Anything else (backend
-  // down, 500, timeout) is rethrown: the render fails, nothing is stored, and
-  // the next request retries, so an outage can never freeze "not found" into
-  // the cache for the whole revalidate window.
-  let listing: ListingDetail;
-  try {
-    listing = await getListing(slug, LISTING_CACHE(slug));
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      return <NotFoundPage dictionary={dictionaries[locale]} locale={locale} pathname={localeHref(locale, "business", slug)} />;
-    }
-    throw error;
-  }
+  const listing = await getLocationPageListing(slug);
+  if (!listing) notFound();
 
-  const categoryHref = await getLocationCategoryHref(listing, locale);
-  return <BusinessDetail key={listing.locationId} listing={listing} locale={locale} categoryHref={categoryHref} />;
+  const [category, venueTags, brand] = await Promise.all([
+    getLocationCategory(listing, locale),
+    getLocationVenueTags(listing),
+    getLocationBrand(listing),
+  ]);
+  // The category page's own breadcrumb, extended by this location. Without a
+  // confirmed category page there is no truthful trail, so none is published.
+  // Markup only: the page opens with its back control, and each step is
+  // already a visible link here (logo, category eyebrow, footer directory).
+  const dict = dictionaries[locale];
+  const trail = category ? [
+    { name: dict.breadcrumbHome, href: localeHref(locale) },
+    { name: dict.industryDirectory.heading, href: localeHref(locale, "industries") },
+    { name: category.name, href: category.href },
+  ] : null;
+  const structuredData = serializeLocationStructuredData(listing, locale, {
+    ancestors: trail,
+    title: locationPageTitle(listing, locale),
+  });
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: structuredData }}
+      />
+      <BusinessDetail
+        key={listing.locationId}
+        listing={listing}
+        locale={locale}
+        categoryHref={category?.href ?? null}
+        categoryHasOthers={category?.hasOthers ?? false}
+        venueTags={venueTags}
+        brand={brand}
+      />
+    </>
+  );
 }

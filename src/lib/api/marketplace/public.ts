@@ -69,8 +69,9 @@ export async function getIndustries(opts?: CacheOptions & { order?: "catalog" | 
  * A fixed vocabulary that changes on deploys, not during a session, so callers
  * cache it aggressively (see `useVenueTags`).
  */
-export function getVenueTags(): Promise<VenueTagDictionaries> {
+export function getVenueTags(opts?: CacheOptions): Promise<VenueTagDictionaries> {
   return apiFetch<VenueTagDictionaries>("/marketplace/public/venue-tags", {
+    ...cacheInit(opts),
     method: "GET",
   });
 }

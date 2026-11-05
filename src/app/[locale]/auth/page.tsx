@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   ) as Record<Locale, string>;
 
   return {
-    title: dict.auth.pageTitle,
+    // This copy already names Zavoia, so skip the layout's "| Zavoia" suffix.
+    title: { absolute: dict.auth.pageTitle },
     description: dict.auth.pageDescription,
     robots: { index: false, follow: false },
     alternates: {

@@ -47,6 +47,8 @@ export async function generateMetadata({
       template: "%s | Zavoia",
     },
     description: dict.home.description,
+    // Allow large image previews in results. Noindex pages replace this with their own robots.
+    robots: { "max-image-preview": "large" },
     icons: {
       icon: { url: "/favicon.ico", type: "image/x-icon" },
     },
@@ -58,8 +60,8 @@ export default async function LocaleRootLayout({ children, params }: Props) {
   if (!isLocale(locale)) notFound();
 
   return (
-    <html lang={locale}>
-      <body className={`${fontVariables} antialiased`}>
+    <html lang={locale} className={fontVariables}>
+      <body className="antialiased">
         <AuthProvider>
           <I18nProvider locale={locale} dict={dictionaries[locale]}>
             <LocaleNavigationProvider>

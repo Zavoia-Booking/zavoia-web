@@ -6,11 +6,11 @@ import { expect, type Locator, type Page } from '@playwright/test'
  * date in `data-date`; slot buttons use `.zv-slot`. Both expose selection
  * through aria-pressed, so date selectors must always use data-date.
  *
- * Step 1 (services) only exists when the drawer was opened with an empty
- * selection (page-level "Book" with nothing pre-picked). Opening from a
- * preselected service, a team-member modal, or a rebook always skips
- * straight to Step 2 (date/time/staff) — `stepOneReached` tells you which
- * case you're in for a given test.
+ * Step 1 (services) exists whenever the drawer receives the venue's menu with
+ * no professional pinned. A page-level "Book" with nothing picked opens on it;
+ * a page preselection opens on Step 2 (date/time/staff) with Step 1 one Back
+ * away, its picks ticked. A team-member modal or a rebook pins a professional
+ * and has no Step 1.
  */
 export class BookingDrawer {
   readonly page: Page
@@ -34,8 +34,8 @@ export class BookingDrawer {
   }
 
   stepLabel(n: 1 | 2 | 3): Locator {
-    // Keep callers' logical step numbers when a preselected booking skips the
-    // service picker and displays progress as 1 / 2 rather than 2 / 3.
+    // Keep callers' logical step numbers when a booking without a services
+    // step displays progress as 1 / 2 rather than 2 / 3.
     const names = { 1: 'Choose services', 2: 'Pick a date & time', 3: 'Review & confirm' }
     return this.root.getByRole('heading', { name: names[n], exact: true })
   }

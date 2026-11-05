@@ -8,6 +8,7 @@ const PREFIXED = LOCALES.filter((l) => l !== DEFAULT_LOCALE);
 const ACCOUNT_PATH_RE = new RegExp(
   `^/(?:(${PREFIXED.join("|")})/)?account(?:/.*)?$`,
 );
+const LOCATION_PATH_RE = new RegExp(`^/(?:(${LOCALES.join("|")})/)?business/([^/]+)$`);
 
 /**
  * The visitor's real pathname, forwarded to the render.
@@ -29,6 +30,24 @@ export function proxy(request: NextRequest) {
   // dotted URLs (for example /ro/a/b/c/missing.html) get a localized global 404.
   if (/\.[^/]+$/.test(pathname)) {
     return NextResponse.next(withPathname(request));
+  }
+
+  // The API accepts padded numeric IDs. Give them one URL before Next caches
+  // either a page or a 404: backend invalidations name the unpadded ID and slug.
+  // Decode the segment too, so percent-encoded digits cannot create an alias.
+  const locationMatch = pathname.match(LOCATION_PATH_RE);
+  if (locationMatch) {
+    let key: string | undefined;
+    try { key = decodeURIComponent(locationMatch[2]); } catch { /* Let routing handle malformed encoding. */ }
+    if (key && /^\d+$/.test(key)) {
+      const normalized = key.replace(/^0+(?=\d)/, "");
+      if (locationMatch[2] !== normalized) {
+        const url = request.nextUrl.clone();
+        const locale = locationMatch[1] ?? DEFAULT_LOCALE;
+        url.pathname = `${locale === DEFAULT_LOCALE ? "" : `/${locale}`}/business/${normalized}`;
+        return NextResponse.redirect(url, 308);
+      }
+    }
   }
 
   // Auth gate for /account (and its locale-prefixed variants).

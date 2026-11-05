@@ -18,8 +18,7 @@ const LivePreview = dynamic(() =>
  * small plate still shows the true desktop arrangement instead of the
  * mobile-collapsed one a narrow container query would trigger.
  *
- * Unlike the builder's ScaledPreview (which clips to a caller-sized box), this
- * plate reserves a responsive frame before its renderer, fonts or images load.
+ * The plate reserves a responsive frame before its renderer, fonts or images load.
  * Compact sections use a shallow frame; the other specimens share a 16:10
  * viewport. Content beyond that frame fades at the edge.
  *

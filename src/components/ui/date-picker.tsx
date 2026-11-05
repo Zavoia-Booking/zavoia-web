@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Icon } from "./icon";
 
 /**
@@ -32,6 +32,7 @@ function mondayIndex(y: number, m: number, d: number): number {
 }
 
 export function DatePicker({
+  "aria-labelledby": labelledBy,
   value,
   onChange,
   locale = "en",
@@ -39,6 +40,7 @@ export function DatePicker({
   placeholder = "—",
   yearsBack = 110,
 }: {
+  "aria-labelledby"?: string;
   value: string;
   onChange: (iso: string) => void;
   locale?: string;
@@ -47,6 +49,7 @@ export function DatePicker({
   /** How many years before the current one the year dropdown offers. */
   yearsBack?: number;
 }) {
+  const valueId = useId();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -160,10 +163,12 @@ export function DatePicker({
       {/* Trigger — styled like the account text inputs. */}
       <button
         type="button"
+        aria-labelledby={labelledBy}
+        aria-describedby={labelledBy ? valueId : undefined}
         onClick={() => (open ? setOpen(false) : openPicker())}
         disabled={disabled}
         aria-haspopup="dialog"
-        aria-expanded={open}
+        aria-expanded={open && !disabled}
         style={{
           marginTop: 8,
           width: "100%",
@@ -184,13 +189,13 @@ export function DatePicker({
           textAlign: "left",
         }}
       >
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span id={labelledBy ? valueId : undefined} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {displayLabel || placeholder}
         </span>
         <Icon name="cal" size={15} color="var(--p-500)" />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div
           role="dialog"
           style={{

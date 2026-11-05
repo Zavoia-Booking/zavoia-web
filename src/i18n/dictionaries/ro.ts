@@ -100,8 +100,8 @@ export const ro: Dictionary = {
       googlePlay: "Google Play",
       ios: "Pentru iOS",
       android: "Pentru Android",
-      scheduleAlt: "Programările Zavoia într-o machetă iPhone, cu exemple de antrenament personal, inspecție auto și o lecție de chitară.",
-      mapAlt: "Harta Zavoia într-o machetă iPhone, cu locații demonstrative pentru fitness, educație, servicii auto, îngrijirea animalelor și servicii pentru casă.",
+      scheduleAlt: "Aplicația Zavoia cu programări demonstrative viitoare și trecute, cu servicii, ore, prețuri și afaceri.",
+      mapAlt: "Harta din aplicația Zavoia, cu pini pe domenii pentru afaceri demonstrative din București.",
       downloadsLabel: "Aplicația Zavoia",
     },
     webStudio: {
@@ -119,7 +119,7 @@ export const ro: Dictionary = {
       titleAccent: "programări.",
       sub: "Atrage clienți din apropiere. Gestionează programările și echipa într-un singur loc.",
       commission: "Fără comision la programări.",
-      cta: "Zavoia pentru business",
+      cta: "Zavoia pentru afaceri",
       pricing: "Vezi prețurile",
     },
     favorites: {
@@ -151,6 +151,7 @@ export const ro: Dictionary = {
     viewIndustryLabel: "Explorează {industry}",
     emptyTitle: "Nu sunt domenii de afișat încă",
     emptyBody: "Poți să explorezi în continuare afacerile de pe Zavoia.",
+    byCityHeading: "Domenii pe orașe",
   },
   category: {
     titleTemplate: "{industry} în {city}",
@@ -196,7 +197,7 @@ export const ro: Dictionary = {
     readStory: "Citește articolul",
     catAll: "Toate",
     catGuides: "Ghiduri",
-    catBusiness: "Pentru business",
+    catBusiness: "Pentru afaceri",
     catProduct: "Noutăți produs",
     breadcrumbJournal: "Jurnal",
     pageLabel: "Pagina",
@@ -734,6 +735,7 @@ export const ro: Dictionary = {
     about: "Despre",
     bundles: "Pachete",
     bundleSave: "Economisești",
+    bundleTag: "Pachet",
     hours: "Program",
     location: "Locație",
     address: "Adresă",
@@ -842,6 +844,10 @@ export const ro: Dictionary = {
     nextAvailable: "Următoarea disponibilă: {date}",
     jumpToNext: "Sari la următoarea disponibilă",
     slotsCountLabel: "{count} intervale",
+    slotsCountOne: "{count} interval",
+    dayClosed: "Închis",
+    dayFull: "Complet",
+    dayUnavailable: "Indisponibil",
     morning: "Dimineață",
     afternoon: "După-amiază",
     evening: "Seară",
@@ -851,6 +857,13 @@ export const ro: Dictionary = {
     staffChoiceRequired:
       "Prețul și durata diferă în funcție de profesionist — alege cine îți face serviciul.",
     staffLabel: "Profesionist",
+    staffAnyAt: "Oricine e liber la {time}",
+    staffAnyEach: "Oricine e liber la fiecare serviciu",
+    staffAnyThis: "Oricine e liber pentru acest serviciu",
+    staffOrChoose: "Sau alege pe cineva",
+    staffPerService: "Alege pentru fiecare serviciu",
+    staffSameForAll: "La fel pentru toate serviciile",
+    staffSharedHint: "Se aplică tuturor serviciilor tale.",
     serviceCount: "{count} servicii · {duration}",
     serviceCountOne: "{count} serviciu · {duration}",
     dateLabel: "Data",
@@ -858,10 +871,10 @@ export const ro: Dictionary = {
     confirmBooking: "Confirmă programarea",
     booking: "Se rezervă…",
     signInToBook: "Autentifică-te pentru a rezerva",
-    successTitle: "Ești programat",
-    successBody: "{services} la {business}",
+    successTitle: "Programare confirmată",
+    successBody: "Te așteptăm la {business}.",
     pendingTitle: "Programare solicitată",
-    pendingBody: "{services} la {business} — în așteptarea confirmării.",
+    pendingBody: "{business} confirmă manual fiecare programare. Te anunțăm imediat ce răspunde.",
     viewAppointment: "Vezi programarea",
     done: "Gata",
     close: "Închide",
@@ -870,6 +883,11 @@ export const ro: Dictionary = {
     reschedulingUnavailable: "Această programare nu poate fi reprogramată online.",
     payAtVenueTitle: "Plătești la fața locului",
     payAtVenueNote: "Nimic de plătit acum — achiți direct la {business} după vizită.",
+    reviewChange: "Schimbă",
+    reviewChangeVisit: "Schimbă data, ora sau profesionistul",
+    reviewServicesTitle: "Serviciile tale",
+    reviewEditServices: "Modifică serviciile",
+    staffAssigned: "Alocare automată",
     blockedScreen: {
       businessTitle: "Rezervarea online nu este disponibilă",
       businessBody:
@@ -974,7 +992,7 @@ export const ro: Dictionary = {
   nav: {
     explore: "Explorează",
     webStudio: "Web Studio",
-    forBusiness: "Pentru business",
+    forBusiness: "Pentru afaceri",
     signIn: "Autentificare",
     search: "Caută",
     account: "Cont",
@@ -1282,8 +1300,8 @@ export const ro: Dictionary = {
     browseIndustries: "Explorează toate domeniile",
     support: "Ajutor și asistență",
     journal: "Jurnal",
-    forBusiness: "Pentru business",
-    businessOverview: "Zavoia pentru business",
+    forBusiness: "Pentru afaceri",
+    businessOverview: "Zavoia pentru afaceri",
     webStudio: "Web Studio",
     pricing: "Prețuri",
     businessSignIn: "Autentificare business",
@@ -1334,7 +1352,7 @@ export const ro: Dictionary = {
     profileSettings: "Profil și setări",
     journal: "Jurnalul",
     helpSupport: "Ajutor și asistență",
-    forBusiness: "Pentru business",
+    forBusiness: "Pentru afaceri",
     webStudio: "Web Studio",
     pricing: "Prețuri",
     logout: "Deconectare",
@@ -1504,21 +1522,21 @@ export const ro: Dictionary = {
       planName: "Zavoia Business\u00A0· Plus",
       planBody:
         "Orice abonament Zavoia îți permite să construiești, să previzualizezi și să salvezi tot site-ul. Punerea lui live este pasul Plus — așa vezi produsul finit înainte să decizi.",
-      placeholderLabel: "Preț de confirmat",
-      placeholderBody:
-        "Prețul pentru Plus nu este încă publicat. Abonamentul standard Zavoia Business este {base} per membru al echipei care poate fi programat, pe lună.",
+      perMonth: "pe lună",
+      teamPrice: "Contul tău este inclus. Fiecare loc suplimentar pentru echipă costă {seat}/lună.",
+      trialNote: "Perioada de probă de {days} zile începe pe Base. Alegi Plus ca să publici site-ul.",
       bullets: [
         "Construiești, previzualizezi și salvezi cu orice abonament",
         "Editări și republicări nelimitate",
         "Un abonament expirat suspendă site-ul — nu îl șterge niciodată",
-        "Revine instant când abonamentul e din nou activ",
+        "Reactivezi Plus pentru ca site-ul publicat să fie disponibil din nou",
       ],
       stylesLabel: "Stiluri premium",
       stylesTitle: "De la {min}, o singură dată. Ale tale definitiv.",
       stylesBody:
-        "Fiecare secțiune include deja un stil proiectat. Vrei hero-ul cinematic, banda de recenzii în mișcare sau footer-ul editorial? Îl deblochezi o dată și rămâne deblocat — fără abonament peste abonament.",
+        "Începi cu stilurile incluse și adaugi opțional designuri premium. Vrei hero-ul cinematic, banda de recenzii în mișcare sau footer-ul editorial? Îl deblochezi o dată și rămâne deblocat — fără abonament peste abonament.",
       rowIncluded: "Stiluri incluse",
-      rowIncludedV: "{n} — unul per secțiune",
+      rowIncludedV: "{n} incluse",
       rowPremium: "Stiluri premium",
       rowPremiumV: "{n} · {range} o dată",
       rowFonts: "Fonturi de titlu",
@@ -1548,7 +1566,7 @@ export const ro: Dictionary = {
         },
         {
           q: "Ce se întâmplă dacă renunț?",
-          a: "Site-ul este suspendat, nu șters. Tot ce ai construit rămâne pe loc și revine în momentul în care abonamentul e din nou activ — fără reconstruit, fără republicat.",
+          a: "Site-ul este suspendat, nu șters. Designul salvat și achizițiile tale sunt păstrate. Reactivezi Plus pentru ca site-ul publicat să fie disponibil din nou.",
         },
       ],
     },
@@ -1559,353 +1577,435 @@ export const ro: Dictionary = {
       secondary: "Înapoi la catalog",
     },
   },
+  businessMarketing: {
+    signIn: "Conectează-te",
+    signInPrompt: "Ai deja cont?",
+    trialCta: "Încearcă gratuit",
+    trialDays: "{days} gratuit",
+    noCard: "Fără card bancar",
+    helpLink: "Întreabă-ne în centrul de ajutor",
+    counts: {
+      days: { one: "{count} zi", few: "{count} zile", other: "{count} de zile" },
+      locations: { one: "{count} locație", few: "{count} locații", other: "{count} de locații" },
+      teamMembers: {
+        one: "{count} membru al echipei",
+        few: "{count} membri ai echipei",
+        other: "{count} de membri ai echipei",
+      },
+    },
+    plans: {
+      perMonth: "pe lună",
+      upTo: "Până la {count}",
+      teamLimit: "Până la {count}, în afară de tine",
+      unlimitedTeam: "Număr nelimitat de membri suplimentari",
+      unavailable: "Indisponibil pentru acest număr de membri",
+      baseLimitNotice: "Base permite până la {count}, în afară de tine. Alege Plus pentru o echipă mai mare.",
+      subscription: "Abonament de {price} pe lună, cu tine inclus",
+      memberPrice: "+ {price} pe lună pentru fiecare membru în plus",
+      totalFor: "Pentru {who}",
+      justYou: "tine",
+      youAnd: "tine + {members}",
+      announcement: "Pentru {who}: Base {base}, Plus {plus} pe lună.",
+      base: {
+        name: "Base",
+        line: "Tot ce îți trebuie ca să primești programări",
+        note: "{days} gratuit, fără card",
+        features: [
+          "O pagină Zavoia pentru fiecare locație",
+          "Programări online cu disponibilitate reală",
+          "Calendare, conturi și reguli pentru echipă",
+          "Reamintiri pe email și recenzii verificate",
+          "Istoricul clienților și ziua ta dintr-o privire",
+          "Ciorne în Web Studio",
+        ],
+      },
+      plus: {
+        name: "Plus",
+        tag: "Include site-ul tău",
+        line: "Propriul site și o echipă fără limită de membri",
+        note: "Perioada de probă începe pe Base. Alegi Plus când te abonezi.",
+        features: [
+          "Tot ce include Base",
+          "Număr nelimitat de membri suplimentari",
+          "Publici site-ul creat în Web Studio",
+          "Îl distribui printr-un link sau un cod QR",
+          "Deblochezi stiluri premium, cu plată unică",
+          "Loc pentru până la {locations}",
+        ],
+      },
+    },
+    fine: {
+      currency: "Prețuri afișate în {currency}, pe lună. Moneda facturării depinde de țara afacerii.",
+      currencyNames: { RON: "lei (RON)", EUR: "euro (EUR)" },
+      noSetup: "Fără taxă de configurare. Anulezi oricând.",
+      sms: "Creditele SMS și stilurile premium Web Studio sunt opționale și se plătesc separat.",
+      compare: "Compară abonamentele în detaliu",
+      bigger: "Ai nevoie de peste {locations}?",
+    },
+  },
   forBusiness: {
-    pageTitle: "Zavoia pentru business — agenda ta, plină",
+    pageTitle: "Pentru afaceri: atrage clienți și primește programări online",
     pageDescription:
-      "Saloane, frizerii, service-uri auto, clinici, antrenori și toaletaj din România sunt găsite de clienții din apropiere, cu disponibilitate live, calendare pe locație și remindere care elimină neprezentările. Clienții te plătesc pe loc — fără comision.",
-    dashboardToast: "Se deschide panoul Zavoia Business…",
+      "Listează-ți afacerea pe Zavoia și primește programări online de la clienții din apropiere. Un singur calendar pentru locații și echipă, reamintiri pe email și fără comision la programări. Încearcă gratuit {days}.",
     hero: {
-      kicker: "Zavoia pentru business",
-      titleLead: "Programările tale.",
-      titleMid: "Clienții tăi.",
-      titleMuted: "Încasările tale.",
-      subcopy:
-        "Saloane, frizerii, service-uri auto, clinici, antrenori, toaletaj — oriunde oamenii rezervă o oră, Zavoia te pune în fața clienților care caută în apropiere, cu disponibilitate live, calendare pe fiecare locație și remindere care reduc neprezentările. Clienții te plătesc pe loc, așa că nu luăm niciodată un comision.",
-      ctaPrimary: "Începe gratuit",
-      ctaPricing: "Vezi prețurile",
-      trust: {
-        noCommission: "Fără comision",
-        noFees: "Fără taxe de rezervare",
-        freeTrial: "Primele 2 săptămâni gratuite, fără card",
-      },
+      titleLead: "Atrage clienți.",
+      titlePre: "Primește ",
+      titleAccent: "programări.",
+      lead: "Clienții din apropiere te găsesc pe Zavoia și se programează online.",
+      support: "Gestionează programările, echipa și ziua de lucru dintr-un singur loc.",
+      trialCta: "Încearcă gratuit {days}",
+      pricingLink: "Vezi prețurile",
+      noCommission: "Fără comision la programări",
+      streetLabel: "Afaceri pe Zavoia",
     },
-    phone: {
-      imgAlt: "Glow Studio pe Zavoia",
-      name: "Glow Studio",
-      rating: "4.9 · Coafor · Centru Vechi",
-      pickTime: "Alege o oră · Mar 16 Dec",
-      times: ["14:00", "14:30", "15:00", "15:30", "16:30"],
-      confirm: "Confirmă · Balayage + tonifiere",
-      footnote: "Plătești la salon",
+    benefits: {
+      label: "Începe cu încredere",
+      trial: "Vezi cum te ajută Zavoia să organizezi programările și să gestionezi echipa.",
+      noCard: "Începi perioada de probă fără să introduci datele cardului.",
+      noCommission: "Plătești abonamentul ales. Nu reținem comision din programările tale.",
     },
-    industries: {
-      kicker: "Pentru orice serviciu local",
-      lead: "Nu doar saloane și spa-uri — oriunde clienții rezervă o oră.",
-      items: [
-        { label: "Saloane & stiliști" },
-        { label: "Frizerii" },
-        { label: "Unghii & beauty" },
-        { label: "Spa & masaj" },
-        { label: "Piele & estetică" },
-        { label: "Service-uri & ITP" },
-        { label: "Dentiști & clinici" },
-        { label: "Antrenori & studiouri" },
-        { label: "Toaletaj animale" },
-        { label: "Curățenie & meserii" },
-      ],
-    },
-    overview: {
-      kicker: "Un singur spațiu de lucru",
-      title: "Administrează-ți tot businessul dintr-un singur dashboard",
-      subcopy:
-        "Gestionează programări, calendare, membrii echipei, locații, recenzii și cereri de clienți noi — totul într-un singur loc.",
-      tiles: {
-        diary: "Agenda de azi",
-        demand: "Cerere clienți noi",
-        defence: "Protecție anti-neprezentare",
-        reviews: "Recenzii verificate",
-        team: "Profiluri de echipă",
-        locations: "Fiecare locație",
-      },
-      calendar: {
-        head: "MAR 16 DEC · MARA",
-        fillingUp: "Se umple",
-        rows: [
-          { time: "10:30", label: "Ioana M. — Balayage + tonifiere", state: "booked" },
-          { time: "12:00", label: "Oră liberă", state: "open" },
-          { time: "13:30", label: "Ruxandra P. — Gloss & coafat", state: "booked" },
-        ],
-      },
-      search: {
-        head: "MARKETPLACE · CENTRU VECHI",
-        topResult: "Primul rezultat",
-        logo: "G",
-        name: "Glow Studio",
-        meta: "Coafor · Centru Vechi",
-        verified: "Verificat",
-        book: "Rezervă",
-        note: "Găsit de clienți care caută în apropiere — nu de cei pe care îi aveai deja.",
-      },
-      reminder: {
-        title: "Programarea ta este peste 3 ore",
-        sub: "Glow Studio · 15:30 · cu Mara",
-        reschedule: "Reprogramează",
-        confirm: "Voi veni",
-      },
-      review: {
-        name: "Diana K.",
-        verified: "VERIFICAT",
-        quote:
-          "„Cel mai bun balayage din Centru Vechi — mi-am rezervat următoarea vizită înainte să mă ridic de pe scaun.”",
-      },
-      teamCard: {
-        name: "Ana M.",
-        meta: "Bucle & textură · 6 ani",
-        nextFree: "URMĂTOAREA LIBERĂ · AZI 17:15",
-        book: "Rezervă la Ana",
-      },
-      locationsCard: {
-        head: "LOCAȚIILE TALE",
-        branches: "3 filiale",
-        rows: [
-          { name: "Centru Vechi", sub: "6 în agendă azi", on: true },
-          { name: "Floreasca", sub: "4 în agendă azi", on: true },
-          { name: "Pipera", sub: "Se deschide luna viitoare", on: false },
-        ],
-      },
-    },
-    switch: {
-      kicker: "De ce migrează proprietarii",
-      title: "Fii descoperit fără să renunți la marja ta.",
-      subcopyLead:
-        "Marketplace-urile mari pot aduce clienți noi, dar deseori iau un comision și controlează relația. Software-ul de programări îți dă control, dar nu îi ajută pe clienți să te găsească. Zavoia îți oferă ambele: clienții te descoperă ",
-      subcopyEm: "și",
-      subcopyTail: " fac programări direct, fără comision.",
-      colZavoia: "Zavoia",
-      colMarket: "Aplicații marketplace",
-      colSoft: "Software de programări",
-      rows: [
+    found: {
+      title: "Unde te găsesc clienții",
+      lead: "Fiecare locație are o pagină pe Zavoia, unde clienții văd serviciile și se programează online.",
+      cta: "Explorează marketplace-ul",
+      points: [
         {
-          label: "Comision la programări",
-          zav: "0 € — niciodată",
-          market: "Deseori 15–30%",
-          soft: "0 €",
+          title: "Servicii la vedere",
+          body: "Prezintă serviciile, durata și prețurile.",
         },
         {
-          label: "Te ajută să aduci clienți noi",
-          zav: "Da — descoperire în marketplace-ul local",
-          market: "Da, dar plătești pentru acces",
-          soft: "Nu — ți-i aduci singur",
+          title: "Ore disponibile",
+          body: "Activezi programările online, iar clienții aleg o oră disponibilă.",
         },
         {
-          label: "Funcționează individual, cu echipă și cu locații multiple",
-          zav: "Inclus",
-          market: "Variază",
-          soft: "Variază",
+          title: "Recenzii de la clienți",
+          body: "Doar clienții cu o programare finalizată pot lăsa o recenzie.",
         },
         {
-          label: "Plăți",
-          zav: "Clienții te plătesc direct",
-          market: "Platforma poate procesa și lua un comision",
-          soft: "De obicei procesatorul lor",
-        },
-        {
-          label: "Angajament",
-          zav: "Lunar, anulezi oricând",
-          market: "Variază",
-          soft: "Deseori contracte anuale",
+          title: "Linkul tău pentru programări",
+          body: "Distribuie pagina ta de pe Zavoia pe Instagram, WhatsApp sau în profilul Google al afacerii tale.",
         },
       ],
-      cta: "Creează-mi pagina businessului",
-      ctaNote:
-        "Primele 2 săptămâni sunt gratuite · Configurare în câteva minute · Fără comision, niciodată.",
+      artwork: {
+        desktopAlt: "Pagina demonstrativă Atelier Nova pe Zavoia, cu salonul, un tuns selectat, prețul și sumarul programării.",
+        mobileAlt: "Harta din aplicația Zavoia în română, cu pini pe domenii pentru afaceri demonstrative din București.",
+      },
     },
-    setup: {
-      title: "Începe să primești programări azi",
-      trialBadge: "Primele 2 săptămâni sunt gratuite",
+    run: {
+      title: "Ziua ta, într-un singur calendar",
+      lead: "Programările online apar în calendar. În același loc, adaugi și programările făcute la telefon sau direct la locație.",
+      features: [
+        {
+          title: "Programul tău și al echipei",
+          body: "Vezi programul pe locații și membri ai echipei, pe zi sau pe lună. Pe desktop ai și vizualizarea săptămânală.",
+        },
+        {
+          title: "Ore de programare și pauze",
+          body: "Alegi când clienții se pot programa și cât timp lași între vizite. Adaugi pauze ocazionale sau recurente.",
+        },
+        {
+          title: "Anulări și reprogramări",
+          body: "Primești notificări când un client își anulează sau își reprogramează programarea online.",
+        },
+        {
+          title: "Acces pentru echipă",
+          body: "Îți inviți echipa și stabilești permisiunile pentru anulări, reprogramări și blocarea intervalelor în calendar.",
+        },
+        {
+          title: "Servicii și pachete",
+          body: "Grupezi serviciile în pachete. Stabilești prețul și durata serviciilor pentru fiecare membru al echipei.",
+        },
+        {
+          title: "Istoricul clienților",
+          body: "Vezi istoricul programărilor fiecărui client și îl descarci în format PDF.",
+        },
+      ],
+      artwork: {
+        desktopAlt: "Calendarul Zavoia pentru afaceri la salonul demonstrativ Atelier Nova, cu programările a trei membri ai echipei și o pauză de masă rezervată.",
+        mobileAlt: "Calendarul Zavoia pentru afaceri pe mobil la salonul demonstrativ Atelier Nova, cu selectarea locației, sumarul zilei și lista programărilor cu clienți și membrii echipei.",
+      },
+    },
+    app: {
+      titleLead: "Afacerea ta,",
+      titlePre: "pe ",
+      titleAccent: "telefon.",
+      lead: "Gestionezi programările, serviciile și echipa din aplicația Zavoia pentru afaceri.",
+      features: [
+        {
+          title: "Gestionează serviciile",
+          body: "Stabilești serviciile, prețurile și duratele pentru fiecare locație și alegi cine oferă fiecare serviciu.",
+        },
+        {
+          title: "Gestionează paginile de pe Zavoia",
+          body: "Adaugi fotografii, alegi ce locații sunt vizibile pe Zavoia și activezi programările online pentru fiecare.",
+        },
+        {
+          title: "Notificări despre programări",
+          body: "Activezi notificările pentru programări noi, anulări și reprogramări.",
+        },
+      ],
+      webLink: "Conectează-te pe web",
+      platformsLabel: "Platformele aplicației Zavoia pentru afaceri",
+      downloadTitle: "Descarcă aplicația pentru afaceri",
+      downloadDescription: "Această aplicație este pentru tine și echipa ta. Clienții se pot programa pe site-ul Zavoia sau în aplicația separată pentru clienți.",
+      assignmentsAlt: "Pagina de servicii din Alocări, în aplicația Zavoia pentru afaceri pe Android, în română: servicii de coafură, manichiură, tratamente faciale și masaj la Atelier Nova, cu prețuri și durate.",
+      marketplaceAlt: "Aplicația Zavoia pentru afaceri pe Android, în română: portofoliul Atelier Nova din marketplace, cu fotografia salonului și opțiunile de gestionare a fotografiilor.",
+    },
+    life: {
+      title: "De la programare la următoarea vizită",
+      lead: "Gestionezi confirmările și reamintirile, iar clienții pot începe o nouă programare din istoric.",
+      scheduleAlt:
+        "Programările unui client în aplicația Zavoia: un tuns și un antrenament personal care urmează și o lecție de chitară trecută, fiecare cu ora, prețul și afacerea.",
       steps: [
         {
-          n: "01",
-          title: "Creează-ți pagina businessului",
-          body: "Adaugă fotografii, servicii, prețuri, locații și membrii echipei în câteva minute.",
+          title: "Programare",
+          body: "Clienții se programează online prin Zavoia sau adaugi tu programările.",
         },
         {
-          n: "02",
-          title: "Setează-ți disponibilitatea",
-          body: "Controlezi când poate fi rezervată fiecare locație și fiecare membru al echipei. Clienții văd doar orele real disponibile.",
+          title: "Confirmare",
+          body: "Confirmi programările online automat sau verifici cererile înainte de confirmare.",
         },
         {
-          n: "03",
-          title: "Începe să primești programări",
-          body: "Apari în căutările locale, accepți programări online și le faci clienților ușor să revină.",
+          title: "Reamintiri",
+          body: "Alegi când se trimit reamintirile pe email pentru programările confirmate. Reamintirile prin SMS folosesc credite cumpărate separat.",
+        },
+        {
+          title: "Vizită și plată",
+          body: "Clienții îți plătesc direct, prin metodele de plată pe care le accepți.",
+        },
+        {
+          title: "Recenzii și reveniri",
+          body: "După o programare finalizată, clienții pot lăsa o recenzie și pot începe o nouă programare din istoric.",
         },
       ],
     },
-    testimonials: {
-      kicker: "Ce spun proprietarii",
-      prevLabel: "Testimonialul anterior",
-      nextLabel: "Testimonialul următor",
-      items: [
-        {
-          biz: "Glow Studio · Centru Vechi",
-          photo:
-            "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&q=80",
-          quote:
-            "Pierdeam diminețile de marți cu telefonul. Acum calendarul se umple singur peste noapte, neprezentările aproape au dispărut, iar fiecare stilist și-a făcut propriul public.",
-          name: "Dana Ionescu",
-          role: "Proprietară",
-          context: "Echipă de 7 · pe Zavoia din 2024",
-        },
-        {
-          biz: "Maison Noir · Floreasca",
-          photo:
-            "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1200&q=80",
-          quote:
-            "Am încetat să vedem calendarul ca pe ceva de umplut și am început să-l vedem ca pe ceva de protejat. Clienții ocazionali au devenit fideli, cu obiceiul de a reprograma.",
-          name: "Andrei Pop",
-          role: "Frizer maestru",
-          context: "Echipă de 4 · pe Zavoia din 2025",
-        },
-        {
-          biz: "Kepler Garage · Pipera",
-          photo:
-            "https://images.unsplash.com/photo-1486006920555-c77dcf18193c?w=1200&q=80",
-          quote:
-            "Clienții își fac programare la ITP la 11 seara, de pe canapea. Telefonul aproape nu mai sună — iar boxele rămân ocupate toată săptămâna.",
-          name: "Marius Vasile",
-          role: "Proprietar",
-          context: "6 boxe · pe Zavoia din 2025",
-        },
+    studio: {
+      planLabel: "Publicare cu Plus",
+      title: "Site-ul tău, creat cu Zavoia",
+      lead: "Folosești informațiile deja adăugate în Zavoia ca să creezi un site de pe care clienții se pot programa.",
+      features: [
+        { title: "Conținutul tău, gata de folosit", body: "Pornești de la serviciile, prețurile, detaliile echipei și fotografiile existente." },
+        { title: "Alegi designul", body: "Personalizezi aspectul, fonturile și culorile. Creezi și salvezi o versiune de lucru cu oricare abonament." },
+        { title: "Publici cu Plus", body: "Publici site-ul cu Plus, apoi distribui linkul său Zavoia sau codul QR." },
       ],
+      link: "Descoperă Web Studio",
+      note: "Stilurile premium sunt opționale și se cumpără separat, cu plată unică.",
+      desktopAlt: "Site-ul Lumi Beauty, creat cu Web Studio, cu galeria salonului.",
+      phoneAlt: "Site-ul de îngrijire pentru animale Paw & Co, creat cu Web Studio, pe telefon.",
     },
-    pricingStrip: {
-      perMember: "pe membru rezervabil al echipei",
-      perMonth: "pe lună",
-      onePlan: "Un singur plan. Toate funcțiile. Fără comision.",
-      monthlyLine:
-        "Facturat lunar pe membru rezervabil · {trial} zile gratuite de probă · anulezi oricând",
-      ctaPricing: "Vezi toate prețurile",
-      ctaTrial: "Începe perioada gratuită",
+    plans: {
+      title: "Două abonamente. Fără comision la programări.",
+      lead: "Ambele abonamente includ o pagină Zavoia pentru fiecare locație, programări online și calendarul afacerii. Cu Plus, publici propriul site, gestionezi mai multe locații și adaugi oricâți membri în echipă.",
+      ownerIncluded: "Contul tău este inclus",
+      additionalTeamMembers: {
+        one: "{count} membru suplimentar",
+        few: "{count} membri suplimentari",
+        other: "{count} de membri suplimentari",
+      },
+      memberPrice: "Fiecare loc suplimentar pentru echipă costă {price}/lună, indiferent de abonament.",
+      baseDescription: "Gestionează programările și echipa.",
+      plusDescription: "Publică-ți site-ul și gestionează mai multe locații.",
+      plusBenefitsTitle: "Tot ce include Base",
+      baseBenefits: [
+        { title: "Până la {locations}", body: "Fiecare locație are propria pagină Zavoia, unde clienții se programează online în funcție de disponibilitatea ta." },
+        { title: "Până la {members}", body: "Adaugi profesioniști și membri care nu primesc programări, fiecare cu propriul acces și permisiuni." },
+        { title: "Reamintiri și recenzii de la clienți", body: "Setezi reamintiri pe email pentru programările confirmate. Clienții pot lăsa recenzii după vizite finalizate." },
+        { title: "Pregătește-ți site-ul", body: "Creezi și salvezi o versiune de lucru în Web Studio. O publici cu Plus." },
+      ],
+      plusBenefits: [
+        { title: "Publică propriul tău site", body: "Publici site-ul creat în Web Studio, unde clienții îți descoperă afacerea și se programează online. Îl distribui prin linkul său Zavoia sau printr-un cod QR.", studioLink: "Descoperă Web Studio" },
+        { title: "Fără limită de membri în echipă", body: "Îți extinzi echipa în toate locațiile. Fiecare membru suplimentar are nevoie de un loc plătit pentru echipă." },
+        { title: "Până la {locations}", body: "Fiecare locație are propria pagină Zavoia, propriul calendar și propria echipă." },
+      ],
+      trialCta: { base: "Încearcă gratuit {days}", plus: "Începe acum" },
+      trialNotes: {
+        base: "Fără card bancar. Perioada de probă include funcțiile Base.",
+        plus: "Perioada de probă include funcțiile și limitele Base. Alegi Plus pentru publicarea site-ului și limite mai mari.",
+      },
     },
     faq: {
-      kicker: "Întrebări",
-      title: "Ce întreabă proprietarii prima dată",
-      asideLead: "Nu ești sigur că se potrivește domeniului tău? ",
-      asideCta: "Vorbește cu echipa",
-      asideTail: ".",
+      title: "Înainte să începi",
+      aside: "Răspunsuri despre perioada de probă, costuri și programări.",
+      helpPrompt: "Mai ai întrebări?",
+      helpLink: "Vezi centrul de ajutor",
       items: [
         {
-          q: "Chiar nu luați comision?",
-          a: "Niciunul. Clienții te plătesc direct, la fața locului — Zavoia nu atinge niciodată banii, așa că nu avem din ce să luăm un comision. Abonamentul tău este întregul preț.",
+          q: "Cum funcționează perioada de probă?",
+          a: "Perioada de probă gratuită începe când creezi afacerea în Zavoia și include funcțiile Base timp de {days}. Nu ai nevoie de card. Îți configurezi serviciile și echipa, publici paginile locațiilor tale pe Zavoia și activezi programările online.\n\nDacă nu te abonezi la finalul perioadei de probă, paginile publice Zavoia sunt ascunse și reamintirile automate pentru clienți nu se mai trimit. Programările existente nu sunt anulate automat. Poți consulta în continuare calendarul, dar ai nevoie de un abonament activ pentru a adăuga sau modifica programări.",
         },
         {
-          q: "Atunci cum funcționează plățile?",
-          a: "Exact cum funcționează deja. Clienții te plătesc la locație prin orice metode accepți; Zavoia se ocupă de rezervare, reminder-e și recenzii, niciodată de tranzacție. Exact asta îl ține fără comision.",
+          q: "Plătesc comision pentru programări?",
+          a: "Nu. Zavoia nu percepe comision pentru programări, nici pentru cele făcute de clienții care îți descoperă afacerea pe Zavoia.\n\nPlătești abonamentul și locurile suplimentare pentru echipă. Creditele SMS și stilurile premium Web Studio sunt opționale și se cumpără separat.",
         },
         {
-          q: "Am nevoie de o echipă ca să-l folosesc?",
-          a: "Nu. Lucrezi singur cu un singur calendar sau dai fiecărui membru al echipei propria pagină de programări — tu decizi. Programările pot fi atribuite direct unei locații atunci când nu există o persoană anume de rezervat.",
+          q: "Cât costă să adaug membri în echipă?",
+          a: "Contul tău este inclus. Fiecare loc suplimentar pentru echipă costă {seat}/lună și acoperă un membru în toate locațiile afacerii. Au nevoie de un loc și membrii care nu primesc programări.\n\nBase permite până la {baseTeamMembers}, în afară de tine. Plus nu limitează numărul de membri ai echipei. Plătești și locurile nefolosite din abonament. Eliminarea unui membru nu reduce automat factura. Reduci locurile nefolosite din setările de facturare, iar modificarea se aplică la următoarea reînnoire.",
         },
         {
-          q: "Pot adăuga mai multe locații?",
-          a: "Da. Administrezi toate locațiile dintr-un singur cont. Fiecare locație poate avea propria echipă, servicii, calendare și program. Un singur abonament acoperă tot.",
+          q: "Pot publica propriul site cu Zavoia?",
+          a: "Da, cu abonamentul Plus. Poți crea și salva o versiune de lucru în Web Studio cu oricare dintre abonamente, dar publicarea necesită Plus.\n\nSite-ul este separat de paginile publice ale locațiilor tale de pe Zavoia, incluse în ambele abonamente. Stilurile premium Web Studio sunt opționale și se cumpără separat, cu plată unică.",
         },
         {
-          q: "Cum începem?",
-          a: "Adaugă-ți locațiile, serviciile și pe oricine ia programări în dashboard-ul Zavoia Business, apoi deschide calendarul. Majoritatea businessurilor sunt active chiar în aceeași după-amiază, iar primele {trial} zile sunt gratuite.",
+          q: "Îmi pot anula abonamentul oricând?",
+          a: "Da. Abonamentele sunt lunare și poți anula din setările de facturare. Abonamentul rămâne activ până la finalul perioadei pe care ai plătit-o.",
         },
         {
-          q: "Putem anula oricând?",
-          a: "Da. Zavoia funcționează lunar, fără perioadă minimă și fără contract pe termen lung.",
+          q: "Clienții au nevoie de aplicația Zavoia pentru a se programa?",
+          a: "Nu. Clienții se pot programa pe zavoia.com, direct din browser, sau pot folosi aplicația Zavoia. Pentru a finaliza programarea, se autentifică sau își creează un cont Zavoia.",
+        },
+        {
+          q: "Cum plătesc clienții pentru servicii?",
+          a: "Încasezi direct de la clienți, prin metodele de plată pe care le accepți. Zavoia nu procesează plățile pentru serviciile tale.",
+        },
+        {
+          q: "Pot gestiona mai multe locații?",
+          a: "Da. Base include până la {baseLocations}, iar Plus până la {plusLocations}.\n\nPentru fiecare locație, gestionezi pagina Zavoia, calendarul, echipa, serviciile și programul de lucru.",
+        },
+        {
+          q: "Pot adăuga programări telefonice și vizite fără programare?",
+          a: "Da. Le adaugi manual în același calendar în care apar programările online, ca să gestionezi toate programările într-un singur loc.",
+        },
+        {
+          q: "Se potrivește Zavoia afacerii mele?",
+          a: "Zavoia se potrivește afacerilor în care clienții se programează la tine sau la cineva din echipa ta: saloane, clinici, service-uri auto, antrenori personali sau meditatori.\n\nZavoia nu oferă programări pentru clase de grup sau rezervări pentru camere ori posturi de lucru dintr-un service.",
         },
       ],
     },
-    ctaBand: {
-      kicker: "Zavoia pentru business",
-      title: "Fii descoperit, rezervat și re-rezervat de clienți locali.",
-      sub: "Primele 2 săptămâni sunt gratuite. Fără comision, niciodată. Configurează-te azi.",
-      ctaPrimary: "Începe gratuit",
-      ctaSecondary: "Vezi prețurile",
+    close: {
+      titleLead: "Fă loc pentru",
+      titlePre: "următorul ",
+      titleAccent: "client.",
+      lead: "Îți configurezi afacerea, locația, serviciile și echipa. Publici pagina și activezi programările online când ești pregătit.",
     },
   },
   pricing: {
-    pageTitle: "Prețuri — Zavoia",
+    pageTitle: "Prețuri: două abonamente, fără comision la programări",
     pageDescription:
-      "Un singur plan, cu preț pe membru rezervabil al echipei. Toate funcțiile incluse, {monthly} RON pe membru pe lună, facturat lunar. Fără comision pe programările tale, niciodată.",
-    head: {
-      kicker: "Prețuri",
-      title: "Un singur plan. Preț după echipă, nu după nivel.",
-      sub: "Toate funcțiile incluse, {monthly} RON pe membru rezervabil al echipei pe lună, facturat lunar. Fără comision pe programările tale, niciodată.",
+      "Base costă {base}, iar Plus {plus} pe lună, plus {seat} pentru fiecare loc suplimentar pentru echipă. Contul tău este inclus. Fără comision la programări sau taxă de configurare. Încearcă gratuit {days}, fără card.",
+    hero: {
+      titleLead: "Abonamente simple.",
+      titlePre: "Fără comision la ",
+      titleAccent: "programări.",
+      lead: "Programări online și gestionarea echipei, cu propriul site pe Plus.",
+      memberPrice: "Contul tău este inclus. Fiecare loc suplimentar pentru echipă costă {price}/lună și poate fi folosit de un membru în toate locațiile afacerii."
     },
-    plan: {
-      trialBadge: "{trial} zile gratuite de probă",
-      perMember: "pe membru rezervabil al echipei",
-      perMonth: "pe lună",
-      blurb:
-        "Toate funcțiile, pentru orice business — de la un studio cu un singur scaun la un service cu douăzeci de boxe. Fără comision pe programări. Fără taxă de instalare. Fără contract.",
-      features: [
-        "Programări și clienți nelimitați",
-        "Listare în marketplace în tot orașul tău",
-        "Reminder-e, avansuri și protecție anti-neprezentare",
-        "Plăți cu transfer zilnic",
-        "Profiluri, portofolii și recenzii pe fiecare membru",
-        "Statistici și exporturi",
-      ],
-      cta: "Începe perioada de probă gratuită",
-    },
-    calc: {
-      kicker: "Cât ai plăti?",
-      title: "Calculează costul pentru echipa ta",
-      membersLabel: "Membri rezervabili ai echipei",
-      trackSolo: "SOLO",
-      trackMax: "25",
-      total: "Totalul tău",
-      perMonth: "/ lună",
+    billing: {
+      currencyNote: "Prețuri afișate în {currency}. Moneda de facturare depinde de țara afacerii tale.",
+      terms: "Facturare lunară. Fără taxă de configurare. Anulezi oricând.",
+      larger: "Ai nevoie de mai mult de {locations} locații?",
+      helpLink: "Vezi centrul de ajutor"
     },
     compare: {
-      kicker: "Diferența",
-      title: "Fără comision. Vorbim serios.",
-      blurb:
-        "Majoritatea marketplace-urilor opresc un procent din prima vizită a fiecărui client nou — de obicei 20–30% — sau percep o taxă doar ca să fii vizibil. Pe Zavoia, un client care te găsește prin marketplace costă exact cât un client obișnuit: nimic în plus față de abonamentul tău.",
-      checks: [
-        "Fără taxe de achiziție pentru clienți noi — niciodată",
-        "Fără taxe pe rezervare sau de „promovare” ca să rămâi vizibil",
-      ],
-      receiptHeader: "CLIENT NOU · PRIMA VIZITĂ",
-      lineService: "Balayage + tonifiere",
-      lineTip: "Bacșiș",
-      lineVisitTotal: "Total vizită",
-      lineFee: "Comision marketplace Zavoia",
-      lineYouKeep: "Tu păstrezi",
-      footnoteLine1: "ÎN ALTĂ PARTE, ACEASTĂ VIZITĂ TE COSTĂ 170–280 RON",
-      footnoteLine2: "ÎN COMISION PENTRU CLIENT NOU",
+      title: "Compară abonamentele",
+      lead: "Vezi diferențele dintre Base și Plus și ce include fiecare abonament.",
+      baseSummary: "Pentru programări și echipă",
+      plusSummary: "Propriul site și mai multă capacitate",
+      upTo: "Până la",
+      unlimited: "Nelimitat",
+      paidMemberNote: "Fiecare loc suplimentar pentru echipă costă {price}/lună, indiferent de abonament. Contul tău este inclus.",
+      caption: "Compară funcțiile și limitele abonamentelor Base și Plus",
+      feature: "Funcționalitate",
+      locations: "Locații",
+      teamMembers: "Locuri suplimentare pentru echipă",
+      website: "Site-ul tău din Web Studio",
+      websiteBase: "Îl creezi și salvezi o versiune de lucru",
+      websitePlus: "Îl creezi, îl publici și îl distribui"
     },
-    faq: {
-      kicker: "Întrebări",
-      title: "Prețuri, fără asteriscuri",
+    included: {
+      title: "Incluse în ambele abonamente",
+      lead: "Instrumentele de care ai nevoie zi de zi, indiferent de abonament.",
+      groups: [
+        {
+          title: "Fii descoperit",
+          items: [
+            "O pagină publică Zavoia pentru fiecare locație",
+            "Programări online în funcție de disponibilitatea ta reală",
+            "Recenzii de la clienți cu programări finalizate"
+          ]
+        },
+        {
+          title: "Toate programările, într-un singur calendar",
+          items: [
+            "Programări online și cele adăugate de tine pentru clienții de la telefon sau fără programare",
+            "Actualizări despre anulări și reprogramări",
+            "Limite de programare, pauze între vizite și zile libere"
+          ]
+        },
+        {
+          title: "Organizează serviciile și echipa",
+          items: [
+            "Conturi, acces și permisiuni pentru echipă",
+            "Servicii și pachete, cu prețuri și durate pentru fiecare membru",
+            "Alocarea serviciilor și a echipei pentru fiecare locație"
+          ]
+        },
+        {
+          title: "Reamintiri și istoricul clienților",
+          items: [
+            "Reamintiri pe email pentru programările confirmate",
+            "Vezi istoricul programărilor fiecărui client și îl exporți în format PDF"
+          ]
+        }
+      ]
+    },
+    addons: {
+      title: "Opțiuni extra, când ai nevoie",
+      lead: "Cumpărături opționale, separate de abonamentul lunar.",
+      studioLink: "Descoperă Web Studio",
       items: [
         {
-          q: "Cine se ia în calcul la prețul pe membru?",
-          a: "Doar persoanele la care clienții pot rezerva timp. Un salon cu cinci stiliști și două recepționere plătește pentru cinci. Proprietarii și personalul administrativ folosesc panoul gratuit.",
+          title: "Credite SMS",
+          body: "Reamintirile pe email sunt incluse. Adaugi reamintiri prin SMS cu pachete opționale de credite, cumpărate separat din panoul afacerii.",
+          availability: "Disponibile cu oricare abonament plătit."
         },
         {
-          q: "Chiar nu există comision sau taxă de rezervare?",
-          a: "Chiar nu. Abonamentul este întregul nostru venit din businessul tău. Programările, inclusiv cele repetate, și clienții care te-au găsit prin marketplace costă toate la fel: nimic în plus.",
-        },
-        {
-          q: "Ce se întâmplă când echipa mea își schimbă mărimea?",
-          a: "Factura ta se ajustează automat. Adaugi un membru la mijlocul lunii și plătești o sumă proporțională; elimini unul și factura următoare scade.",
-        },
-        {
-          q: "Cum funcționează perioada de probă gratuită?",
-          a: "Produsul complet, toate funcțiile, {trial} zile, fără card necesar pentru a începe. Preia programări reale în timpul probei — dacă pleci, datele tale pleacă împreună cu tine.",
-        },
-        {
-          q: "Prețurile includ TVA?",
-          a: "Prețurile afișate nu includ TVA, care se adaugă la finalizare acolo unde se aplică. Facturile cu TVA sunt emise automat la fiecare ciclu de facturare.",
-        },
-        {
-          q: "Cum funcționează facturarea?",
-          a: "Lunar, fără perioadă minimă. Ești facturat pe membru rezervabil în fiecare lună și poți anula oricând — fără angajament anual.",
-        },
-      ],
+          title: "Stiluri premium pentru site",
+          body: "Îți creezi site-ul cu stilurile incluse. Previzualizezi stilurile premium în Web Studio și le cumperi pe cele dorite opțional, cu plată unică.",
+          availability: "Cumpărarea stilurilor și publicarea site-ului necesită Plus."
+        }
+      ]
     },
-    cta: {
-      kicker: "Gata când ești și tu",
-      title: "Încearcă Zavoia gratuit timp de 2 săptămâni",
-      sub: "Toate funcțiile incluse. Fără card.",
-      primary: "Începe gratuit",
+    faq: {
+      title: "Întrebări despre prețuri",
+      lead: "Cum funcționează perioada de probă, locurile pentru echipă și abonamentul lunar.",
+      helpPrompt: "Ai nevoie de mai multe detalii?",
+      helpLink: "Vezi centrul de ajutor",
+      items: [
+        {
+          q: "Cum funcționează perioada de probă?",
+          a: "Perioada de probă gratuită de {days} începe când îți creezi afacerea și include funcțiile și limitele Base. Nu ai nevoie de card. Completezi datele de plată și de facturare când te abonezi.\n\nDacă nu te abonezi la finalul perioadei de probă, paginile publice Zavoia sunt ascunse, iar reamintirile programate pentru clienți se opresc. Programările existente nu sunt anulate automat. Poți vedea în continuare calendarul, dar ai nevoie de un abonament activ pentru a adăuga sau modifica programări."
+        },
+        {
+          q: "Cum se calculează costul pentru echipă?",
+          a: "Contul tău este inclus. Fiecare loc suplimentar pentru echipă costă {seat}/lună și acoperă un membru în toate locațiile afacerii. Au nevoie de un loc și membrii care nu primesc programări.\n\nBase permite până la {baseTeamMembers}, în afară de tine. Plus nu limitează numărul de membri ai echipei. Locurile suplimentare au același preț la ambele abonamente. Plătești și locurile nefolosite, așa că eliminarea unui membru nu reduce automat factura."
+        },
+        {
+          q: "Ce se întâmplă când adaug sau reduc locurile pentru echipă?",
+          a: "Adăugarea locurilor se aplică după plata reușită, cu o diferență calculată proporțional pentru restul perioadei curente de facturare. Reducerea locurilor nefolosite se aplică la următoarea reînnoire. Faci aceste modificări din setările de facturare."
+        },
+        {
+          q: "Pot trece de la Base la Plus și invers?",
+          a: "Da, din setările de facturare. Trecerea la Plus se aplică după plata reușită, cu o diferență calculată proporțional pentru restul perioadei de facturare. Trecerea la Base se aplică la următoarea reînnoire.\n\nCând trecerea la Base intră în vigoare, site-ul tău Web Studio nu mai este public. Poți edita în continuare versiunea de lucru, iar stilurile premium cumpărate rămân ale tale. Paginile publice Zavoia ale locațiilor sunt incluse în ambele abonamente."
+        },
+        {
+          q: "Îmi pot anula abonamentul oricând?",
+          a: "Da. Anulezi din setările de facturare. Abonamentul plătit rămâne activ până la finalul perioadei pentru care ai plătit."
+        },
+        {
+          q: "Primesc factură?",
+          a: "Da. Facturile sunt disponibile în secțiunea de facturare a afacerii, pe baza datelor pe care le completezi."
+        },
+        {
+          q: "Plătesc comision pentru programări?",
+          a: "Nu. Zavoia nu percepe comision pentru programări, inclusiv pentru cele făcute de clienții care te descoperă în marketplace. Plătești abonamentul, locurile suplimentare pentru echipă și opțiunile extra pe care le alegi."
+        },
+        {
+          q: "Clienții plătesc prin Zavoia?",
+          a: "Nu. Încasezi direct de la clienți, prin metodele de plată pe care le accepți. Zavoia nu procesează plățile pentru programări."
+        }
+      ]
     },
+    plansLabel: "Abonamente",
   },
   appointments: {
     title: "Programări",
@@ -2051,7 +2151,7 @@ export const ro: Dictionary = {
       "Nu am putut încărca această programare. Te rugăm să încerci din nou.",
   },
   help: {
-    pageTitle: "Centru de ajutor — Zavoia",
+    pageTitle: "Centru de ajutor",
     pageDescription:
       "Răspunsuri la întrebările care ni se pun cel mai des despre programări, plăți și folosirea Zavoia.",
     head: {
@@ -2076,10 +2176,6 @@ export const ro: Dictionary = {
           {
             q: "Pot reprograma sau anula?",
             a: "Da — gratuit, până la intervalul de anulare al locației, de obicei cu 24 de ore înainte de programare.",
-          },
-          {
-            q: "Cum funcționează programările recurente?",
-            a: "Seriile de programări se repetă la un interval ales de tine și arată progresul, de exemplu „2 din 4”, ca să le poți urmări.",
           },
         ],
       },
@@ -2134,11 +2230,11 @@ export const ro: Dictionary = {
       {
         id: "business",
         icon: "flash",
-        label: "Pentru business",
+        label: "Pentru afaceri",
         items: [
           {
             q: "Cum îmi listez businessul?",
-            a: "Zavoia pentru business oferă fiecărui membru al echipei un profil public, un calendar care se protejează singur și mementouri care reduc neprezentările. Începe o perioadă de probă gratuită din pagina Pentru business.",
+            a: "Zavoia pentru afaceri oferă fiecărui membru al echipei un profil public, un calendar care se protejează singur și mementouri care reduc neprezentările. Începe o perioadă de probă gratuită din pagina Pentru afaceri.",
           },
         ],
       },

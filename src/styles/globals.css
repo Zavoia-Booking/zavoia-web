@@ -3,7 +3,8 @@
 /* ─────────────────────────────────────────────
    Zavoia Web — design tokens (ported 1:1 from docs/web.css)
    Fonts are declared in src/styles/fonts.ts (next/font) and exposed
-   to CSS via the --font-geist-* CSS variables on <body>.
+   to CSS via the --font-geist-* CSS variables on <html>, where these
+   root font tokens resolve before their values are inherited.
    ───────────────────────────────────────────── */
 :root {
   --mobile-tabs-h: calc(66px + env(safe-area-inset-bottom));
@@ -106,8 +107,8 @@
    ───────────────────────────────────────────── */
 @theme inline {
   /* Fonts */
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Brand neutrals */
   --color-canvas: var(--c-canvas);
@@ -1066,117 +1067,6 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
   }
 }
 
-/* ── For Business — hero phone, gentle drift + industry chips ── */
-/* Hero floating phone — gentle vertical drift */
-@keyframes fbfloat-a { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
-.fbfloat { animation: fbfloat-a 5.6s var(--ease-soft) infinite; }
-
-/* Hero phone — crafted product mock */
-.fbphone {
-  position: relative; width: 300px; border-radius: 44px; background: #0d0d0c; padding: 10px;
-  box-shadow: 0 34px 80px rgba(0,0,0,0.5), 0 8px 22px rgba(0,0,0,0.34);
-}
-.fbphone-screen { border-radius: 35px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
-
-/* Industries chips */
-.fbchips { display: flex; flex-wrap: wrap; gap: 10px; }
-.fbchip {
-  display: inline-flex; align-items: center; gap: 9px; padding: 9px 15px;
-  border-radius: 999px; border: 1px solid rgba(28,28,26,0.10); background: #fff;
-  font-size: 14px; font-weight: 600; letter-spacing: -0.01em; color: var(--c-800);
-  box-shadow: var(--sh-sm);
-  transition: transform .18s var(--ease-out), box-shadow .2s var(--ease-out), border-color .2s var(--ease-soft);
-}
-.fbchip:hover { transform: translateY(-2px); box-shadow: var(--sh-md); border-color: rgba(28,28,26,0.2); }
-.fbchip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-
-@media (prefers-reduced-motion: reduce) {
-  .fbfloat { animation: none; }
-}
-
-/* ── For Business — "one screen" bento on an ink theatre (web.css:1000-1065) ── */
-.fbtheatre {
-  position: relative; border-radius: var(--r-2xl); overflow: hidden;
-  background: var(--c-ink); padding: clamp(20px, 2.6vw, 40px);
-}
-.fbtheatre-glow {
-  position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(56% 78% at 18% -12%, color-mix(in oklch, var(--p-500) 22%, transparent), transparent 60%);
-}
-.fbbento {
-  position: relative; display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: clamp(16px, 1.8vw, 24px); align-items: start;
-}
-.fbbento-col { display: flex; flex-direction: column; gap: clamp(16px, 1.8vw, 24px); }
-@media (max-width: 880px) { .fbbento { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 560px) { .fbbento { grid-template-columns: 1fr; } }
-
-/* Bento tile hover-lift + caption accent */
-.fbtile-cap { transition: color .2s var(--ease-soft); }
-.fbtile:hover .fbtile-cap { color: var(--p-400); }
-.fbtile-art { transition: transform .28s var(--ease-out); }
-.fbtile:hover .fbtile-art { transform: translateY(-5px); }
-
-/* Live pulse dot (bento diary "Filling up") */
-.fbpulse { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--s-success-600); display: inline-block; flex-shrink: 0; }
-.fbpulse::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--s-success-600); animation: zw-feat-ping 2.4s var(--ease-out) infinite; }
-
-/* Why-switch comparison */
-.fbcompare-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-.fbcompare-wrap::-webkit-scrollbar { display: none; }
-.fbcompare { min-width: 700px; }
-.fbcompare-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; align-items: stretch; }
-.fbcompare-row:not(.fbcompare-head) { border-top: 1px solid rgba(28,28,26,0.08); }
-.fbcompare-rowlabel {
-  padding: 15px 18px 15px 0; font-size: 14.5px; font-weight: 600; letter-spacing: -0.012em;
-  color: var(--c-900); display: flex; align-items: center;
-}
-.fbcompare-cell { padding: 15px 18px; display: flex; align-items: center; gap: 9px; }
-.fbcompare-txt { font-size: 13.5px; line-height: 1.3; }
-.fbcompare-zav { background: color-mix(in oklch, var(--p-500) 7%, transparent); }
-.fbcompare-colname {
-  font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--c-700);
-}
-.fbcompare-head .fbcompare-zav .fbcompare-colname { color: var(--p-700); }
-.fbcompare-row:first-child .fbcompare-zav { border-radius: var(--r-lg) var(--r-lg) 0 0; }
-.fbcompare-row:last-child .fbcompare-zav { border-radius: 0 0 var(--r-lg) var(--r-lg); }
-
-/* Comparison — row hover + Zavoia column accent + CTA */
-.fbcompare-zav { transition: background-color .2s var(--ease-soft); }
-.fbcompare-rowlabel, .fbcompare-cell { transition: background-color .2s var(--ease-soft); }
-.fbcompare-row:not(.fbcompare-head):hover .fbcompare-rowlabel,
-.fbcompare-row:not(.fbcompare-head):hover .fbcompare-cell:not(.fbcompare-zav) { background: rgba(28,28,26,0.025); }
-.fbcompare-row:not(.fbcompare-head):hover .fbcompare-zav { background: color-mix(in oklch, var(--p-500) 12%, transparent); }
-.fbcompare-head .fbcompare-zav { border-top: 2px solid var(--p-500); }
-.fbswitch-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin-top: clamp(24px, 3vw, 36px); }
-.fbswitch-cta-note { font-size: 13.5px; color: var(--c-600); max-width: 430px; line-height: 1.5; }
-
-@media (prefers-reduced-motion: reduce) {
-  .fbpulse::after { animation: none; }
-}
-
-/* Live-in-an-afternoon setup strip (ported from docs/web.css:1097-1103) */
-.fbsetup { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(20px, 3vw, 44px); }
-@media (max-width: 760px) {
-  .fbsetup { grid-template-columns: 1fr; gap: 0; }
-  .fbsetup > div { padding: 18px 0; border-top: 1px solid rgba(28,28,26,0.08); }
-  .fbsetup > div:first-child { border-top: 0; }
-}
-
-/* FAQ — sticky aside + accordion column (ported from docs/web.css .fbfaq-grid) */
-.fbfaq-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
-  gap: clamp(28px, 4vw, 72px);
-  align-items: start;
-}
-.fbfaq-aside { position: sticky; top: calc(var(--nav-h) + 28px); }
-@media (max-width: 820px) {
-  .fbfaq-grid { grid-template-columns: 1fr; gap: 22px; }
-  .fbfaq-aside { position: static; top: auto; }
-}
-
 /* ===== The Journal (blog) — ported from docs/web.css ===== */
 
 /* Masonry-ish responsive grid (web.css:512-521) */
@@ -1468,25 +1358,6 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 /* The rail lives in the left page margin — only show it when the viewport is
    wide enough for a 42px control, 20px gap and 14px edge outside the 1400px content. */
 @media (max-width: 1552px) { .zw-share-rail { display: none; } }
-
-/* ── Pricing — calculator range slider + receipt tilt ── */
-.zw-range {
-  -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
-  border-radius: 999px; background: var(--c-200); outline: none; cursor: pointer;
-}
-.zw-range::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%;
-  background: var(--c-ink); border: 0; cursor: grab;
-  box-shadow: 0 0 0 1px rgba(28,28,26,0.06), var(--sh-md);
-}
-.zw-range::-moz-range-thumb {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: var(--c-ink); border: 0; cursor: grab;
-}
-
-/* Pricing receipt — floats on hover */
-.zw-receipt { transform: rotate(-1.2deg); transition: transform .35s var(--ease-out), box-shadow .35s var(--ease-out); }
-.zw-receipt:hover { transform: rotate(-0.4deg) translateY(-6px); box-shadow: var(--sh-xl); }
 
 /* ── Help centre — editorial Q&A + sticky "Good to know" sidebar ── */
 .zw-help-search {
@@ -1987,29 +1858,6 @@ body:has(.zw-mobile-actionbar) .zw-footer-spacer { height: 136px; }
      (the sliding underline measures offsetLeft, which scrolls with it). */
   .zw-jtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .zw-jtabs::-webkit-scrollbar { display: none; }
-
-  /* For-business comparison: stack each feature as a card instead of a
-     700px side-scrolling grid whose highlighted Zavoia column was clipped. */
-  .fbcompare-wrap { overflow: visible; }
-  .fbcompare { min-width: 0; }
-  .fbcompare-head { display: none; }
-  .fbcompare-row { grid-template-columns: minmax(0, 1fr); padding: 6px 0 14px; }
-  .fbcompare-rowlabel { padding: 12px 0 8px; }
-  .fbcompare-cell { padding: 11px 12px; border-radius: 12px; }
-  .fbcompare-cell + .fbcompare-cell { margin-top: 4px; }
-  .fbcompare-cell::before {
-    content: attr(data-col);
-    flex: 0 0 96px;
-    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
-    letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-500);
-    line-height: 1.3;
-  }
-  .fbcompare-zav::before { color: var(--p-700); }
-  .fbcompare-txt { flex: 1; min-width: 0; }
-  .fbcompare-row:first-child .fbcompare-zav,
-  .fbcompare-row:last-child .fbcompare-zav { border-radius: 12px; }
-  .fbcompare-row:not(.fbcompare-head):hover .fbcompare-rowlabel,
-  .fbcompare-row:not(.fbcompare-head):hover .fbcompare-cell:not(.fbcompare-zav) { background: transparent; }
 }
 
 /* iOS Safari zooms the whole page when a focused field's font-size is under

@@ -7,7 +7,7 @@ const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev',
   env: {
     ...process.env,
     TZ: 'UTC',
-    NEXT_DIST_DIR: '.next-professionals-ui',
+    NEXT_DIST_DIR: process.env.NEXT_DIST_DIR || '.next-professionals-ui',
     NEXT_PUBLIC_API_URL: `http://localhost:${apiPort}`,
   },
 });

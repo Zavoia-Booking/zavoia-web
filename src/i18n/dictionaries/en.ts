@@ -134,6 +134,7 @@ export const en: {
     viewIndustryLabel: string;
     emptyTitle: string;
     emptyBody: string;
+    byCityHeading: string;
   };
   category: {
     titleTemplate: string;
@@ -660,6 +661,7 @@ export const en: {
     about: string;
     bundles: string;
     bundleSave: string;
+    bundleTag: string;
     hours: string;
     location: string;
     address: string;
@@ -760,6 +762,10 @@ export const en: {
     nextAvailable: string;
     jumpToNext: string;
     slotsCountLabel: string;
+    slotsCountOne: string;
+    dayClosed: string;
+    dayFull: string;
+    dayUnavailable: string;
     morning: string;
     afternoon: string;
     evening: string;
@@ -768,6 +774,13 @@ export const en: {
     anyAvailable: string;
     staffChoiceRequired: string;
     staffLabel: string;
+    staffAnyAt: string;
+    staffAnyEach: string;
+    staffAnyThis: string;
+    staffOrChoose: string;
+    staffPerService: string;
+    staffSameForAll: string;
+    staffSharedHint: string;
     serviceCount: string;
     serviceCountOne: string;
     dateLabel: string;
@@ -787,6 +800,11 @@ export const en: {
     reschedulingUnavailable: string;
     payAtVenueTitle: string;
     payAtVenueNote: string;
+    reviewChange: string;
+    reviewChangeVisit: string;
+    reviewServicesTitle: string;
+    reviewEditServices: string;
+    staffAssigned: string;
     blockedScreen: {
       businessTitle: string;
       businessBody: string;
@@ -1216,8 +1234,9 @@ export const en: {
       planLabel: string;
       planName: string;
       planBody: string;
-      placeholderLabel: string;
-      placeholderBody: string;
+      perMonth: string;
+      teamPrice: string;
+      trialNote: string;
       bullets: string[];
       stylesLabel: string;
       stylesTitle: string;
@@ -1243,202 +1262,211 @@ export const en: {
       secondary: string;
     };
   };
+  businessMarketing: {
+    signIn: string;
+    signInPrompt: string;
+    trialCta: string;
+    trialDays: string;
+    noCard: string;
+    helpLink: string;
+    counts: {
+      days: { one: string; few: string; other: string };
+      locations: { one: string; few: string; other: string };
+      teamMembers: { one: string; few: string; other: string };
+    };
+    plans: {
+      perMonth: string;
+      upTo: string;
+      teamLimit: string;
+      unlimitedTeam: string;
+      unavailable: string;
+      baseLimitNotice: string;
+      subscription: string;
+      memberPrice: string;
+      totalFor: string;
+      justYou: string;
+      youAnd: string;
+      announcement: string;
+      base: {
+        name: string;
+        line: string;
+        note: string;
+        features: string[];
+      };
+      plus: {
+        name: string;
+        tag: string;
+        line: string;
+        note: string;
+        features: string[];
+      };
+    };
+    fine: {
+      currency: string;
+      currencyNames: { RON: string; EUR: string };
+      noSetup: string;
+      sms: string;
+      compare: string;
+      bigger: string;
+    };
+  };
   forBusiness: {
     pageTitle: string;
     pageDescription: string;
-    dashboardToast: string;
     hero: {
-      kicker: string;
       titleLead: string;
-      titleMid: string;
-      titleMuted: string;
-      subcopy: string;
-      ctaPrimary: string;
-      ctaPricing: string;
-      trust: {
-        noCommission: string;
-        noFees: string;
-        freeTrial: string;
-      };
-    };
-    phone: {
-      imgAlt: string;
-      name: string;
-      rating: string;
-      pickTime: string;
-      times: string[];
-      confirm: string;
-      footnote: string;
-    };
-    industries: {
-      kicker: string;
+      titlePre: string;
+      titleAccent: string;
       lead: string;
-      items: { label: string }[];
+      trialCta: string;
+      pricingLink: string;
+      noCommission: string;
+      streetLabel: string;
+      support: string;
     };
-    overview: {
-      kicker: string;
-      title: string;
-      subcopy: string;
-      tiles: {
-        diary: string;
-        demand: string;
-        defence: string;
-        reviews: string;
-        team: string;
-        locations: string;
-      };
-      calendar: {
-        head: string;
-        fillingUp: string;
-        rows: { time: string; label: string; state: "booked" | "open" }[];
-      };
-      search: {
-        head: string;
-        topResult: string;
-        logo: string;
-        name: string;
-        meta: string;
-        verified: string;
-        book: string;
-        note: string;
-      };
-      reminder: {
-        title: string;
-        sub: string;
-        reschedule: string;
-        confirm: string;
-      };
-      review: {
-        name: string;
-        verified: string;
-        quote: string;
-      };
-      teamCard: {
-        name: string;
-        meta: string;
-        nextFree: string;
-        book: string;
-      };
-      locationsCard: {
-        head: string;
-        branches: string;
-        rows: { name: string; sub: string; on: boolean }[];
-      };
+    benefits: {
+      label: string;
+      trial: string;
+      noCard: string;
+      noCommission: string;
     };
-    switch: {
-      kicker: string;
+    found: {
       title: string;
-      subcopyLead: string;
-      subcopyEm: string;
-      subcopyTail: string;
-      colZavoia: string;
-      colMarket: string;
-      colSoft: string;
-      rows: {
-        label: string;
-        zav: string;
-        market: string;
-        soft: string;
-      }[];
+      lead: string;
       cta: string;
-      ctaNote: string;
+      points: { title: string; body: string }[];
+      artwork: {
+        desktopAlt: string;
+        mobileAlt: string;
+      };
     };
-    setup: {
+    run: {
       title: string;
-      trialBadge: string;
-      steps: {
-        n: string;
-        title: string;
-        body: string;
-      }[];
+      lead: string;
+      features: { title: string; body: string }[];
+      artwork: {
+        desktopAlt: string;
+        mobileAlt: string;
+      };
     };
-    testimonials: {
-      kicker: string;
-      prevLabel: string;
-      nextLabel: string;
-      items: {
-        biz: string;
-        photo: string;
-        quote: string;
-        name: string;
-        role: string;
-        context: string;
-      }[];
+    app: {
+      titleLead: string;
+      titlePre: string;
+      titleAccent: string;
+      lead: string;
+      features: { title: string; body: string }[];
+      webLink: string;
+      platformsLabel: string;
+      downloadTitle: string;
+      downloadDescription: string;
+      assignmentsAlt: string;
+      marketplaceAlt: string;
     };
-    pricingStrip: {
-      perMember: string;
-      perMonth: string;
-      onePlan: string;
-      monthlyLine: string;
-      ctaPricing: string;
-      ctaTrial: string;
+    life: {
+      title: string;
+      lead: string;
+      scheduleAlt: string;
+      steps: { title: string; body: string }[];
+    };
+    studio: {
+      planLabel: string;
+      title: string;
+      lead: string;
+      features: { title: string; body: string }[];
+      link: string;
+      note: string;
+      desktopAlt: string;
+      phoneAlt: string;
+    };
+    plans: {
+      title: string;
+      lead: string;
+      ownerIncluded: string;
+      additionalTeamMembers: { one: string; few: string; other: string };
+      memberPrice: string;
+      baseDescription: string;
+      plusDescription: string;
+      plusBenefitsTitle: string;
+      baseBenefits: { title: string; body: string; studioLink?: string }[];
+      plusBenefits: { title: string; body: string; studioLink?: string }[];
+      trialCta: { base: string; plus: string };
+      trialNotes: { base: string; plus: string };
     };
     faq: {
-      kicker: string;
       title: string;
-      asideLead: string;
-      asideCta: string;
-      asideTail: string;
+      aside: string;
+      helpPrompt: string;
+      helpLink: string;
       items: { q: string; a: string }[];
     };
-    ctaBand: {
-      kicker: string;
-      title: string;
-      sub: string;
-      ctaPrimary: string;
-      ctaSecondary: string;
+    close: {
+      titleLead: string;
+      titlePre: string;
+      titleAccent: string;
+      lead: string;
     };
   };
   pricing: {
     pageTitle: string;
     pageDescription: string;
-    head: {
-      kicker: string;
-      title: string;
-      sub: string;
+    hero: {
+      titleLead: string;
+      titlePre: string;
+      titleAccent: string;
+      lead: string;
+      memberPrice: string;
     };
-    plan: {
-      trialBadge: string;
-      perMember: string;
-      perMonth: string;
-      blurb: string;
-      features: string[];
-      cta: string;
-    };
-    calc: {
-      kicker: string;
-      title: string;
-      membersLabel: string;
-      trackSolo: string;
-      trackMax: string;
-      total: string;
-      perMonth: string;
+    billing: {
+      currencyNote: string;
+      terms: string;
+      larger: string;
+      helpLink: string;
     };
     compare: {
-      kicker: string;
       title: string;
-      blurb: string;
-      checks: string[];
-      receiptHeader: string;
-      lineService: string;
-      lineTip: string;
-      lineVisitTotal: string;
-      lineFee: string;
-      lineYouKeep: string;
-      footnoteLine1: string;
-      footnoteLine2: string;
+      lead: string;
+      baseSummary: string;
+      plusSummary: string;
+      upTo: string;
+      unlimited: string;
+      paidMemberNote: string;
+      caption: string;
+      feature: string;
+      locations: string;
+      teamMembers: string;
+      website: string;
+      websiteBase: string;
+      websitePlus: string;
+    };
+    included: {
+      title: string;
+      lead: string;
+      groups: {
+        title: string;
+        items: string[];
+      }[];
+    };
+    addons: {
+      title: string;
+      lead: string;
+      studioLink: string;
+      items: {
+        title: string;
+        body: string;
+        availability: string;
+      }[];
     };
     faq: {
-      kicker: string;
       title: string;
-      items: { q: string; a: string }[];
+      lead: string;
+      helpPrompt: string;
+      helpLink: string;
+      items: {
+        q: string;
+        a: string;
+      }[];
     };
-    cta: {
-      kicker: string;
-      title: string;
-      sub: string;
-      primary: string;
-    };
+    plansLabel: string;
   };
   appointments: {
     title: string;
@@ -1799,8 +1827,8 @@ export const en: {
       googlePlay: "Google Play",
       ios: "For iOS",
       android: "For Android",
-      scheduleAlt: "Zavoia schedule in an iPhone mockup, with sample personal training, vehicle inspection and guitar lesson appointments.",
-      mapAlt: "Zavoia map in an iPhone mockup, with sample locations for fitness, education, automotive, pet care and home services.",
+      scheduleAlt: "The Zavoia app showing upcoming and past example appointments, with services, times, prices and businesses.",
+      mapAlt: "The Zavoia app’s map with industry pins for example businesses in Bucharest.",
       downloadsLabel: "Zavoia app",
     },
     webStudio: {
@@ -1850,6 +1878,7 @@ export const en: {
     viewIndustryLabel: "Explore {industry}",
     emptyTitle: "No industries to show yet",
     emptyBody: "You can still explore businesses on Zavoia.",
+    byCityHeading: "Industries by city",
   },
   category: {
     titleTemplate: "{industry} in {city}",
@@ -2426,8 +2455,9 @@ export const en: {
     team: "Team",
     reviews: "Reviews",
     about: "About",
-    bundles: "Packages",
+    bundles: "Bundles",
     bundleSave: "Save",
+    bundleTag: "Bundle",
     hours: "Opening hours",
     location: "Location",
     address: "Address",
@@ -2533,6 +2563,10 @@ export const en: {
     nextAvailable: "Next available: {date}",
     jumpToNext: "Jump to next available",
     slotsCountLabel: "{count} slots",
+    slotsCountOne: "{count} slot",
+    dayClosed: "Closed",
+    dayFull: "Full",
+    dayUnavailable: "Unavailable",
     morning: "Morning",
     afternoon: "Afternoon",
     evening: "Evening",
@@ -2542,6 +2576,13 @@ export const en: {
     staffChoiceRequired:
       "Price and time differ by professional — choose who you’d like.",
     staffLabel: "Professional",
+    staffAnyAt: "Whoever is free at {time}",
+    staffAnyEach: "Whoever is free for each service",
+    staffAnyThis: "Whoever is free for this service",
+    staffOrChoose: "Or choose someone",
+    staffPerService: "Choose per service",
+    staffSameForAll: "Same for all services",
+    staffSharedHint: "Applies to all your services.",
     serviceCount: "{count} services · {duration}",
     serviceCountOne: "{count} service · {duration}",
     dateLabel: "Date",
@@ -2550,9 +2591,9 @@ export const en: {
     booking: "Booking…",
     signInToBook: "Sign in to book",
     successTitle: "You're booked",
-    successBody: "{services} at {business}",
+    successBody: "See you at {business}.",
     pendingTitle: "Appointment requested",
-    pendingBody: "{services} at {business} — awaiting confirmation.",
+    pendingBody: "{business} confirms each booking manually. We'll let you know as soon as they reply.",
     viewAppointment: "View appointment",
     done: "Done",
     close: "Close",
@@ -2561,6 +2602,11 @@ export const en: {
     reschedulingUnavailable: "This appointment cannot be rescheduled online.",
     payAtVenueTitle: "Pay at the venue",
     payAtVenueNote: "Nothing to pay now — settle directly with {business} after your visit.",
+    reviewChange: "Change",
+    reviewChangeVisit: "Change date, time or professional",
+    reviewServicesTitle: "Your services",
+    reviewEditServices: "Edit services",
+    staffAssigned: "Assigned for you",
     blockedScreen: {
       businessTitle: "Online booking unavailable",
       businessBody:
@@ -3195,21 +3241,21 @@ export const en: {
       planName: "Zavoia Business\u00A0· Plus",
       planBody:
         "Every Zavoia plan lets you build, preview and save your entire site. Putting it live on the web is the Plus step — so you see the finished thing before you decide.",
-      placeholderLabel: "Price to confirm",
-      placeholderBody:
-        "Plus pricing is not published yet. The standard Zavoia Business plan is {base} per bookable team member, per month.",
+      perMonth: "per month",
+      teamPrice: "Your account is included. Each additional team seat costs {seat}/month.",
+      trialNote: "Your {days}-day trial starts on Base. Choose Plus to publish your website.",
       bullets: [
         "Build, preview and save on any plan",
         "Unlimited edits and re-publishes",
         "Lapsed plans suspend your site — they never delete it",
-        "Restores instantly when the plan is active again",
+        "Reactivate Plus to make a published site available again",
       ],
       stylesLabel: "Premium styles",
       stylesTitle: "From {min}, once. Yours for good.",
       stylesBody:
-        "Every section already includes a designed style. Want the cinematic hero, the drifting review marquee or the folded footer? Unlock it once and it stays unlocked — no subscription stacked on a subscription.",
+        "Start with included styles and add optional premium designs. Want the cinematic hero, the drifting review marquee or the folded footer? Unlock it once and it stays unlocked — no subscription stacked on a subscription.",
       rowIncluded: "Included styles",
-      rowIncludedV: "{n} — one per section",
+      rowIncludedV: "{n} included",
       rowPremium: "Premium styles",
       rowPremiumV: "{n} · {range} once",
       rowFonts: "Display fonts",
@@ -3239,7 +3285,7 @@ export const en: {
         },
         {
           q: "What happens if I cancel?",
-          a: "Your site is suspended, not deleted. Everything you built stays exactly where it is and comes back the moment the plan is active again — no rebuilding, no re-publishing.",
+          a: "Your site is suspended, not deleted. Your saved design and purchases are kept. Reactivate Plus to make your published site available again.",
         },
       ],
     },
@@ -3250,353 +3296,431 @@ export const en: {
       secondary: "Back to the catalogue",
     },
   },
+  businessMarketing: {
+    signIn: "Sign in",
+    signInPrompt: "Already on Zavoia?",
+    trialCta: "Start your free trial",
+    trialDays: "{days} free",
+    noCard: "No card required",
+    helpLink: "Ask us in the help centre",
+    counts: {
+      days: { one: "{count} day", few: "{count} days", other: "{count} days" },
+      locations: { one: "{count} location", few: "{count} locations", other: "{count} locations" },
+      teamMembers: { one: "{count} team member", few: "{count} team members", other: "{count} team members" },
+    },
+    plans: {
+      perMonth: "per month",
+      upTo: "Up to {count}",
+      teamLimit: "Up to {count} besides you",
+      unlimitedTeam: "Unlimited additional team members",
+      unavailable: "Not available for this team size",
+      baseLimitNotice: "Base supports up to {count} besides you. Choose Plus for a larger team.",
+      subscription: "{price} plan per month, including you",
+      memberPrice: "+ {price} per extra team member each month",
+      totalFor: "For {who}",
+      justYou: "just you",
+      youAnd: "you + {members}",
+      announcement: "For {who}: Base {base}, Plus {plus} per month.",
+      base: {
+        name: "Base",
+        line: "Everything you need to get booked",
+        note: "{days} free, no card needed",
+        features: [
+          "A Zavoia page for every location",
+          "Online booking with real availability",
+          "Calendars, team logins and team rules",
+          "Email reminders and verified reviews",
+          "Client history and your day at a glance",
+          "Web Studio drafts",
+        ],
+      },
+      plus: {
+        name: "Plus",
+        tag: "Includes your website",
+        line: "Your own website and unlimited team size",
+        note: "Your trial starts on Base. Choose Plus when you subscribe.",
+        features: [
+          "Everything in Base",
+          "Unlimited additional team members",
+          "Publish your Web Studio website",
+          "Share your site with a link or a QR code",
+          "Unlock premium website styles, paid once",
+          "Room for up to {locations}",
+        ],
+      },
+    },
+    fine: {
+      currency: "Prices shown in {currency}, per month. Billing currency follows your business country.",
+      currencyNames: { RON: "lei (RON)", EUR: "euros (EUR)" },
+      noSetup: "No setup fee. Cancel anytime.",
+      sms: "SMS credits and premium Web Studio styles are optional extras.",
+      compare: "Compare plans in detail",
+      bigger: "Need more than {locations}?",
+    },
+  },
   forBusiness: {
-    pageTitle: "Zavoia for business — your calendar, full",
+    pageTitle: "For business: get found and booked online",
     pageDescription:
-      "Salons, barbers, garages, clinics, trainers and groomers across Romania get found by nearby clients, with live availability, per-location calendars and reminders that kill no-shows. Clients pay you in person — no commission.",
-    dashboardToast: "Opening the Zavoia Business dashboard…",
+      "List your business on Zavoia and take online bookings from clients nearby. One calendar for your locations and team, email reminders, and no commission on bookings. Try it free for {days}.",
     hero: {
-      kicker: "Zavoia for business",
-      titleLead: "Your appointments.",
-      titleMid: "Your clients.",
-      titleMuted: "Your revenue.",
-      subcopy:
-        "Salons, barbers, garages, clinics, trainers, groomers — wherever people book a time, Zavoia puts you in front of the clients searching nearby, with live availability, per-location calendars and reminders that reduce no-shows. Clients pay you in person, so we never take a cut.",
-      ctaPrimary: "Get started free",
-      ctaPricing: "See pricing",
-      trust: {
-        noCommission: "No commission",
-        noFees: "No booking fees",
-        freeTrial: "First 2 weeks free, no card required",
-      },
+      titleLead: "Get found.",
+      titlePre: "Get ",
+      titleAccent: "booked.",
+      lead: "Local clients can find you on Zavoia and book online.",
+      support: "Manage appointments, your team and your day in one place.",
+      trialCta: "Try it free for {days}",
+      pricingLink: "View pricing",
+      noCommission: "No booking commission",
+      streetLabel: "Businesses on Zavoia",
     },
-    phone: {
-      imgAlt: "Glow Studio on Zavoia",
-      name: "Glow Studio",
-      rating: "4.9 · Hair · Centru Vechi",
-      pickTime: "Choose a time · Tue 16 Dec",
-      times: ["14:00", "14:30", "15:00", "15:30", "16:30"],
-      confirm: "Confirm · Balayage + tone",
-      footnote: "Pay at the venue",
+    benefits: {
+      label: "Start with confidence",
+      trial: "See how Zavoia helps you organize appointments and manage your team.",
+      noCard: "Start your trial without entering payment details.",
+      noCommission: "You pay for your plan. We take no share of your bookings.",
     },
-    industries: {
-      kicker: "For every local service",
-      lead: "Not just salons and spas — anywhere clients book a time.",
-      items: [
-        { label: "Salons & stylists" },
-        { label: "Barbers" },
-        { label: "Nails & beauty" },
-        { label: "Spas & massage" },
-        { label: "Skin & aesthetics" },
-        { label: "Garages & MOT" },
-        { label: "Dentists & clinics" },
-        { label: "Trainers & studios" },
-        { label: "Pet grooming" },
-        { label: "Cleaners & trades" },
-      ],
-    },
-    overview: {
-      kicker: "One workspace",
-      title: "Run your whole business from one dashboard",
-      subcopy:
-        "Manage appointments, calendars, team members, locations, reviews, and new client requests — all in one place.",
-      tiles: {
-        diary: "Today's diary",
-        demand: "New-client demand",
-        defence: "No-show defence",
-        reviews: "Verified reviews",
-        team: "Team profiles",
-        locations: "Every location",
-      },
-      calendar: {
-        head: "TUE 16 DEC · MARA",
-        fillingUp: "Filling up",
-        rows: [
-          { time: "10:30", label: "Ioana M. — Balayage + tone", state: "booked" },
-          { time: "12:00", label: "Open slot", state: "open" },
-          { time: "13:30", label: "Ruxandra P. — Gloss & blow-dry", state: "booked" },
-        ],
-      },
-      search: {
-        head: "MARKETPLACE · CENTRU VECHI",
-        topResult: "Top result",
-        logo: "G",
-        name: "Glow Studio",
-        meta: "Hair · Centru Vechi",
-        verified: "Verified",
-        book: "Book",
-        note: "Found by clients searching nearby — not ones you already had.",
-      },
-      reminder: {
-        title: "Your appointment is in 3 hours",
-        sub: "Glow Studio · 15:30 · with Mara",
-        reschedule: "Reschedule",
-        confirm: "I'll be there",
-      },
-      review: {
-        name: "Diana K.",
-        verified: "VERIFIED",
-        quote:
-          "“Best balayage in Centru Vechi — booked my next visit before I’d left the chair.”",
-      },
-      teamCard: {
-        name: "Ana M.",
-        meta: "Curls & texture · 6 yrs",
-        nextFree: "NEXT FREE · TODAY 17:15",
-        book: "Book Ana",
-      },
-      locationsCard: {
-        head: "YOUR LOCATIONS",
-        branches: "3 branches",
-        rows: [
-          { name: "Centru Vechi", sub: "6 in the diary today", on: true },
-          { name: "Floreasca", sub: "4 in the diary today", on: true },
-          { name: "Pipera", sub: "Opening next month", on: false },
-        ],
-      },
-    },
-    switch: {
-      kicker: "Why owners switch",
-      title: "Get discovered without giving up your margin.",
-      subcopyLead:
-        "Big marketplaces can bring new clients, but they often take a cut and control the relationship. Booking software gives you control, but doesn’t help clients find you. Zavoia gives you both: customers discover you ",
-      subcopyEm: "and",
-      subcopyTail: " book appointments directly, with no commission.",
-      colZavoia: "Zavoia",
-      colMarket: "Marketplace apps",
-      colSoft: "Booking software",
-      rows: [
+    found: {
+      title: "Where clients find you",
+      lead: "Each location has a Zavoia page where clients can explore services and book online.",
+      cta: "Explore the marketplace",
+      points: [
         {
-          label: "Commission on appointments",
-          zav: "€0 — ever",
-          market: "Often 15–30%",
-          soft: "€0",
+          title: "Services at a glance",
+          body: "Show your services, durations and prices.",
         },
         {
-          label: "Helps bring new clients",
-          zav: "Yes — local marketplace discovery",
-          market: "Yes, but you pay for access",
-          soft: "No — you bring your own",
+          title: "Available booking times",
+          body: "Enable online booking so clients can choose an available time.",
         },
         {
-          label: "Works for solo, teams, and multiple locations",
-          zav: "Built in",
-          market: "Varies",
-          soft: "Varies",
+          title: "Reviews from clients",
+          body: "Only clients with completed appointments can leave a review.",
         },
         {
-          label: "Payments",
-          zav: "Clients pay you directly",
-          market: "Platform may process and take a cut",
-          soft: "Usually their processor",
-        },
-        {
-          label: "Commitment",
-          zav: "Monthly, cancel anytime",
-          market: "Varies",
-          soft: "Often annual contracts",
+          title: "Your booking link",
+          body: "Share your Zavoia page on Instagram, WhatsApp or your Google Business Profile.",
         },
       ],
-      cta: "Create my business page",
-      ctaNote:
-        "Your first 2 weeks are free · Set up in minutes · No commission, ever.",
+      artwork: {
+        desktopAlt: "Atelier Nova’s example Zavoia page, showing the salon, a selected haircut, its price and the booking summary.",
+        mobileAlt: "The Zavoia app’s map showing industry pins for example businesses in Bucharest.",
+      },
     },
-    setup: {
-      title: "Start taking appointments today",
-      trialBadge: "Your first 2 weeks are free",
+    run: {
+      title: "Your day, in one calendar",
+      lead: "Online bookings appear in your calendar. Add appointments made by phone or in person in the same place.",
+      features: [
+        {
+          title: "Your schedule and your team’s",
+          body: "Switch between team members and locations. View by day or month, with a week view on desktop.",
+        },
+        {
+          title: "Booking times and breaks",
+          body: "Choose when clients can book, allow time between appointments, and add one-off or recurring breaks.",
+        },
+        {
+          title: "Cancellations and rescheduling",
+          body: "Get notified when a client cancels or reschedules online.",
+        },
+        {
+          title: "Team access",
+          body: "Invite your team and choose who can cancel, reschedule or block time in the calendar.",
+        },
+        {
+          title: "Services and bundles",
+          body: "Group services into bundles. Set service prices and durations for each team member.",
+        },
+        {
+          title: "Client history",
+          body: "View each client’s appointment history and download it as a PDF.",
+        },
+      ],
+      artwork: {
+        desktopAlt: "Zavoia’s business calendar at the example Atelier Nova salon, showing three team schedules with appointments and a reserved lunch break.",
+        mobileAlt: "Zavoia’s business calendar on mobile at the example Atelier Nova salon, showing location controls, the day summary and an appointment list with clients and assigned staff.",
+      },
+    },
+    app: {
+      titleLead: "Your business,",
+      titlePre: "on your ",
+      titleAccent: "phone.",
+      lead: "Manage bookings, services and your team in the Zavoia business app.",
+      features: [
+        {
+          title: "Manage your services",
+          body: "Choose services for each location, set prices and durations, and assign team members to each service.",
+        },
+        {
+          title: "Manage your Zavoia pages",
+          body: "Add photos, choose which locations are visible on Zavoia and enable online booking for each.",
+        },
+        {
+          title: "Booking updates on your phone",
+          body: "Enable notifications for new bookings, cancellations and rescheduling.",
+        },
+      ],
+      webLink: "Sign in on the web",
+      platformsLabel: "Zavoia business app platforms",
+      downloadTitle: "Download the business app",
+      downloadDescription: "The business app is for you and your team. Clients can book on the Zavoia website or in the separate client app.",
+      assignmentsAlt: "The Assignments services page in the Zavoia business app on Android, in English: hair, nail, facial and massage services at Atelier Nova, with prices and durations.",
+      marketplaceAlt: "The Zavoia business app on Android, in English: Atelier Nova’s marketplace portfolio with a salon photo and photo management controls.",
+    },
+    life: {
+      title: "From booking to the next visit",
+      lead: "Manage confirmations and reminders, and let clients start a new booking from their history.",
+      scheduleAlt:
+        "A client’s Schedule in the Zavoia app: an upcoming haircut and personal training, and a past guitar lesson, each with time, price and the business.",
       steps: [
         {
-          n: "01",
-          title: "Create your business page",
-          body: "Add your photos, services, prices, locations, and team members in minutes.",
+          title: "Booking",
+          body: "Clients book online through Zavoia, or you add their appointments.",
         },
         {
-          n: "02",
-          title: "Set your availability",
-          body: "Control when each location and team member can be booked. Clients only see real open times.",
+          title: "Confirmation",
+          body: "Confirm online bookings automatically, or review requests before confirming.",
         },
         {
-          n: "03",
-          title: "Start getting appointments",
-          body: "Show up in local search, accept appointments online, and make it easy for clients to come back.",
+          title: "Reminders",
+          body: "Choose when email reminders are sent for confirmed appointments. SMS reminders use credits purchased separately.",
+        },
+        {
+          title: "Visit and payment",
+          body: "Clients pay your business directly, using the payment methods you accept.",
+        },
+        {
+          title: "Reviews and rebooking",
+          body: "After a completed appointment, clients can leave a review and start a new booking from their history.",
         },
       ],
     },
-    testimonials: {
-      kicker: "What owners say",
-      prevLabel: "Previous testimonial",
-      nextLabel: "Next testimonial",
-      items: [
-        {
-          biz: "Glow Studio · Centru Vechi",
-          photo:
-            "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&q=80",
-          quote:
-            "We used to lose Tuesday mornings to the phone. Now the calendar fills itself overnight, the no-shows all but vanished, and my stylists each have their own following.",
-          name: "Dana Ionescu",
-          role: "Owner",
-          context: "Team of 7 · on Zavoia since 2024",
-        },
-        {
-          biz: "Maison Noir · Floreasca",
-          photo:
-            "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1200&q=80",
-          quote:
-            "We stopped thinking of the calendar as something to fill and started thinking of it as something to defend. Walk-ins became regulars with a rebooking habit.",
-          name: "Andrei Pop",
-          role: "Master barber",
-          context: "Team of 4 · on Zavoia since 2025",
-        },
-        {
-          biz: "Kepler Garage · Pipera",
-          photo:
-            "https://images.unsplash.com/photo-1486006920555-c77dcf18193c?w=1200&q=80",
-          quote:
-            "Customers book an MOT at 11pm from their sofa. The phone barely rings now — and the bays stay full all week.",
-          name: "Marius Vasile",
-          role: "Owner",
-          context: "6 bays · on Zavoia since 2025",
-        },
+    studio: {
+      planLabel: "Publish with Plus",
+      title: "Your own website, built with Zavoia",
+      lead: "Use the details you’ve already added to Zavoia to create a website clients can book from.",
+      features: [
+        { title: "Your content, ready to use", body: "Start with your existing services, prices, team details and photos." },
+        { title: "Choose your design", body: "Personalise layouts, fonts and colours. Create and save your draft on either plan." },
+        { title: "Publish with Plus", body: "Publish your website with Plus, then share its Zavoia link or QR code." },
       ],
+      link: "Explore Web Studio",
+      note: "Premium styles are optional and sold separately as a one-time purchase.",
+      desktopAlt: "Lumi Beauty’s website made with Web Studio, showing its salon gallery.",
+      phoneAlt: "The Paw & Co pet-care website made with Web Studio, on a phone.",
     },
-    pricingStrip: {
-      perMember: "per bookable team member",
-      perMonth: "per month",
-      onePlan: "One plan. Every feature. No commission.",
-      monthlyLine:
-        "Billed monthly per bookable member · {trial}-day free trial · cancel anytime",
-      ctaPricing: "See full pricing",
-      ctaTrial: "Start free trial",
+    plans: {
+      title: "Two plans. No booking commission.",
+      lead: "Both plans include a Zavoia business page for each location, online booking and your business calendar. Plus adds website publishing, more locations and unlimited team size.",
+      ownerIncluded: "Your account is included",
+      additionalTeamMembers: {
+        one: "{count} additional team member",
+        few: "{count} additional team members",
+        other: "{count} additional team members",
+      },
+      memberPrice: "Each additional team seat costs {price}/month on either plan.",
+      baseDescription: "Manage your bookings and your team.",
+      plusDescription: "Publish your website and manage more locations.",
+      plusBenefitsTitle: "Everything in Base",
+      baseBenefits: [
+        { title: "Up to {locations}", body: "Each location gets a Zavoia business page, with online booking from your availability." },
+        { title: "Up to {members}", body: "Add professionals and staff who don’t take appointments, with their own access and permissions." },
+        { title: "Reminders and client reviews", body: "Set email reminders for confirmed appointments. Clients can leave reviews after completed visits." },
+        { title: "Prepare your website", body: "Create and save a website draft in Web Studio. Publish it with Plus." },
+      ],
+      plusBenefits: [
+        { title: "Publish your own website", body: "Publish your Web Studio website so clients can explore your business and book online. Share its Zavoia link or QR code.", studioLink: "Explore Web Studio" },
+        { title: "No team-size limit", body: "Grow your team across locations. Each additional member needs a paid team seat." },
+        { title: "Up to {locations}", body: "Each location has its own Zavoia business page, calendar and team." },
+      ],
+      trialCta: { base: "Try free for {days}", plus: "Get started" },
+      trialNotes: {
+        base: "No card required. Your trial includes Base features.",
+        plus: "Your trial includes Base features and limits. Choose Plus for website publishing and more capacity.",
+      },
     },
     faq: {
-      kicker: "Questions",
-      title: "The things owners ask first",
-      asideLead: "Not sure it fits your trade? ",
-      asideCta: "Talk to the team",
-      asideTail: ".",
+      title: "Before you get started",
+      aside: "Answers about your trial, pricing and bookings.",
+      helpPrompt: "Need more details?",
+      helpLink: "Visit the help centre",
       items: [
         {
-          q: "Do you really take no commission?",
-          a: "None. Clients pay you directly, in person — Zavoia never touches the money, so there is nothing for us to take a cut of. Your subscription is the whole price.",
+          q: "How does the free trial work?",
+          a: "Your free trial starts when you create your business in Zavoia and includes Base features for {days}. No card is required. Set up your services and team, publish your locations’ Zavoia pages and enable online booking.\n\nIf you don’t subscribe when the trial ends, your public Zavoia pages are hidden and scheduled client reminders stop. Existing appointments aren’t automatically cancelled. You can still view your calendar, but need an active subscription to add or change appointments.",
         },
         {
-          q: "So how do payments work?",
-          a: "However they already do. Clients pay you at the venue by whatever methods you accept; Zavoia handles the booking, reminders and reviews, never the transaction. That is exactly what keeps it commission-free.",
+          q: "Do you charge commission on bookings?",
+          a: "No. Zavoia does not charge commission on bookings, including those from clients who discover your business on Zavoia.\n\nYou pay for your subscription and any additional team seats. SMS credits and premium Web Studio styles are optional paid extras.",
         },
         {
-          q: "Do I need a team to use it?",
-          a: "No. Run solo with a single calendar, or give every team member their own bookable page — your call. Appointments can sit against a location directly when there is no named person to book.",
+          q: "How much does it cost to add team members?",
+          a: "Your account is included. Each additional team seat costs {seat}/month and covers one member across your business’s locations, including staff who don’t take appointments.\n\nBase supports up to {baseTeamMembers} besides you. Plus has no team-size limit. You pay for the seats in your subscription, including unused seats. Removing a member does not automatically reduce your bill. Reduce unused seats in billing settings; the change applies at your next renewal.",
         },
         {
-          q: "Can I add multiple locations?",
-          a: "Yes. Manage all your locations from one account. Each location can have its own team, services, calendars, and opening hours. One subscription covers everything.",
+          q: "Can I publish my own website?",
+          a: "Yes, with Plus. You can create and save a website draft in Web Studio on either plan, but publishing requires Plus.\n\nYour website is separate from your locations’ public pages on Zavoia, which are included in both plans. Premium Web Studio styles are optional and sold separately as a one-time purchase.",
         },
         {
-          q: "How do we get started?",
-          a: "Add your locations, services and anyone who takes appointments in the Zavoia Business dashboard, then open the calendar. Most businesses are live the same afternoon, and the first {trial} days are free.",
+          q: "Can I cancel my subscription at any time?",
+          a: "Yes. Subscriptions are monthly, and you can cancel in your billing settings. Your plan remains active until the end of the period you’ve paid for.",
         },
         {
-          q: "Can we cancel anytime?",
-          a: "Yes. Zavoia is month-to-month, with no minimum term and no long-term contract.",
+          q: "Do clients need the Zavoia app to book?",
+          a: "No. Clients can book on zavoia.com in their browser or use the Zavoia app. To complete a booking, they sign in or create a Zavoia account.",
+        },
+        {
+          q: "How do clients pay for appointments?",
+          a: "Clients pay your business directly, using the payment methods you accept. Zavoia does not process payments for appointments.",
+        },
+        {
+          q: "Can I manage multiple locations?",
+          a: "Yes. Base includes up to {baseLocations}, and Plus includes up to {plusLocations}.\n\nYou can manage each location’s Zavoia page, calendar, team, services and opening hours.",
+        },
+        {
+          q: "Can I add phone bookings and walk-in visits?",
+          a: "Yes. Add them manually to the same business calendar as your online bookings, so you can manage all appointments in one place.",
+        },
+        {
+          q: "Is Zavoia right for my business?",
+          a: "Zavoia is designed for businesses where clients book an appointment with you or someone on your team, such as salons, clinics, garages, personal trainers or tutors.\n\nZavoia does not support group classes or bookings for rooms or service bays.",
         },
       ],
     },
-    ctaBand: {
-      kicker: "Zavoia for business",
-      title: "Get discovered, booked, and rebooked by local clients.",
-      sub: "Your first 2 weeks are free. No commission, ever. Set up today.",
-      ctaPrimary: "Get started free",
-      ctaSecondary: "See pricing",
+    close: {
+      titleLead: "Make room for",
+      titlePre: "your next ",
+      titleAccent: "client.",
+      lead: "Set up your business, location, services and team. Publish your page and enable online booking when you’re ready.",
     },
   },
   pricing: {
-    pageTitle: "Pricing — Zavoia",
+    pageTitle: "Pricing: two plans, no booking commission",
     pageDescription:
-      "One plan, priced per bookable team member. Every feature included, €{monthly} per member a month, billed monthly. No commission on your appointments, ever.",
-    head: {
-      kicker: "Pricing",
-      title: "One plan. Priced by team, not by tier.",
-      sub: "Every feature included, €{monthly} per bookable team member per month, billed monthly. No commission on your appointments, ever.",
+      "Base is {base} and Plus is {plus} a month, plus {seat} per additional team seat. Your account is included. No booking commission or setup fee. Try it free for {days}, no card needed.",
+    hero: {
+      titleLead: "Simple plans.",
+      titlePre: "No booking ",
+      titleAccent: "commission.",
+      lead: "Online booking and team management, with your own website on Plus.",
+      memberPrice: "Your account is included. Each additional team seat costs {price}/month and covers one member across your business’s locations."
     },
-    plan: {
-      trialBadge: "{trial}-day free trial",
-      perMember: "per bookable team member",
-      perMonth: "per month",
-      blurb:
-        "Every feature, for every business — from a one-chair studio to a twenty-bay garage. No commission on appointments. No setup fee. No contract.",
-      features: [
-        "Unlimited appointments & clients",
-        "Marketplace listing across your city",
-        "Reminders, deposits & no-show protection",
-        "Payments with daily payouts",
-        "Per-member profiles, portfolios & reviews",
-        "Insights & exports",
-      ],
-      cta: "Start your free trial",
-    },
-    calc: {
-      kicker: "What would you pay?",
-      title: "Price out your team",
-      membersLabel: "Bookable team members",
-      trackSolo: "SOLO",
-      trackMax: "25",
-      total: "Your total",
-      perMonth: "/ month",
+    billing: {
+      currencyNote: "Prices shown in {currency}. Your billing currency depends on your business country.",
+      terms: "Billed monthly. No setup fee. Cancel anytime.",
+      larger: "Need more than {locations} locations?",
+      helpLink: "Visit the help centre"
     },
     compare: {
-      kicker: "The difference",
-      title: "No commission. We mean it.",
-      blurb:
-        "Most marketplaces take a cut of every new client's first visit — typically 20–30% — or charge to be seen at all. On Zavoia, a client who finds you through the marketplace costs exactly what a regular costs: nothing beyond your subscription.",
-      checks: [
-        "No new-client acquisition fees — ever",
-        "No per-booking or “boost” charges to stay visible",
-      ],
-      receiptHeader: "NEW CLIENT · FIRST VISIT",
-      lineService: "Balayage + tone",
-      lineTip: "Tip",
-      lineVisitTotal: "Visit total",
-      lineFee: "Zavoia marketplace fee",
-      lineYouKeep: "You keep",
-      footnoteLine1: "ELSEWHERE, THIS VISIT COSTS YOU €34–€56",
-      footnoteLine2: "IN NEW-CLIENT COMMISSION",
+      title: "Compare the plans",
+      lead: "See where Base and Plus differ, and what you get with either plan.",
+      baseSummary: "For your bookings and team",
+      plusSummary: "Your website and more capacity",
+      upTo: "Up to",
+      unlimited: "Unlimited",
+      paidMemberNote: "Each additional team seat costs {price}/month on either plan. Your account is included.",
+      caption: "Compare the features and limits of Base and Plus",
+      feature: "Feature",
+      locations: "Locations",
+      teamMembers: "Additional team seats",
+      website: "Your Web Studio website",
+      websiteBase: "Create and save a draft",
+      websitePlus: "Create, publish and share"
     },
-    faq: {
-      kicker: "Questions",
-      title: "Pricing, without the asterisks",
+    included: {
+      title: "Included in both plans",
+      lead: "The tools to run your day, whichever plan you choose.",
+      groups: [
+        {
+          title: "Be discovered",
+          items: [
+            "A public Zavoia page for every location",
+            "Online booking with your real availability",
+            "Reviews from clients with completed appointments"
+          ]
+        },
+        {
+          title: "All appointments in one calendar",
+          items: [
+            "Online bookings and the phone or walk-in appointments you add",
+            "Cancellation and rescheduling updates",
+            "Booking windows, buffers, breaks and time off"
+          ]
+        },
+        {
+          title: "Organise your services and team",
+          items: [
+            "Team logins, access and permissions",
+            "Services and bundles, with prices and durations per team member",
+            "Service and team assignments for each location"
+          ]
+        },
+        {
+          title: "Reminders and client history",
+          items: [
+            "Email reminders for confirmed appointments",
+            "View each client’s appointment history and export it as a PDF"
+          ]
+        }
+      ]
+    },
+    addons: {
+      title: "Extras when you need them",
+      lead: "Optional purchases, separate from your monthly subscription.",
+      studioLink: "Explore Web Studio",
       items: [
         {
-          q: "Who counts toward the per-member price?",
-          a: "Only people clients can book time with. A salon with five stylists and two receptionists pays for five. Owners and admin staff use the dashboard free.",
+          title: "SMS credits",
+          body: "Email reminders are included. Add SMS reminders with optional credit packs, bought separately in your business dashboard.",
+          availability: "Available with either paid plan."
         },
         {
-          q: "Is there really no commission or booking fee?",
-          a: "Really. The subscription is our entire revenue from your business. Appointments, rebookings, and clients who found you through the marketplace all cost the same: nothing extra.",
-        },
-        {
-          q: "What happens when my team changes size?",
-          a: "Your bill adjusts automatically. Add a member mid-month and you pay a prorated amount; remove one and the next invoice drops.",
-        },
+          title: "Premium website styles",
+          body: "Build your website with included styles. Preview premium styles in Web Studio and buy the ones you want as optional one-time purchases.",
+          availability: "Style purchases and website publishing require Plus."
+        }
+      ]
+    },
+    faq: {
+      title: "Questions about pricing",
+      lead: "How your trial, team seats and monthly subscription work.",
+      helpPrompt: "Need more details?",
+      helpLink: "Visit the help centre",
+      items: [
         {
           q: "How does the free trial work?",
-          a: "Full product, every feature, {trial} days, no card required to start. Take real appointments during the trial — if you leave, your data exports with you.",
+          a: "Your free trial lasts {days} and starts when you create your business. It includes Base features and limits. No card is required. Add payment and billing details when you subscribe.\n\nIf you do not subscribe when the trial ends, your public Zavoia pages are hidden and scheduled client reminders stop. Existing appointments are not automatically cancelled. You can still view your calendar, but need an active subscription to add or change appointments."
         },
         {
-          q: "Are prices inclusive of VAT?",
-          a: "Prices shown exclude VAT, which is added at checkout where applicable. VAT invoices are issued automatically every billing cycle.",
+          q: "How does team pricing work?",
+          a: "Your account is included. Each additional team seat costs {seat}/month and covers one member across your business’s locations, including staff who don’t take appointments.\n\nBase supports up to {baseTeamMembers} besides you. Plus has no team-size limit. Additional seats cost the same on either plan. You pay for the seats in your subscription, including unused seats, so removing a member does not automatically reduce your bill."
         },
         {
-          q: "How does billing work?",
-          a: "Monthly, with no minimum term. You're billed per bookable member each month and can cancel anytime — there's no annual lock-in.",
+          q: "What happens when I add or remove team seats?",
+          a: "Adding seats takes effect after successful payment, with a prorated charge for the rest of your current billing period. Reducing unused seats takes effect at your next renewal. Make these changes in your billing settings."
         },
-      ],
+        {
+          q: "Can I switch between Base and Plus?",
+          a: "Yes, in your billing settings. An upgrade to Plus takes effect after successful payment, with a prorated charge for the rest of your billing period. A change to Base takes effect at your next renewal.\n\nWhen Base takes effect, your Web Studio website is no longer public. You can still edit its draft, and premium styles you have bought remain yours. Your locations’ public Zavoia pages are included in both plans."
+        },
+        {
+          q: "Can I cancel my subscription at any time?",
+          a: "Yes. Cancel in your billing settings. Your paid plan stays active until the end of the period you have paid for."
+        },
+        {
+          q: "Will I get an invoice?",
+          a: "Yes. Invoices are available in your business billing area, using the billing details you provide."
+        },
+        {
+          q: "Do you charge commission on bookings?",
+          a: "No. Zavoia does not charge commission on bookings, including bookings from clients who discover you on the marketplace. You pay for your subscription, additional team seats and any optional extras you choose."
+        },
+        {
+          q: "Do clients pay through Zavoia?",
+          a: "No. Clients pay your business directly, using the payment methods you accept. Zavoia does not process appointment payments."
+        }
+      ]
     },
-    cta: {
-      kicker: "Ready when you are",
-      title: "Try Zavoia free for 2 weeks",
-      sub: "Every feature included. No card needed.",
-      primary: "Start free",
-    },
+    plansLabel: "Plans",
   },
   appointments: {
     title: "Appointments",
@@ -3738,7 +3862,7 @@ export const en: {
     errorLoading: "We couldn't load this appointment. Please try again.",
   },
   help: {
-    pageTitle: "Help centre — Zavoia",
+    pageTitle: "Help centre",
     pageDescription:
       "Answers to the questions people ask us most about booking, paying, and managing appointments on Zavoia.",
     head: {
@@ -3763,10 +3887,6 @@ export const en: {
           {
             q: "Can I reschedule or cancel?",
             a: "Yes — free up to the venue's cancellation window, usually 24 hours before your appointment.",
-          },
-          {
-            q: "How do recurring appointments work?",
-            a: "Recurring appointments repeat on a cadence you choose and show progress like \"2 of 4\" so you can track them.",
           },
         ],
       },

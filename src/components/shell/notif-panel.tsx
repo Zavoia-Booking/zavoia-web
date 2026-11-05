@@ -66,7 +66,7 @@ function notificationHref(
   return null;
 }
 
-export function NotifPanel({ onClose }: { onClose: () => void }) {
+export function NotifPanel({ triggerId, onClose }: { triggerId: string; onClose: () => void }) {
   const { dict, locale } = useTranslation();
   const t = dict.notifications;
   const router = useRouter();
@@ -87,7 +87,7 @@ export function NotifPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Popover onClose={onClose} label={t.title} width={392}>
+    <Popover triggerId={triggerId} onClose={onClose} label={t.title} width={392}>
       <div
         style={{
           display: "flex",

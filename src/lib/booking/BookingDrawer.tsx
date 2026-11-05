@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -14,7 +15,7 @@ import { Avatar, Button, Icon, Skeleton, Spinner } from "@/components/ui";
 import { useToast, useToastContainerRef } from "@/components/ui/toast";
 import styles from "./booking-drawer.module.css";
 import { useTranslation } from "@/i18n/useTranslation";
-import { format } from "@/i18n/format";
+import { format, formatCount } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import {
   formatDuration,
@@ -50,13 +51,17 @@ import type {
   BookingDaySlots,
   BookingServiceItem,
   ServiceSelection,
-  SlotItem,
   TimeSlot,
 } from "@/lib/api/marketplace/types";
-import type { BookingSelectionItem, OpenBookingPayload } from "./types";
+import type {
+  BookingPick,
+  BookingSelectionItem,
+  OpenBookingPayload,
+} from "./types";
 import { addWallDays, todayInTz, zonedWallTimeToUtcISO } from "./tz";
 import { useBooking } from "./useBooking";
 import { exactSlotSelection, findExactSlot } from "./sequence";
+import { BookingSuccessArt } from "./booking-success-art";
 
 export interface BookingDrawerProps {
   open: boolean;
@@ -66,6 +71,30 @@ export interface BookingDrawerProps {
 
 type Step = 1 | 2 | 3;
 type StaffPicks = Record<number, number>; // slot-item index → chosen staffId
+type StaffPerson = { staffId: number; name: string; image: string | null };
+/** One booked service or package, as the confirmation lists it. */
+type BookedItem = {
+  key: string;
+  name: string;
+  bundle: boolean;
+  /** Venue wall-clock start ("HH:mm"); null when only the response is known. */
+  startTime: string | null;
+  durationMinutes: number;
+  staffId: number | null;
+};
+
+/** The named professionals behind a set of picks, once each, in booking order. */
+function peopleFor(
+  staffIds: Array<number | undefined>,
+  directory: BookingDaySlots["staffDirectory"] | undefined,
+): StaffPerson[] {
+  return [
+    ...new Set(staffIds.filter((id): id is number => id != null)),
+  ].flatMap((staffId) => {
+    const entry = directory?.[staffId];
+    return entry?.name ? [{ staffId, name: entry.name, image: entry.image }] : [];
+  });
+}
 
 const CAL_DAYS_TO_CHECK = 30;
 
@@ -95,6 +124,40 @@ function toServiceSelections(
 /** Drop every pinned professional so availability is fetched unpinned. */
 function stripPins(services: BookingSelectionItem[]): BookingSelectionItem[] {
   return services.map((s) => ({ ...s, teamMemberId: undefined }));
+}
+
+/**
+ * The preselection as services-step picks, or null when this booking has no
+ * services step: the menu didn't come along, a professional is pinned (profile
+ * and rebook keep their own choice), or an item isn't on the menu.
+ */
+function servicesStepPicks(
+  payload: OpenBookingPayload | null,
+): BookingPick[] | null {
+  if (!payload) return null;
+  const picks: BookingPick[] = [];
+  for (const item of payload.services) {
+    if (!payload.catalog || item.teamMemberId != null) return null;
+    if (
+      item.bundleId != null &&
+      payload.catalog.bundles.some((bundle) => bundle.id === item.bundleId)
+    )
+      picks.push({ type: "bundle", id: item.bundleId });
+    else if (
+      item.serviceId != null &&
+      payload.catalog.services.some((service) => service.id === item.serviceId)
+    )
+      picks.push({ type: "service", id: item.serviceId });
+    else return null;
+  }
+  return picks;
+}
+
+/** Identifies an ordered selection; order matters, services run in sequence. */
+function selectionKey(picks: BookingPick[]): string {
+  return picks
+    .map((pick) => `${pick.type === "bundle" ? "b" : "s"}${pick.id}`)
+    .join(",");
 }
 
 /** Format a YYYY-MM-DD into a localized "Mon, Jan 5"-style label. */
@@ -179,10 +242,13 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const t = dict.booking;
   const tb = dict.business;
 
-  // Whether this session actually has a reachable step 1 — true only when the
-  // drawer was opened with an empty `services` list. Captured once per open
-  // (see the reset effect below) so it doesn't flicker as local picks change.
-  const [hasStep1, setHasStep1] = useState(payload?.services.length === 0);
+  // Whether this session has a reachable step 1 — whenever the menu came along
+  // with no professional pinned (see servicesStepPicks). A preselection opens
+  // on step 2 with step 1 one Back away. Captured once per open (see the reset
+  // effect below) so it doesn't flicker as local picks change.
+  const [hasStep1, setHasStep1] = useState(
+    () => servicesStepPicks(payload) !== null,
+  );
 
   // ── Flow state ──
   const [step, setStep] = useState<Step>(
@@ -227,18 +293,32 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   // staff-pin recovery: strip every pinned professional and refetch unpinned.
   const [ignorePins, setIgnorePins] = useState(false);
 
-  // Step 1 (choose services) local picks — only relevant when `hasStep1`.
-  // Keyed the same way business-detail.tsx keys its own selection.
-  const [picked, setPicked] = useState<
-    Array<{ type: "service" | "bundle"; id: number }>
-  >([]);
+  // Step 1 (choose services) local picks, seeded from the preselection — only
+  // relevant when `hasStep1`. Keyed the same way business-detail.tsx keys its
+  // own selection.
+  const [picked, setPicked] = useState<BookingPick[]>(
+    () => servicesStepPicks(payload) ?? [],
+  );
+  // The selection step 2's date/time/staff state was built for, so leaving
+  // step 1 without changing anything keeps what was already chosen.
+  const step2SelectionRef = useRef<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{
     pending: boolean;
     scheduledAt: string;
-    serviceNames: string[];
+    /** When the last booked appointment ends; null when the response omits it. */
+    endsAt: string | null;
+    items: BookedItem[];
+    people: StaffPerson[];
+    /** What the booked appointments cost, in minor units. */
+    priceMinor: number | null;
   } | null>(null);
+  const successTitleRef = useRef<HTMLHeadingElement | null>(null);
+  // The confirm button that held focus is gone; land on the outcome instead.
+  useEffect(() => {
+    if (success) successTitleRef.current?.focus({ preventScroll: true });
+  }, [success]);
 
   // Idempotency key: one per distinct booking attempt; re-minted when the
   // date / slot / staff selection changes (so retries of an identical body
@@ -253,13 +333,14 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const quoteLabel = dict.locationPage.requestQuote;
   const isAuthed = status === "authenticated";
 
-  // ── Resolved services: `payload.services` when non-empty, otherwise the
-  //    Step 1 picks mapped from `payload.catalog`. Everything downstream
-  //    (calendar/slots calls, totals, review) reads THIS, never payload.services
-  //    directly. `payload` itself is never mutated. ──
+  // ── Resolved services: the Step 1 picks mapped from `payload.catalog`
+  //    whenever this session has a step 1, otherwise `payload.services` as
+  //    handed over. Everything downstream (calendar/slots calls, totals,
+  //    review) reads THIS, never payload.services directly. `payload` itself is
+  //    never mutated. ──
   const resolvedServices: BookingSelectionItem[] = useMemo(() => {
     if (!payload) return [];
-    if (payload.services.length > 0) return payload.services;
+    if (!hasStep1) return payload.services;
     if (!payload.catalog) return [];
     const servicesById = new Map(
       payload.catalog.services.map((s) => [s.id, s]),
@@ -302,7 +383,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
           ]
         : [];
     });
-  }, [payload, picked]);
+  }, [payload, picked, hasStep1]);
 
   // The services actually sent to the availability endpoints — identical to
   // resolvedServices unless a staff-pin block was recovered via "book with any
@@ -379,7 +460,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const resetPayloadRef = useRef<OpenBookingPayload | null>(null);
 
   // ── On (re)open: reset all flow state. If services were pre-selected, jump
-  //    straight to the combined date/time/staff step and fetch the calendar;
+  //    straight to the combined date/time/staff step and fetch the calendar
+  //    (step 1, when this booking has one, starts with them ticked);
   //    otherwise start on step 1 (choose services) with no calendar call yet.
   //    State is mutated only inside a microtask (never synchronously in the
   //    effect body) to match the codebase's set-state-in-effect convention.
@@ -392,12 +474,15 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     if (resetPayloadRef.current === payload) return;
     let cancelled = false;
     const startsOnStep1 = payload.services.length === 0;
+    const seed = servicesStepPicks(payload);
     Promise.resolve().then(() => {
       if (cancelled) return;
       resetPayloadRef.current = payload;
-      setHasStep1(startsOnStep1);
+      setHasStep1(seed !== null);
       setStep(startsOnStep1 ? 1 : 2);
-      setPicked([]);
+      setPicked(seed ?? []);
+      step2SelectionRef.current =
+        !startsOnStep1 && seed ? selectionKey(seed) : null;
       setCalendar(null);
       invalidateQuote();
       setCalError(null);
@@ -416,7 +501,9 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       // response can never commit into the state we just reset.
       calRequestIdRef.current += 1;
       slotsRequestIdRef.current += 1;
-      if (!startsOnStep1) void loadCalendar();
+      // Named explicitly: until the state above commits, this closure's
+      // resolved services may still be the previous session's picks.
+      if (!startsOnStep1) void loadCalendar(payload.services);
     });
     return () => {
       cancelled = true;
@@ -535,15 +622,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     [displaySlot, displayPicks, displayDay],
   );
 
-  // ── Derived: totals from the chosen slot (falls back to the resolved
-  //    services list, so the step 1 running total also reads from here). ──
-  const totalMinor = useMemo(() => {
-    if (displaySlot) {
-      return resolvedItems.reduce((a, i) => a + i.priceAmountMinor, 0);
-    }
-    return resolvedServices.reduce((a, s) => a + s.priceAmountMinor, 0);
-  }, [displaySlot, resolvedItems, resolvedServices]);
-
+  // ── Derived: the visit's length from the chosen slot (falls back to the
+  //    resolved services list). The footer carries the one total. ──
   const totalDuration = useMemo(() => {
     if (displaySlot) {
       return resolvedItems.reduce((a, i) => a + i.durationMinutes, 0);
@@ -555,9 +635,11 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   //    Before a slot: the menu spread of what's selected. After a slot but
   //    before every professional is chosen: the slot's own bounds, which are a
   //    floor price and a duration range — never an exact quote. Once all picks
-  //    are in, the bounds collapse and it renders like a plain total. ──
+  //    are in, the bounds collapse and it renders like a plain total. Step 1
+  //    edits the selection itself, so it never reads a slot chosen for an
+  //    earlier one. ──
   const footerSpread = useMemo(() => {
-    if (displaySlot) {
+    if (displaySlot && step !== 1) {
       const sp = slotSpread(
         displaySlot,
         displayPicks,
@@ -581,7 +663,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       currency,
       locale,
     );
-  }, [displaySlot, displayPicks, displayDay, resolvedServices, currency, locale]);
+  }, [displaySlot, displayPicks, displayDay, resolvedServices, currency, locale, step]);
 
   const validateSequence = useCallback(async () => {
     if (!payload || !selectedSlot || !selectedDate || slotsLoading || slotsError || daySlots?.date !== selectedDate) return null;
@@ -641,6 +723,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     setSubmitting(true);
     try {
       let attempt = attemptedBookingRef.current;
+      // What the confirmation shows: the quote this attempt was built from.
+      let booked = validatedQuote;
       if (attempt && attempt.sessionId !== sessionId) {
         attempt = null;
         attemptedBookingRef.current = null;
@@ -649,6 +733,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       if (!attempt) {
         const quote = await validateSequence();
         if (!quote || sessionId !== getAuthenticatedSessionId()) return;
+        booked = quote;
         if (validatedQuote) {
           const figures = (value: typeof quote) => resolveSlotItems(value.slot, value.picks, value.day.staffPricing ?? {}, value.day.itemStaffPricing);
           if (JSON.stringify(figures(quote)) !== JSON.stringify(figures(validatedQuote))) {
@@ -675,13 +760,55 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       const res = await bookAppointment(attempt.body, attempt.key);
       const appts = res.appointments ?? [];
       const first = appts[0];
+      // A change of professional splits the visit into several appointments.
+      const endsAt = appts.reduce<string | null>(
+        (latest, a) =>
+          a.endsAt && (!latest || Date.parse(a.endsAt) > Date.parse(latest))
+            ? a.endsAt
+            : latest,
+        null,
+      );
+      // Names and durations come from the quote: a merged appointment's own
+      // name joins its services and is cut at 100 characters.
+      const bookedQuote = booked;
+      const figures = bookedQuote
+        ? resolveSlotItems(bookedQuote.slot, bookedQuote.picks, bookedQuote.day.staffPricing ?? {}, bookedQuote.day.itemStaffPricing)
+        : [];
+      const items: BookedItem[] = bookedQuote
+        ? bookedQuote.slot.items.map((item, index) => ({
+            key: `${item.type}-${item.serviceId ?? item.bundleId}-${index}`,
+            name:
+              (item.type === "bundle" ? item.bundleName : item.serviceName) ??
+              resolvedServices[index]?.name ??
+              "",
+            bundle: item.type === "bundle",
+            startTime: figures[index]?.startTime ?? item.startTime,
+            durationMinutes: figures[index]?.durationMinutes ?? item.durationMinutes,
+            staffId: bookedQuote.picks[index] ?? null,
+          }))
+        : appts.map((a) => ({
+            key: `appointment-${a.appointmentId}`,
+            name: a.serviceName,
+            bundle: false,
+            startTime: null,
+            durationMinutes: a.duration,
+            staffId: null,
+          }));
       setSuccess({
         pending: (first?.status ?? "confirmed") === "pending",
         scheduledAt: first?.scheduledAt ?? scheduledAt,
-        serviceNames:
+        endsAt,
+        items,
+        people: peopleFor(
+          attempt.body.services.map((service) => service.staffId),
+          bookedQuote?.day.staffDirectory,
+        ),
+        priceMinor:
           appts.length > 0
-            ? appts.map((a) => a.serviceName)
-            : resolvedServices.map((s) => s.name),
+            ? appts.reduce((sum, a) => sum + a.price, 0)
+            : bookedQuote
+              ? figures.reduce((sum, figure) => sum + figure.priceAmountMinor, 0)
+              : null,
       });
     } catch (e) {
       // Permanent marketplace-state blocks (venue/service/staff gone) get the
@@ -774,21 +901,43 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     idempotencyKeyRef.current = "";
   };
 
-  const togglePicked = (type: "service" | "bundle", id: number) => {
-    setPicked((prev) =>
-      prev.some((x) => x.type === type && x.id === id)
-        ? prev.filter((x) => !(x.type === type && x.id === id))
-        : [...prev, { type, id }],
-    );
+  // One choice for several services: the same professional, or any available,
+  // for each of them. Same semantics as `onPickStaff`, applied per index.
+  const onPickStaffForAll = (indices: number[], staffId: number | null) => {
+    invalidateQuote();
+    setStaffPicks((prev) => {
+      const next = { ...prev };
+      for (const idx of indices) {
+        if (staffId == null) delete next[idx];
+        else next[idx] = staffId;
+      }
+      return next;
+    });
+    idempotencyKeyRef.current = "";
   };
 
-  // Continue from Step 1 (choose services) → Step 2 (date/time/staff), which
-  // now needs a fresh calendar fetch for the just-picked services. Reset all
-  // step-2-scoped state first (mirrors the open/reset effect) so a prior pass
-  // through step 2 (with a now-stale service selection) never leaves behind a
-  // date/slot/staff pick — or a stale, still-clickable calendar — that was
-  // never validated against the final services.
+  const togglePicked = (type: "service" | "bundle", id: number) => {
+    const next = picked.some((x) => x.type === type && x.id === id)
+      ? picked.filter((x) => !(x.type === type && x.id === id))
+      : [...picked, { type, id }];
+    setPicked(next);
+    payload.onServicesChange?.(next);
+  };
+
+  // Continue from Step 1 (choose services) → Step 2 (date/time/staff). The
+  // same services in the same order keep everything step 2 already holds.
+  // Otherwise it needs a fresh calendar fetch for the just-picked services:
+  // reset all step-2-scoped state first (mirrors the open/reset effect) so a
+  // prior pass through step 2 (with a now-stale service selection) never
+  // leaves behind a date/slot/staff pick — or a stale, still-clickable
+  // calendar — that was never validated against the final services.
   const onContinueFromServices = () => {
+    const selection = selectionKey(picked);
+    if (step2SelectionRef.current === selection) {
+      setStep(2);
+      return;
+    }
+    step2SelectionRef.current = selection;
     invalidateQuote();
     setStep(2);
     setCalendar(null);
@@ -850,6 +999,31 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const showBack =
     !success &&
     (backToProfile || (!blocked && (step === 3 || (step === 2 && hasStep1))));
+  // The venue's names, from the opener until (or unless) only the calendar has
+  // them. The header carries them through every step.
+  const venue =
+    payload.venue ??
+    (calendar
+      ? { businessName: calendar.businessName, locationName: calendar.locationName }
+      : null);
+  // A branch named apart from its brand is worth saying on its own.
+  const branchName =
+    venue?.locationName &&
+    venue.locationName.toLocaleLowerCase(locale) !==
+      venue.businessName.toLocaleLowerCase(locale)
+      ? venue.locationName
+      : null;
+  const venueLine = venue
+    ? [venue.businessName, branchName].filter(Boolean).join(" · ")
+    : "";
+  // Once booked, the header states the outcome in place of where to book.
+  const headerNote = success
+    ? venue
+      ? format(success.pending ? t.pendingBody : t.successBody, {
+          business: venue.businessName,
+        })
+      : ""
+    : venueLine;
 
   return (
     <DialogPrimitive.Root
@@ -867,7 +1041,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
             data-booking-dialog
             data-toast-scope="dialog"
             ref={setDialogRef}
-            aria-describedby={undefined}
+            // The header note describes the dialog; without one there's nothing to point at.
+            {...(headerNote ? {} : { "aria-describedby": undefined })}
             onOpenAutoFocus={(event) => {
               returnFocusRef.current =
                 document.activeElement instanceof HTMLElement
@@ -909,9 +1084,29 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                   <Icon name="back" size={20} color="currentColor" />
                 </button>
               )}
-              <DialogPrimitive.Title className={`txt-balance ${styles.title}`}>
-                {tb.bookHeading}
-              </DialogPrimitive.Title>
+              <div className={styles.headerText}>
+                {/* The dialog keeps its name once booked; the outcome is the
+                    heading people see. */}
+                <DialogPrimitive.Title
+                  className={success ? "sr-only" : `txt-balance ${styles.title}`}
+                >
+                  {tb.bookHeading}
+                </DialogPrimitive.Title>
+                {success && (
+                  <h2
+                    ref={successTitleRef}
+                    tabIndex={-1}
+                    className={`txt-balance ${styles.title}`}
+                  >
+                    {success.pending ? t.pendingTitle : t.successTitle}
+                  </h2>
+                )}
+                {headerNote && (
+                  <DialogPrimitive.Description className={styles.headerVenue}>
+                    {headerNote}
+                  </DialogPrimitive.Description>
+                )}
+              </div>
               <button
                 type="button"
                 className={`tap ${styles.iconButton}`}
@@ -926,11 +1121,18 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
               <SuccessScreen
                 pending={success.pending}
                 scheduledAt={success.scheduledAt}
-                serviceNames={success.serviceNames}
-                businessName={calendar?.businessName ?? tb.bookHeading}
+                endsAt={success.endsAt}
+                items={success.items}
+                people={success.people}
+                priceMinor={success.priceMinor}
+                branchName={branchName}
+                currency={currency}
+                showPricing={showPricing}
+                totalLabel={dict.appointmentDetail.totalAtVenue}
                 timeZone={timeZone}
                 locale={locale}
                 t={t}
+                tb={tb}
                 onViewAppointment={() => {
                   // A booking can produce several appointments when its professional changes.
                   router.push(localeHref(locale, "appointments"));
@@ -990,22 +1192,6 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         <span key={index} data-active={index < visibleStep} />
                       ))}
                     </div>
-                    {calendar && step !== 3 && (
-                      <div className={styles.venueSummary}>
-                        <Icon name="pin" size={18} color="var(--c-600)" />
-                        <div>
-                          <div className={styles.businessName}>
-                            {calendar.businessName}
-                          </div>
-                          {calendar.locationName &&
-                            calendar.locationName !== calendar.businessName && (
-                              <div className={styles.locationName}>
-                                {calendar.locationName}
-                              </div>
-                            )}
-                        </div>
-                      </div>
-                    )}
                     {step === 1 && payload.catalog && (
                       <ServicesStep
                         catalog={payload.catalog}
@@ -1015,6 +1201,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         quoteLabel={quoteLabel}
                         locale={locale}
                         tb={tb}
+                        copy={dict.locationPage}
                         onToggle={togglePicked}
                       />
                     )}
@@ -1059,6 +1246,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                               fromProfessionalProfile={!!payload.profileOrigin}
                               onPickSlot={onPickSlot}
                               onPickStaff={onPickStaff}
+                              onPickStaffForAll={onPickStaffForAll}
                             />
                           ) : (
                             !calError &&
@@ -1075,17 +1263,19 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         slot={displaySlot}
                         date={selectedDate}
                         staffPicks={displayPicks}
+                        chosenPicks={staffPicks}
                         resolvedItems={resolvedItems}
                         daySlots={displayDay}
-                        calendar={calendar}
+                        businessName={venue?.businessName ?? tb.bookHeading}
                         services={services}
                         currency={currency}
                         showPricing={showPricing}
-                        quoteLabel={quoteLabel}
                         locale={locale}
                         timeZone={timeZone}
-                        totalMinor={totalMinor}
                         totalDuration={totalDuration}
+                        busy={submitting || validating}
+                        onEditVisit={() => setStep(2)}
+                        onEditServices={hasStep1 ? () => setStep(1) : undefined}
                         policy={displayDay?.bookingPolicy ?? calendar?.bookingPolicy ?? payload.bookingPolicy}
                         t={t}
                         tb={tb}
@@ -1184,11 +1374,20 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
 }
 
 // ─────────────────────────────────────────────
-// Step 1 — Choose services (only reachable when payload.services was empty
-// on open). Checkbox list of services grouped by category, plus bundles.
+// Step 1 — Choose services (reachable whenever the menu came along with no
+// professional pinned). The page's menu in its own selection grammar:
+// packages first, then services grouped by category.
 // ─────────────────────────────────────────────
 type BookingDict = ReturnType<typeof useTranslation>["dict"]["booking"];
 type BusinessDict = ReturnType<typeof useTranslation>["dict"]["business"];
+type LocationPageDict = ReturnType<typeof useTranslation>["dict"]["locationPage"];
+
+/** Menus this long get the page's search; shorter ones stay a plain list. */
+const SERVICE_SEARCH_MIN = 8;
+
+/** Accent- and case-insensitive, like the location page's menu search. */
+const normalize = (value: string) =>
+  value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLocaleLowerCase();
 
 function ServicesStep({
   catalog,
@@ -1198,17 +1397,22 @@ function ServicesStep({
   quoteLabel,
   locale,
   tb,
+  copy,
   onToggle,
 }: {
   catalog: NonNullable<OpenBookingPayload["catalog"]>;
-  picked: Array<{ type: "service" | "bundle"; id: number }>;
+  picked: BookingPick[];
   currency: string;
   showPricing: boolean;
   quoteLabel: string;
   locale: string;
   tb: BusinessDict;
+  copy: LocationPageDict;
   onToggle: (type: "service" | "bundle", id: number) => void;
 }) {
+  const searchId = useId();
+  const searchInput = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
   const isPicked = (type: "service" | "bundle", id: number) =>
     picked.some((item) => item.type === type && item.id === id);
   const groups = useMemo(() => {
@@ -1234,58 +1438,141 @@ function ServicesStep({
     }
     return [...byCategory.values()].filter((group) => group.items.length > 0);
   }, [catalog]);
+  // Searching only filters what's shown; ticked items stay in the selection.
+  const searchable =
+    catalog.services.length + catalog.bundles.length >= SERVICE_SEARCH_MIN;
+  const needle = searchable ? normalize(query.trim()) : "";
+  const matches = (name: string, description: string | null) =>
+    !needle || normalize(`${name} ${description ?? ""}`).includes(needle);
+  const bundles = catalog.bundles.filter(
+    (bundle) =>
+      matches(bundle.name, bundle.description) ||
+      (!!needle &&
+        bundle.services.some((service) =>
+          matches(service.name, service.description),
+        )),
+  );
+  const visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((service) =>
+        matches(service.name, service.description),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+  const clearSearch = () => {
+    setQuery("");
+    searchInput.current?.focus();
+  };
   return (
     <div className={styles.serviceGroups}>
-      {groups.map((group, index) => (
-        <div key={index}>
-          {group.name && (
-            <div className={styles.category}>
-              <span style={{ background: group.color }} />
-              {group.name}
-            </div>
+      {searchable && (
+        <div className={styles.serviceSearch}>
+          <label htmlFor={searchId}>
+            <Icon name="search" size={17} />
+            <span className="sr-only">{copy.searchServices}</span>
+            <input
+              ref={searchInput}
+              id={searchId}
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={copy.searchServices}
+              autoComplete="off"
+            />
+          </label>
+          {query && (
+            <button
+              type="button"
+              className={styles.searchClear}
+              aria-label={copy.clearSearch}
+              onClick={clearSearch}
+            >
+              <Icon name="x" size={18} />
+            </button>
           )}
-          {group.items.map((service) => (
-            <ServiceCheckRow
-              key={service.id}
-              name={service.name}
-              service={service}
-              on={isPicked("service", service.id)}
-              onToggle={() => onToggle("service", service.id)}
-              currency={currency}
-              locale={locale}
-              fromLabel={tb.priceFrom}
-              showPricing={showPricing}
-              quoteLabel={quoteLabel}
-            />
-          ))}
-        </div>
-      ))}
-      {catalog.bundles.length > 0 && (
-        <div>
-          <div className={styles.category}>{tb.bundles}</div>
-          {catalog.bundles.map((bundle) => (
-            <ServiceCheckRow
-              key={bundle.id}
-              name={bundle.name}
-              service={bundle}
-              on={isPicked("bundle", bundle.id)}
-              onToggle={() => onToggle("bundle", bundle.id)}
-              currency={currency}
-              locale={locale}
-              fromLabel={tb.priceFrom}
-              showPricing={showPricing}
-              quoteLabel={quoteLabel}
-            />
-          ))}
         </div>
       )}
+      {needle && bundles.length === 0 && visibleGroups.length === 0 && (
+        <div className={styles.searchEmpty}>
+          <p className={styles.searchEmptyTitle}>{copy.noResultsTitle}</p>
+          <p className={styles.hint}>{copy.noResultsBody}</p>
+          <Button kind="secondary" onClick={clearSearch}>
+            {copy.clearSearch}
+          </Button>
+        </div>
+      )}
+      {bundles.length > 0 && (
+        <div>
+          <h3 className={styles.category}>
+            {tb.bundles}
+            <span className={styles.categoryCount} aria-hidden="true">
+              {bundles.length}
+            </span>
+          </h3>
+          <div className={styles.serviceList}>
+            {bundles.map((bundle) => (
+              <ServiceCheckRow
+                key={bundle.id}
+                name={bundle.name}
+                service={bundle}
+                tag={tb.bundleTag}
+                includes={bundle.services.map((service) => service.name)}
+                on={isPicked("bundle", bundle.id)}
+                onToggle={() => onToggle("bundle", bundle.id)}
+                currency={currency}
+                locale={locale}
+                fromLabel={tb.priceFrom}
+                showPricing={showPricing}
+                quoteLabel={quoteLabel}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {visibleGroups.map((group, index) => (
+        <div key={index}>
+          {group.name && (
+            <h3 className={styles.category}>
+              <span
+                className={styles.categoryDot}
+                style={{ background: group.color }}
+                aria-hidden="true"
+              />
+              {group.name}
+              <span className={styles.categoryCount} aria-hidden="true">
+                {group.items.length}
+              </span>
+            </h3>
+          )}
+          <div className={styles.serviceList}>
+            {group.items.map((service) => (
+              <ServiceCheckRow
+                key={service.id}
+                name={service.name}
+                service={service}
+                on={isPicked("service", service.id)}
+                onToggle={() => onToggle("service", service.id)}
+                currency={currency}
+                locale={locale}
+                fromLabel={tb.priceFrom}
+                showPricing={showPricing}
+                quoteLabel={quoteLabel}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
+/** One whole-row toggle, ending in the page's round add/check indicator. */
 function ServiceCheckRow({
   name,
   service,
+  tag,
+  includes,
   on,
   onToggle,
   currency,
@@ -1296,6 +1583,10 @@ function ServiceCheckRow({
 }: {
   name: string;
   service: ServiceSpread;
+  /** The package pill, for bundles. */
+  tag?: string;
+  /** A package's services, in order. */
+  includes?: string[];
   on: boolean;
   onToggle: () => void;
   currency: string;
@@ -1312,16 +1603,25 @@ function ServiceCheckRow({
       onClick={onToggle}
       aria-pressed={on}
     >
-      <span className={styles.serviceCheck} aria-hidden="true">
-        {on && <Icon name="check" size={13} color="currentColor" />}
-      </span>
       <span className={styles.serviceText}>
         <span className={styles.serviceName}>{name}</span>
         <span className={styles.serviceMeta}>
-          {meta.duration} ·{" "}
+          {tag && (
+            <>
+              <span className={styles.bundleTag}>{tag}</span>{" "}
+            </>
+          )}
+          <span className={styles.serviceDuration}>{meta.duration}</span>
+          {" · "}
           {showPricing && meta.priceVaries && <span>{fromLabel} </span>}
           {showPricing ? meta.price : quoteLabel}
         </span>
+        {includes && includes.length > 0 && (
+          <span className={styles.serviceIncludes}>{includes.join(", ")}</span>
+        )}
+      </span>
+      <span className={styles.serviceAdd} aria-hidden="true">
+        <Icon name={on ? "check" : "plus"} size={18} />
       </span>
     </button>
   );
@@ -1381,6 +1681,7 @@ function DateStep({
   );
   const visibleDays = days.slice(start, start + 7);
   const hasAvailable = days.some((day) => day.status === "available");
+  const today = todayInTz(timeZone);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
     // A partial final page must stay reachable after swiping the previous row.
@@ -1464,6 +1765,7 @@ function DateStep({
               timeZone={timeZone}
               t={t}
               selected={day.date === selectedDate}
+              isToday={day.date === today}
               onPick={() => onPickDate(day.date)}
             />
           ))}
@@ -1481,6 +1783,7 @@ function DayCell({
   timeZone,
   t,
   selected,
+  isToday,
   onPick,
 }: {
   day: BookingCalendarDay;
@@ -1488,6 +1791,7 @@ function DayCell({
   timeZone: string;
   t: BookingDict;
   selected: boolean;
+  isToday: boolean;
   onPick: () => void;
 }) {
   const available = day.status === "available";
@@ -1503,8 +1807,21 @@ function DayCell({
   }).format(date);
   const count =
     available && day.slotsCount != null
-      ? format(t.slotsCountLabel, { count: String(day.slotsCount) })
+      ? formatCount(day.slotsCount, locale, {
+          one: t.slotsCountOne,
+          few: t.slotsCountLabel,
+          other: t.slotsCountLabel,
+        })
       : null;
+  // Closed and fully booked days say so; any other reason reads as unavailable.
+  const note =
+    count ??
+    (day.status === "closed"
+      ? t.dayClosed
+      : day.status === "fully_booked"
+        ? t.dayFull
+        : null);
+  const status = note ?? (available ? null : t.dayUnavailable);
   return (
     <button
       type="button"
@@ -1513,12 +1830,18 @@ function DayCell({
       data-date={day.date}
       onClick={onPick}
       aria-pressed={selected}
-      aria-label={fmtDateLabel(day.date, locale, timeZone)}
-      title={count ?? (!available ? (day.reason ?? day.status) : undefined)}
+      aria-label={[
+        isToday ? t.todayLabel : null,
+        fmtDateLabel(day.date, locale, timeZone),
+        status,
+      ]
+        .filter(Boolean)
+        .join(", ")}
+      title={status ?? undefined}
     >
-      <span className={styles.weekday}>{weekday}</span>
+      <span className={styles.weekday}>{isToday ? t.todayLabel : weekday}</span>
       <span className={styles.dayNumber}>{dayNumber}</span>
-      {count && <span className={styles.slotCount}>{count}</span>}
+      {note && <span className={styles.slotCount}>{note}</span>}
     </button>
   );
 }
@@ -1544,6 +1867,7 @@ function SlotStep({
   onRetry,
   onPickSlot,
   onPickStaff,
+  onPickStaffForAll,
 }: {
   daySlots: BookingDaySlots | null;
   loading: boolean;
@@ -1562,7 +1886,22 @@ function SlotStep({
   onRetry: () => void;
   onPickSlot: (slot: TimeSlot) => void;
   onPickStaff: (idx: number, staffId: number | null) => void;
+  onPickStaffForAll: (indices: number[], staffId: number | null) => void;
 }) {
+  const [perService, setPerService] = useState(false);
+  const staffHeadingId = useId();
+  const staffSectionRef = useRef<HTMLDivElement | null>(null);
+  // Once a time is picked, bring the professional choice into view — only as
+  // far as needed, and not at all when it's already showing.
+  const revealStaff = () =>
+    requestAnimationFrame(() =>
+      staffSectionRef.current?.scrollIntoView({
+        block: "nearest",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+      }),
+    );
   if (error)
     return (
       <ErrorBlock
@@ -1614,6 +1953,36 @@ function SlotStep({
       return [];
     return [{ item, index, pinned }];
   });
+  // One picker covers every service when each has a picker, none is pinned,
+  // nobody's price or time differs, and someone is free for all of them. Mixed
+  // picks (chosen per service) always show per service.
+  const staffPricing = daySlots.staffPricing ?? {};
+  const itemVaries = staffItems.map(({ item, index }) =>
+    itemVariesByStaff(item, staffPricing, daySlots.itemStaffPricing, index),
+  );
+  const staffIndices = staffItems.map(({ index }) => index);
+  const sharedIds =
+    staffItems.length > 1 &&
+    staffItems.length === (selectedSlot?.items.length ?? 0) &&
+    staffItems.every(({ pinned }) => pinned == null) &&
+    !itemVaries.some(Boolean)
+      ? staffItems
+          .slice(1)
+          .reduce<number[]>(
+            (ids, { item }) => ids.filter((id) => item.availableStaffIds.includes(id)),
+            staffItems[0].item.availableStaffIds,
+          )
+      : [];
+  const canShare = sharedIds.length > 0;
+  const firstPick = staffItems.length > 0 ? staffPicks[staffItems[0].index] : undefined;
+  const uniformPick =
+    staffItems.every(({ index }) => staffPicks[index] === firstPick) &&
+    (firstPick == null || sharedIds.includes(firstPick));
+  const shared = canShare && !perService && uniformPick;
+  const shareAll = () => {
+    onPickStaffForAll(staffIndices, firstPick != null && sharedIds.includes(firstPick) ? firstPick : null);
+    setPerService(false);
+  };
   return (
     <div className={styles.slotGroups}>
       <div>
@@ -1635,7 +2004,10 @@ function SlotStep({
                         selectedSlot?.startTime === slot.startTime &&
                         selectedSlot?.endTime === slot.endTime
                       }
-                      onClick={() => onPickSlot(slot)}
+                      onClick={() => {
+                        onPickSlot(slot);
+                        revealStaff();
+                      }}
                     >
                       {fmtTimeLabel(
                         selectedDate,
@@ -1652,43 +2024,93 @@ function SlotStep({
         </div>
       </div>
       {selectedSlot && staffItems.length > 0 && (
-        <div className={styles.staffSection}>
-          {staffItems.map(({ item, index, pinned }) => (
+        <div ref={staffSectionRef} className={styles.staffSection}>
+          <div className={styles.staffSectionHead}>
+            <h3 id={staffHeadingId} className={styles.sectionLabel}>{t.staffLabel}</h3>
+            {canShare && (
+              <button
+                type="button"
+                className={styles.staffMode}
+                onClick={shared ? () => setPerService(true) : shareAll}
+              >
+                {shared ? t.staffPerService : t.staffSameForAll}
+              </button>
+            )}
+          </div>
+          {shared ? (
             <StaffPicker
-              key={`${item.type}-${item.serviceId ?? item.bundleId}-${index}`}
-              item={item}
-              idx={index}
-              picked={staffPicks[index]}
+              labelledBy={staffHeadingId}
+              hint={t.staffSharedHint}
+              staffIds={sharedIds}
+              stackIds={[...new Set(staffItems.flatMap(({ item }) => item.availableStaffIds))]}
+              showAny
+              anyHint={t.staffAnyEach}
+              picked={firstPick}
               directory={daySlots.staffDirectory}
-              showItemLabel={selectedSlot.items.length > 1}
-              varies={itemVariesByStaff(item, daySlots.staffPricing ?? {}, daySlots.itemStaffPricing, index)}
-              pinned={pinned}
-              staffPricing={daySlots.staffPricing ?? {}}
-              itemStaffPricing={daySlots.itemStaffPricing}
               currency={currency}
               showPricing={showPricing}
               quoteLabel={quoteLabel}
               locale={locale}
               t={t}
-              onPick={onPickStaff}
+              onPick={(staffId) => onPickStaffForAll(staffIndices, staffId)}
             />
-          ))}
+          ) : (
+            staffItems.map(({ item, index, pinned }, position) => {
+              const itemName = item.type === "bundle" ? item.bundleName : item.serviceName;
+              return <StaffPicker
+                key={`${item.type}-${item.serviceId ?? item.bundleId}-${index}`}
+                labelledBy={staffHeadingId}
+                title={selectedSlot.items.length > 1 && itemName ? { index: index + 1, name: itemName } : undefined}
+                hint={itemVaries[position] ? t.staffChoiceRequired : undefined}
+                staffIds={item.availableStaffIds}
+                stackIds={item.availableStaffIds}
+                // Availability remains pinned unless the explicit recovery unpins it.
+                // Any available is offered only when price and duration are identical.
+                showAny={!itemVaries[position] && pinned == null}
+                anyHint={
+                  selectedSlot.items.length > 1
+                    ? t.staffAnyThis
+                    : format(t.staffAnyAt, { time: fmtTimeLabel(selectedDate, selectedSlot.startTime, locale, timeZone) })
+                }
+                picked={staffPicks[index]}
+                figuresFor={
+                  itemVaries[position]
+                    ? (staffId) => staffFiguresForItem(item, staffId, staffPricing, daySlots.itemStaffPricing, index)
+                    : undefined
+                }
+                directory={daySlots.staffDirectory}
+                currency={currency}
+                showPricing={showPricing}
+                quoteLabel={quoteLabel}
+                locale={locale}
+                t={t}
+                onPick={(staffId) => onPickStaff(index, staffId)}
+              />;
+            })
+          )}
         </div>
       )}
     </div>
   );
 }
 
+/**
+ * One single-choice group of professionals: "Any available" as a full-width
+ * lead row (when offered), then the people. Options stay toggle buttons whose
+ * names start with the professional's name. When figures differ by person,
+ * the cards become one-column rows with the price and time aligned right.
+ */
 function StaffPicker({
-  item,
-  idx,
+  title,
+  labelledBy,
+  hint,
+  staffIds,
+  stackIds,
+  showAny,
+  anyHint,
   picked,
+  figuresFor,
   directory,
-  showItemLabel,
-  varies,
-  pinned,
-  staffPricing,
-  itemStaffPricing,
   currency,
   showPricing,
   quoteLabel,
@@ -1696,70 +2118,89 @@ function StaffPicker({
   t,
   onPick,
 }: {
-  item: SlotItem;
-  idx: number;
+  /** A numbered service heading, shown when the slot holds several services. */
+  title?: { index: number; name: string };
+  /** Labels the group when there is no service heading. */
+  labelledBy: string;
+  hint?: string;
+  staffIds: number[];
+  /** The people "Any available" may assign, for its avatar stack. */
+  stackIds: number[];
+  showAny: boolean;
+  anyHint: string;
   picked: number | undefined;
+  figuresFor?: (staffId: number) => { priceAmountMinor: number; durationMinutes: number };
   directory: BookingDaySlots["staffDirectory"];
-  showItemLabel: boolean;
-  varies: boolean;
-  pinned: number | undefined;
-  staffPricing: BookingDaySlots["staffPricing"];
-  itemStaffPricing?: BookingDaySlots["itemStaffPricing"];
   currency: string;
   showPricing: boolean;
   quoteLabel: string;
   locale: string;
   t: BookingDict;
-  onPick: (idx: number, staffId: number | null) => void;
+  onPick: (staffId: number | null) => void;
 }) {
-  const itemName = item.type === "bundle" ? item.bundleName : item.serviceName;
+  const titleId = useId();
   const isAny = picked == null;
+  const stack = stackIds.slice(0, 3);
+  const more = stackIds.length - stack.length;
   return (
-    <section>
-      <h3 className={styles.sectionLabel}>
-        {showItemLabel && itemName
-          ? `${t.staffLabel} · ${itemName}`
-          : t.staffLabel}
-      </h3>
-      {varies && (
-        <p className={styles.hint} style={{ marginBottom: 12 }}>
-          {t.staffChoiceRequired}
-        </p>
+    <section className={styles.staffPicker}>
+      {title && (
+        <h4 id={titleId} className={styles.staffTitle}>
+          <span className={styles.staffIndex} aria-hidden="true">
+            {String(title.index).padStart(2, "0")}
+          </span>
+          {title.name}
+        </h4>
       )}
-      <div className={styles.staffChoices}>
-        {/* Availability remains pinned unless the explicit recovery unpins it.
-            Any available is offered only when price and duration are identical. */}
-        {!varies && pinned == null && (
+      {hint && <p className={styles.hint}>{hint}</p>}
+      <div
+        role="group"
+        aria-labelledby={title ? titleId : labelledBy}
+        className={styles.staffChoices}
+        data-compare={figuresFor ? "" : undefined}
+      >
+        {showAny && (
           <button
             type="button"
-            className={`tap ${styles.staffChoice}`}
-            onClick={() => onPick(idx, null)}
+            className={`tap ${styles.staffChoice} ${styles.staffAny}`}
+            onClick={() => onPick(null)}
             aria-pressed={isAny}
           >
-            <span className={styles.anyAvatar} aria-hidden="true">
-              <Icon name="sparkle" size={20} color="currentColor" />
+            <span className={styles.anyStack} aria-hidden="true">
+              {stack.map((staffId) => (
+                <span key={staffId}>
+                  <Avatar
+                    src={directory[staffId]?.image ?? undefined}
+                    name={directory[staffId]?.name ?? `#${staffId}`}
+                    size={30}
+                  />
+                </span>
+              ))}
+              {more > 0 && <span className={styles.anyMore}>+{more}</span>}
             </span>
             <span className={styles.staffText}>
               <span className={styles.staffName}>{t.anyAvailable}</span>
+              <span className={styles.staffHint}>{anyHint}</span>
             </span>
             <span data-staff-check aria-hidden="true">
               {isAny && <Icon name="check" size={12} color="currentColor" />}
             </span>
           </button>
         )}
-        {item.availableStaffIds.map((staffId) => {
+        {showAny && staffIds.length > 0 && (
+          <p className={styles.staffOr}>{t.staffOrChoose}</p>
+        )}
+        {staffIds.map((staffId) => {
           const entry = directory[staffId];
           const selected = picked === staffId;
           const name = entry?.name ?? `#${staffId}`;
-          const figures = varies
-            ? staffFiguresForItem(item, staffId, staffPricing, itemStaffPricing, idx)
-            : null;
+          const figures = figuresFor?.(staffId);
           return (
             <button
               key={staffId}
               type="button"
               className={`tap ${styles.staffChoice}`}
-              onClick={() => onPick(idx, staffId)}
+              onClick={() => onPick(staffId)}
               aria-pressed={selected}
             >
               <span aria-hidden="true">
@@ -1767,15 +2208,19 @@ function StaffPicker({
               </span>
               <span className={styles.staffText}>
                 <span className={styles.staffName}>{name}</span>
-                {figures && (
-                  <span className={styles.staffFigures}>
-                    {formatDuration(figures.durationMinutes)} ·{" "}
+              </span>
+              {figures && (
+                <span className={styles.staffFigures}>
+                  <span className={styles.staffPrice}>
                     {showPricing
                       ? formatMoney(figures.priceAmountMinor, currency, locale)
                       : quoteLabel}
                   </span>
-                )}
-              </span>
+                  <span className={styles.staffDuration}>
+                    {formatDuration(figures.durationMinutes)}
+                  </span>
+                </span>
+              )}
               <span data-staff-check aria-hidden="true">
                 {selected && (
                   <Icon name="check" size={12} color="currentColor" />
@@ -1792,135 +2237,266 @@ function StaffPicker({
 // ─────────────────────────────────────────────
 // Step 3 — Review & confirm
 // ─────────────────────────────────────────────
+type DateParts = { weekday: string; day: string; month: string; long: string };
+
+/** A date the way the appointment cards print it, read in `timeZone`. */
+function dateParts(instant: Date, locale: string, timeZone: string): DateParts {
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale, { ...options, timeZone })
+      .format(instant)
+      .replace(/\.$/, "");
+  return {
+    weekday: part({ weekday: "short" }),
+    day: part({ day: "numeric" }),
+    month: part({ month: "short" }),
+    long: part({ weekday: "long", day: "numeric", month: "long" }),
+  };
+}
+
+/** The appointment cards' date badge: ink ahead, terracotta on the day. */
+function DatePill({ parts, today }: { parts: DateParts; today: boolean }) {
+  return (
+    <span
+      className={styles.datePill}
+      data-today={today || undefined}
+      aria-hidden="true"
+    >
+      <span className={styles.pillLabel}>{parts.weekday}</span>
+      <span className={styles.pillDay}>{parts.day}</span>
+      <span className={styles.pillLabel}>{parts.month}</span>
+    </span>
+  );
+}
+
+/** Who does the visit: their photo under the date pill, the name level with the date. */
+function VisitPerson({ person, note }: { person: StaffPerson; note?: string }) {
+  return (
+    <li>
+      <span className={styles.personPhoto} aria-hidden="true">
+        <Avatar src={person.image ?? undefined} name={person.name} size={40} />
+      </span>
+      <span className={styles.personText}>
+        <span className={styles.personName}>{person.name}</span>
+        {note && <span className={styles.personNote}>{note}</span>}
+      </span>
+    </li>
+  );
+}
+
 function ReviewStep({
   slot,
   date,
   staffPicks,
+  chosenPicks,
   resolvedItems,
   daySlots,
-  calendar,
+  businessName,
   services,
   currency,
   showPricing,
-  quoteLabel,
   locale,
   timeZone,
-  totalMinor,
   totalDuration,
+  busy,
+  onEditVisit,
+  onEditServices,
   policy,
   t,
   tb,
 }: {
   slot: TimeSlot;
   date: string;
+  /** Who each service is booked with — every one is pinned by now. */
   staffPicks: StaffPicks;
+  /** The customer's own choices; a missing entry was "Any available". */
+  chosenPicks: StaffPicks;
   resolvedItems: ResolvedSlotItem[];
   daySlots: BookingDaySlots | null;
-  calendar: BookingCalendar | null;
+  /** Where to settle up; the header already names the venue. */
+  businessName: string;
   services: OpenBookingPayload["services"];
   currency: string;
   showPricing: boolean;
-  quoteLabel: string;
   locale: string;
   timeZone: string;
-  totalMinor: number;
   totalDuration: number;
+  /** Booking or re-checking: nothing may change underneath. */
+  busy: boolean;
+  onEditVisit: () => void;
+  /** Absent when this booking has no services step. */
+  onEditServices?: () => void;
   policy: BookingPolicy | null;
   t: BookingDict;
   tb: BusinessDict;
 }) {
-  const staffIds = [
-    ...new Set(
-      slot.items.flatMap((_, index) =>
-        staffPicks[index] == null ? [] : [staffPicks[index]],
-      ),
-    ),
-  ];
-  const staffNames = staffIds
-    .map((staffId) => daySlots?.staffDirectory[staffId]?.name ?? null)
-    .filter((name): name is string => !!name);
+  const visitId = useId();
+  const servicesId = useId();
+  const paymentId = useId();
+  const directory = daySlots?.staffDirectory ?? {};
+  const people = peopleFor(
+    slot.items.map((_, index) => staffPicks[index]),
+    directory,
+  );
+  // Assigned for you only when "Any available" chose them for every service
+  // they'll do.
+  const assignedForYou = (staffId: number) =>
+    slot.items.every(
+      (_, index) => staffPicks[index] !== staffId || chosenPicks[index] == null,
+    );
+  const staffPerService = people.length > 1;
+  const timed = slot.items.length > 1;
+  // The wall date is already the venue's; read it back in UTC so no offset
+  // can move it onto a neighbouring day.
+  const [year, month, day] = date.split("-").map(Number);
+  const parts = dateParts(new Date(Date.UTC(year, month - 1, day, 12)), locale, "UTC");
   return (
     <div className={styles.review}>
-      <div className={styles.visitDetails}>
-        <Row icon="cal">
-          <strong>{fmtDateLabel(date, locale, timeZone)}</strong>
-          <br />
-          {fmtTimeLabel(date, slot.startTime, locale, timeZone)} –{" "}
-          {fmtTimeLabel(
-            date,
-            resolvedItems[resolvedItems.length - 1]?.endTime ?? slot.endTime,
-            locale,
-            timeZone,
-          )}
-        </Row>
-        <Row icon="user">
-          {staffNames.length > 0 ? staffNames.join(", ") : t.anyAvailable}
-        </Row>
-        <Row icon="pin">
-          {(calendar?.businessName ?? tb.bookHeading) +
-            (calendar?.locationName ? ` · ${calendar.locationName}` : "")}
-        </Row>
-      </div>
-      <div className={styles.receipt}>
-        <div className={styles.receiptItems}>
-          {slot.items.map((item, index) => (
-            <div
-              key={`${item.type}-${item.serviceId ?? item.bundleId}-${index}`}
-              className={styles.receiptRow}
+      <section className={styles.visit} aria-labelledby={visitId}>
+        <DatePill parts={parts} today={date === todayInTz(timeZone)} />
+        <div className={styles.visitText}>
+          <div className={styles.visitHead}>
+            <h3 id={visitId} className={styles.visitDate}>
+              <time dateTime={date}>{parts.long}</time>
+            </h3>
+            <button
+              type="button"
+              className={styles.editAction}
+              onClick={onEditVisit}
+              disabled={busy}
+              aria-label={t.reviewChangeVisit}
             >
-              <div>
-                <div className={styles.serviceName}>
+              {t.reviewChange}
+            </button>
+          </div>
+          <p className={styles.visitTime}>
+            {fmtTimeLabel(date, slot.startTime, locale, timeZone)} –{" "}
+            {fmtTimeLabel(
+              date,
+              resolvedItems[resolvedItems.length - 1]?.endTime ?? slot.endTime,
+              locale,
+              timeZone,
+            )}
+            {" · "}
+            {formatDuration(totalDuration)}
+          </p>
+        </div>
+        <ul className={styles.visitPeople}>
+          {people.length > 0 ? (
+            people.map((person) => (
+              <VisitPerson
+                key={person.staffId}
+                person={person}
+                note={assignedForYou(person.staffId) ? t.staffAssigned : undefined}
+              />
+            ))
+          ) : (
+            <li>
+              <span className={`${styles.personPhoto} ${styles.personAny}`} aria-hidden="true">
+                <Icon name="users" size={18} color="currentColor" />
+              </span>
+              <span className={styles.personText}>
+                <span className={styles.personName}>{t.anyAvailable}</span>
+              </span>
+            </li>
+          )}
+        </ul>
+      </section>
+      <section className={styles.schedule} aria-labelledby={servicesId}>
+        <div className={styles.scheduleHead}>
+          <h3 id={servicesId} className={styles.sectionLabel}>
+            {t.reviewServicesTitle}
+          </h3>
+          {onEditServices && (
+            <button
+              type="button"
+              className={styles.editAction}
+              onClick={onEditServices}
+              disabled={busy}
+            >
+              {t.reviewEditServices}
+            </button>
+          )}
+        </div>
+        {/* A visit of several services reads as a schedule: each starts
+            when the one before it ends. The footer carries the total. */}
+        <ol
+          className={styles.scheduleList}
+          data-timed={timed || undefined}
+          data-priced={showPricing || undefined}
+        >
+          {slot.items.map((item, index) => {
+            const resolved = resolvedItems[index];
+            const startTime = resolved?.startTime ?? item.startTime;
+            const staffId = staffPicks[index];
+            const person = staffId == null ? undefined : directory[staffId];
+            return (
+              <li key={`${item.type}-${item.serviceId ?? item.bundleId}-${index}`}>
+                {timed && (
+                  <time className={styles.scheduleTime} dateTime={startTime}>
+                    {fmtTimeLabel(date, startTime, locale, timeZone)}
+                  </time>
+                )}
+                <span className={styles.scheduleName}>
                   {(item.type === "bundle"
                     ? item.bundleName
                     : item.serviceName) ??
                     services[index]?.name ??
                     ""}
-                </div>
-                <div className={styles.serviceMeta}>
-                  {formatDuration(
-                    resolvedItems[index]?.durationMinutes ??
-                      item.durationMinutes,
+                </span>
+                <span className={styles.scheduleMeta}>
+                  {item.type === "bundle" && (
+                    <span className={styles.bundleTag}>{tb.bundleTag}</span>
                   )}
-                </div>
-              </div>
-              <span className={styles.receiptAmount}>
-                {showPricing
-                  ? formatMoney(
-                      resolvedItems[index]?.priceAmountMinor ??
-                        item.priceAmountMinor,
+                  <span className={styles.scheduleDuration}>
+                    {formatDuration(
+                      resolved?.durationMinutes ?? item.durationMinutes,
+                    )}
+                  </span>
+                  {staffPerService && person?.name && (
+                    <span className={styles.scheduleStaff}>
+                      <span aria-hidden="true">
+                        <Avatar
+                          src={person.image ?? undefined}
+                          name={person.name}
+                          size={20}
+                        />
+                      </span>
+                      {person.name}
+                    </span>
+                  )}
+                </span>
+                {item.type === "bundle" && item.services && item.services.length > 0 && (
+                  <span className={styles.scheduleIncludes}>
+                    {item.services.map((service) => service.serviceName).join(", ")}
+                  </span>
+                )}
+                {showPricing && (
+                  <span className={styles.schedulePrice}>
+                    {formatMoney(
+                      resolved?.priceAmountMinor ?? item.priceAmountMinor,
                       currency,
                       locale,
-                    )
-                  : quoteLabel}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className={styles.receiptTotal}>
+                    )}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+      <div className={styles.notices}>
+        {policy && <BookingPolicyNotice policy={policy} />}
+        <section className={styles.notice} aria-labelledby={paymentId}>
+          <Icon name="wallet" size={20} color="var(--c-700)" />
           <div>
-            <span style={{ textTransform: "capitalize" }}>{tb.totalLabel}</span>
-            <div className={styles.serviceMeta}>
-              {formatDuration(totalDuration)}
-            </div>
+            <h3 id={paymentId} className={styles.noticeTitle}>
+              {t.payAtVenueTitle}
+            </h3>
+            <p className={`txt-pretty ${styles.noticeBody}`}>
+              {format(t.payAtVenueNote, { business: businessName })}
+            </p>
           </div>
-          <strong>
-            {showPricing
-              ? formatMoney(totalMinor, currency, locale)
-              : quoteLabel}
-          </strong>
-        </div>
-      </div>
-      {policy && <BookingPolicyNotice policy={policy} />}
-      <div className={styles.paymentNotice}>
-        <Icon name="wallet" size={20} color="var(--c-700)" />
-        <div>
-          <strong>{t.payAtVenueTitle}</strong>
-          <p className="txt-pretty">
-            {format(t.payAtVenueNote, {
-              business: calendar?.businessName ?? tb.bookHeading,
-            })}
-          </p>
-        </div>
+        </section>
       </div>
     </div>
   );
@@ -1928,6 +2504,7 @@ function ReviewStep({
 
 function BookingPolicyNotice({ policy }: { policy: BookingPolicy }) {
   const { dict, locale } = useTranslation();
+  const titleId = useId();
   const p = dict.appointmentPage;
   const duration = (minutes: number) => {
     const unit = minutes % 1440 === 0 ? "day" : minutes % 60 === 0 ? "hour" : "minute";
@@ -1937,38 +2514,26 @@ function BookingPolicyNotice({ policy }: { policy: BookingPolicy }) {
   };
   const combined = policy.allowCustomerCancellation && policy.allowCustomerReschedule &&
     policy.cancellationWindowMinutes === policy.rescheduleWindowMinutes;
-  return <section className={styles.policyNotice} aria-label={p.combinedPolicyTitle}>
-    <h3 className={styles.sectionLabel}>{p.combinedPolicyTitle}</h3>
-    {combined ? <p className={styles.hint}>{policy.cancellationWindowMinutes > 0
-      ? format(p.combinedNotice, { duration: duration(policy.cancellationWindowMinutes) })
-      : p.combinedNoNoticeRequired}</p> : <dl>
-      <div><dt>{p.cancellationPolicy}</dt><dd>{!policy.allowCustomerCancellation
-        ? dict.booking.cancellationUnavailable
-        : policy.cancellationWindowMinutes > 0
-          ? format(p.cancellationNotice, { duration: duration(policy.cancellationWindowMinutes) })
-          : p.noNoticeRequired}</dd></div>
-      <div><dt>{p.reschedulePolicy}</dt><dd>{!policy.allowCustomerReschedule
-        ? dict.booking.reschedulingUnavailable
-        : policy.rescheduleWindowMinutes > 0
-          ? format(p.rescheduleNotice, { duration: duration(policy.rescheduleWindowMinutes) })
-          : p.noNoticeRequired}</dd></div>
-    </dl>}
-  </section>;
-}
-
-function Row({
-  icon,
-  children,
-}: {
-  icon: "cal" | "user" | "pin";
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={styles.detailRow}>
-      <Icon name={icon} size={18} color="var(--c-600)" />
-      <span>{children}</span>
+  return <section className={styles.notice} aria-labelledby={titleId}>
+    <Icon name="rebook" size={20} color="var(--c-700)" />
+    <div>
+      <h3 id={titleId} className={styles.noticeTitle}>{p.combinedPolicyTitle}</h3>
+      {combined ? <p className={`txt-pretty ${styles.noticeBody}`}>{policy.cancellationWindowMinutes > 0
+        ? format(p.combinedNotice, { duration: duration(policy.cancellationWindowMinutes) })
+        : p.combinedNoNoticeRequired}</p> : <dl className={styles.noticeTerms}>
+        <div><dt>{p.cancellationPolicy}</dt><dd>{!policy.allowCustomerCancellation
+          ? dict.booking.cancellationUnavailable
+          : policy.cancellationWindowMinutes > 0
+            ? format(p.cancellationNotice, { duration: duration(policy.cancellationWindowMinutes) })
+            : p.noNoticeRequired}</dd></div>
+        <div><dt>{p.reschedulePolicy}</dt><dd>{!policy.allowCustomerReschedule
+          ? dict.booking.reschedulingUnavailable
+          : policy.rescheduleWindowMinutes > 0
+            ? format(p.rescheduleNotice, { duration: duration(policy.rescheduleWindowMinutes) })
+            : p.noNoticeRequired}</dd></div>
+      </dl>}
     </div>
-  );
+  </section>;
 }
 
 // ─────────────────────────────────────────────
@@ -2049,61 +2614,172 @@ function BlockedScreen({
 function SuccessScreen({
   pending,
   scheduledAt,
-  serviceNames,
-  businessName,
+  endsAt,
+  items,
+  people,
+  priceMinor,
+  branchName,
+  currency,
+  showPricing,
+  totalLabel,
   timeZone,
   locale,
   t,
+  tb,
   onViewAppointment,
   onClose,
 }: {
   pending: boolean;
   scheduledAt: string;
-  serviceNames: string[];
-  businessName: string;
+  endsAt: string | null;
+  items: BookedItem[];
+  people: StaffPerson[];
+  priceMinor: number | null;
+  /** The location, when it's named apart from the business in the header. */
+  branchName: string | null;
+  currency: string;
+  showPricing: boolean;
+  totalLabel: string;
   timeZone: string;
   locale: string;
   t: BookingDict;
+  tb: BusinessDict;
   onViewAppointment: () => void;
   onClose: () => void;
 }) {
-  const when = new Intl.DateTimeFormat(locale, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+  const visitId = useId();
+  const servicesId = useId();
+  const start = new Date(scheduledAt);
+  const parts = dateParts(start, locale, timeZone);
+  const clock = (iso: string) =>
+    new Intl.DateTimeFormat(locale, {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone,
+    }).format(new Date(iso));
+  const wallDate = new Intl.DateTimeFormat("en-CA", {
     timeZone,
-  }).format(new Date(scheduledAt));
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(start);
+  const totalDuration = items.reduce((sum, item) => sum + item.durationMinutes, 0);
+  const timed = items.length > 1;
+  const staffNameFor = (staffId: number | null) =>
+    people.length > 1
+      ? people.find((person) => person.staffId === staffId)?.name
+      : undefined;
 
   return (
-    <div className={styles.state}>
-      <div className={styles.stateIcon} data-success="true">
-        <Icon name="check" size={32} color="currentColor" />
+    <>
+      <div className={styles.body}>
+        <div className={styles.success}>
+          <div className={styles.stateArtwork}>
+            <BookingSuccessArt pending={pending} />
+          </div>
+          <section
+            className={`${styles.visit} ${styles.successVisit}`}
+            aria-labelledby={visitId}
+          >
+            <DatePill parts={parts} today={wallDate === todayInTz(timeZone)} />
+            <div className={styles.visitText}>
+              <h3 id={visitId} className={styles.visitDate}>
+                <time dateTime={scheduledAt}>{parts.long}</time>
+              </h3>
+              <p className={styles.visitTime}>
+                {clock(scheduledAt)}
+                {endsAt && <> – {clock(endsAt)}</>}
+                {totalDuration > 0 && (
+                  <>
+                    {" · "}
+                    {formatDuration(totalDuration)}
+                  </>
+                )}
+              </p>
+            </div>
+            {people.length > 0 && (
+              <ul className={styles.visitPeople}>
+                {people.map((person) => (
+                  <VisitPerson key={person.staffId} person={person} />
+                ))}
+              </ul>
+            )}
+            {branchName && (
+              <p className={styles.visitPlace}>
+                <span
+                  className={`${styles.personPhoto} ${styles.visitIcon}`}
+                  aria-hidden="true"
+                >
+                  <Icon name="pin" size={18} color="currentColor" />
+                </span>
+                <span className={styles.personText}>
+                  <span className={styles.personName}>{branchName}</span>
+                </span>
+              </p>
+            )}
+          </section>
+          {items.length > 0 && (
+            <section className={styles.successSchedule} aria-labelledby={servicesId}>
+              <h3 id={servicesId} className={styles.sectionLabel}>
+                {t.reviewServicesTitle}
+              </h3>
+              <ol className={styles.bookedList} data-timed={timed || undefined}>
+                {items.map((item) => {
+                  const staffName = staffNameFor(item.staffId);
+                  return (
+                    <li key={item.key}>
+                      {timed && item.startTime && (
+                        <time className={styles.bookedTime} dateTime={item.startTime}>
+                          {fmtTimeLabel(wallDate, item.startTime, locale, timeZone)}
+                        </time>
+                      )}
+                      <span className={styles.bookedName}>{item.name}</span>
+                      <span className={styles.bookedDuration}>
+                        {formatDuration(item.durationMinutes)}
+                      </span>
+                      {(item.bundle || staffName) && (
+                        <span className={styles.bookedMeta}>
+                          {item.bundle && (
+                            <span className={styles.bundleTag}>{tb.bundleTag}</span>
+                          )}
+                          {staffName}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+              {showPricing && priceMinor != null && (
+                <p className={styles.bookedTotal}>
+                  <span>{totalLabel}</span>
+                  <span>{formatMoney(priceMinor, currency, locale)}</span>
+                </p>
+              )}
+            </section>
+          )}
+        </div>
       </div>
-      <h2 className={`txt-balance ${styles.stateTitle}`}>
-        {pending ? t.pendingTitle : t.successTitle}
-      </h2>
-      <p className={`txt-pretty ${styles.stateBody}`}>
-        {format(pending ? t.pendingBody : t.successBody, {
-          services: serviceNames.join(" + "),
-          business: businessName,
-        })}
-      </p>
-      <div className={styles.stateDate}>{when}</div>
-      <div className={styles.stateActions}>
+      {/* The steps' action bar stays: the next step sits where Confirm was,
+          in reach however far the summary scrolls. */}
+      <footer className={`${styles.footer} ${styles.successFooter}`}>
+        <Button
+          kind="secondary"
+          size="lg"
+          className={styles.secondaryAction}
+          onClick={onClose}
+        >
+          {t.close}
+        </Button>
         <Button
           kind="accent"
+          size="lg"
           className={styles.primaryAction}
           onClick={onViewAppointment}
         >
           {t.viewAppointment}
         </Button>
-        <Button kind="secondary" onClick={onClose}>
-          {t.close}
-        </Button>
-      </div>
-    </div>
+      </footer>
+    </>
   );
 }
 

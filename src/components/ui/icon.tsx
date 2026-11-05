@@ -43,6 +43,9 @@ const ICONS = {
   plus: (
     <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   ),
+  minus: (
+    <path d="M5 12h14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  ),
   check: (
     <path d="M5 12l4 4 10-10" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   ),
@@ -228,6 +231,12 @@ const ICONS = {
     <>
       <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="1.7" />
       <path d="M4 21c0-4 4-7 8-7s8 3 8 7" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14a6.5 6.5 0 0 1 3 6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </>
   ),
   rebook: (

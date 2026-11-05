@@ -1,4 +1,4 @@
-import { CITY_ENTRIES, listTaxonomy, slugifyRo } from "@/data/seo";
+import { CITY_ENTRIES, listTaxonomy, slugifyRo, type TaxonomyView } from "@/data/seo";
 import { LOCALES, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import type { Industry, ListingDetail, LocationCard } from "@/lib/api/marketplace/types";
@@ -11,19 +11,21 @@ export type LocationCategoryTarget = {
   cityAliases: string[];
   industryId: number;
   industrySlug: string;
+  /** The industry-level taxonomy entry whose page `href` opens. */
+  entry: TaxonomyView;
 };
 
 const countryNames = LOCALES.map((locale) => new Intl.DisplayNames([locale], { type: "region" }));
 
-/** Match the location's declared geography, never the visitor or a default city. */
-export function getLocationCategoryTarget(
-  listing: LocationIdentity,
-  industries: Industry[],
-  locale: Locale,
-): LocationCategoryTarget | null {
+/**
+ * The configured city a location declares, matched by its own country and city
+ * fields, never the visitor or a default. Ambiguous or unsupported geography
+ * has no match.
+ */
+export function getConfiguredCity(listing: Pick<ListingDetail, "location">): (typeof CITY_ENTRIES)[number] | null {
   const country = listing.location.addressComponents?.country;
   const cityKey = slugifyRo(listing.location.city ?? "");
-  if (typeof country !== "string" || !country.trim() || !cityKey || !listing.industry) return null;
+  if (typeof country !== "string" || !country.trim() || !cityKey) return null;
 
   const countryKey = slugifyRo(country);
   const cities = CITY_ENTRIES.filter((city) => {
@@ -32,9 +34,19 @@ export function getLocationCategoryTarget(
     return countryAliases.some((alias) => slugifyRo(alias) === countryKey)
       && cityAliases.some((alias) => slugifyRo(alias) === cityKey);
   });
+  return cities.length === 1 ? cities[0] : null;
+}
+
+/** Match the location's declared geography, never the visitor or a default city. */
+export function getLocationCategoryTarget(
+  listing: LocationIdentity,
+  industries: Industry[],
+  locale: Locale,
+): LocationCategoryTarget | null {
+  if (!listing.industry) return null;
   // Ambiguous or unsupported geography has no safe destination.
-  if (cities.length !== 1) return null;
-  const city = cities[0];
+  const city = getConfiguredCity(listing);
+  if (!city) return null;
   const matches = industries.filter((item) => item.id === listing.industry?.id);
   if (matches.length !== 1) return null;
   const industry = matches[0];
@@ -49,6 +61,7 @@ export function getLocationCategoryTarget(
     cityAliases: [...new Set([city.id, ...Object.values(city.name), ...Object.values(city.slug)].map(slugifyRo))],
     industryId: industry.id,
     industrySlug: industry.slug,
+    entry,
   };
 }
 

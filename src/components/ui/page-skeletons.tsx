@@ -5,6 +5,7 @@ import { MapSkeleton } from "@/components/search/map-skeleton";
 import { RowSkeleton } from "@/components/business/row-skeleton";
 import detailStyles from "@/app/[locale]/business/_components/business-detail.module.css";
 import galleryStyles from "@/app/[locale]/business/_components/location-gallery.module.css";
+import bookingStyles from "@/app/[locale]/business/_components/location-booking-summary.module.css";
 import searchStyles from "@/components/search/search-layout.module.css";
 
 import { Skeleton } from "./skeleton";
@@ -25,30 +26,59 @@ import { BlogList } from "@/app/_components/blog/blog-list";
 export function DetailPageSkeleton() {
   const { dict } = useTranslation();
   const t = dict.business;
-  return <main className={`zw-container ${detailStyles.page}`} aria-busy="true">
-    <div aria-hidden="true">
-      <span className={detailStyles.back}><Icon name="back" size={15} />{t.back}</span>
-      <div className={galleryStyles.gallery}><Skeleton h="100%" r="inherit" /></div>
-      <div className={detailStyles.columns}>
-        <div className={detailStyles.content}>
-          <div className={detailStyles.identity}>
-            <div className={detailStyles.identityTop}>
-              <div className={detailStyles.identityText} style={{ flex: 1 }}>
-                <span className={detailStyles.brandLink}><Skeleton w={22} h={22} r={999} /><Skeleton w={123} h={16} /></span>
-                <div className={detailStyles.titleSkeleton}><Skeleton w="70%" h="100%" /></div>
-              </div>
-              <div className={detailStyles.identityActions}><Skeleton w={44} h={44} r={999} /><Skeleton w={44} h={44} r={999} /></div>
-            </div>
-            <div className={detailStyles.meta}><Skeleton w={70} h={24} /><Skeleton w={55} h={18} /><Skeleton w={110} h={18} /></div>
-            <div className={detailStyles.addressLine}><Skeleton w={240} h={18} /></div>
+  return <main className={detailStyles.page} aria-busy="true">
+    <div className={`zw-container ${detailStyles.frame}`} aria-hidden="true">
+      <div className={detailStyles.toolbar}>
+        <span className={detailStyles.back}><Icon name="back" size={16} /><span className={detailStyles.backLabel}>{t.back}</span></span>
+        <div className={detailStyles.identityActions}><span className={detailStyles.toolbarMapAction}><Icon name="pin" size={18} />{t.seeOnMap}</span><Button kind="ghost" size="sm" className={detailStyles.shareAction} aria-label={t.share} disabled><Icon name="share" size={18} /><span className={detailStyles.shareLabel}>{t.share}</span></Button><Skeleton w={44} h={44} r={999} /></div>
+      </div>
+      <div className={detailStyles.overview}>
+        <div className={detailStyles.identity}>
+          <div className={detailStyles.identityText}>
+            <div className={detailStyles.eyebrow}><span className={detailStyles.categoryLink}><Skeleton w={18} h={18} r={4} /><Skeleton w={75} h={18} /></span><Skeleton w={55} h={19} /></div>
+            <div className={detailStyles.titleSkeleton}><Skeleton w="80%" h="100%" /></div>
           </div>
-          <div className={detailStyles.tabs}>{[t.tabServices, t.tabTeam, t.tabReviews, t.tabAbout].map(label => <button type="button" disabled tabIndex={-1} key={label}>{label}</button>)}</div>
-          <div className={detailStyles.tabPanel}>
-            <div className={detailStyles.serviceToolbar}><div className={detailStyles.serviceSearch}><Skeleton w="80%" h={16} /></div><div className={detailStyles.categoryFilters}>{[65, 90, 115].map(width => <Skeleton key={width} w={width} h="var(--location-filter-height)" r={999} />)}</div></div>
-            <div className={detailStyles.serviceGroup}><Skeleton w={130} h={17} style={{ marginBottom: 8 }} />{[0, 1, 2].map(index => <div className={detailStyles.serviceRow} key={index}><div className={detailStyles.serviceContent}><Skeleton w="50%" h={20} /><Skeleton w="78%" h={19} /><Skeleton w="32%" h={19} /></div><Skeleton w={80} h={44} r={999} /></div>)}</div>
+          <div className={detailStyles.trust}>
+            <div className={detailStyles.ratingLink}><Skeleton w={20} h={20} r={4} /><Skeleton w={40} h={32} /><Skeleton w={105} h={25} /><Skeleton w={16} h={16} r={4} /></div>
+          </div>
+          <div className={detailStyles.where} style={{ width: "min(320px, 100%)" }}>
+            <Skeleton w={20} h={20} r={4} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div className={detailStyles.addressContent} style={{ width: "100%" }}><Skeleton w="100%" h={23} /></div><Skeleton w={14} h={14} r={4} style={{ flexShrink: 0, marginTop: 2 }} />
+          </div>
+          <div className={detailStyles.brandLink}><Skeleton w={32} h={32} r={999} /><Skeleton w={123} h={25} /><Skeleton w={16} h={16} r={4} style={{ marginInlineStart: "auto" }} /></div>
+        </div>
+        <div className={galleryStyles.gallery} data-preview-count="4">
+          <div className={galleryStyles.collage}>
+            {[0, 1, 2, 3].map(index => <div key={index} className={galleryStyles.tile} data-photo-index={index} style={{ cursor: "default" }}><Skeleton h="100%" r="inherit" /></div>)}
+            <div className={galleryStyles.seeAll} style={{ cursor: "default" }}><Skeleton w={20} h={20} style={{ alignSelf: "flex-end" }} /><div className={galleryStyles.seeAllText}><Skeleton w={60} h={20} /><Skeleton w={50} h={16} /></div></div>
           </div>
         </div>
-        <div className={detailStyles.bookingRail}><div className={detailStyles.railIdentity}><span className={detailStyles.eyebrow}>{dict.locationPage.selectionTitle}</span><Skeleton w="70%" h={25} style={{ marginTop: 9 }} /></div><p className={detailStyles.bookingIntro}>{dict.locationPage.bookingIntro}</p><Button kind="accent" size="lg" disabled>{t.bookNow}</Button></div>
+      </div>
+      <div className={detailStyles.columns}>
+        <div className={detailStyles.content}>
+          <div className={detailStyles.tabs}>{[t.tabServices, t.tabTeam, t.tabReviews, t.tabAbout].map(label => <button type="button" disabled tabIndex={-1} key={label}>{label}</button>)}</div>
+          <div className={detailStyles.tabPanel}>
+            <div className={detailStyles.services}>
+              <div className={detailStyles.serviceAside}>
+                <div className={detailStyles.serviceSearch}><Skeleton w="80%" h={20} /></div>
+                <div className={detailStyles.serviceIndex}><div className={detailStyles.indexList}>{[72, 56, 84, 64, 48].map(width => <div key={width} style={{ display: "flex", alignItems: "center", minHeight: 44, paddingInlineStart: 16 }}><Skeleton w={`${width}%`} h={18} /></div>)}</div></div>
+                <div className={detailStyles.serviceIndexMobile}><div style={{ display: "flex", alignItems: "center", minHeight: 52 }}><Skeleton w={170} h={20} /></div></div>
+              </div>
+              <div className={detailStyles.serviceMenu}>
+                <div className={detailStyles.serviceGroup}><div className={detailStyles.groupHeading}><Skeleton w={180} h={18} style={{ display: "inline-block", verticalAlign: "middle" }} /></div><div className={detailStyles.ticketList}>{[0, 1, 2].map(index => <div className={detailStyles.ticket} key={index}><div className={detailStyles.ticketBody}><Skeleton w={56} h={16} /><Skeleton w="50%" h={25} /><Skeleton w="78%" h={23} /></div><div className={detailStyles.ticketStub}><span className={detailStyles.perforation} /><Skeleton w={110} h={27} /><span className={detailStyles.addAction}><Skeleton w={42} h={42} r={999} /></span></div></div>)}</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className={bookingStyles.bookingRail}>
+          <div className={bookingStyles.summary}>
+            <div className={bookingStyles.summaryBody}>
+              <div className={bookingStyles.identity}><div className={bookingStyles.summaryLabel}><h2>{dict.locationPage.selectionTitle}</h2></div><Skeleton w="70%" h={23} style={{ marginTop: 8 }} /></div>
+              <p className={bookingStyles.bookingIntro}>{dict.locationPage.bookingIntro}</p>
+            </div>
+            <div className={bookingStyles.summaryFooter}><Button kind="accent" size="lg" className={bookingStyles.bookAction} disabled>{t.bookNow}</Button></div>
+          </div>
+        </div>
       </div>
     </div>
   </main>;

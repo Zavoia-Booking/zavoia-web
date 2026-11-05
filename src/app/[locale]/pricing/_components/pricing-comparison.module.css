@@ -1,0 +1,88 @@
+.section { padding-top: 40px; }
+.heading { max-width: 850px; }
+.lead { max-width: 64ch; margin: 16px 0 0; color: var(--c-600); font-size: 1.0625rem; line-height: 1.6; text-wrap: pretty; }
+
+/* One quiet paper column connects the Plus upgrades without another plan card. */
+.table { width: 100%; margin-top: 34px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.table th, .table td { padding: 25px 32px; text-align: left; vertical-align: middle; }
+.table th:first-child { width: 36%; padding-left: 0; }
+.table thead th { padding-top: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--c-400); vertical-align: top; }
+.table thead th:last-child { border-radius: 18px 18px 0 0; }
+.planName { display: flex; align-items: center; gap: 9px; color: var(--c-900); font-size: 1.75rem; font-weight: 600; line-height: 1.2; letter-spacing: -.035em; }
+.planSummary { display: block; margin-top: 9px; color: var(--c-600); font-size: .9375rem; font-weight: 400; line-height: 1.5; text-wrap: pretty; }
+.table tbody th { color: var(--c-900); font-size: 1.125rem; font-weight: 550; line-height: 1.45; letter-spacing: -.015em; text-wrap: pretty; }
+.table td { color: var(--c-700); font-size: 1rem; line-height: 1.6; text-wrap: pretty; }
+.table tbody th, .table tbody td { border-bottom: 1px solid var(--c-300); }
+.table .plusColumn { background: oklch(96.5% .014 78); }
+.table tbody tr:last-child td:last-child { border-radius: 0 0 18px 18px; }
+.limit { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 5px 10px; color: var(--c-600); font-size: .9375rem; line-height: 1.5; }
+.limit strong, .unlimited { color: var(--c-900); font-size: 2.25rem; font-weight: 550; line-height: 1.15; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.unlimited { font-size: 2rem; }
+.mobilePlan { display: none; }
+.notes { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 8px 32px; padding-top: 18px; }
+.notes p { max-width: 72ch; margin: 0; color: var(--c-600); font-size: .875rem; line-height: 1.6; text-wrap: pretty; }
+.helpLink { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--c-900); font-weight: 500; text-decoration: none; }
+.helpLink span { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; text-decoration-color: var(--c-400); }
+.helpLink svg { flex-shrink: 0; }
+
+.included { margin-top: 48px; }
+.includedHeading h3 { margin: 0; color: var(--c-900); font-size: clamp(30px, 2.8vw, 40px); font-weight: 500; line-height: 1.15; letter-spacing: -.035em; }
+.includedHeading .lead { margin-top: 12px; }
+.groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 56px; row-gap: 32px; margin-top: 30px; }
+.group { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: start; gap: 26px; min-width: 0; padding-top: 26px; border-top: 1px solid var(--c-300); }
+.artwork { width: 112px; padding-top: 1px; }
+.artwork svg { display: block; width: 100%; height: auto; }
+.groupCopy { min-width: 0; }
+.group h4 { margin: 0; color: var(--c-900); font-size: 1.25rem; font-weight: 550; line-height: 1.35; letter-spacing: -.025em; text-wrap: pretty; }
+.group ul { display: grid; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
+.group li { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: start; gap: 9px; color: var(--c-700); font-size: .9375rem; line-height: 1.6; text-wrap: pretty; }
+.group li svg { margin-top: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .helpLink:hover span { text-decoration-color: currentColor; }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .helpLink svg { transition: transform 180ms var(--ease-out); }
+  .helpLink:hover svg { transform: translateX(2px); }
+}
+@media (max-width: 1100px) {
+  .table th, .table td { padding-inline: 24px; }
+  .groups { gap: 32px; }
+  .group { grid-template-columns: 88px minmax(0, 1fr); gap: 18px; }
+  .artwork { width: 88px; }
+  .group h4 { font-size: 1.125rem; }
+}
+@media (max-width: 900px) {
+  .group { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .artwork { width: 104px; }
+  .table th, .table td { padding: 22px 20px; }
+  .table tbody th { font-size: 1rem; }
+  .planSummary { font-size: .875rem; }
+  .table td { font-size: .9375rem; }
+  .unlimited { font-size: 1.75rem; }
+}
+@media (max-width: 600px) {
+  .section { padding-top: 24px; }
+  .lead { margin-top: 14px; font-size: 1rem; }
+  .table { display: block; position: relative; margin-top: 28px; }
+  .table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .table tbody { display: block; border-top: 1px solid var(--c-300); }
+  .table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid var(--c-300); padding-block: 22px; column-gap: 24px; }
+  .table tbody th:first-child { grid-column: 1 / -1; width: auto; padding: 0 0 18px; border: 0; font-size: 1.0625rem; }
+  .table tbody td { display: block; min-width: 0; padding: 0; border: 0; font-size: .9375rem; }
+  .table tbody tr:last-child td:last-child { border-radius: 0; }
+  .table .plusColumn { background: transparent; }
+  .mobilePlan { display: block; margin-bottom: 8px; color: var(--c-900); font-size: .875rem; font-weight: 600; }
+  .plusColumn .mobilePlan { color: var(--p-600); }
+  .limit { gap: 3px 8px; font-size: .875rem; }
+  .limit strong { font-size: 2rem; }
+  .unlimited { font-size: 1.625rem; }
+  .notes { display: grid; gap: 12px; padding-top: 18px; }
+  .notes p { font-size: .875rem; }
+  .included { margin-top: 36px; }
+  .includedHeading h3 { font-size: 1.875rem; }
+  .groups { grid-template-columns: minmax(0, 1fr); gap: 28px; margin-top: 26px; }
+  .group { gap: 16px; padding-top: 22px; }
+  .artwork { width: 100px; }
+  .group h4 { font-size: 1.25rem; }
+  .group ul { margin-top: 14px; }
+}

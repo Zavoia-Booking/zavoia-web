@@ -36,14 +36,28 @@
   background: var(--c-50);
 }
 
-.title {
+.headerText {
   flex: 1;
   min-width: 0;
+}
+.title {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+/* The outcome heading takes focus when it replaces the steps; it isn't a control. */
+.title:focus {
+  outline: none;
+}
+/* Where the booking is through every step; once booked, what happens next. */
+.headerVenue {
+  margin: 2px 0 0;
+  color: var(--c-600);
+  font-size: 13px;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 .iconButton,
@@ -122,33 +136,6 @@
 }
 .progress > span[data-active="true"] {
   background: var(--c-ink);
-}
-.venueSummary {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding-bottom: 22px;
-  border-bottom: 1px solid var(--c-200);
-}
-.venueSummary > svg {
-  flex-shrink: 0;
-  margin-top: 3px;
-}
-.venueSummary > div {
-  min-width: 0;
-}
-.businessName {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.locationName {
-  margin-top: 3px;
-  color: var(--c-600);
-  font-size: 13px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
 }
 .availability {
   display: flex;
@@ -309,28 +296,106 @@
   padding-top: 24px;
   border-top: 1px solid var(--c-200);
 }
+/* The heading and the one-for-all / per-service switch share a baseline. */
+.staffSectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-bottom: -10px;
+}
+.staffSectionHead > .sectionLabel {
+  margin: 0;
+}
+/* The padding grows the tap area without moving the row. */
+.staffMode,
+.editAction {
+  flex-shrink: 0;
+  margin-block: -12px;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  color: var(--c-900);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: underline;
+  text-decoration-color: var(--c-300);
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: text-decoration-color 160ms var(--ease-out);
+}
+.editAction:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.staffPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.staffTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  color: var(--c-900);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.staffIndex {
+  flex-shrink: 0;
+  color: var(--c-600);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+}
 .staffChoices {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: 10px;
 }
+/* Comparing prices reads best as one column, with the figures aligned right. */
+.staffChoices[data-compare] {
+  grid-template-columns: minmax(0, 1fr);
+}
 .staffChoice {
+  --choice-bg: var(--c-50);
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
   padding: 14px;
   border: 1px solid var(--c-300);
-  border-radius: 16px;
-  background: var(--c-50);
+  border-radius: 18px;
+  background: var(--choice-bg);
+  box-shadow: 0 2px 6px rgba(28, 28, 26, .025);
   color: var(--c-900);
   font: inherit;
   text-align: start;
   cursor: pointer;
 }
 .staffChoice[aria-pressed="true"] {
+  --choice-bg: var(--c-100);
   border-color: var(--c-ink);
-  background: var(--c-100);
+  box-shadow: none;
+}
+/* "Any available" leads the group on its own full-width row. */
+.staffAny {
+  grid-column: 1 / -1;
+}
+.staffOr {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+  color: var(--c-600);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
 }
 .staffChoice > [data-staff-check] {
   margin-inline-start: auto;
@@ -359,24 +424,61 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
-.staffFigures {
+.staffHint {
   display: block;
-  margin-top: 4px;
+  margin-top: 2px;
   color: var(--c-600);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.5;
-  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
-.anyAvatar {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+.staffFigures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   flex-shrink: 0;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.staffPrice {
+  color: var(--c-900);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.staffDuration {
+  color: var(--c-600);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+/* The people "Any available" may assign, overlapped on a ring of the card's own paper. */
+.anyStack {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.anyStack > * {
+  display: inline-flex;
   border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--choice-bg);
+  transition: box-shadow .15s var(--ease-soft);
+}
+.anyStack > * + * {
+  margin-inline-start: -10px;
+}
+.anyMore {
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   background: var(--c-200);
   color: var(--c-700);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
 }
 .footer {
   position: relative;
@@ -424,54 +526,135 @@
   flex-direction: column;
   gap: 24px;
 }
+/* The location page's menu search, across the drawer's width. */
+.serviceSearch {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--c-300);
+  border-radius: 999px;
+  background: var(--c-50);
+  color: var(--c-600);
+}
+.serviceSearch:focus-within {
+  border-color: var(--c-ink);
+  outline: 1px solid var(--c-ink);
+  outline-offset: 0;
+}
+.serviceSearch > label {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  align-self: stretch;
+  gap: 10px;
+  min-width: 0;
+  cursor: text;
+}
+.serviceSearch input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--c-900);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+}
+.serviceSearch input::placeholder {
+  color: var(--c-600);
+  opacity: 1;
+}
+/* A real clear button replaces the faint native control, which keyboards cannot reach. */
+.serviceSearch input::-webkit-search-cancel-button {
+  display: none;
+}
+.searchClear {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-inline-end: -8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--c-900);
+  cursor: pointer;
+}
+.searchClear::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.searchEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.searchEmpty > :last-child {
+  margin-top: 12px;
+}
+.searchEmptyTitle {
+  margin: 0;
+  color: var(--c-900);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
 .category {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin: 0 0 6px;
+  color: var(--c-800);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.categoryDot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.categoryCount {
   color: var(--c-600);
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  line-height: 1.5;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  font-weight: 500;
 }
-.category > span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.serviceList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
+/* One whole-row toggle, ending in the page's round add/check indicator. */
 .serviceChoice {
   display: flex;
   align-items: center;
   gap: 14px;
   width: 100%;
-  padding: 16px 12px;
+  padding: 14px 12px 14px 14px;
   border: 0;
-  border-bottom: 1px solid var(--c-200);
-  border-radius: 12px;
+  border-radius: 16px;
   background: transparent;
+  color: var(--c-900);
   font: inherit;
   text-align: start;
   cursor: pointer;
+  transition: background-color 160ms var(--ease-out);
 }
 .serviceChoice[aria-pressed="true"] {
   background: var(--c-100);
-}
-.serviceCheck {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--c-400);
-  border-radius: 7px;
-  flex-shrink: 0;
-  color: var(--c-50);
-}
-.serviceChoice[aria-pressed="true"] .serviceCheck {
-  background: var(--c-ink);
-  border-color: var(--c-ink);
 }
 .serviceText {
   display: block;
@@ -480,123 +663,371 @@
 }
 .serviceName {
   display: block;
-  font-size: 16px;
+  font-size: 15.5px;
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
 .serviceMeta {
   display: block;
-  margin-top: 5px;
+  margin-top: 4px;
   color: var(--c-600);
   font-size: 13px;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
+.serviceDuration {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+}
+.serviceIncludes {
+  display: block;
+  margin-top: 4px;
+  color: var(--c-600);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.serviceAdd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--c-300);
+  border-radius: 50%;
+  background: var(--c-50);
+  color: var(--c-800);
+  transition:
+    background-color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out);
+}
+.serviceChoice[aria-pressed="true"] .serviceAdd {
+  border-color: var(--c-ink);
+  background: var(--c-ink);
+  color: var(--c-50);
+}
+/* The package pill, as on the location page's tickets. */
+.bundleTag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--c-ink);
+  color: var(--c-50);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 .review {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
 }
-.receipt {
-  border: 1px solid var(--c-300);
-  border-radius: 18px;
-  background: var(--c-50);
-  overflow: hidden;
+/* When, then with whom: each row leads with its picture (the appointment
+   cards' date pill, the professional's photo) and sets its text beside it. */
+.visit {
+  --visit-lead: 52px;
+  --visit-gap: 16px;
+  display: grid;
+  grid-template-columns: var(--visit-lead) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px var(--visit-gap);
 }
-.receiptItems {
+.datePill {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 22px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 52px;
+  height: 72px;
+  border-radius: 14px;
+  background: var(--c-900);
+  color: var(--c-50);
+  box-shadow: var(--sh-sm);
 }
-.receiptRow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
+.datePill[data-today] {
+  background: var(--p-500);
+  box-shadow: 0 6px 9px color-mix(in oklch, var(--p-500) 25%, transparent);
 }
-.receiptRow > div {
+.pillLabel {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.pillDay {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 24px;
+  letter-spacing: -0.6px;
+  font-variant-numeric: tabular-nums;
+}
+.visitText {
   min-width: 0;
 }
-.receiptAmount {
-  color: var(--c-900);
-  font-size: 14px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  text-align: end;
-  overflow-wrap: anywhere;
-}
-.receiptTotal {
+/* A long date wraps beside the change action rather than pushing it below. */
+.visitHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 22px;
-  border-top: 1px dashed var(--c-300);
 }
-.receiptTotal > div {
+.visitDate {
   min-width: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-.receiptTotal strong {
+  margin: 0;
   color: var(--c-900);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 600;
-  line-height: 1.4;
-  text-align: end;
-  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
   overflow-wrap: anywhere;
 }
-.visitDetails {
+.visitDate::first-letter {
+  text-transform: uppercase;
+}
+.visitTime {
+  margin: 4px 0 0;
+  color: var(--c-700);
+  font-size: 14px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.visitPeople {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.visitPeople > li,
+.visitPlace {
+  display: grid;
+  grid-template-columns: var(--visit-lead) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--visit-gap);
+  min-width: 0;
+}
+.personPhoto {
+  display: flex;
+  justify-content: center;
+}
+.visitPlace {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+/* Stands in for a photo: an unnamed team, or the place itself. */
+.personAny,
+.visitIcon {
+  align-items: center;
+  justify-self: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--c-200);
+  color: var(--c-700);
+}
+.personText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.personName {
+  min-width: 0;
+  color: var(--c-900);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.personNote {
+  color: var(--c-600);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.scheduleHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.scheduleHead > .sectionLabel {
+  margin: 0;
+}
+/* The rail's plain card. Rows share the list's columns, so names and prices
+   line up whatever each start time's width; prices never wrap. */
+.scheduleList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 16px;
+  margin: 0;
+  padding: 2px 20px;
+  border: 1px solid var(--c-200);
+  border-radius: 18px;
+  background: var(--c-50);
+  box-shadow: var(--sh-sm);
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+.scheduleList[data-priced] {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.scheduleList[data-timed] {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.scheduleList[data-timed][data-priced] {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.scheduleList > li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: inherit;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  row-gap: 4px;
+  min-width: 0;
+  padding: 14px 0;
+}
+.scheduleList > li + li {
+  border-top: 1px solid var(--c-200);
+}
+.scheduleTime {
+  grid-row: 1;
+  grid-column: 1;
+  color: var(--c-700);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.scheduleName {
+  grid-row: 1;
+  grid-column: 1;
+  min-width: 0;
+  color: var(--c-900);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+.schedulePrice {
+  grid-row: 1;
+  grid-column: -2 / -1;
+  color: var(--c-800);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: end;
+  white-space: nowrap;
+}
+.scheduleMeta {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-width: 0;
+}
+.scheduleIncludes {
+  grid-row: 3;
+  grid-column: 1 / -1;
+  color: var(--c-600);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.scheduleList[data-timed] .scheduleName {
+  grid-column: 2;
+}
+.scheduleList[data-timed] :is(.scheduleMeta, .scheduleIncludes) {
+  grid-column: 2 / -1;
+}
+.scheduleDuration {
+  color: var(--c-600);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.scheduleStaff {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--c-700);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+/* Cancellation and payment read as one quiet group of icon rows. */
+.notices {
   display: flex;
   flex-direction: column;
   gap: 18px;
-}
-.detailRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--c-800);
-}
-.detailRow > svg {
-  flex-shrink: 0;
-  margin-top: 3px;
-}
-.detailRow > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.paymentNotice {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding-top: 22px;
+  padding-top: 24px;
   border-top: 1px solid var(--c-200);
 }
-.paymentNotice > svg {
-  flex-shrink: 0;
-  margin-top: 3px;
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
 }
-.paymentNotice > div {
+.notice > svg {
+  margin-top: 1px;
+}
+.notice > div {
   min-width: 0;
 }
-.paymentNotice strong {
-  display: block;
+.noticeTitle {
+  margin: 0;
+  color: var(--c-900);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
-.paymentNotice p {
+.noticeBody,
+.noticeTerms dd {
   margin: 4px 0 0;
   color: var(--c-600);
   font-size: 13px;
   line-height: 1.6;
   overflow-wrap: anywhere;
+}
+.noticeTerms {
+  display: grid;
+  gap: 10px;
+  margin: 6px 0 0;
+}
+.noticeTerms dt {
+  color: var(--c-800);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.noticeTerms dd {
+  margin-top: 2px;
 }
 .state {
   display: flex;
@@ -625,10 +1056,6 @@
   background: var(--c-200);
   color: var(--c-700);
 }
-.stateIcon[data-success="true"] {
-  background: var(--p-500);
-  color: var(--c-50);
-}
 .stateTitle {
   margin: 24px 0 0;
   font-size: 26px;
@@ -645,15 +1072,150 @@
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
-.stateDate {
-  max-width: 100%;
-  margin-top: 24px;
-  padding: 16px 20px;
-  border: 1px solid var(--c-300);
-  border-radius: 16px;
-  font-size: 14px;
-  line-height: 1.6;
+/* The outcome under its header: the calendar, then the visit at full width,
+   unboxed, with one divider before what was booked. */
+.success {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.success > .stateArtwork {
+  align-self: center;
+}
+/* The Appointments calendar, at the size other contained artwork uses. */
+.stateArtwork {
+  width: min(264px, 100%);
+  pointer-events: none;
+  animation: success-rise 320ms var(--ease-out) both;
+}
+.stateArtwork > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* The booked day fills in, then its check draws: once, as the screen lands. */
+.artGlow,
+.artMark {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.artGlow {
+  animation: success-glow 420ms var(--ease-out) 160ms both;
+}
+.artMark {
+  animation: success-mark 280ms var(--ease-out) 200ms both;
+}
+.artCheck {
+  stroke-dasharray: 1;
+  animation: success-check 260ms var(--ease-out) 400ms both;
+}
+.successVisit {
+  animation: success-rise 340ms var(--ease-out) 60ms both;
+}
+.successSchedule {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 24px;
+  border-top: 1px solid var(--c-200);
+  animation: success-rise 340ms var(--ease-out) 120ms both;
+}
+.successSchedule > .sectionLabel {
+  margin: 0;
+}
+/* Each service with its length; several read as a timeline, like the review. */
+.bookedList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   font-variant-numeric: tabular-nums;
+}
+.bookedList[data-timed] {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+/* Rows share the list's columns, so names line up whatever each time's width. */
+.bookedList > li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: inherit;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  gap: 4px 16px;
+  min-width: 0;
+}
+.bookedTime {
+  color: var(--c-700);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+.bookedName {
+  grid-column: -3;
+  min-width: 0;
+  color: var(--c-900);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+.bookedDuration {
+  grid-column: -2;
+  color: var(--c-600);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+.bookedMeta {
+  display: flex;
+  grid-column: -3 / -1;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-width: 0;
+  color: var(--c-600);
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.bookedTotal {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 2px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-200);
+  color: var(--c-900);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.bookedTotal > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.bookedTotal > span:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* The steps' action bar: what's next sits where Confirm just was. */
+.successFooter {
+  justify-content: flex-end;
+  gap: 12px;
+}
+.secondaryAction:global(.zw-btn) {
+  min-height: 54px;
+  white-space: normal !important;
+  line-height: 1.4;
+  padding: 14px 24px !important;
 }
 .stateActions {
   display: flex;
@@ -697,7 +1259,10 @@
 .day:focus-visible,
 .slot:focus-visible,
 .staffChoice:focus-visible,
+.staffMode:focus-visible,
+.editAction:focus-visible,
 .serviceChoice:focus-visible,
+.searchClear:focus-visible,
 .dialog :global(.zw-btn):focus-visible {
   outline: 2px solid var(--c-ink);
   outline-offset: 3px;
@@ -709,13 +1274,27 @@
   }
   .weekButton:not(:disabled):hover,
   .day:not(:disabled):not([aria-pressed="true"]):hover,
-  .slot:not([aria-pressed="true"]):hover,
-  .staffChoice:hover {
+  .slot:not([aria-pressed="true"]):hover {
     border-color: var(--c-500);
     background: var(--c-100);
   }
+  /* A chosen card keeps its ink outline under the pointer. */
+  .staffChoice:not([aria-pressed="true"]):hover {
+    --choice-bg: var(--c-100);
+    border-color: var(--c-500);
+  }
+  .staffMode:hover,
+  .editAction:not(:disabled):hover {
+    text-decoration-color: var(--c-700);
+  }
   .serviceChoice:hover {
     background: var(--c-100);
+  }
+  .serviceChoice[aria-pressed="false"]:hover .serviceAdd {
+    border-color: var(--c-500);
+  }
+  .searchClear:hover {
+    background: var(--c-200);
   }
 }
 
@@ -765,9 +1344,32 @@
   .stateTitle {
     font-size: 24px;
   }
-  .receiptItems,
-  .receiptTotal {
-    padding: 18px;
+  .visit {
+    --visit-lead: 46px;
+    --visit-gap: 14px;
+  }
+  .datePill {
+    width: 46px;
+    height: 64px;
+    border-radius: 12px;
+  }
+  .pillDay {
+    font-size: 21px;
+  }
+  .visitDate {
+    font-size: 17px;
+  }
+  .scheduleList {
+    padding: 2px 16px;
+  }
+  .stateArtwork {
+    width: min(232px, 100%);
+  }
+  .successFooter {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .secondaryAction:global(.zw-btn) {
+    font-size: 14px !important;
   }
 }
 
@@ -801,14 +1403,53 @@
     transform: translateX(0);
   }
 }
+@keyframes success-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes success-glow {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes success-mark {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes success-check {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .step,
-  .dates {
+  .dates,
+  .stateArtwork,
+  .successVisit,
+  .successSchedule,
+  .artGlow,
+  .artMark,
+  .artCheck {
     animation: none;
   }
 }
-
-.policyNotice { padding-top: 20px; border-top: 1px solid var(--c-200); }
-.policyNotice dl { display: grid; gap: 12px; margin: 0; }
-.policyNotice dt { font-size: 13px; font-weight: 500; }
-.policyNotice dd { margin: 4px 0 0; color: var(--c-600); font-size: 13px; line-height: 1.6; }

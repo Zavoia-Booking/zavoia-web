@@ -271,7 +271,7 @@ const FAQ: FaqItem[] = [
 const ANNOUNCEMENT: AnnouncementContent = {
   message: {
     en: "January colour club — three root touch-ups, booked ahead",
-    ro: "Colour club în ianuarie — trei retușuri, programate din timp",
+    ro: "Pachetul de culoare în ianuarie — trei retușuri, programate din timp",
   },
   details: {
     en: "Book all three before the end of the month and the third is half price. Applies at both studios.",
@@ -335,7 +335,7 @@ const REVIEWS = [
 ];
 
 /** Matches the ids referenced by the specimen locations' tag arrays. */
-export const SPECIMEN_TAG_DICTIONARIES: ResolvedTagDictionaries = {
+const SPECIMEN_TAG_DICTIONARIES: ResolvedTagDictionaries = {
   amenities: [
     { id: 1, slug: "wifi", label: "Free Wi-Fi" },
     { id: 2, slug: "parking-onsite", label: "On-site parking" },
@@ -354,6 +354,76 @@ export const SPECIMEN_TAG_DICTIONARIES: ResolvedTagDictionaries = {
     { id: 3, slug: "fr", label: "French" },
   ],
 };
+
+/** Authored translations for the demo only; real merchant content stays untouched. */
+const RO_SERVICE_COPY: Record<number, { name: string; description: string }> = {
+  1: { name: "Tuns și coafat", description: "Consultație, spălat, tuns de precizie și o coafură pe care o poți recrea acasă." },
+  2: { name: "Schimbare de look", description: "O schimbare completă de formă, cu mai mult timp pentru consultare și o a doua opinie." },
+  3: { name: "Retuș de breton", description: "Între programări, din partea casei pentru clientele fidele." },
+  4: { name: "Luciu și nuanțare", description: "Reîmprospătează culoarea și închide cuticula. Rezultatul durează între patru și șase săptămâni." },
+  5: { name: "Balayage complet", description: "Șuvițe pictate manual, nuanțate după tenul tău. Include coafarea finală." },
+  6: { name: "Retuș de rădăcină", description: "Vopsire într-o singură etapă, doar pe rădăcinile crescute." },
+  7: { name: "Tratament facial personalizat", description: "Curățare, exfoliere enzimatică, masaj și o mască aleasă în ziua vizitei." },
+  8: { name: "Stilizare sprâncene", description: "Conturare, epilare și vopsire adaptate trăsăturilor tale." },
+};
+
+const RO_CATEGORY_NAMES: Record<number, string> = { 1: "Păr", 2: "Culoare", 3: "Îngrijire facială" };
+const RO_BUNDLE_COPY: Record<number, { name: string; description: string }> = {
+  1: { name: "Ritual complet", description: "Tuns, nuanțare și un tratament facial personalizat, într-o singură după-amiază." },
+  2: { name: "Pachet de culoare", description: "Trei retușuri de rădăcină, programate din timp, la prețul a două și jumătate." },
+};
+const RO_LOCATION_DESCRIPTIONS: Record<number, string> = {
+  1: "Primul nostru salon, deasupra florăriei. Patru scaune, ferestre înalte și cafea bună.",
+  2: "Un studio mai liniștit, cu două scaune, în cartierul vechi. Aici ne dedicăm culorii și programărilor mai lungi.",
+};
+const RO_REVIEW_COMMENTS: Record<number, string> = {
+  1: "Prima dată după mulți ani când ies dintr-un salon arătând ca în fotografia adusă. Ioana m-a ascultat, apoi mi-a spus ce mi s-ar potrivi cu adevărat.",
+  2: "M-am programat de pe telefon la miezul nopții, am primit o reamintire cu o zi înainte și vizita a durat mai puțin de o oră. Fără telefoane repetate sau așteptare pe fir.",
+  3: "Culoarea s-a păstrat minunat pe măsură ce părul a crescut. După trei luni încă arată ca și cum așa ar fi fost gândită. A meritat cele trei ore.",
+  4: "Un loc liniștit, sfaturi sincere și nimeni nu încearcă să-ți vândă produse de care nu ai nevoie.",
+  5: "Am adus-o pe fiica mea la prima tunsoare adevărată. Vlad a fost răbdător și rapid, iar de atunci ea nu se mai satură să se privească în oglindă.",
+};
+const RO_TAG_DICTIONARIES: ResolvedTagDictionaries = {
+  amenities: [
+    { id: 1, slug: "wifi", label: "Wi-Fi gratuit" },
+    { id: 2, slug: "parking-onsite", label: "Parcare proprie" },
+    { id: 3, slug: "parking-street", label: "Parcare pe stradă în apropiere" },
+    { id: 4, slug: "air-conditioning", label: "Aer condiționat" },
+    { id: 9, slug: "private-treatment-room", label: "Cameră privată pentru tratamente" },
+  ],
+  paymentMethods: [
+    { id: 1, slug: "cash", label: "Numerar" },
+    { id: 2, slug: "card", label: "Plată cu cardul" },
+    { id: 3, slug: "apple-pay", label: "Apple Pay" },
+  ],
+  languages: [
+    { id: 1, slug: "ro", label: "Română" },
+    { id: 2, slug: "en", label: "Engleză" },
+    { id: 3, slug: "fr", label: "Franceză" },
+  ],
+};
+
+function localizedLocations(locale: MicrositeLocale): WebsiteBuilderLocation[] {
+  if (locale !== "ro") return LOCATIONS;
+  const serviceNames = new Map(SERVICES.map(service => [service.name, RO_SERVICE_COPY[service.id].name]));
+  return LOCATIONS.map(location => ({
+    ...location,
+    description: RO_LOCATION_DESCRIPTIONS[location.id],
+    services: location.services.map(service => ({
+      ...service,
+      ...RO_SERVICE_COPY[service.id],
+      category: service.category && { ...service.category, name: RO_CATEGORY_NAMES[service.category.id] },
+    })),
+    bundles: location.bundles.map(bundle => ({
+      ...bundle,
+      ...RO_BUNDLE_COPY[bundle.id],
+      services: bundle.services?.map(service => ({
+        ...service,
+        name: service.name ? serviceNames.get(service.name) ?? service.name : service.name,
+      })),
+    })),
+  }));
+}
 
 /** The authored specimen, driven through the real microsite renderer. */
 export function specimenData(
@@ -385,13 +455,13 @@ export function specimenData(
       website: null,
       pinterest: null,
     },
-    locations: LOCATIONS,
+    locations: localizedLocations(locale),
     faq: FAQ,
     announcement: ANNOUNCEMENT,
     brandColor,
     fontKey,
     locale,
-    reviews: REVIEWS,
+    reviews: locale === "ro" ? REVIEWS.map(review => ({ ...review, comment: RO_REVIEW_COMMENTS[review.id] })) : REVIEWS,
     teamRatings: {
       101: { rating: 4.9, count: 128 },
       102: { rating: 4.8, count: 74 },
@@ -400,6 +470,6 @@ export function specimenData(
       105: { rating: 4.7, count: 29 },
     },
     ratingDistribution: { "5": 268, "4": 34, "3": 6, "2": 1, "1": 1 },
-    tagDictionaries: SPECIMEN_TAG_DICTIONARIES,
+    tagDictionaries: locale === "ro" ? RO_TAG_DICTIONARIES : SPECIMEN_TAG_DICTIONARIES,
   };
 }

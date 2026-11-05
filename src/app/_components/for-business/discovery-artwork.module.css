@@ -1,0 +1,170 @@
+.artwork {
+  container: discovery-artwork / inline-size;
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+}
+
+.composition {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: clamp(570px, 92cqi, 710px);
+  perspective: 1400px;
+  perspective-origin: 56% 44%;
+}
+
+.contactShadow {
+  position: absolute;
+  z-index: -1;
+  right: 6%;
+  bottom: 13px;
+  left: 15%;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(28, 28, 26, .055);
+  filter: blur(13px);
+  pointer-events: none;
+}
+
+/* The browser recedes to the left. Its service column stays exposed while the
+   larger app phone occupies the right-hand booking-summary part of the scene. */
+.browserMount {
+  position: absolute;
+  z-index: 1;
+  top: 21%;
+  left: 1%;
+  width: min(78cqi, 560px);
+  transform-style: preserve-3d;
+}
+
+.browser {
+  position: relative;
+  transform: rotateX(2deg) rotateY(5deg) rotateZ(-3deg);
+  transform-style: preserve-3d;
+  border-radius: 19px;
+}
+
+.browserEdge {
+  position: absolute;
+  inset: 0;
+  border: 1px solid oklch(68% .012 70);
+  border-radius: inherit;
+  background: oklch(79% .015 70);
+  transform: translateZ(-5px);
+}
+
+.browserFace {
+  position: relative;
+  padding: 7px;
+  border: 1px solid oklch(79% .012 70);
+  border-radius: inherit;
+  background: var(--c-shade);
+  box-shadow:
+    inset 0 1px 0 rgba(250, 250, 247, .95),
+    inset 0 0 0 1px rgba(250, 250, 247, .52),
+    0 3px 5px -2px rgba(28, 28, 26, .12),
+    5px 18px 26px -14px rgba(28, 28, 26, .14),
+    12px 32px 48px -20px rgba(28, 28, 26, .12);
+}
+
+.browserBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  color: var(--c-600);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+
+.browserDots { position: absolute; left: 7px; display: flex; gap: 5px; }
+.browserDots > i { width: 6px; height: 6px; border: 1px solid rgba(28, 28, 26, .22); border-radius: 50%; }
+.browserScreen { overflow: hidden; border: 1px solid rgba(28, 28, 26, .1); border-radius: 5px 5px 12px 12px; background: var(--c-canvas); }
+.browserScreen > img { display: block; width: 100%; height: auto; }
+
+/* Keep the real app's status/navigation chrome. The frame adds only hardware,
+   with the same shallow Z planes and warm graphite as the homepage devices. */
+.phoneMount {
+  position: absolute;
+  z-index: 2;
+  top: 20px;
+  right: 18px;
+  width: clamp(240px, 40cqi, 300px);
+  transform-style: preserve-3d;
+}
+
+.phone {
+  position: relative;
+  border-radius: 42px;
+  transform: rotateX(4deg) rotateY(-9deg) rotateZ(5deg);
+  transform-style: preserve-3d;
+}
+
+.phoneEdge { position: absolute; inset: 0; border-radius: inherit; background: oklch(37% .008 70); transform: translateZ(var(--depth)); }
+.phoneEdge:nth-child(2) { background: oklch(46% .008 70); }
+.phoneEdge:nth-child(3) { background: oklch(29% .006 70); }
+.phoneEdge:nth-child(4) { background: oklch(53% .008 70); }
+
+.phoneFace {
+  position: relative;
+  transform: translateZ(0);
+  padding: 5px;
+  border: 1px solid oklch(57% .008 70);
+  border-radius: inherit;
+  background: oklch(20% .004 70);
+  box-shadow:
+    inset 0 0 0 1px oklch(38% .008 70),
+    inset 0 1px 0 rgba(250, 250, 247, .35),
+    0 2px 3px -1px rgba(28, 28, 26, .18),
+    8px 20px 28px -14px rgba(28, 28, 26, .2),
+    20px 42px 64px -24px rgba(28, 28, 26, .18);
+}
+
+.phoneFace::before, .phoneFace::after { content: ""; position: absolute; width: 2px; background: oklch(46% .008 70); }
+.phoneFace::before { right: -3px; top: 125px; height: 42px; border-radius: 0 2px 2px 0; }
+.phoneFace::after { left: -3px; top: 106px; height: 32px; border-radius: 2px 0 0 2px; }
+.phoneScreen { position: relative; overflow: hidden; aspect-ratio: 1080 / 2424; border-radius: 35px; background: var(--c-canvas); }
+.phoneScreen > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .phoneMount, .browserMount { transition: transform 320ms var(--ease-out); }
+  .composition:hover .phoneMount { transform: translateY(-3px); }
+  .composition:hover .browserMount { transform: translateY(-1px); }
+}
+
+@container discovery-artwork (max-width: 620px) {
+  .composition { height: 580px; }
+  .browserMount { top: 22%; width: 80%; }
+  .phoneMount { top: 16px; right: 17px; width: 244px; }
+  .phone { transform: rotateX(3deg) rotateY(-8deg) rotateZ(4deg); }
+}
+
+@media (max-width: 600px) {
+  .composition { height: 550px; perspective-origin: 52% 45%; }
+  .browserMount { top: 16px; left: 2%; width: 92%; }
+  .browser { border-radius: 14px; transform: rotateX(2deg) rotateY(3deg) rotateZ(-5deg); }
+  .browserFace { padding: 5px; }
+  .browserBar { height: 23px; font-size: 9px; }
+  .browserDots { left: 5px; gap: 4px; }
+  .browserDots > i { width: 5px; height: 5px; }
+  .browserScreen { border-radius: 4px 4px 8px 8px; }
+  .phoneMount { top: 26px; right: clamp(14px, 5cqi, 26px); width: clamp(220px, 64cqi, 240px); }
+  .phone { border-radius: 36px; transform: rotateX(3deg) rotateY(-8deg) rotateZ(4deg); }
+  .phoneScreen { border-radius: 29px; }
+  .phoneFace::before { top: 104px; height: 36px; }
+  .phoneFace::after { top: 88px; height: 28px; }
+  .contactShadow { bottom: 14px; left: 18%; right: 6%; height: 13px; filter: blur(10px); }
+}
+
+@media (max-width: 360px) {
+  .composition { height: 532px; }
+  .phoneMount { top: 26px; right: 14px; width: 220px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composition .phoneMount, .composition .browserMount { transition: none; transform: none; }
+}

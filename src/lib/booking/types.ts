@@ -46,6 +46,12 @@ export interface BookingSelectionItem {
   durationVariesByStaff?: boolean;
 }
 
+/** One ticked row of the in-drawer services step, in the order it was ticked. */
+export interface BookingPick {
+  type: "service" | "bundle";
+  id: number;
+}
+
 /** Everything the booking flow needs to start, handed over by the detail page. */
 export interface OpenBookingPayload {
   /** In-place professional profile that handed its selection to this flow.
@@ -63,6 +69,9 @@ export interface OpenBookingPayload {
   listingId: number;
   /** Location id — the route / getListing id (NOT the booking `listingId`). */
   locationId: number;
+  /** The venue's names, so the drawer can say where from its first frame;
+   *  without them it waits for the availability calendar's. */
+  venue?: { businessName: string; locationName: string | null };
   timezone: string;
   /** ISO 4217 currency code (businessCurrency). */
   currency: string;
@@ -74,14 +83,18 @@ export interface OpenBookingPayload {
   /** Pre-selected items; MAY be empty — an empty list makes the drawer open on
    *  its own in-drawer "choose services" step (see `catalog`). */
   services: BookingSelectionItem[];
-  /** Full service/bundle menu, needed only to render the in-drawer picker
-   *  when `services` is empty. Omit when `services` is always non-empty
+  /** Full service/bundle menu for the in-drawer services step. With it, and
+   *  no professional pinned, that step stays one Back away even when
+   *  `services` arrives preselected. Omit it to keep the selection fixed
    *  (e.g. rebook). */
   catalog?: {
     serviceCategories: ListingServiceCategory[];
     services: ServiceSummary[];
     bundles: BundleSummary[];
   };
+  /** Told about every change made on the in-drawer services step, so the
+   *  page's own selection never disagrees with the drawer. */
+  onServicesChange?: (picks: BookingPick[]) => void;
 }
 
 /** The imperative API exposed by `useBooking()`. */

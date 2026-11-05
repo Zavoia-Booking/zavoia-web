@@ -1,0 +1,116 @@
+/* Both complete screens remain exposed. Physical edge planes carry the depth;
+   keeping the screen faces level preserves the real app's type and alignment. */
+.desktopMount {
+  min-width: 0;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0;
+}
+
+.desktop {
+  position: relative;
+  border-radius: 20px;
+}
+
+.desktopEdge {
+  position: absolute;
+  inset: 0;
+  border: 1px solid oklch(68% .012 70);
+  border-radius: inherit;
+  background: oklch(79% .015 70);
+  transform: translate(2px, 3px);
+}
+
+.desktopFace {
+  position: relative;
+  padding: 7px;
+  border: 1px solid oklch(79% .012 70);
+  border-radius: inherit;
+  background: var(--c-shade);
+  box-shadow:
+    inset 0 1px 0 rgba(250, 250, 247, .95),
+    inset 0 0 0 1px rgba(250, 250, 247, .52),
+    0 3px 5px -2px rgba(28, 28, 26, .12),
+    4px 18px 28px -14px rgba(28, 28, 26, .13),
+    10px 36px 58px -24px rgba(28, 28, 26, .12);
+}
+
+.desktopBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  color: var(--c-600);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+
+.desktopDots { position: absolute; left: 8px; display: flex; gap: 5px; }
+.desktopDots > i { width: 6px; height: 6px; border: 1px solid rgba(28, 28, 26, .22); border-radius: 50%; }
+.desktopScreen { overflow: hidden; border: 1px solid rgba(28, 28, 26, .1); border-radius: 5px 5px 13px 13px; background: var(--c-canvas); }
+.desktopScreen > img { display: block; width: 100%; height: auto; }
+
+.phoneMount {
+  min-width: 0;
+  width: 300px;
+  max-width: 100%;
+  margin: 0;
+  justify-self: center;
+}
+
+.phone {
+  position: relative;
+  border-radius: 42px;
+}
+
+.phoneEdge { position: absolute; inset: 0; border-radius: inherit; background: oklch(37% .008 70); transform: translateX(-2px); }
+
+.phoneFace {
+  position: relative;
+  padding: 5px;
+  border: 1px solid oklch(57% .008 70);
+  border-radius: inherit;
+  background: oklch(20% .004 70);
+  box-shadow:
+    inset 0 0 0 1px oklch(38% .008 70),
+    inset 0 1px 0 rgba(250, 250, 247, .35),
+    0 2px 3px -1px rgba(28, 28, 26, .18),
+    8px 20px 28px -14px rgba(28, 28, 26, .19),
+    18px 38px 60px -24px rgba(28, 28, 26, .17);
+}
+
+.phoneFace::before, .phoneFace::after { content: ""; position: absolute; width: 2px; background: oklch(46% .008 70); }
+.phoneFace::before { right: -3px; top: 125px; height: 42px; border-radius: 0 2px 2px 0; }
+.phoneFace::after { left: -3px; top: 106px; height: 32px; border-radius: 2px 0 0 2px; }
+.phoneScreen { position: relative; overflow: hidden; border-radius: 35px; background: var(--c-canvas); }
+.phoneScreen > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .phoneMount[data-calendar-phone], .desktopMount { transition: transform 260ms var(--ease-out); }
+  .phoneMount[data-calendar-phone]:hover { transform: translateY(-3px); }
+  .desktopMount:hover { transform: translateY(-1px); }
+}
+
+@media (max-width: 600px) {
+  .desktop { border-radius: 14px; }
+  .desktopFace { padding: 5px; }
+  .desktopBar { height: 23px; font-size: 8px; }
+  .desktopDots { left: 5px; gap: 4px; }
+  .desktopDots > i { width: 5px; height: 5px; }
+  .desktopScreen { border-radius: 4px 4px 8px 8px; }
+  .phone { border-radius: 36px; }
+  .phoneScreen { border-radius: 29px; }
+  .phoneFace::before { top: 104px; height: 36px; }
+  .phoneFace::after { top: 88px; height: 28px; }
+}
+
+@media (max-width: 360px) {
+  .phoneMount { width: 268px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phoneMount, .desktopMount { transition: none; transform: none; }
+}

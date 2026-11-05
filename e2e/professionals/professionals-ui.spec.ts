@@ -281,7 +281,7 @@ for (const locale of ['en', 'ro'] as const) {
     await about.click();
     await expect(about).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('heading', { name: locale === 'ro' ? 'Adresă' : 'Address', exact: true })).toBeVisible();
-    expect(new URL(page.url()).searchParams.get('tab')).toBe('team');
+    expect(new URL(page.url()).searchParams.get('tab')).toBe('about');
     await team.click();
     await expect(team).toHaveAttribute('aria-selected', 'true');
     await expect(modal).toHaveCount(0);
@@ -299,7 +299,9 @@ for (const tab of ['reviews', 'about'] as const) {
     await services.click();
     await expect(services).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    expect(new URL(page.url()).searchParams.get('tab')).toBe(tab);
+    // Services is the default tab, and the ignored professional leaves with the old one.
+    expect(new URL(page.url()).searchParams.has('tab')).toBe(false);
+    expect(new URL(page.url()).searchParams.has('member')).toBe(false);
   });
 }
 
@@ -314,7 +316,7 @@ test('location team cards preserve modified native navigation and open one scope
   const newTab = await newTabPromise;
   await expect(newTab).toHaveURL(`${baseURL}${path}`);
   await newTab.close();
-  await expect(page).toHaveURL(`${baseURL}/business/share-old-town`);
+  await expect(page).toHaveURL(`${baseURL}/business/share-old-town?tab=team`);
   await expect(team).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await card.click();

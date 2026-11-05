@@ -168,7 +168,10 @@ test.describe('Booking — core flow', () => {
     await drawer.waitForOpen()
     await expect(drawer.stepLabel(2)).toBeVisible()
     await expect(drawer.stepLabel(1)).toHaveCount(0)
-    await expect(drawer.backButton()).toHaveCount(0)
+    // The services step stays one Back away, with the page's pick ticked.
+    await drawer.backButton().click()
+    await expect(drawer.stepLabel(1)).toBeVisible()
+    await expect(drawer.serviceRow(DEMO.services.glowTuns.name)).toHaveAttribute('aria-pressed', 'true')
   })
 
   test('BOOK-04 guest gate: sign-in detour preserves the in-progress selection', async ({ page }) => {

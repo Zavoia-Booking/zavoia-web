@@ -10,6 +10,8 @@
     "test:unit": "node --test \"src/**/*.test.mjs\"",
     "test:e2e": "playwright test",
     "test:e2e:explore": "playwright test --config=playwright.explore.config.ts",
+    "test:e2e:locations-ui": "playwright test --config=playwright.locations-ui.config.ts",
+    "test:e2e:locations-seo": "playwright test --config=playwright.locations-seo.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report"
