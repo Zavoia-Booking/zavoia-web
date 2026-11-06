@@ -19,7 +19,8 @@
     padding: 16px max(22px, env(safe-area-inset-right)) 16px max(22px, env(safe-area-inset-left));
   }
   .mc-nav-editorial-links { display: none; }
-  .mc-nav-editorial-actions > span { display: none; }
+  /* Booking is a span in the editor and a button on the public site/demo. */
+  .mc-nav-editorial-actions > :first-child { display: none; }
   .mc-nav-editorial-toggle { display: inline-flex; }
   .mc-nav-editorial .mc-nav-brand-mark,
   .mc-nav-editorial .mc-nav-brand-logo { display: none; }

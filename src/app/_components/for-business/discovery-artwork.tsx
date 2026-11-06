@@ -3,6 +3,7 @@ import Image from "next/image";
 import { dictionaries } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
 import { getMarketingMockup } from "@/lib/marketing/mockups";
+import { MarketingExampleNote } from "../marketing-example-note";
 import styles from "./discovery-artwork.module.css";
 
 /** Hardware depth follows the homepage AppPhone; the product captures stay intact. */
@@ -54,7 +55,7 @@ export function DiscoveryArtwork({ locale }: { locale: Locale }) {
           </div>
         </div>
       </div>
-
+      <figcaption><MarketingExampleNote locale={locale} map /></figcaption>
     </figure>
   );
 }

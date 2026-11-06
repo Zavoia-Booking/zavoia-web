@@ -10,7 +10,7 @@ import { FaqArtwork } from "./faq-artwork";
 import m from "./marketing.module.css";
 import styles from "./faq-section.module.css";
 
-/** Secondary questions remain native, exclusive disclosures with no client state. */
+/** Secondary questions remain independent native disclosures with no client state. */
 export function FaqSection({ locale }: { locale: Locale }) {
   const dict = dictionaries[locale];
   const t = dict.forBusiness.faq;
@@ -45,7 +45,7 @@ interface MarketingFaqProps {
   helpPrompt: string;
   helpLink: string;
   /** Answers are formatted by the page; blank lines separate paragraphs. */
-  items: readonly { q: string; a: string }[];
+  items: readonly { q: string; a: string; link?: { label: string; href: string } }[];
 }
 
 /** The shared disclosure presentation keeps each page's questions and wording. */
@@ -73,7 +73,6 @@ export function MarketingFaq({
           {items.map((item, index) => (
             <details
               key={item.q}
-              name={`${headingId}-questions`}
               open={index === 0}
               className={`${styles.item} ${disclosure.root} ${disclosure.native}`}
             >
@@ -84,6 +83,9 @@ export function MarketingFaq({
               <div className={disclosure.body}>
                 <div className={styles.answer}>
                   {item.a.split("\n\n").map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+                  {item.link && <Link className={`${styles.helpLink} ${styles.answerLink}`} href={item.link.href}>
+                    <span>{item.link.label}</span><Icon name="arrowR" size={17} />
+                  </Link>}
                 </div>
               </div>
             </details>

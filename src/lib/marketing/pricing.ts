@@ -1,4 +1,4 @@
-// Pricing data, MONTHLY only. Currency is derived from the active locale (NOT IP
+// Marketing prices; subscriptions are monthly. Currency follows the locale (NOT IP
 // detection): `ro` → RON, everything else (incl. `en`) → EUR. Numeric/currency
 // values live here (not in the i18n dictionaries) and are interpolated into
 // copy, so marketing pages and metadata use the same approved values.
@@ -9,14 +9,13 @@
 export type PricingCurrency = "RON" | "EUR";
 
 /**
- * One-time price range for a premium Web Studio section style, by currency.
- * Mirrors the backend catalogue: EUR is the default row price on
- * `website_section_variant`; RON is the RO regional override in
- * `website_variant_pricing`. Kept with the plan prices so surfaces stay aligned.
+ * Approved starting price for one premium Web Studio section design.
+ * Marketing amounts agreed on 2026-11-06; checkout prices are owned by the
+ * backend catalogue. This does not configure individual variant prices.
  */
-const PREMIUM_STYLE_RANGE: Record<PricingCurrency, [number, number]> = {
-  EUR: [9, 24],
-  RON: [45, 120],
+const PREMIUM_STYLE_STARTING_PRICE: Record<PricingCurrency, number> = {
+  EUR: 7.99,
+  RON: 39,
 };
 
 /** Free-trial length in days (locale-independent). */
@@ -31,13 +30,9 @@ export function currencyForLocale(locale: string): PricingCurrency {
  * Formatted one-time pricing for a premium Web Studio style, in the locale's
  * own currency — never a EUR figure beside a RON plan price.
  */
-export function premiumStylePrices(locale: string): { min: string; range: string } {
+export function premiumStyleStartingPrice(locale: string): string {
   const currency = currencyForLocale(locale);
-  const [min, max] = PREMIUM_STYLE_RANGE[currency];
-  return {
-    min: formatPrice(min, currency),
-    range: formatPriceRange(min, max, currency),
-  };
+  return formatPrice(PREMIUM_STYLE_STARTING_PRICE[currency], currency);
 }
 
 // ── Base and Plus ─────────────────────────────────────────────────────────────
@@ -111,15 +106,4 @@ function formatAmount(amount: number, currency: PricingCurrency): string {
 export function formatPrice(amount: number, currency: PricingCurrency): string {
   const figure = formatAmount(amount, currency);
   return currency === "EUR" ? `€${figure}` : `${figure} RON`;
-}
-
-/**
- * A price range that carries the currency once, where the language puts it:
- * EUR prefixes each figure ("€9–€24"), RON suffixes the pair ("45–120 RON").
- * Repeating the unit on both ends reads as machine-made in Romanian.
- */
-export function formatPriceRange(min: number, max: number, currency: PricingCurrency): string {
-  return currency === "EUR"
-    ? `${formatPrice(min, currency)}–${formatPrice(max, currency)}`
-    : `${formatAmount(min, currency)}–${formatPrice(max, currency)}`;
 }

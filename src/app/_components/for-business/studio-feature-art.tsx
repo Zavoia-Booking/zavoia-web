@@ -1,16 +1,16 @@
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 
 export type StudioFeatureArtKind = "content" | "design" | "publish";
 
 type ArtDepth = { paperShadow: string; contactShadow: string };
 
 // Buff paper catches the studio's warm light without becoming a white badge.
-const paper = "oklch(81% .026 78)";
-const paperBack = "oklch(69% .031 70)";
-const paperEdge = "oklch(51% .026 65)";
-const ink = "oklch(36% .017 65)";
-const rim = "oklch(91% .018 85)";
-const clay = "oklch(61% .09 40)";
+const paper = "var(--studio-art-paper, oklch(81% .026 78))";
+const paperBack = "var(--studio-art-back, oklch(69% .031 70))";
+const paperEdge = "var(--studio-art-edge, oklch(51% .026 65))";
+const ink = "var(--studio-art-ink, oklch(36% .017 65))";
+const rim = "var(--studio-art-rim, oklch(91% .018 85))";
+const clay = "var(--studio-art-clay, oklch(61% .09 40))";
 
 /** A service sheet, photograph and team slip already belong to one folio. */
 function ContentArt({ paperShadow, contactShadow }: ArtDepth) {
@@ -134,29 +134,38 @@ function PublishArt({ paperShadow, contactShadow }: ArtDepth) {
 const scenes = { content: ContentArt, design: DesignArt, publish: PublishArt };
 
 /** Decorative server-rendered paper objects, lit for the ink Studio section. */
-export function StudioFeatureArt({ kind }: { kind: StudioFeatureArtKind }) {
+export function StudioFeatureArt({ kind, tone = "dark" }: { kind: StudioFeatureArtKind; tone?: "light" | "dark" }) {
   const id = useId();
   const paperId = `studio-paper-${id}`;
   const contactId = `studio-contact-${id}`;
   const Scene = scenes[kind];
+  const light = tone === "light";
+  const palette = light ? {
+    "--studio-art-paper": "var(--c-canvas)",
+    "--studio-art-back": "var(--c-mist)",
+    "--studio-art-edge": "oklch(83% .018 78)",
+    "--studio-art-ink": "var(--c-600)",
+    "--studio-art-rim": "oklch(99.5% .003 85)",
+    "--studio-art-clay": "var(--p-500)",
+  } as CSSProperties : undefined;
   return (
-    <svg width="168" height="112" viewBox="0 0 168 112" fill="none" stroke={ink} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" data-studio-feature-art={kind}>
+    <svg width="168" height="112" viewBox="0 0 168 112" fill="none" stroke={ink} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" data-studio-feature-art={kind} style={palette}>
       <defs>
         {/* Only silhouettes cast shadows; the paper edges and rules stay sharp. */}
         <filter id={paperId} filterUnits="userSpaceOnUse" x="-12" y="-12" width="192" height="144" colorInterpolationFilters="sRGB">
           <feGaussianBlur in="SourceAlpha" stdDeviation="2.4" />
           <feOffset dx="1.2" dy="3.2" result="shade" />
-          <feFlood floodColor="#100C09" floodOpacity=".42" />
+          <feFlood floodColor="#100C09" floodOpacity={light ? .15 : .42} />
           <feComposite in2="shade" operator="in" />
         </filter>
         <filter id={contactId} filterUnits="userSpaceOnUse" x="-12" y="-12" width="192" height="144" colorInterpolationFilters="sRGB">
           <feGaussianBlur in="SourceAlpha" stdDeviation=".7" />
           <feOffset dx=".6" dy="1.5" result="shade" />
-          <feFlood floodColor="#100C09" floodOpacity=".35" />
+          <feFlood floodColor="#100C09" floodOpacity={light ? .18 : .35} />
           <feComposite in2="shade" operator="in" />
         </filter>
       </defs>
-      <ellipse cx="84" cy="102" rx="56" ry="3" fill="#100C09" fillOpacity=".28" stroke="none" />
+      <ellipse cx="84" cy="102" rx="56" ry="3" fill="#100C09" fillOpacity={light ? .04 : .28} stroke="none" />
       <path d="M16 104h136" stroke={rim} strokeOpacity=".13" strokeWidth="1" />
       <Scene paperShadow={`url(#${paperId})`} contactShadow={`url(#${contactId})`} />
     </svg>

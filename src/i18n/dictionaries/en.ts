@@ -12,6 +12,7 @@ export const en: {
   appointmentPage: typeof appointmentPageEn;
   textarea: typeof textareaEn;
   imageViewer: { unavailable: string };
+  marketingExamples: { websites: string; product: string; improveMap: string };
   preposition: string;
   home: {
     title: string;
@@ -1147,119 +1148,101 @@ export const en: {
   tryStudio: {
     pageTitle: string;
     pageDescription: string;
-    mark: string;
     demo: string;
-    looks: string;
-    hint: string;
+    back: string;
+    customize: string;
+    closeCustomization: string;
     shuffle: string;
     cta: string;
+    previous: string;
+    reset: string;
+    copyLink: string;
+    copied: string;
+    copyError: string;
+    allLocked: string;
     locksLabel: string;
     dimension: { layout: string; colour: string; type: string };
     lock: { layout: string; colour: string; type: string };
     locked: { layout: string; colour: string; type: string };
+    section: string;
+    showSection: string;
+    noExampleReviews: string;
+    style: string;
+    font: string;
+    colour: string;
+    example: string;
+    stylesNote: string;
+    trialNote: string;
+    demoFeedback: string;
+    previewLabel: string;
+    fontNames: Record<string, string>;
+    accentNames: Record<string, string>;
   };
   webStudio: {
     pageTitle: string;
     pageDescription: string;
-    cover: {
-      kicker: string;
-      titleA: string;
-      titleB: string;
-      titleC: string;
-      sub: string;
-      ctaPrimary: string;
-      ctaSecondary: string;
-      plateCaption: string;
-      liveBadge: string;
-      demoBadge: string;
+    hero: {
+      titleLead: string;
+      titleBridge: string;
+      titleAccent: string;
+      lead: string;
+      demoCta: string;
     };
-    spec: {
-      sections: string;
-      styles: string;
-      fonts: string;
-      accents: string;
-    };
-    wired: {
-      kicker: string;
+    showcase: {
       title: string;
-      sub: string;
-      ledgerTitle: string;
-      rows: {
-        services: string;
-        hours: string;
+      previewLink: string;
+      stylesNote: string;
+      examples: Record<"fitness" | "pets" | "music" | "wellness" | "automotive", { body: string; previewAlt: string }>;
+    };
+    connected: {
+      title: string;
+      features: { title: string; body: string }[];
+      artwork: {
+        business: string;
+        service: string;
+        price: string;
+        duration: string;
+        member: string;
+        location: string;
         team: string;
-        locations: string;
-        photos: string;
-        reviews: string;
+        services: string;
+        book: string;
+        calendar: string;
+        day: string;
+        time: string;
       };
-      perWeek: string;
-      note: string;
-      plateCaption: string;
-      frozenTitle: string;
-      frozenBody: string;
-      liveTitle: string;
-      liveBody: string;
-      oneTitle: string;
-      oneBody: string;
     };
-    stage: {
-      kicker: string;
+    setup: {
       title: string;
-      sub: string;
-      indexLabel: string;
-      stylesLabel: string;
-      tryCta: string;
-      ofStyles: string;
-      demoNote: string;
-    };
-    type: {
-      kicker: string;
-      title: string;
-      sub: string;
-      fontsLabel: string;
-      accentsLabel: string;
-      inUse: string;
-      note: string;
-      hint: string;
-    };
-    ships: {
-      kicker: string;
-      title: string;
+      lead: string;
+      editorAlt: string;
+      phoneAlt: string;
       steps: { title: string; body: string }[];
-      gets: { title: string; body: string }[];
+      note: string;
+      demoLink: string;
     };
-    price: {
-      kicker: string;
+    publishing: {
       title: string;
-      planLabel: string;
+      lead: string;
       planName: string;
-      planBody: string;
       perMonth: string;
-      teamPrice: string;
+      owner: string;
+      features: string[];
+      cta: string;
       trialNote: string;
-      bullets: string[];
-      stylesLabel: string;
       stylesTitle: string;
       stylesBody: string;
-      rowIncluded: string;
-      rowIncludedV: string;
-      rowPremium: string;
-      rowPremiumV: string;
-      rowFonts: string;
-      rowAllIncluded: string;
-      rowAccents: string;
+      stylePrice: string;
       pricingLink: string;
+      demoLink: string;
+      signInLink: string;
     };
     faq: {
-      kicker: string;
       title: string;
-      items: { q: string; a: string }[];
-    };
-    close: {
-      kicker: string;
-      title: string;
-      sub: string;
-      secondary: string;
+      lead: string;
+      helpPrompt: string;
+      helpLink: string;
+      items: { q: string; a: string; helpLink?: string }[];
     };
   };
   businessMarketing: {
@@ -1737,6 +1720,11 @@ export const en: {
   appointmentPage: appointmentPageEn,
   textarea: textareaEn,
   imageViewer: { unavailable: "This photo couldn't be loaded." },
+  marketingExamples: {
+    websites: "The businesses in these website examples are fictional.",
+    product: "Product previews use fictional businesses and sample data.",
+    improveMap: "Improve this map",
+  },
   preposition: "in",
   home: {
     title: "Zavoia — Discover Local Services & Book Online",
@@ -3108,193 +3096,233 @@ export const en: {
   localeNames: { ro: "Română", en: "English" },
   language: { label: "Language", loading: "Loading…", unavailable: "Not available" },
   tryStudio: {
-    pageTitle: "Try Web Studio — shuffle a real website",
-    pageDescription:
-      "Tap shuffle and watch a real Zavoia website change layout, colour and type in front of you. Lock what you like, re-roll the rest.",
-    mark: "Zavoia Web Studio",
-    demo: "Demo",
-    looks: "{n} looks",
-    hint: "A Zavoia website for a demo salon. Tap Shuffle to change it.",
-    shuffle: "Shuffle",
-    cta: "Free for {days} days",
-    locksLabel: "Tap to keep",
-    dimension: { layout: "Layout", colour: "Colour", type: "Type" },
-    lock: {
-      layout: "Keep this layout",
-      colour: "Keep this colour",
-      type: "Keep this face",
+    "pageTitle": "Web Studio demo: explore website designs",
+    "pageDescription": "Explore a complete sample website. Choose section styles, fonts and colours, or try another design. No account needed.",
+    "demo": "Fictional business",
+    "back": "Back to Web Studio",
+    "customize": "Customize",
+    "closeCustomization": "Close customization",
+    "shuffle": "Try another design",
+    "cta": "Start free trial",
+    "previous": "Previous design",
+    "reset": "Reset design",
+    "copyLink": "Copy design link",
+    "copied": "Design link copied",
+    "copyError": "Could not copy the link. You can copy it from your address bar.",
+    "allLocked": "Unlock a choice in Customize to try another design.",
+    "locksLabel": "Keep when trying another design",
+    "dimension": {
+      "layout": "Layouts",
+      "colour": "Colour",
+      "type": "Font"
     },
-    locked: {
-      layout: "Layout kept — tap to unlock",
-      colour: "Colour kept — tap to unlock",
-      type: "Face kept — tap to unlock",
+    "lock": {
+      "layout": "Keep these layouts",
+      "colour": "Keep this colour",
+      "type": "Keep this font"
     },
+    "locked": {
+      "layout": "Layouts kept. Select to unlock.",
+      "colour": "Colour kept. Select to unlock.",
+      "type": "Font kept. Select to unlock."
+    },
+    "section": "Section",
+    "showSection": "Show this section",
+    "noExampleReviews": "This fictional business has no customer reviews.",
+    "style": "Style",
+    "font": "Font",
+    "colour": "Colour",
+    "example": "Example business",
+    "stylesNote": "This demo includes standard and optional premium styles. Premium styles are purchased separately, once.",
+    "trialNote": "Your {days}-day trial starts on Base. Publishing your website requires Plus.",
+    "demoFeedback": "This is a sample business. Bookings and contact actions are unavailable in the demo.",
+    "previewLabel": "Sample website preview",
+    "fontNames": {
+      "modern": "Modern",
+      "classic": "Classic",
+      "elegant": "Elegant",
+      "friendly": "Friendly"
+    },
+    "accentNames": {
+      "terracotta": "Terracotta",
+      "jade": "Jade",
+      "mulberry": "Mulberry",
+      "forest": "Forest",
+      "marine": "Marine",
+      "ink": "Ink",
+      "espresso": "Espresso",
+      "ochre": "Ochre",
+      "olive": "Olive",
+      "moss": "Moss",
+      "pine": "Pine",
+      "petrol": "Petrol",
+      "slate": "Slate",
+      "indigo": "Indigo",
+      "violet": "Violet",
+      "orchid": "Orchid",
+      "plum": "Plum",
+      "rosewood": "Rosewood",
+      "blush": "Blush",
+      "copper": "Copper",
+      "brick": "Brick",
+      "rust": "Rust",
+      "amber": "Amber",
+      "caramel": "Caramel",
+      "greige": "Greige",
+      "teal": "Teal",
+      "peacock": "Peacock",
+      "navy": "Navy",
+      "burgundy": "Burgundy",
+      "graphite": "Graphite"
+    }
   },
   webStudio: {
-    pageTitle: "Web Studio — the website your business already has the parts for",
-    pageDescription:
-      "Turn the prices, hours, team and photos you already keep in Zavoia into a real website. Twelve sections, forty-seven designed styles, published in an afternoon.",
-    cover: {
-      kicker: "Web Studio · Catalogue of parts",
-      titleA: "A website",
-      titleB: "that already knows",
-      titleC: "your prices.",
-      sub: "Your services, opening hours, team, photos and reviews are already in Zavoia. Web Studio turns them into a real site — you pick styles, not build pages.",
-      ctaPrimary: "Start your {days}-day free trial",
-      ctaSecondary: "Open the catalogue",
-      plateCaption: "Rendered live on this page",
-      liveBadge: "Live site",
-      demoBadge: "Demonstration",
+    "pageTitle": "Web Studio: your own website, connected to Zavoia",
+    "pageDescription": "Create a website with your Zavoia services, prices, team and photos. Explore designs, prepare your draft during the trial and publish with Plus.",
+    "hero": {
+      "titleLead": "A website that feels",
+      "titleBridge": "like your",
+      "titleAccent": "business.",
+      "lead": "Create a website with the services, team and photos in Zavoia. Choose its look and manage bookings in your Zavoia calendar.",
+      "demoCta": "Try the demo"
     },
-    spec: {
-      sections: "Sections",
-      styles: "Styles",
-      fonts: "Display fonts",
-      accents: "Brand accents",
-    },
-    wired: {
-      kicker: "The unfair part",
-      title: "Every other builder starts with an empty page. Yours starts with your business.",
-      sub: "You already keep your prices, hours, team and photos in Zavoia to manage your appointments. Web Studio reads them. Nothing to re-type, nothing to keep true in two places.",
-      ledgerTitle: "Already in your Zavoia",
-      rows: {
-        services: "Services & prices",
-        hours: "Opening hours",
-        team: "Team members",
-        locations: "Locations",
-        photos: "Portfolio photos",
-        reviews: "Customer reviews",
+    "showcase": {
+      "title": "Different businesses. Websites of their own.",
+      "previewLink": "Explore the {business} website",
+      "examples": {
+        "fitness": {
+          "body": "Introduce your trainers, explain your one-to-one sessions and let clients choose an available time.",
+          "previewAlt": "Example personal training website for {business}."
+        },
+        "pets": {
+          "body": "A little reassurance before the first visit. Show your space, introduce the groomers and explain each service.",
+          "previewAlt": "Example pet care website for {business}."
+        },
+        "music": {
+          "body": "Give future students a feel for your studio. Introduce your teachers and help them choose their first individual lesson.",
+          "previewAlt": "Example music lessons website for {business}."
+        },
+        "wellness": {
+          "body": "Let the atmosphere speak. Pair photographs of your space with treatments, durations and a clear way to book.",
+          "previewAlt": "Example massage and wellness website for {business}."
+        },
+        "automotive": {
+          "body": "Make the next garage visit easier. Explain maintenance, diagnostics and tyre services, with a clear way to book.",
+          "previewAlt": "Example auto repair website for {business}."
+        }
       },
-      perWeek: "{n} days",
-      note: "All of it, on the site. Typed once.",
-      plateCaption: "The same services, rendered",
-      frozenTitle: "Your layout stays put",
-      frozenBody:
-        "Publishing freezes the design you approved. Nothing moves under your customers until you publish again.",
-      liveTitle: "Your prices stay live",
-      liveBody:
-        "Change a price or add a stylist in Zavoia and the published site shows it. No second edit, no menu that quietly goes stale.",
-      oneTitle: "One business, one truth",
-      oneBody:
-        "The website, your booking flow and your marketplace profile all read the same business. They cannot disagree with each other.",
+      "stylesNote": "Examples combine included and optional premium section designs."
     },
-    stage: {
-      kicker: "The catalogue",
-      title: "Twelve sections. Forty-seven styles. Pick, don't build.",
-      sub: "Every plate below is the real renderer running on this page — not a screenshot. Change a style and you are looking at exactly what your customers would get.",
-      indexLabel: "Sections",
-      stylesLabel: "Styles for this section",
-      tryCta: "Shuffle a whole site",
-      ofStyles: "Style {n} of {total}",
-      demoNote: "Demonstration business",
-    },
-    type: {
-      kicker: "Type & colour",
-      title: "Two knobs. Nothing you can make ugly.",
-      sub: "Choose a display face and a brand accent. Spacing, contrast, and the way it folds onto a phone are already designed — and every specimen on this page re-renders as you pick.",
-      fontsLabel: "Display faces",
-      accentsLabel: "Brand accents",
-      inUse: "In use",
-      note: "All {total} accents and all 14 display faces come with every plan — none of them cost extra, ever.",
-      hint: "Pick a face and a colour, then scroll back up — the specimens above are already rendering in your choice.",
-    },
-    ships: {
-      kicker: "How it ships",
-      title: "Started this morning, live this afternoon.",
-      steps: [
+    "connected": {
+      "title": "Your website, connected to your business.",
+      "features": [
         {
-          title: "Turn sections on",
-          body: "You start from a complete page, not a blank canvas. Switch sections off, drag them into the order you want, and the page stays designed the whole time.",
+          "title": "Your business details",
+          "body": "Update your services, prices and team in Zavoia. The changes appear on your website."
         },
         {
-          title: "Choose the styles",
-          body: "Each section carries its own set of designs. Preview every one against your real services and your real photos — never a placeholder salon.",
+          "title": "Choose what clients see",
+          "body": "Select your locations and photos, then choose your design."
         },
         {
-          title: "Publish",
-          body: "One button. Your site goes live at your own Zavoia address, and stays exactly as you approved it.",
-        },
+          "title": "Bookings in one calendar",
+          "body": "Enable online booking for your locations. Website bookings appear in your Zavoia calendar."
+        }
       ],
-      gets: [
+      "artwork": {
+        "business": "Forma Studio",
+        "service": "Personal training",
+        "price": "150 RON",
+        "duration": "60 min",
+        "member": "Mara",
+        "location": "City centre",
+        "team": "Your team",
+        "services": "Services",
+        "book": "Book a session",
+        "calendar": "Your calendar",
+        "day": "Tuesday, 10 Nov",
+        "time": "10:00 – 11:00"
+      }
+    },
+    "setup": {
+      "title": "Make it yours, section by section.",
+      "lead": "Arrange ready-made sections and preview your website before publishing. No coding required.",
+      "editorAlt": "The real Zavoia Web Studio editor, showing the Masonry gallery design for Mira Spa.",
+      "phoneAlt": "Mira Spa’s Masonry gallery of spa interiors and still-life images, previewed on a phone.",
+      "steps": [
         {
-          title: "Right on a phone",
-          body: "Every style is designed for the screen most of your customers will actually open it on.",
+          "title": "Arrange your content",
+          "body": "Choose what to show and arrange your main sections."
         },
         {
-          title: "Fast by default",
-          body: "No page-builder bloat, no plugins to update, nothing to break at eleven at night.",
+          "title": "Choose your look",
+          "body": "Choose section designs, a font and a colour from the available options."
         },
         {
-          title: "Findable",
-          body: "Real page titles, descriptions and structure — the things search engines actually read.",
-        },
-        {
-          title: "Your own address",
-          body: "The published site lives on zavoia.com under your business's own name.",
-        },
+          "title": "Preview on desktop and mobile",
+          "body": "Check your layout before publishing."
+        }
       ],
+      "note": "Design and website content changes stay in your draft until you publish.",
+      "demoLink": "Try the demo"
     },
-    price: {
-      kicker: "What it costs",
-      title: "Build the whole thing free. Pay when you publish.",
-      planLabel: "Publishing plan",
-      planName: "Zavoia Business\u00A0· Plus",
-      planBody:
-        "Every Zavoia plan lets you build, preview and save your entire site. Putting it live on the web is the Plus step — so you see the finished thing before you decide.",
-      perMonth: "per month",
-      teamPrice: "Your account is included. Each additional team seat costs {seat}/month.",
-      trialNote: "Your {days}-day trial starts on Base. Choose Plus to publish your website.",
-      bullets: [
-        "Build, preview and save on any plan",
-        "Unlimited edits and re-publishes",
-        "Lapsed plans suspend your site — they never delete it",
-        "Reactivate Plus to make a published site available again",
+    "publishing": {
+      "title": "Ready to go live? Publish with Plus.",
+      "lead": "Website publishing is included in Zavoia Plus, alongside your calendar, online booking and tools for running your business.",
+      "planName": "Zavoia Plus",
+      "perMonth": "per month",
+      "owner": "Your account is included. Additional team seats cost {price} each per month.",
+      "features": [
+        "Your website at its own Zavoia address",
+        "Online booking for locations where you enable it",
+        "A website link and QR code to share"
       ],
-      stylesLabel: "Premium styles",
-      stylesTitle: "From {min}, once. Yours for good.",
-      stylesBody:
-        "Start with included styles and add optional premium designs. Want the cinematic hero, the drifting review marquee or the folded footer? Unlock it once and it stays unlocked — no subscription stacked on a subscription.",
-      rowIncluded: "Included styles",
-      rowIncludedV: "{n} included",
-      rowPremium: "Premium styles",
-      rowPremiumV: "{n} · {range} once",
-      rowFonts: "Display fonts",
-      rowAllIncluded: "All {n} included",
-      rowAccents: "Brand accents",
-      pricingLink: "See full Zavoia pricing",
+      "cta": "Start a {days}-day Base trial",
+      "trialNote": "No card required. Prepare your draft, then subscribe to Plus to publish.",
+      "stylesTitle": "Your style, your choice.",
+      "stylesBody": "Build with the included designs or choose optional premium section styles. All {fonts} fonts and {colours} colours are included.",
+      "stylePrice": "Premium section styles from {price} each, paid once. Available with Plus.",
+      "pricingLink": "See plans and full pricing",
+      "demoLink": "Try the demo",
+      "signInLink": "Already using Zavoia? Sign in"
     },
-    faq: {
-      kicker: "Questions",
-      title: "What owners ask before they build",
-      items: [
+    "faq": {
+      "title": "Before your website goes live.",
+      "lead": "Answers about designs, publishing and the information on your website.",
+      "helpPrompt": "Have another question?",
+      "helpLink": "Visit the help centre",
+      "items": [
         {
-          q: "Do I need to know anything about websites?",
-          a: "No. There is no page to lay out, no theme to install and no code anywhere. You turn sections on, choose a style for each, and press publish.",
+          "q": "Do I need to know how to build a website?",
+          "a": "No coding is required. Arrange ready-made sections, add your content and choose from the available fonts and colours. Preview your website before publishing."
         },
         {
-          q: "What happens when I change a price?",
-          a: "The published site reads it live. Change the price in Zavoia and the site shows the new one — while the layout you approved stays exactly as it was.",
+          "q": "What can I do during the free trial?",
+          "a": "Your {days}-day Base trial starts when you create your business in Zavoia. You can prepare, preview and save a website draft.\n\nPublishing your website and purchasing optional premium styles require Plus."
         },
         {
-          q: "Can I see it finished before I pay to publish?",
-          a: "Yes, and that is the point. Building, previewing and saving the whole site is included in every plan; publishing it to the web is the paid step.",
+          "q": "What information comes from my Zavoia account?",
+          "a": "Your website uses your Zavoia business details, services, prices, team and reviews. You choose the locations, photos and sections to show, and can write your introduction and FAQs.\n\nUpdates to services, prices and team details appear on your published website. Design changes, website content and photo selections stay in your draft until you publish again."
         },
         {
-          q: "I already have a website. Is this worth it?",
-          a: "Keep the one you have. Most owners use Web Studio as the page they actually send people to — the one that is always right about prices, hours and who is working.",
+          "q": "Can clients book from my website?",
+          "a": "Yes, for locations with online booking enabled. Clients choose a service and an available time, then complete their booking through Zavoia. The booking appears in your Zavoia calendar."
         },
         {
-          q: "What happens if I cancel?",
-          a: "Your site is suspended, not deleted. Your saved design and purchases are kept. Reactivate Plus to make your published site available again.",
+          "q": "Do I have to buy premium styles?",
+          "a": "No. You can build your website with the included section designs. Optional premium section styles are one-time purchases for your business and require Plus.\n\nAll available fonts and brand colours are included."
         },
-      ],
-    },
-    close: {
-      kicker: "Your turn",
-      title: "The website your business already has the parts for.",
-      sub: "Start the free trial, open Web Studio, and see your own prices sitting in a real page in ten minutes.",
-      secondary: "Back to the catalogue",
-    },
+        {
+          "q": "What address will my website have?",
+          "a": "Your website has its own Zavoia address, such as zavoia.com/your-business. Copy its link or download a QR code from your business account.\n\nAlready have a domain? Contact us through the help centre to arrange using it for your website.",
+          "helpLink": "Ask about your domain"
+        },
+        {
+          "q": "What happens if my Plus subscription ends?",
+          "a": "When your Plus access ends, your published website becomes unavailable to visitors. Your saved design and purchases are retained.\n\nWith an active Base plan, you can work on drafts. Active Plus is required to make the website available again."
+        }
+      ]
+    }
   },
   businessMarketing: {
     signIn: "Sign in",

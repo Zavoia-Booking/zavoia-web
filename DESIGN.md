@@ -987,59 +987,126 @@ stays visible while preview assets load. Its compact footprint keeps long names 
 absent industries from changing the card height; keep the full name in its title
 and accessible link label.
 
-Character: a museum plate, not a screenshot. Where a surface must *show* the
-product rather than describe it, it runs the real renderer inside a numbered,
-captioned plate and lets the inventory do the selling. Five devices, introduced
-by `/web-studio` and reusable anywhere the product can be exhibited.
+### Web Studio marketing and design demo
 
-- **Specimen plate** (`SpecimenPlate`): the real renderer (`LivePreview`) laid
-  out at a fixed *virtual* width (default 1240px) and CSS-scaled down to the
-  plate's measured width — a browser-zoom, not a narrow container. The virtual
-  width is keyed to the **viewport, not the plate**: a ~560px-wide desktop plate
-  still shows the desktop arrangement, while ≤600px viewports switch to
-  `max(plateWidth, 430)` so a phone renders near 1:1 and shows the true phone
-  arrangement (hamburger nav and all). The box keeps a **stable frame** from
-  first render: 16:10 for normal specimens and 8:1 for compact specimens,
-  bounded by the caller’s minimum and maximum heights. Measuring the renderer
-  updates its scale and crop treatment without resizing the frame.
-  Only a specimen taller than its frame is cropped, and only then does an 84px
-  bottom fade (transparent → 92% canvas) appear, so the crop reads as a
-  deliberate catalogue detail rather than an accident. The plate rests on
-  `--c-shade` (the specimen paints its own paper over it, keeping the first
-  frame calm), and the subtree is **`inert` + `aria-hidden`** — the specimen
-  contains real links and buttons that must never be reachable. `inert` is
-  passed as a boolean; `inert=""` reads as false in React 19 and would leave
-  them focusable. Plates are remounted (keyed on section+variant) rather than
-  height-animated, so no layout property ever lands on the animation path.
-- **Plate mark** (`№ NN`): the catalogue's index mark — Geist Mono, tabular
-  figures, zero-padded to two digits, `--p-600` on canvas and 50% white on ink.
-  It opens the caption; it never labels anything that isn't a plate.
-- **Museum caption**: a mono strip under **every** plate — 10.5px/600,
-  `0.13em` tracking, uppercase, tabular, `--c-600` on canvas / 52% white on ink,
-  12px below the plate, wrapping with a `4px 10px` gap. Segments after the first
-  are `CapSeg`: each fuses its introducing `·` (in `--c-400` / 28% white,
-  `aria-hidden`) into the same `nowrap` span as the text it introduces, so a
-  wrap can never strand a dot at line-end — the mono restatement of the
-  `joinDot` rule. Because the plate is `aria-hidden`, the caption is the only
-  thing that can narrate a change: the stage's caption carries
-  `aria-live="polite"`, and the cover's leads with a 6px dot — `--s-success-600`
-  for a live site, `--p-500` for the authored demonstration.
-- **Spec strip**: the catalogue's own measurements, docking the ink cover. Four
-  equal cells over a single `rgba(255,255,255,0.14)` top hairline, no fills and
-  no boxes; each cell is a large white figure (`clamp(28px, 3.4vw, 40px)`, 600,
-  `-0.04em`, lh 1, tabular) over an 8px gap and a mono uppercase label
-  (10.5px/600, `0.14em`, 55% white). Folds 4→2 columns ≤760px.
-- **Index + stage**: the signature pairing. Desktop is a `228px` rail beside the
-  stage — a mono section header over a hairline, then a numbered list where each
-  row is `NN · label · variant-count`, mono at both ends and 14.5px sans in the
-  middle; the current row goes `--c-900`/600 with its number in `--p-600`, the
-  rest sit at `--c-600` over 6% dividers. The stage carries the style chips
-  (standard chip grammar: white pill, 12% hairline, **active = ink**), the
-  plate, its caption and the section's description. At ≤920px the pairing folds
-  to one column and the index **becomes a horizontal chip rail** above the stage
-  (header hidden, `overflow-x: auto`, scrollbar hidden, rows become nowrap white
-  pills, `aria-current` inverts to ink) so the live specimen keeps the full
-  width on a phone — see the `[data-ws-*]` block in `globals.css`.
+`/web-studio` explains the product through finished websites for different
+industries. Give it a distinct, light marketing composition with five visible
+industry examples, followed by the connected business information, setup,
+publishing terms and FAQ. Keep the standard marketplace header, footer and 1400px
+content boundary. Website editing and design/device controls belong only in the
+separate demo route, never in this marketing page.
+Retain Zavoia's warm paper, ink, terracotta and restrained texture without repeating
+the business page's dark split hero, overlapping devices or pricing-card layout.
+Use the established `--p-500` for large marketing accents. `--p-700` is a
+contrast-oriented small-text token, not an alternative headline terracotta.
+Customer website examples may use the actual website registry's different brand
+palettes; keep those colours inside their rendered websites.
+Use the business pages' handwritten signature for one word in the centered hero,
+with the regular headline in ink. Its primary pill action uses the shared circular
+arrow treatment. The paper gradient and fine grain fade into the next section.
+The hero has one centered action to the public design demo, labelled "Try the demo"
+in English. Its lead explains that website bookings use the Zavoia calendar.
+Keep trial actions and Base/Plus qualifications in the publishing section. Use clear
+heading hierarchy and underlined secondary links. No decorative eyebrows, large
+inventory counters, specimen captions, exhaustive font grids or repeated closing
+CTA. Explain the connection to existing business information once, with all
+benefits visible.
+
+The curated examples use the actual website renderer with bilingual synthetic
+businesses from `web-studio/demo-examples.ts`. Show fitness, pet grooming, music
+lessons, wellness and an auto shop as distinct, finished websites with their own
+content and complete designs, including the sections below each hero. Use each
+example's canonical industry slug to resolve its heading from the shared industry
+dictionary, matching backend `industry.name` / `industry.nameRo`; service types
+such as personal training or music lessons are not substitute industry names.
+The canonical names are seeded in the API repository's
+`scripts/supabase-seed-1-industries.sql`. Keep all five industry stories visible
+without tabs or a carousel. Each has a concise
+explanation of what a client can discover or book. The mockup itself links to its
+matching demo, with a unique localized business-specific accessible name; do not
+repeat a text CTA below each example.
+The rendered website remains inert and accessible as a figure, with stable ratios
+and actual virtual viewport heights. `StaticPreviewContext` settles JS motion and
+`mc-scaled-preview-static` parks CSS choreography. Put the native demo link as an
+overlay sibling of the inert figure, never around the renderer's own links. Its
+focus-visible outline follows the device frame. Fine-pointer hover gently scales
+the mockup to 1.018 over 280ms, preserving its resting angle; reduced motion and
+touch skip the scale. There is no fullscreen preview, design swatches, device
+switcher or simulated editor toolbar. Each link carries its example and encoded
+design.
+Frame portrait previews with the established graphite phone bezel, metal rim and
+side buttons. The website fills the screen, as in the business-page Web Studio
+mockup; do not append artificial status or home bars with white backgrounds.
+Arrange three browser views and two phones in a staggered composition, with static
+angles and generous clearance. Use the business hero's industry markers and
+connector stems and visible labels; keep stories below each website. Cap mobile
+frames at 300px. Each mockup link carries a complete, curated set of section
+designs, rather than only changing a hero or font.
+
+The connected-business section is one illustrated story: business folio, website,
+then appointment calendar. Carry the same fictional service, price and team member
+through all three scenes, localizing every illustration label in EN/RO. Use warm
+paper faces, shallow edge depth, quiet contact shadows and fine curved terracotta
+connectors. Use a centered headline with no separate introductory paragraph. The
+full-width composition carries three short callouts, each beside its illustration:
+business details below the folio, website choice above the larger central website,
+and online booking above the lower calendar. Limit each to a concise heading and
+one short sentence. Keep the artwork and its copy close, the website dominant,
+and all benefits visible. Do not gather the benefits into a text-heavy side column,
+reinstate three equal artwork/caption columns, or split heading and lead across a
+row. Below 1000px, pair each scene with its copy; below 700px each scene sits above
+its copy. These are illustrations, not editor controls or screenshots.
+Only the artwork has a finite 10px entrance, respecting reduced motion and locale
+navigation. Keep the background light and the shared content width. Distinguish
+current business information from design/copy drafts that need republishing; do
+not imply independent service/team selection or automatic booking confirmation.
+
+The setup section uses a compact, left-aligned heading and introduction, followed
+by the real dashboard editor with Mira Spa's Gallery inspector open, Masonry
+selected, and a smaller phone preview of the same spa website. Render the actual dashboard components with
+synthetic owner/draft/catalogue data and no account or API writes. Its localized
+captures live in `public/images/web-studio/setup-{editor,detail,phone}-{en,ro}.webp`.
+Use static image imports for intrinsic dimensions and content-hashed asset URLs.
+This fictional spa uses original AI-generated, people-free interiors and still-life
+images from `public/images/web-studio/spa/`, with the generation prompts recorded
+there. Do not replace them with web-sourced photographs or portraits.
+Use the detail capture on narrow screens so the actual design controls remain
+readable; do not shrink the whole desktop workspace into a phone viewport. Reuse
+the established graphite bezel for the phone, without adding white status bars.
+Keep the three brief benefits visible near the screens: arrange content, choose a
+look, and preview on desktop and phone. Do not reinstate a long numbered sidebar
+or duplicate the publishing/Plus/link/QR explanation from the next section. Put
+the draft reassurance and a quiet demo link below the composition. Only the
+screens have a finite 8px entrance; skip it for reduced motion and locale changes,
+and keep screens still on hover. Localize the editor and authored example together.
+Never reconstruct the editor as marketing HTML or translate over a bitmap.
+
+`/web-studio/demo` is the full-screen design explorer. `/try` remains a permanent
+query-preserving redirect in both languages for existing shared links and QR codes.
+Keep the demo `noindex`; the marketing page is the indexable destination. Match
+its nested route precisely when suppressing marketplace chrome.
+
+The demo uses the same renderer and real section/font/colour registries. Load the
+selected display face on direct entry as well as navigation. Its compact ink dock
+contains a return link, language control, customization, previous design, copy link,
+try-another-design action and business trial link. Customization offers actual
+section styles, fonts, colours, examples and locks. When all dimensions are locked,
+disable shuffle and explain how to resume. Keep page scroll position stable during
+changes. Keyboard changes are immediate; pointer-triggered changes can briefly
+settle, respecting reduced motion. Fictional booking/contact actions give demo
+feedback; navigation and gallery exploration remain usable.
+
+The `s` query encodes registry indices: preserve ordering/legacy decoding when
+adding designs. Preserve `s`, example and campaign `src` across language switching
+and sharing. Business signup uses `registrationHref(locale)` and retains `src`;
+selected designs are not currently imported into onboarding. Do not imply a design
+handoff. The dashboard owns design implementation; the API owns active commercial
+availability, prices and entitlements. Preserve web booking, locale and image-viewer
+adapters when bringing dashboard renderer updates across.
+
+Draft work needs an active trial/subscription. The trial starts on Base; Plus
+publishes the website and purchases optional premium styles. Explain these terms
+near the trial and publishing actions without implying indefinitely free editing.
 
 **Accent row** (account menu): the sanctioned way to mark exactly **one** offer
 row inside a menu of destinations. Same row geometry as its siblings, but the
@@ -1048,18 +1115,18 @@ default `--c-600` icon / `--c-800` label at 500. Terracotta-as-text keeps it
 legible at 14px; one row per menu keeps it an offer rather than a second
 navigation level.
 
-**The Derived Figure Rule.** A marketing surface never types a product count or
-a price as a literal. Counts come from the real registry — Web Studio's 12
-sections, 47 styles, 14 fonts and 30 accents are computed from `SECTION_META` /
-`SECTION_TYPES`, `FONT_CATALOG` and `BRAND_ACCENT_CATALOG`, and the page throws
-at module load if its reading order ever lists fewer sections than the registry
-holds. Money comes from `src/lib/marketing/pricing.ts` (`getPlanPricing`,
-`premiumStylePrices`, `formatPrice`, `TRIAL_DAYS`), never from the
-dictionaries — the figure is interpolated into copy, in the locale's own
-currency. Web Studio quotes the same Plus price and additional-member cost as
-the business pages, and explains that the trial starts on Base. Every business
-trial action, including Web Studio's, uses the shared business registration URL.
-A commercial figure that does not yet exist is marked rather than invented.
+**The Derived Figure Rule.** Marketing counts come from the product registries,
+never copied numbers in dictionaries. Money comes from
+`src/lib/marketing/pricing.ts` (`getPlanPricing`, `premiumStyleStartingPrice`,
+`formatPrice`, `TRIAL_DAYS`). Approved marketing amounts are not evidence of
+backend catalogue availability or checkout prices. Every business trial action,
+including the Web Studio demo, uses the shared locale-aware business registration
+URL. State the Base trial and Plus publishing distinction clearly.
+Premium section designs show only the approved starting price (39 RON / €7.99),
+per design with a one-time payment. This marketing amount does not configure the
+backend catalogue. Custom-domain enquiries link to the help centre for assisted
+setup; do not imply self-service domain controls. Keep the fictional-example note
+and the included/premium explanation at the gallery entrance, not under every mockup.
 
 ### Business marketing pages (/for-business, /pricing)
 
@@ -1354,13 +1421,13 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   Keep synthetic-data provenance in the capture manifests and asset documentation.
   The separate Web Studio live-catalogue captions still provide preview-change
   announcements and retain their own rules.
-- **FAQ:** native `<details>` sharing one `name`, so one answer is open at a
-  time (the first starts open), with the disclosure motion module; works
+- **FAQ:** independent native `<details>` let visitors keep multiple answers open
+  (the first starts open), with the disclosure motion module; works
   without JavaScript. Keyboard toggles are immediate. The help introduction
   remains sticky on desktop. Core benefits, pricing and plan terms stay visible
   above this section rather than depending on these disclosures.
-  `MarketingFaq` shares the accepted presentation between For Business and
-  pricing, with supplied localized copy and unique heading/disclosure IDs. Lead with the trial question, then
+  `MarketingFaq` shares the accepted presentation between For Business, Pricing
+  and Web Studio, with supplied localized copy and unique heading IDs. Lead with the trial question, then
   commission, paid team capacity, website publishing and cancellation. Use a concise introduction,
   the paper guide/question-and-answer artwork and a 44px underlined link to the
   localized help centre. This destination provides help topics and issue
@@ -1370,7 +1437,7 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   without horizontal item insets. Open answers retain the page background;
   question text and the plus/minus indicator use terracotta when open.
   Question text is 20px/550, answer text 16px/1.65,
-  with long answers split into short paragraphs. Native exclusive opening and
+  with long answers split into short paragraphs. Native independent opening and
   closing retain the shared motion; all keyboard transitions are immediate.
   Below 921px, unstick the introduction. Phones use a 34px heading, compact
   artwork beside the help link, 17.5px questions and 15.5px answers. Avoid a

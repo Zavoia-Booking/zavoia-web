@@ -52,9 +52,12 @@ export function isBusinessMicrositePath(pathname: string): boolean {
 /**
  * Routes that own the whole viewport and bring their own chrome, so the
  * marketplace header, footer and mobile tab bar are all suppressed: a
- * published business microsite, and /try (a real microsite under a floating
+ * published business microsite, and /web-studio/demo (a real microsite under a floating
  * shuffle dock — marketplace chrome on top of it would be two navs at once).
  */
 export function isFullBleedPath(pathname: string): boolean {
-  return isBusinessMicrositePath(pathname) || routeKey(pathname) === "try";
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0] && (LOCALES as readonly string[]).includes(parts[0])) parts.shift();
+  const demo = parts.length === 2 && parts[0] === "web-studio" && parts[1] === "demo";
+  return isBusinessMicrositePath(pathname) || demo || routeKey(pathname) === "try";
 }

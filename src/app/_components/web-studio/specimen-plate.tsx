@@ -1,10 +1,11 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import type { SectionEntry } from "@/features/website/types";
 import type { PreviewData } from "@/features/website/components/builder/preview/shared/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StaticPreviewContext } from "@/features/website/components/builder/preview/shared/hooks";
 
 const LivePreview = dynamic(() =>
   import("@/features/website/components/builder/preview/Microsite").then(
@@ -34,6 +35,9 @@ export function SpecimenPlate({
   minHeight = 140,
   maxHeight = 620,
   pending = false,
+  frameRatio,
+  responsive = true,
+  deviceViewport = false,
 }: {
   layout: SectionEntry[];
   data: PreviewData;
@@ -42,6 +46,12 @@ export function SpecimenPlate({
   minHeight?: number;
   maxHeight?: number;
   pending?: boolean;
+  /** A device frame keeps its actual screen ratio, rather than a catalogue crop. */
+  frameRatio?: number;
+  /** Fixed browser/phone mockups keep the layout of that device at every viewport. */
+  responsive?: boolean;
+  /** Website heroes use this viewport height inside fixed hardware mockups. */
+  deviceViewport?: boolean;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -61,10 +71,10 @@ export function SpecimenPlate({
   useLayoutEffect(() => {
     const el = outerRef.current;
     if (!el) return;
-    // Fractional width keeps the scale exact — clientWidth rounds to an integer.
-    const update = () => setWidth(el.getBoundingClientRect().width);
-    update();
-    const observer = new ResizeObserver(update);
+    // Layout width stays accurate inside rotated hardware. A bounding rectangle
+    // includes the rotation and would enlarge the content beyond its screen.
+    setWidth(Number.parseFloat(getComputedStyle(el).width));
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
@@ -85,11 +95,12 @@ export function SpecimenPlate({
   // sizing by its own width would hand a desktop visitor the phone layout
   // (hamburger nav and all). On a phone the specimen renders near 1:1, which
   // is both legible and the honest proof of the "right on a phone" claim.
-  const effectiveWidth = phone ? Math.max(width, 430) : virtualWidth;
+  const effectiveWidth = responsive && phone ? Math.max(width, 430) : virtualWidth;
   const scale = width > 0 ? width / effectiveWidth : 0;
   const natural = contentHeight * scale;
   const compact = layout.every((section) => !section.visible || ["nav", "announcement", "marquee"].includes(section.type));
-  const height = Math.min(Math.max(width / (compact ? 8 : 1.6), minHeight), maxHeight);
+  const ratio = frameRatio ?? (compact ? 8 : 1.6);
+  const height = Math.min(Math.max(width / ratio, minHeight), maxHeight);
   const cropped = natural > height + 1;
   const ready = !pending && width > 0 && contentHeight > 0;
 
@@ -99,15 +110,16 @@ export function SpecimenPlate({
       style={{
         position: "relative",
         width: "100%",
-        aspectRatio: compact ? "8 / 1" : "16 / 10",
+        aspectRatio: String(ratio),
         minHeight,
         maxHeight,
         overflow: "hidden",
-        background: "var(--c-shade)",
+        background: deviceViewport ? "var(--c-canvas)" : "var(--c-shade)",
       }}
     >
       <div
         ref={innerRef}
+        className="mc-scaled-preview-static"
         // Boolean, not `inert=""` — React 19 reads an empty string as false and
         // the specimen's real links and buttons would stay focusable.
         inert
@@ -120,12 +132,13 @@ export function SpecimenPlate({
           transform: `scale(${scale || 0.0001})`,
           transformOrigin: "top left",
           opacity: ready ? 1 : 0,
-        }}
+          ...(deviceViewport ? { "--mc-vph": `${Math.round(effectiveWidth / ratio)}px` } : {}),
+        } as CSSProperties}
       >
-        {!pending && <LivePreview layout={layout} data={data} chrome={chrome} />}
+        {!pending && <StaticPreviewContext.Provider value={true}><LivePreview layout={layout} data={data} chrome={chrome} /></StaticPreviewContext.Provider>}
       </div>
       {!ready && <Skeleton h="100%" r={0} style={{ position: "absolute", inset: 0 }} />}
-      {ready && cropped && (
+      {ready && cropped && !deviceViewport && (
         <div
           aria-hidden="true"
           style={{

@@ -10,6 +10,11 @@ export const ro: Dictionary = {
   appointmentPage: appointmentPageRo,
   textarea: textareaRo,
   imageViewer: { unavailable: "Nu am putut încărca această fotografie." },
+  marketingExamples: {
+    websites: "Afacerile din aceste exemple de site-uri sunt fictive.",
+    product: "Previzualizările folosesc afaceri fictive și date demonstrative.",
+    improveMap: "Îmbunătățește această hartă",
+  },
   preposition: "în",
   home: {
     title: "Zavoia — Descoperă servicii și programează-te online",
@@ -1198,19 +1203,19 @@ export const ro: Dictionary = {
     },
   },
   industries: {
-    beauty: "Beauty & înfrumusețare",
-    "spa-wellness": "Spa & wellness",
-    "skin-aesthetics": "Piele & estetică",
-    "tattoo-piercing": "Tatuaje & piercing",
-    "health-medical": "Sănătate & medical",
-    "fitness-sports": "Fitness & sport",
+    beauty: "Frumusețe",
+    "spa-wellness": "Spa & Wellness",
+    "skin-aesthetics": "Îngrijirea pielii & Estetică",
+    "tattoo-piercing": "Tatuaje & Piercing",
+    "health-medical": "Sănătate & Medical",
+    "fitness-sports": "Fitness & Sport",
     pets: "Animale de companie",
     automotive: "Auto",
     "home-services": "Servicii pentru casă",
     "professional-services": "Servicii profesionale",
-    "education-coaching": "Educație & coaching",
-    "events-creative": "Evenimente & creativ",
-    "tailoring-repairs": "Croitorie & reparații",
+    "education-coaching": "Educație & Coaching",
+    "events-creative": "Evenimente & Creație",
+    "tailoring-repairs": "Croitorie & Reparații",
     other: "Altele",
   },
   industryTags: {
@@ -1389,193 +1394,233 @@ export const ro: Dictionary = {
   localeNames: { ro: "Română", en: "English" },
   language: { label: "Limba", loading: "Se încarcă…", unavailable: "Indisponibil" },
   tryStudio: {
-    pageTitle: "Încearcă Web Studio — amestecă un site adevărat",
-    pageDescription:
-      "Apasă amestecă și vezi cum un site Zavoia adevărat își schimbă aranjarea, culoarea și litera în fața ta. Blochează ce îți place, re-amestecă restul.",
-    mark: "Zavoia Web Studio",
-    demo: "Demo",
-    looks: "{n} variante",
-    hint: "Un site Zavoia pentru un salon demo. Apasă Amestecă.",
-    shuffle: "Amestecă",
-    cta: "{days} zile gratis",
-    locksLabel: "Apasă pentru a păstra",
-    dimension: { layout: "Aranjare", colour: "Culoare", type: "Font" },
-    lock: {
-      layout: "Păstrează aranjarea",
-      colour: "Păstrează culoarea",
-      type: "Păstrează fontul",
+    "pageTitle": "Demo Web Studio: explorează designuri de site",
+    "pageDescription": "Explorează un site demonstrativ complet. Alege stiluri pentru secțiuni, fonturi și culori sau încearcă alt design. Fără cont.",
+    "demo": "Afacere fictivă",
+    "back": "Înapoi la Web Studio",
+    "customize": "Personalizează",
+    "closeCustomization": "Închide personalizarea",
+    "shuffle": "Încearcă alt design",
+    "cta": "Încearcă gratuit",
+    "previous": "Designul anterior",
+    "reset": "Resetează designul",
+    "copyLink": "Copiază linkul designului",
+    "copied": "Linkul designului a fost copiat",
+    "copyError": "Linkul nu a putut fi copiat. Îl poți copia din bara de adrese.",
+    "allLocked": "Deblochează o opțiune din Personalizează pentru a încerca alt design.",
+    "locksLabel": "Păstrează când încerci alt design",
+    "dimension": {
+      "layout": "Aranjări",
+      "colour": "Culoare",
+      "type": "Font"
     },
-    locked: {
-      layout: "Aranjare păstrată — apasă pentru deblocare",
-      colour: "Culoare păstrată — apasă pentru deblocare",
-      type: "Font păstrat — apasă pentru deblocare",
+    "lock": {
+      "layout": "Păstrează aranjările",
+      "colour": "Păstrează culoarea",
+      "type": "Păstrează fontul"
     },
+    "locked": {
+      "layout": "Aranjări păstrate. Apasă pentru deblocare.",
+      "colour": "Culoare păstrată. Apasă pentru deblocare.",
+      "type": "Font păstrat. Apasă pentru deblocare."
+    },
+    "section": "Secțiune",
+    "showSection": "Afișează această secțiune",
+    "noExampleReviews": "Această afacere fictivă nu are recenzii de la clienți.",
+    "style": "Stil",
+    "font": "Font",
+    "colour": "Culoare",
+    "example": "Afacere demonstrativă",
+    "stylesNote": "Demo-ul include stiluri standard și stiluri premium opționale. Stilurile premium se cumpără separat, o singură dată.",
+    "trialNote": "Perioada de probă de {days} zile începe pe Base. Publicarea site-ului necesită Plus.",
+    "demoFeedback": "Aceasta este o afacere demonstrativă. Programările și acțiunile de contact nu sunt disponibile în demo.",
+    "previewLabel": "Previzualizarea site-ului demonstrativ",
+    "fontNames": {
+      "modern": "Modern",
+      "classic": "Clasic",
+      "elegant": "Elegant",
+      "friendly": "Prietenos"
+    },
+    "accentNames": {
+      "terracotta": "Teracotă",
+      "jade": "Jad",
+      "mulberry": "Dud",
+      "forest": "Verde pădure",
+      "marine": "Albastru marin",
+      "ink": "Cerneală",
+      "espresso": "Espresso",
+      "ochre": "Ocru",
+      "olive": "Măsliniu",
+      "moss": "Mușchi",
+      "pine": "Pin",
+      "petrol": "Albastru petrol",
+      "slate": "Ardezie",
+      "indigo": "Indigo",
+      "violet": "Violet",
+      "orchid": "Orhidee",
+      "plum": "Prună",
+      "rosewood": "Lemn de trandafir",
+      "blush": "Roz pudrat",
+      "copper": "Cupru",
+      "brick": "Cărămiziu",
+      "rust": "Ruginiu",
+      "amber": "Chihlimbar",
+      "caramel": "Caramel",
+      "greige": "Gri-bej",
+      "teal": "Verde-albăstrui",
+      "peacock": "Albastru păun",
+      "navy": "Bleumarin",
+      "burgundy": "Burgund",
+      "graphite": "Grafit"
+    }
   },
   webStudio: {
-    pageTitle: "Web Studio — site-ul pentru care afacerea ta are deja toate piesele",
-    pageDescription:
-      "Transformă prețurile, programul, echipa și fotografiile pe care le ții deja în Zavoia într-un site adevărat. Douăsprezece secțiuni, patruzeci și șapte de stiluri, publicat într-o după-amiază.",
-    cover: {
-      kicker: "Web Studio · Catalog de piese",
-      titleA: "Un site",
-      titleB: "care îți știe",
-      titleC: "deja prețurile.",
-      sub: "Serviciile, programul, echipa, fotografiile și recenziile tale sunt deja în Zavoia. Web Studio le transformă într-un site adevărat — alegi stiluri, nu construiești pagini.",
-      ctaPrimary: "Începe perioada de probă de {days} zile",
-      ctaSecondary: "Deschide catalogul",
-      plateCaption: "Randat live în această pagină",
-      liveBadge: "Site live",
-      demoBadge: "Demonstrație",
+    "pageTitle": "Web Studio: site-ul tău, conectat la Zavoia",
+    "pageDescription": "Creează un site cu serviciile, prețurile, echipa și fotografiile tale din Zavoia. Explorează designurile, pregătește o versiune de lucru și publică site-ul cu Plus.",
+    "hero": {
+      "titleLead": "Un site care îți",
+      "titleBridge": "reprezintă",
+      "titleAccent": "afacerea.",
+      "lead": "Creezi site-ul cu serviciile, echipa și fotografiile din Zavoia. Îi alegi stilul, iar programările ajung în calendarul afacerii tale.",
+      "demoCta": "Încearcă demo-ul"
     },
-    spec: {
-      sections: "Secțiuni",
-      styles: "Stiluri",
-      fonts: "Fonturi de titlu",
-      accents: "Culori de brand",
-    },
-    wired: {
-      kicker: "Partea incorectă față de ceilalți",
-      title: "Orice alt constructor pornește de la o pagină goală. Al tău pornește de la afacerea ta.",
-      sub: "Ții deja prețurile, programul, echipa și fotografiile în Zavoia, pentru că de acolo îți vin programările. Web Studio le citește. Nimic de rescris, nimic de ținut adevărat în două locuri.",
-      ledgerTitle: "Deja în Zavoia ta",
-      rows: {
-        services: "Servicii și prețuri",
-        hours: "Program de lucru",
-        team: "Membri ai echipei",
-        locations: "Locații",
-        photos: "Fotografii din portofoliu",
-        reviews: "Recenzii de la clienți",
+    "showcase": {
+      "title": "Afaceri diferite. Fiecare cu propriul site.",
+      "previewLink": "Explorează site-ul {business}",
+      "examples": {
+        "fitness": {
+          "body": "Prezinți antrenorii și ședințele individuale, iar clienții aleg o oră disponibilă.",
+          "previewAlt": "Exemplu de site pentru antrenament personal: {business}."
+        },
+        "pets": {
+          "body": "Încredere înainte de prima vizită. Arăți salonul, prezinți echipa și explici ce include fiecare serviciu.",
+          "previewAlt": "Exemplu de site pentru îngrijirea animalelor: {business}."
+        },
+        "music": {
+          "body": "Le arăți viitorilor cursanți cum e la tine în studio. Prezinți profesorii și îi ajuți să aleagă prima lecție individuală.",
+          "previewAlt": "Exemplu de site pentru lecții de muzică: {business}."
+        },
+        "wellness": {
+          "body": "Atmosfera se simte din fotografii. Prezinți spațiul, ședințele și durata lor, cu programarea la îndemână.",
+          "previewAlt": "Exemplu de site pentru masaj și relaxare: {business}."
+        },
+        "automotive": {
+          "body": "Următoarea vizită la service, mai simplă. Prezinți reviziile, diagnoza și serviciile pentru anvelope, cu programarea la îndemână.",
+          "previewAlt": "Exemplu de site pentru service auto: {business}."
+        }
       },
-      perWeek: "{n} zile",
-      note: "Tot, pe site. Scris o singură dată.",
-      plateCaption: "Aceleași servicii, randate",
-      frozenTitle: "Aranjarea rămâne pe loc",
-      frozenBody:
-        "Publicarea îngheață designul pe care l-ai aprobat. Nimic nu se mișcă sub clienții tăi până nu publici din nou.",
-      liveTitle: "Prețurile rămân la zi",
-      liveBody:
-        "Schimbi un preț sau adaugi un coleg în Zavoia și site-ul publicat le arată. Fără a doua editare, fără un meniu care se învechește pe tăcute.",
-      oneTitle: "O afacere, un singur adevăr",
-      oneBody:
-        "Site-ul, fluxul de programări și profilul din marketplace citesc aceeași afacere. Nu au cum să se contrazică.",
+      "stylesNote": "Exemplele combină designuri incluse și designuri premium opționale pentru secțiuni."
     },
-    stage: {
-      kicker: "Catalogul",
-      title: "Douăsprezece secțiuni. Patruzeci și șapte de stiluri. Alegi, nu construiești.",
-      sub: "Fiecare planșă de mai jos este chiar motorul de randare care rulează în această pagină — nu o captură de ecran. Schimbă stilul și vezi exact ce ar primi clienții tăi.",
-      indexLabel: "Secțiuni",
-      stylesLabel: "Stiluri pentru această secțiune",
-      tryCta: "Amestecă un site întreg",
-      ofStyles: "Stilul {n} din {total}",
-      demoNote: "Afacere demonstrativă",
-    },
-    type: {
-      kicker: "Literă și culoare",
-      title: "Două butoane. Nimic ce poți strica.",
-      sub: "Alegi un font de titlu și o culoare de brand. Spațierea, contrastul și felul în care se pliază pe telefon sunt deja proiectate — iar fiecare specimen din pagină se re-randează pe măsură ce alegi.",
-      fontsLabel: "Fonturi de titlu",
-      accentsLabel: "Culori de brand",
-      inUse: "În uz",
-      note: "Toate cele {total} culori și toate cele 14 fonturi vin cu orice abonament — niciunul nu costă extra.",
-      hint: "Alege un font și o culoare, apoi urcă înapoi — specimenele de mai sus se randează deja în alegerea ta.",
-    },
-    ships: {
-      kicker: "Cum ajunge live",
-      title: "Început dimineața, live după-amiaza.",
-      steps: [
+    "connected": {
+      "title": "Site-ul tău, conectat la afacerea ta.",
+      "features": [
         {
-          title: "Pornești secțiunile",
-          body: "Începi de la o pagină completă, nu de la o pânză goală. Închizi secțiuni, le tragi în ordinea dorită, iar pagina rămâne proiectată tot timpul.",
+          "title": "Informațiile afacerii",
+          "body": "Actualizezi serviciile, prețurile și echipa în Zavoia. Modificările se reflectă pe site."
         },
         {
-          title: "Alegi stilurile",
-          body: "Fiecare secțiune are propriul set de design-uri. Le vezi pe toate cu serviciile și fotografiile tale reale — niciodată cu un salon de umplutură.",
+          "title": "Alegi ce văd clienții",
+          "body": "Selectezi locațiile și fotografiile, apoi alegi designul."
         },
         {
-          title: "Publici",
-          body: "Un singur buton. Site-ul urcă live la adresa ta Zavoia și rămâne exact așa cum l-ai aprobat.",
-        },
+          "title": "Programările, în același calendar",
+          "body": "Activezi programările online pentru locațiile tale. Programările de pe site apar în calendarul Zavoia."
+        }
       ],
-      gets: [
+      "artwork": {
+        "business": "Forma Studio",
+        "service": "Antrenament personal",
+        "price": "150 lei",
+        "duration": "60 min",
+        "member": "Mara",
+        "location": "Centru",
+        "team": "Echipa ta",
+        "services": "Servicii",
+        "book": "Programează-te",
+        "calendar": "Calendarul tău",
+        "day": "Marți, 10 nov.",
+        "time": "10:00 – 11:00"
+      }
+    },
+    "setup": {
+      "title": "Îl personalizezi, secțiune cu secțiune.",
+      "lead": "Aranjezi secțiunile și vezi site-ul înainte să îl publici. Fără cunoștințe de programare.",
+      "editorAlt": "Editorul real Zavoia Web Studio, cu designul Masonry al galeriei Mira Spa.",
+      "phoneAlt": "Galeria Masonry a Mira Spa, cu interioare și detalii de spa, previzualizată pe telefon.",
+      "steps": [
         {
-          title: "Corect pe telefon",
-          body: "Fiecare stil este proiectat pentru ecranul pe care majoritatea clienților îl vor deschide de fapt.",
+          "title": "Aranjezi conținutul",
+          "body": "Alegi ce afișezi și ordinea secțiunilor principale."
         },
         {
-          title: "Rapid din start",
-          body: "Fără balast de page builder, fără pluginuri de actualizat, fără nimic de reparat la unsprezece noaptea.",
+          "title": "Alegi stilul",
+          "body": "Selectezi designurile secțiunilor, fontul și o culoare dintre opțiunile disponibile."
         },
         {
-          title: "Ușor de găsit",
-          body: "Titluri, descrieri și structură reale — exact lucrurile pe care motoarele de căutare chiar le citesc.",
-        },
-        {
-          title: "Adresa ta",
-          body: "Site-ul publicat stă pe zavoia.com, sub numele afacerii tale.",
-        },
+          "title": "Vezi site-ul pe desktop și telefon",
+          "body": "Verifici cum se așază conținutul înainte să publici."
+        }
       ],
+      "note": "Modificările designului și ale conținutului site-ului rămân în versiunea de lucru până publici.",
+      "demoLink": "Încearcă demo-ul"
     },
-    price: {
-      kicker: "Cât costă",
-      title: "Construiești tot gratuit. Plătești când publici.",
-      planLabel: "Abonament pentru publicare",
-      planName: "Zavoia Business\u00A0· Plus",
-      planBody:
-        "Orice abonament Zavoia îți permite să construiești, să previzualizezi și să salvezi tot site-ul. Punerea lui live este pasul Plus — așa vezi produsul finit înainte să decizi.",
-      perMonth: "pe lună",
-      teamPrice: "Contul tău este inclus. Fiecare loc suplimentar pentru echipă costă {seat}/lună.",
-      trialNote: "Perioada de probă de {days} zile începe pe Base. Alegi Plus ca să publici site-ul.",
-      bullets: [
-        "Construiești, previzualizezi și salvezi cu orice abonament",
-        "Editări și republicări nelimitate",
-        "Un abonament expirat suspendă site-ul — nu îl șterge niciodată",
-        "Reactivezi Plus pentru ca site-ul publicat să fie disponibil din nou",
+    "publishing": {
+      "title": "Site-ul e gata? Publică-l cu Plus.",
+      "lead": "Publicarea site-ului este inclusă în abonamentul Zavoia Plus, alături de calendar, programări online și instrumentele pentru gestionarea afacerii.",
+      "planName": "Zavoia Plus",
+      "perMonth": "pe lună",
+      "owner": "Contul tău este inclus. Fiecare loc suplimentar pentru echipă costă {price} pe lună.",
+      "features": [
+        "Site-ul tău, la propria adresă Zavoia",
+        "Programări online pentru locațiile în care le activezi",
+        "Linkul site-ului și un cod QR de distribuit"
       ],
-      stylesLabel: "Stiluri premium",
-      stylesTitle: "De la {min}, o singură dată. Ale tale definitiv.",
-      stylesBody:
-        "Începi cu stilurile incluse și adaugi opțional designuri premium. Vrei hero-ul cinematic, banda de recenzii în mișcare sau footer-ul editorial? Îl deblochezi o dată și rămâne deblocat — fără abonament peste abonament.",
-      rowIncluded: "Stiluri incluse",
-      rowIncludedV: "{n} incluse",
-      rowPremium: "Stiluri premium",
-      rowPremiumV: "{n} · {range} o dată",
-      rowFonts: "Fonturi de titlu",
-      rowAllIncluded: "Toate cele {n} incluse",
-      rowAccents: "Culori de brand",
-      pricingLink: "Vezi toate prețurile Zavoia",
+      "cta": "Încearcă Base gratuit {days} zile",
+      "trialNote": "Fără card bancar. Pregătești o versiune de lucru, apoi te abonezi la Plus pentru a publica.",
+      "stylesTitle": "Alegi stilul care te reprezintă.",
+      "stylesBody": "Folosești designurile incluse sau alegi stiluri premium opționale pentru secțiuni. Toate cele {fonts} fonturi și {colours} de culori sunt incluse.",
+      "stylePrice": "Stiluri premium pentru secțiuni de la {price} fiecare, cu plată unică. Disponibile cu Plus.",
+      "pricingLink": "Vezi abonamentele și prețurile",
+      "demoLink": "Încearcă demo-ul",
+      "signInLink": "Ai deja cont Zavoia? Conectează-te"
     },
-    faq: {
-      kicker: "Întrebări",
-      title: "Ce întreabă proprietarii înainte să construiască",
-      items: [
+    "faq": {
+      "title": "Înainte să publici site-ul.",
+      "lead": "Răspunsuri despre design, publicare și informațiile de pe site.",
+      "helpPrompt": "Mai ai o întrebare?",
+      "helpLink": "Vizitează centrul de ajutor",
+      "items": [
         {
-          q: "Trebuie să mă pricep la site-uri?",
-          a: "Nu. Nu ai nicio pagină de aranjat, nicio temă de instalat și niciun cod nicăieri. Pornești secțiuni, alegi un stil pentru fiecare și apeși publică.",
+          "q": "Trebuie să mă pricep la crearea site-urilor?",
+          "a": "Nu ai nevoie de cunoștințe de programare. Aranjezi secțiunile, adaugi conținutul și alegi dintre fonturile și culorile disponibile. Vezi site-ul înainte să îl publici."
         },
         {
-          q: "Ce se întâmplă când schimb un preț?",
-          a: "Site-ul publicat îl citește live. Schimbi prețul în Zavoia și site-ul îl arată pe cel nou — iar aranjarea aprobată de tine rămâne exact aceeași.",
+          "q": "Ce pot face în perioada de probă?",
+          "a": "Perioada de probă de {days} zile cu Base începe când îți creezi afacerea în Zavoia. Poți pregăti, previzualiza și salva o versiune de lucru a site-ului.\n\nPublicarea site-ului și cumpărarea stilurilor premium opționale necesită Plus."
         },
         {
-          q: "Pot să-l văd terminat înainte să plătesc publicarea?",
-          a: "Da, exact asta e ideea. Construirea, previzualizarea și salvarea întregului site sunt incluse în orice abonament; publicarea lui pe web este pasul cu plată.",
+          "q": "Ce informații preia site-ul din contul Zavoia?",
+          "a": "Site-ul folosește datele afacerii, serviciile, prețurile, echipa și recenziile din Zavoia. Alegi locațiile, fotografiile și secțiunile afișate și poți scrie prezentarea și întrebările frecvente.\n\nActualizările serviciilor, prețurilor și informațiilor despre echipă se reflectă pe site-ul publicat. Modificările designului, conținutului site-ului și selecției fotografiilor rămân în versiunea de lucru până publici din nou."
         },
         {
-          q: "Am deja un site. Merită?",
-          a: "Păstrează-l pe cel actual. Majoritatea proprietarilor folosesc Web Studio ca pagina spre care trimit efectiv oamenii — cea care are mereu dreptate despre prețuri, program și cine lucrează.",
+          "q": "Clienții se pot programa de pe site?",
+          "a": "Da, pentru locațiile cu programări online activate. Clienții aleg un serviciu și o oră disponibilă, apoi finalizează programarea prin Zavoia. Programarea apare în calendarul tău Zavoia."
         },
         {
-          q: "Ce se întâmplă dacă renunț?",
-          a: "Site-ul este suspendat, nu șters. Designul salvat și achizițiile tale sunt păstrate. Reactivezi Plus pentru ca site-ul publicat să fie disponibil din nou.",
+          "q": "Trebuie să cumpăr stiluri premium?",
+          "a": "Nu. Poți crea site-ul cu designurile incluse pentru secțiuni. Stilurile premium sunt opționale, se cumpără cu plată unică pentru afacerea ta și necesită Plus.\n\nToate fonturile și culorile de brand disponibile sunt incluse."
         },
-      ],
-    },
-    close: {
-      kicker: "E rândul tău",
-      title: "Site-ul pentru care afacerea ta are deja toate piesele.",
-      sub: "Începe perioada de probă, deschide Web Studio și vezi-ți propriile prețuri într-o pagină adevărată în zece minute.",
-      secondary: "Înapoi la catalog",
-    },
+        {
+          "q": "La ce adresă va fi publicat site-ul?",
+          "a": "Site-ul are propria adresă Zavoia, de exemplu zavoia.com/afacerea-ta. Din contul afacerii poți copia linkul sau descărca un cod QR.\n\nAi deja un domeniu? Contactează-ne prin centrul de ajutor pentru conectarea lui la site-ul tău.",
+          "helpLink": "Discută cu noi despre domeniul tău"
+        },
+        {
+          "q": "Ce se întâmplă când se încheie abonamentul Plus?",
+          "a": "Când se încheie accesul Plus, site-ul publicat nu mai este disponibil vizitatorilor. Designul salvat și achizițiile tale sunt păstrate.\n\nCu un abonament Base activ poți lucra la versiuni de lucru. Ai nevoie de Plus activ pentru ca site-ul să fie disponibil din nou."
+        }
+      ]
+    }
   },
   businessMarketing: {
     signIn: "Conectează-te",

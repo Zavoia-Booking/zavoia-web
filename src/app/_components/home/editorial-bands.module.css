@@ -40,6 +40,8 @@
 .signature { display: inline-block; margin-inline: .025em .04em; color: var(--accent); font-family: var(--font-home-caveat), cursive; font-size: 1.25em; font-weight: 700; font-style: normal; line-height: .8; letter-spacing: -.035em; transform: rotate(-4deg); transform-origin: 50% 65%; }
 .intro { max-width: 37ch; margin: 24px 0 32px; color: var(--body); font-size: 16px; line-height: 1.65; text-wrap: pretty; }
 .store-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.app-device-group { display: grid; min-width: 0; padding-bottom: 24px; }
+.studio-example-note { --marketing-note-color: var(--studio-muted); }
 .store-badge { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; min-height: 54px; color: var(--canvas); background: var(--ink); border: 1px solid var(--ink); border-radius: 10px; text-align: left; transition: transform 140ms var(--ease-out), background 140ms var(--ease-soft); }
 .store-symbol { width: 23px; height: 28px; }
 .store-label { display: grid; gap: 2px; }

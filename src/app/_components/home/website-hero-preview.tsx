@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { Skeleton } from "@/components/ui/skeleton";
 import type { PublicWebsiteShowcaseCard } from "@/lib/api/marketplace/types";
 import type { Locale } from "@/i18n/locales";
-import { displayFontFor, fontStylesheetFor, previewVars } from "@/features/website/components/builder/theme";
+import { displayFontFor, previewVars } from "@/features/website/components/builder/theme";
 import type { WebsiteHeroSnapshotProps } from "@/features/website/components/builder/preview/WebsiteHeroSnapshot";
 import { createWebsiteT } from "@/features/website/i18n/translate";
 import "@/features/website/components/builder/preview/shared/animations.css";
@@ -34,35 +34,10 @@ function within<T>(task: Promise<T>, fallback: T): Promise<T> {
   });
 }
 
-const fontStylesheets = new Map<string, Promise<boolean>>();
-
-function loadFontStylesheet(href: string): Promise<boolean> {
-  const cached = fontStylesheets.get(href);
-  if (cached) return cached;
-  const request = within(new Promise<boolean>((resolve) => {
-    let link = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'))
-      .find((candidate) => candidate.href === href);
-    if (link?.sheet) { resolve(true); return; }
-    const existing = !!link;
-    link ??= document.createElement("link");
-    link.addEventListener("load", () => resolve(true), { once: true });
-    link.addEventListener("error", () => resolve(false), { once: true });
-    if (!existing) {
-      link.rel = "stylesheet";
-      link.href = href;
-      document.head.appendChild(link);
-    }
-  }), false);
-  fontStylesheets.set(href, request);
-  return request;
-}
-
 async function loadFont(fontKey: string, sample: string): Promise<string> {
-  const stylesheet = fontStylesheetFor(fontKey);
-  if (stylesheet && !(await loadFontStylesheet(stylesheet))) return "modern";
   const font = displayFontFor(fontKey);
   const loaded = await within(
-    document.fonts.load(`${font.weight} 32px ${font.stack}`, sample).then((faces) => !stylesheet || faces.length > 0),
+    document.fonts.load(`${font.weight} 32px ${font.stack}`, sample).then((faces) => faces.length > 0),
     false,
   );
   return loaded ? fontKey : "modern";

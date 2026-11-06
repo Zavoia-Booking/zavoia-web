@@ -16,7 +16,7 @@ export default defineConfig({
     baseURL: process.env.GALLERY_TEST_BASE_URL ?? 'http://localhost:3001',
     locale: 'en-US',
     timezoneId: 'Europe/Bucharest',
-    reducedMotion: 'reduce',
+    contextOptions: { reducedMotion: 'reduce' },
     serviceWorkers: 'block',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',

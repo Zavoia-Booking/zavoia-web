@@ -854,7 +854,7 @@ test('About distinguishes invalid and unpublished hours from closed days and nor
 });
 
 test.describe('About venue time and contact controls', () => {
-  test.use({ timezoneId: 'America/New_York', reducedMotion: 'no-preference' });
+  test.use({ timezoneId: 'America/New_York', contextOptions: { reducedMotion: 'no-preference' } });
 
   test('About explains a different venue timezone and keeps explicit 24/7 hours concise', async ({ page, request }) => {
     const listing = locationFixture('about-timezone');

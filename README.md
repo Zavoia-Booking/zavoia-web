@@ -11,6 +11,10 @@ npm run dev
 
 Next.js, its ESLint configuration and `@next/third-parties` are pinned to stable 16.4.1. This release includes the upstream [request-driven server HMR change](https://github.com/vercel/next.js/pull/96566) and [persistent HMR state fix](https://github.com/vercel/next.js/pull/97146).
 
+The tracked `patches/next+16.4.1.patch` backports the Next.js maintainers' [development manifest race fix](https://github.com/vercel/next.js/pull/100521). Concurrent route generation previously could corrupt `.next/dev/prerender-manifest.json` or lose routes. The fix completes each read/update/write synchronously, before another request can update that shared file. It changes development-server code only; routing, prefetching, and production rendering retain their normal behavior.
+
+`npm ci` and `npm install` apply the patch through `postinstall` and fail if it cannot apply or the Next version no longer matches. Do not skip install scripts for a development checkout. `patch-package` is a regular dependency so the install hook also works with `npm ci --omit=dev`. When upgrading Next, verify the installed release includes the upstream fix, run `npm run test:framework`, then remove the patch, install hook, and patch tool if no other patches remain. Stable 16.4.5 was also inspected on 6 November 2026 and still contained the faulty asynchronous writer.
+
 The app runs at http://localhost:3001. Set `NEXT_PUBLIC_API_URL` in `.env.local` for your API; the default is http://localhost:3000. See `src/lib/env.ts` for optional map, Google OAuth and business-dashboard configuration. `REVALIDATE_SECRET` is server-only and must match the backend's cache-invalidation integration. Never put it in a `NEXT_PUBLIC_` variable.
 
 ```bash
@@ -26,7 +30,10 @@ Run the unit regressions with Node 22.22.2, the version used to verify this setu
 
 ```bash
 npm run test:unit
+npm run test:framework
 ```
+
+The framework regression invokes the installed Next development server's route-generation method with concurrent requests and temporary files. It checks both valid manifest JSON and retention of every generated route, including the old `/try` and current `/web-studio/demo` paths. It does not start the app or access the database.
 
 Run browser UI suites through their dedicated configurations:
 
@@ -87,7 +94,24 @@ The root and locale fallback boundaries load their presentation through `next/dy
 
 ## Shared UI
 
+`/web-studio` is the public website marketing page. `/web-studio/demo` runs the
+actual website renderer with localized demonstration businesses and design controls.
+The former `/try` URLs permanently redirect there, preserving design and campaign
+query parameters. The demo stays `noindex`; trial actions go to business signup.
+
 Website preview code mirrors the corresponding renderer in `admin-dashboard`; preserve the web-specific adapters when synchronizing it. Its shared reduced-motion hook uses an SSR-stable snapshot and honors the dashboard's static preview modes. Appointment action dialogs use the installed Radix Dialog primitives; mutation handlers and each caller's dismissal policy remain separate.
+
+Web Studio's 14 display fonts are included. `src/features/website/fonts.ts` uses
+`next/font/local` for the 13 optional families, with preloading disabled and
+separate Latin/Latin-ext ranges. The renderer reuses the global Next.js Geist
+and Geist Mono families, which are already self-hosted at build time. Published
+sites, demos and marketing previews make no browser requests to Google Fonts.
+The dashboard uses the same display binaries with local CSS loaders. Keep font
+keys stable for saved designs and keep the Italiana/Bodoni and Marcellus/Libre
+Caslon Romanian fallbacks in both apps. Asset provenance, original licences and
+update instructions live in [public/fonts/web-studio](public/fonts/web-studio/README.md);
+the public notice index is `/fonts/web-studio/index.html`. Browser regressions in
+`e2e/web-studio/fonts.spec.ts` verify actual rendered glyphs and on-demand loading.
 
 The existing design playground is `public/playgrounds/claim-page.html`. Production behavior lives in the route/components above.
 

@@ -9,32 +9,29 @@ import type { MicrositeLocale } from "@/features/website/i18n/translate";
 
 /**
  * SYNTHETIC DEMONSTRATION BUSINESS — "Studio Lumina" is not a real Zavoia
- * customer. Every name, price, hour and quote below is authored so the Web
- * Studio catalogue can drive the real microsite renderer at production
- * fidelity when the showcase fetch finds no live published site. The page
- * labels this specimen as a demonstration wherever a visitor could mistake it
- * for a real business. Photography is Unsplash (verified to resolve).
+ * customer. Every name, price and hour below is authored so the Web
+ * Studio showcase and design demo can drive the actual microsite renderer.
+ * The page identifies these examples as demonstrations, not customer sites.
+ * Photography is generated for these examples, with no people or external
+ * reference images. It is not a default for customer-uploaded business content.
  */
 
-const IMG = (id: string, w = 1400) =>
-  `https://images.unsplash.com/${id}?w=${w}&q=80&auto=format&fit=crop`;
-
-const PORTFOLIO_IDS = [
-  "photo-1560066984-138dadb4c035",
-  "photo-1522337360788-8b13dee7a37e",
-  "photo-1600948836101-f9ffda59d250",
-  "photo-1585747860715-2ba37e788b70",
-  "photo-1503951914875-452162b0f3f1",
-  "photo-1595476108010-b4d1f102b1b1",
-  "photo-1570172619644-dfd03ed5d881",
-  "photo-1521490683712-35a1cb235d1c",
+const PORTFOLIO_IMAGES = [
+  "/images/marketing/examples/beauty-room.webp",
+  "/images/marketing/examples/beauty-chair.webp",
+  "/images/marketing/examples/beauty-tools.webp",
+  "/images/web-studio/spa/treatment-room.webp",
+  "/images/web-studio/spa/stones-and-oil.webp",
+  "/images/web-studio/spa/quiet-corridor.webp",
+  "/images/web-studio/spa/linen-and-tea.webp",
+  "/images/web-studio/spa/stone-basin.webp",
 ];
 
 const portfolio = (from: number, count: number) =>
-  PORTFOLIO_IDS.slice(from, from + count).map((id, i) => ({
-    url: IMG(id),
-    key: `specimen/${id}-${i}`,
-    originalName: `${id}.jpg`,
+  PORTFOLIO_IMAGES.slice(from, from + count).map((url, i) => ({
+    url,
+    key: `specimen/image-${from + i}`,
+    originalName: url.split("/").pop() ?? "demo.webp",
   }));
 
 const WEEKDAY = { open: "09:00", close: "20:00", isOpen: true };
@@ -164,26 +161,21 @@ const LOCATIONS: WebsiteBuilderLocation[] = [
     name: "Dorobanți",
     description:
       "The first room, above the flower shop. Four chairs, long windows and the good coffee.",
-    phone: "+40 21 000 0000",
-    email: "doroban@studio-lumina.demo",
-    address: "Str. Radu Beller 12, București",
+    phone: null,
+    email: "dorobanti@studio-lumina.example.test",
+    address: "Dorobanți, București",
     addressComponents: {
-      street: "Str. Radu Beller",
-      streetNumber: "12",
       city: "București",
-      postalCode: "011816",
       country: "România",
-      latitude: 44.4626,
-      longitude: 26.0958,
     },
     timezone: "Europe/Bucharest",
     workingHours: HOURS,
     open247: false,
     allowOnlineBooking: true,
     portfolioImages: portfolio(0, 5),
-    featuredImage: IMG(PORTFOLIO_IDS[0]),
-    averageRating: 4.9,
-    totalReviews: 214,
+    featuredImage: PORTFOLIO_IMAGES[0],
+    averageRating: null,
+    totalReviews: 0,
     amenityTagIds: [1, 2, 4, 9],
     paymentMethodTagIds: [1, 2, 3],
     languageTagIds: [1, 2],
@@ -196,26 +188,21 @@ const LOCATIONS: WebsiteBuilderLocation[] = [
     name: "Cotroceni",
     description:
       "A quieter, two-chair studio in the old quarter. Colour work and long appointments live here.",
-    phone: "+40 21 000 0001",
-    email: "cotroceni@studio-lumina.demo",
-    address: "Str. Dr. Lister 34, București",
+    phone: null,
+    email: "cotroceni@studio-lumina.example.test",
+    address: "Cotroceni, București",
     addressComponents: {
-      street: "Str. Dr. Lister",
-      streetNumber: "34",
       city: "București",
-      postalCode: "050541",
       country: "România",
-      latitude: 44.4318,
-      longitude: 26.0631,
     },
     timezone: "Europe/Bucharest",
     workingHours: { ...HOURS, monday: CLOSED },
     open247: false,
     allowOnlineBooking: true,
     portfolioImages: portfolio(5, 3),
-    featuredImage: IMG(PORTFOLIO_IDS[5]),
-    averageRating: 4.8,
-    totalReviews: 96,
+    featuredImage: PORTFOLIO_IMAGES[5],
+    averageRating: null,
+    totalReviews: 0,
     amenityTagIds: [1, 3, 4],
     paymentMethodTagIds: [1, 2],
     languageTagIds: [1, 2, 3],
@@ -287,53 +274,6 @@ const ANNOUNCEMENT: AnnouncementContent = {
   schedule: null,
 };
 
-const REVIEWS = [
-  {
-    id: 1,
-    rating: 5,
-    comment:
-      "First time in years I've left a salon looking like the photo I brought in. Ioana listened, then told me what would actually work.",
-    customerName: "Maria D.",
-    locationName: "Dorobanți",
-    createdAt: "2026-06-14T10:12:00.000Z",
-  },
-  {
-    id: 2,
-    rating: 5,
-    comment:
-      "Booked at midnight on my phone, got a reminder the day before, was out in under an hour. No phone tag, no waiting on hold.",
-    customerName: "Alexandru P.",
-    locationName: "Dorobanți",
-    createdAt: "2026-05-30T18:44:00.000Z",
-  },
-  {
-    id: 3,
-    rating: 5,
-    comment:
-      "The colour has grown out beautifully — three months later it still looks deliberate. Worth the three hours.",
-    customerName: "Ana-Maria R.",
-    locationName: "Cotroceni",
-    createdAt: "2026-05-02T09:05:00.000Z",
-  },
-  {
-    id: 4,
-    rating: 5,
-    comment: "Calm room, honest advice, and they never try to sell you a product you don't need.",
-    customerName: "Cristina V.",
-    locationName: "Cotroceni",
-    createdAt: "2026-04-19T14:20:00.000Z",
-  },
-  {
-    id: 5,
-    rating: 5,
-    comment:
-      "Took my daughter for her first proper cut. Vlad was patient, quick, and she has not stopped looking in mirrors since.",
-    customerName: "Radu M.",
-    locationName: "Dorobanți",
-    createdAt: "2026-03-27T11:30:00.000Z",
-  },
-];
-
 /** Matches the ids referenced by the specimen locations' tag arrays. */
 const SPECIMEN_TAG_DICTIONARIES: ResolvedTagDictionaries = {
   amenities: [
@@ -375,13 +315,6 @@ const RO_BUNDLE_COPY: Record<number, { name: string; description: string }> = {
 const RO_LOCATION_DESCRIPTIONS: Record<number, string> = {
   1: "Primul nostru salon, deasupra florăriei. Patru scaune, ferestre înalte și cafea bună.",
   2: "Un studio mai liniștit, cu două scaune, în cartierul vechi. Aici ne dedicăm culorii și programărilor mai lungi.",
-};
-const RO_REVIEW_COMMENTS: Record<number, string> = {
-  1: "Prima dată după mulți ani când ies dintr-un salon arătând ca în fotografia adusă. Ioana m-a ascultat, apoi mi-a spus ce mi s-ar potrivi cu adevărat.",
-  2: "M-am programat de pe telefon la miezul nopții, am primit o reamintire cu o zi înainte și vizita a durat mai puțin de o oră. Fără telefoane repetate sau așteptare pe fir.",
-  3: "Culoarea s-a păstrat minunat pe măsură ce părul a crescut. După trei luni încă arată ca și cum așa ar fi fost gândită. A meritat cele trei ore.",
-  4: "Un loc liniștit, sfaturi sincere și nimeni nu încearcă să-ți vândă produse de care nu ai nevoie.",
-  5: "Am adus-o pe fiica mea la prima tunsoare adevărată. Vlad a fost răbdător și rapid, iar de atunci ea nu se mai satură să se privească în oglindă.",
 };
 const RO_TAG_DICTIONARIES: ResolvedTagDictionaries = {
   amenities: [
@@ -435,7 +368,7 @@ export function specimenData(
     businessName: "Studio Lumina",
     businessTimezone: "Europe/Bucharest",
     logo: null,
-    heroImageUrl: IMG(PORTFOLIO_IDS[1], 2000),
+    heroImageUrl: PORTFOLIO_IMAGES[0],
     tagline:
       locale === "ro"
         ? "Păr, culoare și liniște, în două studiouri din București."
@@ -446,30 +379,18 @@ export function specimenData(
         : "We opened the first room above the flower shop in Dorobanți in 2016 with four chairs and one rule: nobody leaves with a haircut they can't recreate at home. Eight years on we're two studios and eleven people, with the same rule.",
     establishedYear: 2016,
     businessCurrency: "RON",
-    email: "buna@studio-lumina.demo",
-    phone: "+40 21 000 0000",
-    social: {
-      instagram: "https://instagram.com/",
-      facebook: "https://facebook.com/",
-      tiktok: null,
-      website: null,
-      pinterest: null,
-    },
+    email: "hello@studio-lumina.example.test",
+    phone: "",
+    social: {},
     locations: localizedLocations(locale),
     faq: FAQ,
     announcement: ANNOUNCEMENT,
     brandColor,
     fontKey,
     locale,
-    reviews: locale === "ro" ? REVIEWS.map(review => ({ ...review, comment: RO_REVIEW_COMMENTS[review.id] })) : REVIEWS,
-    teamRatings: {
-      101: { rating: 4.9, count: 128 },
-      102: { rating: 4.8, count: 74 },
-      103: { rating: 5, count: 41 },
-      104: { rating: 4.9, count: 63 },
-      105: { rating: 4.7, count: 29 },
-    },
-    ratingDistribution: { "5": 268, "4": 34, "3": 6, "2": 1, "1": 1 },
+    reviews: [],
+    teamRatings: {},
+    ratingDistribution: { "5": 0, "4": 0, "3": 0, "2": 0, "1": 0 },
     tagDictionaries: locale === "ro" ? RO_TAG_DICTIONARIES : SPECIMEN_TAG_DICTIONARIES,
   };
 }

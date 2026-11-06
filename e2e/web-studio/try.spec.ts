@@ -1,78 +1,87 @@
 import { expect, test } from '@playwright/test'
 
-/**
- * /try — src/app/_components/try/shuffle-experience.tsx + shuffle-model.ts.
- * A full-bleed live microsite with a floating dock: `[data-try-stage]` (the
- * site), `[data-try-dock]` (the dock), `.zw-try-look[aria-live="polite"]`
- * (the readout: "<hero style> · <accent name> · <font name>"), three lock
- * buttons (`.zw-try-lock`, order layout/colour/type per LOCK_KEYS) and a
- * shuffle button (`.zw-try-shuffle`, `data-spin` while animating).
- *
- * shuffleLook() in shuffle-model.ts *guarantees* every unlocked dimension
- * changes (pickDifferent loops until it differs from the current value), so
- * these assertions are deterministic, not probabilistic.
- */
+const DEMO = '/web-studio/demo'
+const dock = (page: import('@playwright/test').Page) => page.locator('[data-try-dock]')
 
-test.describe('Try (shuffle) experience', () => {
-  test('WS-07 shuffle changes the look readout; a locked dimension survives a re-shuffle', async ({ page }) => {
-    await page.goto('/try')
+test.describe('Web Studio design demo', () => {
+  test('a visitor can change a design, keep a dimension, undo and reset', async ({ page }) => {
+    await page.goto(DEMO)
+    const controls = dock(page)
+    await expect.poll(() => new URL(page.url()).searchParams.get('s')).not.toBeNull()
+    const firstCode = new URL(page.url()).searchParams.get('s')
+    await controls.getByRole('button', { name: 'Try another design', exact: true }).click()
+    await expect.poll(() => new URL(page.url()).searchParams.get('s')).not.toBe(firstCode)
+    await controls.getByRole('button', { name: 'Previous design', exact: true }).click()
+    await expect.poll(() => new URL(page.url()).searchParams.get('s')).toBe(firstCode)
 
-    const readout = page.locator('[data-try-dock] .zw-try-look')
-    await expect(readout).toBeVisible()
-
-    const before = (await readout.textContent())?.trim() ?? ''
-    expect(before.length).toBeGreaterThan(0)
-
-    const shuffleButton = page.locator('[data-try-dock] .zw-try-shuffle')
-    await shuffleButton.click()
-
-    // Every dimension is unlocked at first load, so the readout is
-    // guaranteed to differ after one shuffle.
-    await expect(readout).not.toHaveText(before)
-
-    // Lock "layout" (the first lock, per LOCK_KEYS = ["layout", "colour", "type"])
-    // — this freezes look.variants.hero, which drives the readout's first
-    // segment (the hero style name, read via heroStyle in the component).
-    const locks = page.locator('[data-try-dock] .zw-try-lock')
-    const layoutLock = locks.nth(0)
-    await layoutLock.click()
-    await expect(layoutLock).toHaveAttribute('aria-pressed', 'true')
-
-    const lockedText = (await readout.textContent())?.trim() ?? ''
-    const lockedHeroStyle = lockedText.split('·')[0]?.trim()
-    expect(lockedHeroStyle).toBeTruthy()
-
-    await shuffleButton.click()
-
-    // Overall readout still changes (colour + type are unlocked, and both
-    // are guaranteed to differ), but the locked hero style segment survives.
-    await expect(readout).not.toHaveText(lockedText)
-    const afterLockText = (await readout.textContent())?.trim() ?? ''
-    const afterLockHeroStyle = afterLockText.split('·')[0]?.trim()
-    expect(afterLockHeroStyle).toBe(lockedHeroStyle)
+    await controls.getByRole('button', { name: 'Customize', exact: true }).click()
+    await controls.getByRole('button', { name: 'Keep these layouts', exact: true }).click()
+    const lockedCode = new URL(page.url()).searchParams.get('s')!
+    await controls.getByRole('button', { name: 'Try another design', exact: true }).click()
+    await expect.poll(() => new URL(page.url()).searchParams.get('s')).not.toBe(lockedCode)
+    expect(new URL(page.url()).searchParams.get('s')!.slice(0, -2)).toBe(lockedCode.slice(0, -2))
+    await controls.getByRole('button', { name: 'Reset design', exact: true }).click()
+    await expect.poll(() => new URL(page.url()).searchParams.get('s')).toBe(firstCode)
   })
 
-  test('WS-09 the look is encoded in ?s= and an invalid code falls back cleanly', async ({ page }) => {
-    await page.goto('/try')
+  test('all locked choices disable shuffle; explicit controls still change the preview', async ({ page }) => {
+    await page.goto(DEMO)
+    const controls = dock(page)
+    await controls.getByRole('button', { name: 'Customize', exact: true }).click()
+    for (const name of ['Keep these layouts', 'Keep this colour', 'Keep this font']) {
+      await controls.getByRole('button', { name, exact: true }).click()
+    }
+    await expect(controls.getByRole('button', { name: 'Try another design', exact: true })).toBeDisabled()
+    await expect(controls.getByRole('status').filter({ hasText: 'Unlock a choice' })).toBeVisible()
+    await controls.getByRole('combobox', { name: 'Section', exact: true }).selectOption('services')
+    await controls.getByRole('combobox', { name: 'Style', exact: true }).selectOption('bento')
+    await expect(controls.locator('.zw-try-look')).toContainText('Bento')
+    await controls.getByRole('combobox', { name: 'Font', exact: true }).selectOption('classic')
+    await expect(controls.getByRole('combobox', { name: 'Font', exact: true })).toHaveValue('classic')
+    await expect(controls.locator('.zw-try-look')).toContainText('Classic')
+    await controls.getByRole('combobox', { name: 'Example business', exact: true }).selectOption('pets')
+    await expect(page.locator('[data-try-stage]:visible')).toContainText('Paw & Co')
+    await expect(page.locator('[data-try-stage]:visible [data-preview-section="testimonials"]')).toHaveCount(0)
+    await controls.getByRole('checkbox', { name: 'Show this section' }).uncheck()
+    await expect(page.locator('[data-try-stage]:visible [data-preview-section="services"]')).toHaveCount(0)
+    expect(new URL(page.url()).searchParams.get('hide')).toContain('services')
+  })
 
-    // The look round-trips into the URL via history.replaceState (see the
-    // `useEffect` keyed on `look` in shuffle-experience.tsx) even before any
-    // shuffle — assert it's there, then assert a shuffle changes its value.
-    await expect.poll(() => new URL(page.url()).searchParams.get('s')).not.toBeNull()
-    const initialCode = new URL(page.url()).searchParams.get('s')
+  test('legacy links keep their locale, design and source; language changes keep the look', async ({ page }) => {
+    const response = await page.request.get('/ro/try?s=00000000000000&src=flyer%20one&example=pets&tag=one&tag=two', { maxRedirects: 0 })
+    expect(response.status()).toBe(308)
+    const destination = new URL(response.headers().location, page.url() === 'about:blank' ? 'http://localhost' : page.url())
+    expect(destination.pathname).toBe('/ro/web-studio/demo')
+    expect(destination.searchParams.get('s')).toBe('00000000000000')
+    expect(destination.searchParams.get('src')).toBe('flyer one')
+    expect(destination.searchParams.get('example')).toBe('pets')
+    expect(destination.searchParams.getAll('tag')).toEqual(['one', 'two'])
 
-    await page.locator('[data-try-dock] .zw-try-shuffle').click()
-    await expect.poll(() => new URL(page.url()).searchParams.get('s')).not.toBe(initialCode)
+    await page.goto('/ro/web-studio/demo?s=00000000000000&src=flyer%20one&example=pets')
+    await expect(page.locator('[data-try-stage]:visible')).toContainText('Paw & Co')
+    const signup = new URL((await dock(page).getByRole('link', { name: 'Încearcă gratuit', exact: true }).getAttribute('href'))!)
+    expect(signup.pathname).toBe('/register')
+    expect(signup.origin).not.toBe(new URL(page.url()).origin)
+    expect(signup.searchParams.get('lang')).toBe('ro')
+    expect(signup.searchParams.get('src')).toBe('flyer one')
+    await dock(page).getByRole('link', { name: 'English', exact: true }).click()
+    await expect(page).toHaveURL(/\/web-studio\/demo\?/)
+    await expect(dock(page).getByRole('link', { name: 'Start free trial', exact: true })).toBeVisible()
+    expect(new URL(page.url()).searchParams.get('s')).toBe('00000000000000')
+    expect(new URL(page.url()).searchParams.get('example')).toBe('pets')
+    expect(new URL(page.url()).searchParams.get('src')).toBe('flyer one')
+  })
 
-    // decodeLook() rejects anything the wrong length / with out-of-range
-    // digits and the component falls back to OPENING_LOOK — the page must
-    // render normally, not crash, on a garbage code.
-    const pageErrors: Error[] = []
-    page.on('pageerror', (err) => pageErrors.push(err))
-
-    await page.goto('/try?s=garbage-not-a-real-code')
-    await expect(page.locator('[data-try-dock] .zw-try-look')).toBeVisible()
-    await expect(page.locator('[data-try-stage]')).toBeVisible()
-    expect(pageErrors, pageErrors.map((e) => e.message).join('\n')).toHaveLength(0)
+  test('invalid designs fall back and demo booking actions explain the limitation', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', error => errors.push(error.message))
+    await page.goto(`${DEMO}?s=invalid`)
+    await expect(page.locator('[data-try-stage]:visible')).toBeVisible()
+    await expect.poll(() => new URL(page.url()).searchParams.get('s')).not.toBe('invalid')
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/)
+    await page.locator('[data-try-stage]:visible').getByRole('button', { name: /Book now|Book an appointment/i }).first().click()
+    await expect(page.locator('[data-toast-host]')).toContainText('This is a sample business.')
+    await expect(page).toHaveURL(/\/web-studio\/demo/)
+    expect(errors).toEqual([])
   })
 })

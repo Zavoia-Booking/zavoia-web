@@ -39,7 +39,7 @@ export default defineConfig({
     baseURL: `http://localhost:${webPort}`,
     locale: 'en-US',
     timezoneId: 'Europe/Bucharest',
-    reducedMotion: 'reduce',
+    contextOptions: { reducedMotion: 'reduce' },
     serviceWorkers: 'block',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',

@@ -9,7 +9,7 @@ import {
 import type { SectionEntry, SectionType } from "@/features/website/types";
 
 /**
- * The shuffle model for /try.
+ * The design model for /web-studio/demo (legacy /try links remain compatible).
  *
  * A "look" is one point in the product's real option space: a variant per
  * section, a brand accent, and a display face — 47 styles across 12 sections,

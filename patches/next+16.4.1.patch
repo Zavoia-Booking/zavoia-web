@@ -1,0 +1,108 @@
+diff --git a/node_modules/next/dist/esm/server/dev/next-dev-server.js b/node_modules/next/dist/esm/server/dev/next-dev-server.js
+index bdb0073..9d2eb56 100644
+--- a/node_modules/next/dist/esm/server/dev/next-dev-server.js
++++ b/node_modules/next/dist/esm/server/dev/next-dev-server.js
+@@ -537,9 +537,12 @@ export default class DevServer extends Server {
+             };
+             if (paramMatching === undefined && ((_res_value = res.value) == null ? void 0 : _res_value.fallbackMode) !== undefined && // This matches the hasGenerateStaticParams logic we do during build.
+             (!isAppPath || prerenderedRoutes && prerenderedRoutes.length > 0)) {
+-                // we write the static paths to partial manifest for
+-                // fallback handling inside of entry handler's
+-                const rawExistingManifest = await fs.promises.readFile(pathJoin(this.distDir, PRERENDER_MANIFEST), 'utf8');
++                const prerenderManifestPath = pathJoin(this.distDir, PRERENDER_MANIFEST);
++                // We write the static paths to the partial manifest for fallback handling
++                // inside of entry handlers.
++                // NOTE: We're mutating a shared manifest, so we use sync reads/writes
++                // without any awaits in between to avoid races with other requests.
++                const rawExistingManifest = fs.readFileSync(prerenderManifestPath, 'utf8');
+                 const existingManifest = JSON.parse(rawExistingManifest);
+                 for (const staticPath of value.staticPaths || []){
+                     existingManifest.routes[staticPath] = {};
+@@ -567,9 +570,9 @@ export default class DevServer extends Server {
+                     renderingMode: undefined,
+                     allowHeader: []
+                 };
+-                const updatedManifest = JSON.stringify(existingManifest);
++                const updatedManifest = JSON.stringify(existingManifest, null, 2);
+                 if (updatedManifest !== rawExistingManifest) {
+-                    await fs.promises.writeFile(pathJoin(this.distDir, PRERENDER_MANIFEST), updatedManifest);
++                    fs.writeFileSync(prerenderManifestPath, updatedManifest);
+                 }
+             }
+             this.staticPathsCache.set(pathname, value);
+diff --git a/node_modules/next/dist/esm/server/lib/router-utils/setup-dev-bundler.js b/node_modules/next/dist/esm/server/lib/router-utils/setup-dev-bundler.js
+index ed14ae5..e762a99 100644
+--- a/node_modules/next/dist/esm/server/lib/router-utils/setup-dev-bundler.js
++++ b/node_modules/next/dist/esm/server/lib/router-utils/setup-dev-bundler.js
+@@ -166,14 +166,14 @@ async function startWatcher(opts) {
+         i18n: nextConfig.i18n || undefined,
+         skipProxyUrlNormalize: nextConfig.skipProxyUrlNormalize
+     };
+-    await fs.promises.writeFile(routesManifestPath, JSON.stringify(routesManifest));
++    fs.writeFileSync(routesManifestPath, JSON.stringify(routesManifest));
+     const previewPropsManifestPath = path.join(distDir, SERVER_DIRECTORY, PREVIEW_PROPS_MANIFEST);
+     fs.mkdirSync(path.join(distDir, SERVER_DIRECTORY), {
+         recursive: true
+     });
+-    await fs.promises.writeFile(previewPropsManifestPath, JSON.stringify(opts.fsChecker.previewProps, null, 2));
++    fs.writeFileSync(previewPropsManifestPath, JSON.stringify(opts.fsChecker.previewProps, null, 2));
+     const prerenderManifestPath = path.join(distDir, PRERENDER_MANIFEST);
+-    await fs.promises.writeFile(prerenderManifestPath, JSON.stringify({
++    fs.writeFileSync(prerenderManifestPath, JSON.stringify({
+         version: 4,
+         routes: {},
+         dynamicRoutes: {},
+diff --git a/node_modules/next/dist/server/dev/next-dev-server.js b/node_modules/next/dist/server/dev/next-dev-server.js
+index 95a71fd..bde758a 100644
+--- a/node_modules/next/dist/server/dev/next-dev-server.js
++++ b/node_modules/next/dist/server/dev/next-dev-server.js
+@@ -593,9 +593,12 @@ class DevServer extends _nextserver.default {
+             };
+             if (paramMatching === undefined && ((_res_value = res.value) == null ? void 0 : _res_value.fallbackMode) !== undefined && // This matches the hasGenerateStaticParams logic we do during build.
+             (!isAppPath || prerenderedRoutes && prerenderedRoutes.length > 0)) {
+-                // we write the static paths to partial manifest for
+-                // fallback handling inside of entry handler's
+-                const rawExistingManifest = await _fs.default.promises.readFile((0, _path.join)(this.distDir, _constants1.PRERENDER_MANIFEST), 'utf8');
++                const prerenderManifestPath = (0, _path.join)(this.distDir, _constants1.PRERENDER_MANIFEST);
++                // We write the static paths to the partial manifest for fallback handling
++                // inside of entry handlers.
++                // NOTE: We're mutating a shared manifest, so we use sync reads/writes
++                // without any awaits in between to avoid races with other requests.
++                const rawExistingManifest = _fs.default.readFileSync(prerenderManifestPath, 'utf8');
+                 const existingManifest = JSON.parse(rawExistingManifest);
+                 for (const staticPath of value.staticPaths || []){
+                     existingManifest.routes[staticPath] = {};
+@@ -623,9 +626,9 @@ class DevServer extends _nextserver.default {
+                     renderingMode: undefined,
+                     allowHeader: []
+                 };
+-                const updatedManifest = JSON.stringify(existingManifest);
++                const updatedManifest = JSON.stringify(existingManifest, null, 2);
+                 if (updatedManifest !== rawExistingManifest) {
+-                    await _fs.default.promises.writeFile((0, _path.join)(this.distDir, _constants1.PRERENDER_MANIFEST), updatedManifest);
++                    _fs.default.writeFileSync(prerenderManifestPath, updatedManifest);
+                 }
+             }
+             this.staticPathsCache.set(pathname, value);
+diff --git a/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js b/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+index 85c0d78..360084f 100644
+--- a/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
++++ b/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+@@ -234,14 +234,14 @@ async function startWatcher(opts) {
+         i18n: nextConfig.i18n || undefined,
+         skipProxyUrlNormalize: nextConfig.skipProxyUrlNormalize
+     };
+-    await _fs.default.promises.writeFile(routesManifestPath, JSON.stringify(routesManifest));
++    _fs.default.writeFileSync(routesManifestPath, JSON.stringify(routesManifest));
+     const previewPropsManifestPath = _path.default.join(distDir, _constants.SERVER_DIRECTORY, _constants.PREVIEW_PROPS_MANIFEST);
+     _fs.default.mkdirSync(_path.default.join(distDir, _constants.SERVER_DIRECTORY), {
+         recursive: true
+     });
+-    await _fs.default.promises.writeFile(previewPropsManifestPath, JSON.stringify(opts.fsChecker.previewProps, null, 2));
++    _fs.default.writeFileSync(previewPropsManifestPath, JSON.stringify(opts.fsChecker.previewProps, null, 2));
+     const prerenderManifestPath = _path.default.join(distDir, _constants.PRERENDER_MANIFEST);
+-    await _fs.default.promises.writeFile(prerenderManifestPath, JSON.stringify({
++    _fs.default.writeFileSync(prerenderManifestPath, JSON.stringify({
+         version: 4,
+         routes: {},
+         dynamicRoutes: {},

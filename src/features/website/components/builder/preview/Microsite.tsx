@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createWebsiteT } from "../../../i18n/translate";
 import type { WebsiteBuilderLocation, SectionEntry } from "../../../types";
 import { previewVars } from "../theme";
@@ -9,7 +9,7 @@ import { cn } from "../../../../../shared/lib/utils";
 import "./shared/animations.css";
 import { UNNUMBERED } from "./shared/constants";
 import { findScrollParent } from "./shared/util";
-import { useFooterReveal, useReducedMotion } from "./shared/hooks";
+import { PreviewAtRestContext, StaticPreviewContext, useFooterReveal, useReducedMotionPreference } from "./shared/hooks";
 import {
   AnnouncementBar,
   normalizeAnnouncementLayout,
@@ -70,7 +70,11 @@ function LivePreviewImpl({
   const navOn = !layout.some((s) => s.type === "nav" && !s.visible);
   const footerOn = !layout.some((s) => s.type === "footer" && !s.visible);
   const footerVariant = normalizeFooterStyle(layout.find((s) => s.type === "footer")?.variant);
-  const preferredLocations = locationScope ?? resolvePreviewLocations(layout, data.locations);
+  // Keep section props stable while navigation updates its scroll progress.
+  const preferredLocations = useMemo(
+    () => locationScope ?? resolvePreviewLocations(layout, data.locations),
+    [locationScope, layout, data.locations],
+  );
   const preferredLocationKey = preferredLocations.map((location) => location.id).join(",");
   const preferredLocationId = preferredLocations[0]?.id ?? null;
   const [internalSelectedLocationId, setInternalSelectedLocationId] =
@@ -145,15 +149,17 @@ function LivePreviewImpl({
   const rootRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const reducedMotion = useReducedMotion();
-  const progress = !chrome || !overHero ? 0 : reducedMotion ? 1 : scrollProgress;
+  const reducedMotion = useReducedMotionPreference();
+  const staticPreview = useContext(StaticPreviewContext);
+  const atRest = useContext(PreviewAtRestContext);
+  const progress = !chrome || !overHero || staticPreview ? 0 : reducedMotion ? 1 : scrollProgress;
   const editorialFooterReveal = chrome && footerOn && stacked.length > 0 && footerVariant === "editorial";
 
   // The footer is pinned behind the page and uncovered on scroll — drive its reveal off the scroll container.
   useFooterReveal(rootRef, footerRef, editorialFooterReveal);
 
   useEffect(() => {
-    if (!chrome || !overHero || reducedMotion) return;
+    if (!chrome || !overHero || reducedMotion || staticPreview) return;
     const nav = navRef.current;
     if (!nav || !heroRef.current) return;
     const sc = findScrollParent(nav);
@@ -173,7 +179,7 @@ function LivePreviewImpl({
       sc.removeEventListener("scroll", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [chrome, overHero, reducedMotion, stacked.length]);
+  }, [chrome, overHero, reducedMotion, staticPreview, stacked.length]);
 
   // Section numbers (mono kicker) follow the visible non-bar order, mirroring the microsite's "0N —".
   // `startNumber` lets the scoped one-section preview carry its real page ordinal instead of restarting at 1.
@@ -262,9 +268,11 @@ function LivePreviewImpl({
                   t={t}
                   no={no}
                   chrome={chrome}
+                  motion={!staticPreview}
+                  atRest={atRest}
                   layout={layout}
                   locations={preferredLocations}
-                  selectedLocationId={selectedLocationId}
+                  selectedLocationId={LOCATION_AWARE_SECTIONS.has(s.type) ? selectedLocationId : null}
                   onSelectLocation={setSelectedLocationId}
                 />
               </div>
@@ -296,12 +304,17 @@ export const LivePreview = memo(LivePreviewImpl);
 
 // ---------------------------------------------------------------------------
 
-function SectionView({
+/** Only location-aware sections rerender when the selected location changes. */
+const LOCATION_AWARE_SECTIONS = new Set<string>(["footer", "services", "locations"]);
+
+const SectionView = memo(function SectionView({
   entry,
   data,
   t,
   no,
   chrome,
+  motion,
+  atRest,
   layout,
   locations,
   selectedLocationId,
@@ -312,6 +325,8 @@ function SectionView({
   t: T;
   no: string;
   chrome: boolean;
+  motion: boolean;
+  atRest: boolean;
   layout: SectionEntry[];
   locations: WebsiteBuilderLocation[];
   selectedLocationId: number | null;
@@ -322,7 +337,7 @@ function SectionView({
     case "hero":
       // Parallax only in the full-page preview; the scoped one-section preview has no hero-scroll, so a
       // page-scroll-driven shift would lift the cover off its buffer and bare the bottom edge.
-      return <Hero entry={entry} data={data} t={t} parallax={chrome} />;
+      return <Hero entry={entry} data={data} t={t} parallax={chrome && motion && !atRest} atRest={atRest} />;
     case "nav":
       // Only reached in the scoped one-section preview (the full page renders the nav as sticky chrome).
       return <ScopedNav data={data} layout={layout} t={t} variant={entry.variant} />;
@@ -338,7 +353,7 @@ function SectionView({
         />
       );
     case "marquee":
-      return <Marquee entry={entry} data={data} chrome={chrome} />;
+      return <Marquee entry={entry} data={data} chrome={chrome && motion} />;
     case "about":
       return <About entry={entry} data={data} t={t} layout={layout} />;
     case "services":
@@ -375,7 +390,7 @@ function SectionView({
     default:
       return null;
   }
-}
+});
 
 /** Static nav for the scoped one-section preview: a solid paper bar (no hero-frost, no sticky), so the nav
  *  card shows a live sample without the full-page scroll chrome. */

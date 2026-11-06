@@ -1,8 +1,5 @@
 "use client";
 
-// Bundled faces match the builder preview.
-import "@fontsource-variable/geist";
-import "@fontsource-variable/geist-mono";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -11,7 +8,6 @@ import { LivePreview } from "@/features/website/components/builder/preview/Micro
 import { MicrositeActionsContext, type WebsiteBookIntent } from "@/features/website/components/builder/preview/shared/actions";
 import { findScrollParent, prefersReducedMotion } from "@/features/website/components/builder/preview/shared/util";
 import { resolvePreviewLocations } from "@/features/website/components/builder/locationSelection";
-import { fontStylesheetFor } from "@/features/website/components/builder/theme";
 import { buildMicrositeRender } from "@/features/website/publicWebsite";
 import type { MicrositeLocale } from "@/features/website/i18n/translate";
 import { getListing } from "@/lib/api/marketplace/public";
@@ -173,17 +169,10 @@ export function BusinessMicrosite({ site, locale }: { site: PublicWebsite; local
     pendingIntent,
     professionalHref: (uuid: string) => professionalHref(locale, uuid),
   }), [book, pending, pendingIntent, locale]);
-  const fontHref = fontStylesheetFor(data.fontKey);
 
   return (
     <>
       <main ref={mainRef} data-locale-scroll={`website:${site.slug}`} style={{ height: "100dvh", overflowY: "auto", overflowX: "hidden" }}>
-        {fontHref && (
-          <>
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link rel="stylesheet" href={fontHref} precedence="default" />
-          </>
-        )}
         <MicrositeActionsContext.Provider value={actions}>
           <LivePreview
             layout={layout}

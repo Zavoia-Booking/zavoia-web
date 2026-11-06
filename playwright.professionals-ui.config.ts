@@ -30,7 +30,7 @@ export default defineConfig({
   ],
   use: {
     baseURL: `http://localhost:${webPort}`,
-    locale: 'en-US', timezoneId: 'Europe/Bucharest', reducedMotion: 'reduce',
+    locale: 'en-US', timezoneId: 'Europe/Bucharest', contextOptions: { reducedMotion: 'reduce' },
     serviceWorkers: 'block', trace: 'retain-on-failure', screenshot: 'only-on-failure',
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }

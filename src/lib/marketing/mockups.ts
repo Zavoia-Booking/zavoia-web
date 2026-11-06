@@ -31,8 +31,8 @@ export const MARKETING_MOCKUPS = {
     ro: { src: "/images/marketing/native/schedule-v2-ro.webp", width: 1080, height: 2424 },
   },
   marketplaceServices: {
-    en: { src: "/images/marketing/discovery/services-en-desktop.webp", width: 1768, height: 1348 },
-    ro: { src: "/images/marketing/discovery/services-ro-desktop.webp", width: 1768, height: 1348 },
+    en: { src: "/images/marketing/discovery/services-v2-en-desktop.webp", width: 1768, height: 1348 },
+    ro: { src: "/images/marketing/discovery/services-v2-ro-desktop.webp", width: 1768, height: 1348 },
   },
   businessCalendarDesktop: {
     en: { src: "/images/for-business/calendar/day-v3-en-desktop.webp", width: 2560, height: 1600 },
@@ -47,16 +47,16 @@ export const MARKETING_MOCKUPS = {
     ro: { src: "/images/marketing/business-native/assignments-services-v2-ro.webp", width: 1080, height: 2424 },
   },
   businessAppMarketplace: {
-    en: { src: "/images/marketing/business-native/marketplace-portfolio-en.webp", width: 1080, height: 2424 },
-    ro: { src: "/images/marketing/business-native/marketplace-portfolio-ro.webp", width: 1080, height: 2424 },
+    en: { src: "/images/marketing/business-native/marketplace-portfolio-v2-en.webp", width: 1080, height: 2424 },
+    ro: { src: "/images/marketing/business-native/marketplace-portfolio-v2-ro.webp", width: 1080, height: 2424 },
   },
   studioBeauty: {
-    en: { src: "/images/marketing/studio/beauty-en-desktop.webp", width: 1440, height: 960 },
-    ro: { src: "/images/marketing/studio/beauty-ro-desktop.webp", width: 1440, height: 960 },
+    en: { src: "/images/marketing/studio/beauty-v2-en-desktop.webp", width: 1440, height: 960 },
+    ro: { src: "/images/marketing/studio/beauty-v2-ro-desktop.webp", width: 1440, height: 960 },
   },
   studioPet: {
-    en: { src: "/images/marketing/studio/pet-en-mobile.webp", width: 780, height: 1520 },
-    ro: { src: "/images/marketing/studio/pet-ro-mobile.webp", width: 780, height: 1520 },
+    en: { src: "/images/marketing/studio/pet-v2-en-mobile.webp", width: 780, height: 1520 },
+    ro: { src: "/images/marketing/studio/pet-v2-ro-mobile.webp", width: 780, height: 1520 },
   },
 } as const satisfies Record<MarketingMockupScene, Record<Locale, MarketingMockup>>;
 

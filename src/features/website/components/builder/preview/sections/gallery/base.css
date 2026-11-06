@@ -131,10 +131,12 @@
     transform 200ms var(--ease-out-strong);
 }
 
-.mc-gallery-arrow:hover:not(:disabled) {
-  border-color: var(--mc-fg);
-  background: var(--mc-fg);
-  color: var(--mc-bg);
+@media (hover: hover) and (pointer: fine) {
+  .mc-gallery-arrow:hover:not(:disabled) {
+    border-color: var(--mc-fg);
+    background: var(--mc-fg);
+    color: var(--mc-bg);
+  }
 }
 
 .mc-gallery-arrow:active:not(:disabled) {

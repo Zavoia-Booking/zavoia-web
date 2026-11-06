@@ -1,0 +1,63 @@
+.composition {
+  --story-ink: oklch(47% .014 72);
+  --story-edge: oklch(87% .016 78);
+  --story-rule: oklch(79% .015 78);
+  --story-clay-soft: color-mix(in oklch, var(--p-500) 9%, var(--c-canvas));
+  --story-clay-line: color-mix(in oklch, var(--p-500) 35%, var(--c-canvas));
+}
+.intro { margin-bottom: 44px; text-align: center; }
+.intro > h2 { max-width: 25ch; margin-inline: auto; text-wrap: balance; }
+.flow { position: relative; }
+.story {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: minmax(72px, auto) 150px auto;
+  gap: 12px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chapter { display: contents; }
+.scene { min-width: 0; width: 100%; justify-self: center; pointer-events: none; }
+.art { display: block; width: 100%; height: auto; overflow: visible; }
+.chapter:first-child .scene { grid-area: 1 / 1 / 3 / 4; align-self: end; }
+.chapter:nth-child(2) .scene { grid-area: 2 / 4 / 4 / 10; width: 84%; align-self: start; }
+.chapter:last-child .scene { grid-area: 3 / 10 / 4 / 13; align-self: start; }
+.art text { fill: var(--c-ink); stroke: none; font-family: var(--font-sans), sans-serif; }
+.artBrand { font-size: 16px; font-weight: 600; letter-spacing: -.4px; }
+.artLabel { font-size: 14px; font-weight: 550; }
+.artService { font-size: 15px; font-weight: 550; letter-spacing: -.2px; }
+.artPrice { font-size: 17px; font-weight: 550; letter-spacing: -.4px; }
+.art .artMuted { fill: var(--c-600); font-size: 13px; }
+.art .artSmall { fill: var(--c-600); font-size: 11px; }
+.art .artInitial { fill: var(--p-700); font-size: 14px; font-weight: 550; }
+.art .artAddress { fill: var(--c-600); font-size: 9px; }
+.art .artBooking { fill: var(--c-canvas); font-size: 11px; font-weight: 550; }
+.artAppointment { font-size: 14px; font-weight: 550; letter-spacing: -.2px; }
+.connectors { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--p-500); opacity: .55; pointer-events: none; }
+.copy { max-width: 30ch; justify-self: center; }
+.chapter:first-child .copy { grid-area: 3 / 1 / 4 / 4; }
+.chapter:nth-child(2) .copy { grid-area: 1 / 5 / 2 / 9; align-self: end; }
+.chapter:last-child .copy { grid-area: 2 / 10 / 3 / 13; align-self: end; }
+.copy h3 { margin: 0; color: var(--c-ink); font-size: 22px; font-weight: 550; line-height: 1.25; letter-spacing: -.03em; text-wrap: pretty; }
+.copy p { margin: 8px 0 0; color: var(--c-700); font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+
+@media (max-width: 1000px) {
+  .intro { margin-bottom: 32px; }
+  .story { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; gap: 28px; }
+  .chapter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 28px; }
+  .chapter:nth-child(n) .scene { grid-area: 1 / 1; width: 100%; max-width: 330px; align-self: center; }
+  .chapter:nth-child(n) .copy { grid-area: 1 / 2; max-width: 30ch; justify-self: start; align-self: center; }
+  .connectors { display: none; }
+}
+@media (max-width: 700px) {
+  .intro { margin-bottom: 26px; }
+  .intro > h2 { max-width: 22ch; }
+  .story { gap: 36px; }
+  .chapter { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .chapter:nth-child(n) .scene { grid-area: auto; max-width: 300px; }
+  .chapter:nth-child(2) .scene { max-width: 350px; }
+  .chapter:nth-child(n) .copy { grid-area: auto; max-width: 32ch; justify-self: center; width: 100%; }
+  .copy h3 { font-size: 22px; }
+  .copy p { margin-top: 6px; font-size: 15px; line-height: 1.55; }
+}

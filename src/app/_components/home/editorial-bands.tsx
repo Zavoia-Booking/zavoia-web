@@ -8,6 +8,7 @@ import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { getMarketingMockup } from "@/lib/marketing/mockups";
+import { MarketingExampleNote } from "../marketing-example-note";
 import styles from "./editorial-bands.module.css";
 
 const caveat = localFont({
@@ -90,9 +91,12 @@ export function AppBand({ locale, children }: { locale: Locale; children?: React
             ))}
           </div>
         </div>
-        <div className={styles["device-stage"]}>
-          <AppPhone variant="map" alt={s.mapAlt} locale={locale} />
-          <AppPhone variant="schedule" alt={s.scheduleAlt} locale={locale} />
+        <div className={styles["app-device-group"]}>
+          <div className={styles["device-stage"]}>
+            <AppPhone variant="map" alt={s.mapAlt} locale={locale} />
+            <AppPhone variant="schedule" alt={s.scheduleAlt} locale={locale} />
+          </div>
+          <MarketingExampleNote locale={locale} map />
         </div>
       </section>
       {children}
@@ -169,6 +173,7 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
               </foreignObject>
             </svg>
           </div>
+          <MarketingExampleNote locale={locale} websites className={styles["studio-example-note"]} />
         </div>
         <div className={styles["studio-copy"]}>
           <h2 className={styles["studio-title"]} id="web-studio-heading">{s.titleFirst}{" "}<br />{s.titleSecond}<em className={styles.signature}>{s.titleAccent}</em></h2>

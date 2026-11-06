@@ -13,7 +13,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.EXPLORE_E2E_BASE_URL || "http://localhost:3001",
     viewport: { width: 1440, height: 1000 },
-    reducedMotion: "reduce",
+    contextOptions: { reducedMotion: "reduce" },
     locale: "en-US",
     timezoneId: "Europe/Bucharest",
     launchOptions: {

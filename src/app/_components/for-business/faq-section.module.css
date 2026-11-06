@@ -24,9 +24,10 @@
 .answer { max-width: 64ch; padding: 0 48px 26px 0; color: var(--c-700); font-size: 1rem; line-height: 1.65; }
 .answer p { margin: 0; text-wrap: pretty; }
 .answer p + p { margin-top: 14px; }
+.answerLink { margin-top: 8px; }
 .question:focus-visible { outline-offset: 4px; }
 
-/* Opening an exclusive item also closes its sibling; keyboard changes stay immediate. */
+/* Keyboard toggles keep answer and icon changes immediate. */
 .list:has(.question:focus-visible) .item { --disclosure-duration: 0ms; --disclosure-fade-in: 0ms; --disclosure-fade-out: 0ms; --disclosure-chevron: 0ms; }
 .list:has(.question:focus-visible) .question h3,
 .list:has(.question:focus-visible) .toggle,
