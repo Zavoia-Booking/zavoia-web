@@ -54,8 +54,8 @@ export const accountTerms: LegalDocument = {
         {
           kind: "note",
           text: {
-            en: "IMPL (blueprint §0.2): today the invitation link auto-accepts for existing active users on a GET request, and Google signup bypasses the terms checkbox — both must be replaced with explicit actions before this clause is accurate.",
-            ro: "IMPL (blueprint §0.2): în prezent linkul de invitație acceptă automat pentru utilizatorii activi existenți la o simplă accesare, iar înregistrarea cu Google ocolește bifa de termeni — ambele trebuie înlocuite cu acțiuni explicite înainte ca această clauză să fie exactă.",
+            en: "IMPL (re-verified 11 Nov 2026): this clause is still not accurate. The invitation link still activates the role for existing active users through a GET request made when the page loads (GET /auth/check-team-invitation, team-invitation.tsx). Google sign-up from the register screen now requires the terms box, but Google on the login screen still creates new accounts without it. Only a generic termsAccepted flag and date are stored at account creation — no document version or acceptance path — and enabling a new role records nothing.",
+            ro: "IMPL (re-verificat 11 nov. 2026): această clauză nu este încă exactă. Linkul de invitație activează în continuare rolul pentru utilizatorii activi existenți printr-o cerere GET făcută la încărcarea paginii (GET /auth/check-team-invitation, team-invitation.tsx). Înregistrarea cu Google din ecranul de înregistrare cere acum bifa de termeni, dar Google pe ecranul de autentificare creează în continuare conturi noi fără ea. La crearea contului se rețin doar un indicator generic termsAccepted și data — fără versiunea documentului sau calea de acceptare — iar activarea unui rol nou nu înregistrează nimic.",
           },
         },
       ],

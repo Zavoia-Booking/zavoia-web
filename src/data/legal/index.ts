@@ -11,6 +11,7 @@ import { providerTerms } from "./provider-terms";
 import { accountTerms } from "./account-terms";
 import { dpa } from "./dpa";
 import { dac7 } from "./dac7";
+import { accountDeletion } from "./account-deletion";
 
 export type {
   LegalAudience,
@@ -27,6 +28,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
   cookiePolicy,
   companyInfo,
   contentPolicy,
+  accountDeletion,
   // customer
   customerTerms,
   bookingPolicy,

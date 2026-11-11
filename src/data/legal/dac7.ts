@@ -162,8 +162,8 @@ export const dac7: LegalDocument = {
         {
           kind: "note",
           text: {
-            en: "The exact basis for the activity figure (booked list prices of appointments marked completed vs. another measure) must be settled in the tax memo, together with the reliability of the manual COMPLETED status (decisions doc §6.4). Do not publish a specific methodology before that.",
-            ro: "Baza exactă a cifrei de activitate (prețurile listate ale programărilor marcate ca finalizate vs. o altă măsură) trebuie stabilită în memo-ul fiscal, împreună cu fiabilitatea statutului manual FINALIZAT (documentul de decizii §6.4). Nu publicați o metodologie specifică înainte de aceasta.",
+            en: "Re-verified 11 Nov 2026: the code (since 6 Aug 2026) already uses one basis — the booked list prices of marketplace appointments marked COMPLETED, one row per service with the price split across services, voided if the status is reversed, grouped by quarter, demo businesses excluded (dac7.service.ts). The tax memo must confirm this basis and the reliability of the manual COMPLETED status (decisions doc §6.4) before this page states a methodology. Not built yet: the F7000 file for ANAF, the annual statement to sellers, data-request reminders and the retention job.",
+            ro: "Re-verificat 11 nov. 2026: codul (din 6 aug. 2026) folosește deja o singură bază — prețurile de listă ale programărilor din marketplace marcate ca FINALIZATE, un rând per serviciu, cu prețul împărțit între servicii, anulat dacă statusul este inversat, grupat pe trimestre, fără afacerile demo (dac7.service.ts). Memo-ul fiscal trebuie să confirme această bază și fiabilitatea statusului manual FINALIZAT (documentul de decizii §6.4) înainte ca această pagină să descrie o metodologie. Nu sunt construite încă: fișierul F7000 pentru ANAF, declarația anuală către vânzători, mementourile pentru solicitarea datelor și procesul de păstrare/ștergere.",
           },
         },
       ],
@@ -248,8 +248,8 @@ export const dac7: LegalDocument = {
         {
           kind: "note",
           text: {
-            en: "If the tax memo confirms scope, add the DAC7 legal-obligation purpose (with CNP/CUI collection and the tax-law retention period) to the Privacy Notice §purposes-legal-bases — it was deliberately left out while the classification is open. Legea 190/2018 permits CNP processing on a legal-obligation basis; scope it to this purpose only.",
-            ro: "Dacă memo-ul fiscal confirmă includerea, adăugați scopul de obligație legală DAC7 (cu colectarea CNP/CUI și perioada de păstrare cerută de legislația fiscală) în Politica de confidențialitate §scopuri-și-temeiuri — a fost lăsat deliberat afară cât timp clasificarea este deschisă. Legea 190/2018 permite prelucrarea CNP pe temei de obligație legală; limitați-o strict la acest scop.",
+            en: "Updated 11 Nov 2026: the Privacy Notice §purposes-legal-bases now lists DAC7, because the collection already runs — the dashboard asks for CNP and date of birth as optional fields, and the seller and activity records survive account deletion (dac7.service.ts). Its legal basis stays bracketed until the tax memo; Legea 190/2018 permits CNP processing on a legal-obligation basis, scoped to this purpose only. Before publishing the text above, confirm that access to CNP and date of birth really is restricted, and build the retention/deletion job, which does not exist yet.",
+            ro: "Actualizat 11 nov. 2026: Politica de confidențialitate §scopuri-și-temeiuri listează acum DAC7, pentru că colectarea are deja loc — panoul cere CNP-ul și data nașterii ca date opționale, iar evidențele despre vânzător și activitate rămân după ștergerea contului (dac7.service.ts). Temeiul legal rămâne între paranteze până la memo-ul fiscal; Legea 190/2018 permite prelucrarea CNP pe temei de obligație legală, limitată strict la acest scop. Înainte de publicarea textului de mai sus, confirmați că accesul la CNP și data nașterii este într-adevăr restricționat și construiți procesul de păstrare/ștergere, care nu există încă.",
           },
         },
       ],

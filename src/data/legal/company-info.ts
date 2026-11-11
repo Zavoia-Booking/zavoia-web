@@ -31,17 +31,17 @@ export const companyInfo: LegalDocument = {
           kind: "list",
           items: {
             en: [
-              "Legal name: [COMPANY NAME S.R.L.]",
+              "Legal name: TNT VENTURES SRL",
               "Trade Register number: [J__/____/____]",
-              "Tax identification code (CUI): [________]",
+              "Tax identification code (CUI): 48718430",
               "VAT registration: [RO________ / not VAT-registered]",
               "Registered office: [full address]",
               "Share capital: [amount] RON",
             ],
             ro: [
-              "Denumire: [DENUMIRE SOCIETATE S.R.L.]",
+              "Denumire: TNT VENTURES SRL",
               "Număr de ordine în Registrul Comerțului: [J__/____/____]",
-              "Cod unic de înregistrare (CUI): [________]",
+              "Cod unic de înregistrare (CUI): 48718430",
               "Înregistrare în scopuri de TVA: [RO________ / neînregistrată în scopuri de TVA]",
               "Sediu social: [adresa completă]",
               "Capital social: [suma] RON",
@@ -51,8 +51,8 @@ export const companyInfo: LegalDocument = {
         {
           kind: "note",
           text: {
-            en: "GATE D1 (blueprint): the contracting entity's details are not yet confirmed. All bracketed fields must be completed with the real company data before publication — Legea 365/2002 art. 5 makes each of them mandatory for an information-society service provider.",
-            ro: "GATE D1 (blueprint): datele entității contractante nu sunt încă confirmate. Toate câmpurile dintre paranteze trebuie completate cu datele reale ale societății înainte de publicare — Legea 365/2002 art. 5 le face obligatorii pentru un furnizor de servicii ale societății informaționale.",
+            en: "GATE D1 (updated 11 Nov 2026): legal name and CUI confirmed (TNT VENTURES SRL, 48718430). Still to complete before publication: Trade Register number, VAT status, registered office and share capital — Legea 365/2002 art. 5 makes the company's identification details mandatory for an information-society service provider.",
+            ro: "GATE D1 (actualizat 11 nov. 2026): denumirea și CUI-ul sunt confirmate (TNT VENTURES SRL, 48718430). De completat înainte de publicare: numărul de la Registrul Comerțului, statutul de TVA, sediul social și capitalul social — Legea 365/2002 art. 5 face obligatorii datele de identificare ale societății pentru un furnizor de servicii ale societății informaționale.",
           },
         },
       ],
@@ -69,12 +69,12 @@ export const companyInfo: LegalDocument = {
           kind: "list",
           items: {
             en: [
-              "Email: [contact/support email address]",
+              "Email: support@zavoia.com",
               "Support: the Help Centre at zavoia.com/help, available to visitors and account holders",
               "Postal address: the registered office listed above",
             ],
             ro: [
-              "Email: [adresa de email de contact/asistență]",
+              "Email: support@zavoia.com",
               "Asistență: Centrul de ajutor la zavoia.com/help, disponibil vizitatorilor și deținătorilor de cont",
               "Adresă poștală: sediul social menționat mai sus",
             ],
@@ -85,13 +85,6 @@ export const companyInfo: LegalDocument = {
           text: {
             en: "We aim to answer support requests within a reasonable time. Requests that concern a specific booking or a specific business should include the booking reference so we can help faster.",
             ro: "Ne propunem să răspundem solicitărilor de asistență într-un termen rezonabil. Solicitările care privesc o programare sau o afacere anume ar trebui să includă referința programării, pentru a vă putea ajuta mai repede.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "Confirm the official contact email address before publication. Legea 365/2002 art. 5 lit. c) requires contact details, including email, that allow direct and effective contact.",
-            ro: "Confirmați adresa oficială de email înainte de publicare. Legea 365/2002 art. 5 lit. c) impune date de contact, inclusiv email, care să permită contactul direct și efectiv.",
           },
         },
       ],

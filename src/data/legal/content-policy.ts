@@ -36,8 +36,8 @@ export const contentPolicy: LegalDocument = {
         {
           kind: "note",
           text: {
-            en: "Code check 1 Aug 2026 (supersedes the blueprint B6 'absent' note, which is stale): the server DOES enforce COMPLETED-appointment status and one-review-per-appointment (customer.service.ts:65,94-109) — the completed-appointment claim above is accurate; confirm the deployed build matches before publication. No edit/delete endpoints exist — the support-removal route is a manual policy commitment support must actually honour. The [3 months] window is NOT enforced in code: decide it and implement it, or remove the window claim. Note also: a business marking appointments COMPLETED is manual — decisions doc §6.4 flags reliability of that status.",
-            ro: "Verificare cod 1 aug. 2026 (înlocuiește nota „lipsește” din blueprint B6, care este depășită): serverul CHIAR impune statutul de programare FINALIZATĂ și o-recenzie-per-programare (customer.service.ts:65,94-109) — afirmația de mai sus despre programarea finalizată este exactă; confirmați că versiunea publicată corespunde înainte de publicare. Nu există endpoint-uri de editare/ștergere — eliminarea prin asistență este un angajament de politică pe care asistența trebuie să îl onoreze efectiv. Fereastra de [3 luni] NU este impusă în cod: decideți-o și implementați-o, sau eliminați afirmația. De notat: marcarea programărilor ca FINALIZATE de către afacere este manuală — documentul de decizii §6.4 semnalează fiabilitatea acestui statut.",
+            en: "DEC + IMPL (re-verified 11 Nov 2026): the completed-appointment rule and one review per appointment are enforced by the server (customer.service.ts), so those statements are accurate. Customers can only create reviews — there is no edit or delete in the product, so removal on request is a manual commitment support must honour. Still open: the [3 months] window is NOT enforced in code — decide it and build it, or delete the window sentence. Marking an appointment COMPLETED is a manual action by the business (decisions doc §6.4).",
+            ro: "DEC + IMPL (re-verificat 11 nov. 2026): regula programării finalizate și o recenzie per programare sunt impuse de server (customer.service.ts), deci aceste afirmații sunt exacte. Clienții pot doar crea recenzii — nu există editare sau ștergere în produs, așa că eliminarea la cerere este un angajament manual pe care asistența trebuie să îl onoreze. Rămâne deschis: fereastra de [3 luni] NU este impusă în cod — decideți-o și implementați-o, sau ștergeți propoziția despre fereastră. Marcarea unei programări ca FINALIZATĂ este o acțiune manuală a afacerii (documentul de decizii §6.4).",
           },
         },
       ],
@@ -119,13 +119,6 @@ export const contentPolicy: LegalDocument = {
             ro: "Moderarea conținutului pe Zavoia este realizată de echipa noastră (verificare umană), pe baza raportărilor primite și a verificării conținutului raportat sau semnalat. Nu folosim în prezent decizii automate pentru eliminarea conținutului; dacă introducem instrumente automate, le vom descrie aici mai întâi. Deciziile de moderare aplică regulile din această politică și legea — nu interesele comerciale ale vreunei afaceri.",
           },
         },
-        {
-          kind: "note",
-          text: {
-            en: "Verify before publication: confirm with the team that no automated moderation/filtering runs in production (the capabilities audit shows an internal moderation console in the CRM; no automated pipeline was found). DSA art. 14 requires this description to be accurate, including algorithmic vs human review.",
-            ro: "De verificat înainte de publicare: confirmați cu echipa că nicio moderare/filtrare automată nu rulează în producție (auditul de capabilități arată o consolă internă de moderare în CRM; nu a fost găsit un flux automat). Art. 14 DSA cere ca această descriere să fie exactă, inclusiv privind verificarea algoritmică vs umană.",
-          },
-        },
       ],
     },
     {
@@ -147,8 +140,8 @@ export const contentPolicy: LegalDocument = {
         {
           kind: "note",
           text: {
-            en: "IMPL: a dedicated report form (or at minimum a monitored email address) must exist before publication — DSA art. 16 requires an easy-to-access, electronic notice mechanism. Decide the channel and insert it above.",
-            ro: "IMPL: un formular de raportare dedicat (sau cel puțin o adresă de email monitorizată) trebuie să existe înainte de publicare — art. 16 DSA cere un mecanism electronic de notificare ușor accesibil. Decideți canalul și inserați-l mai sus.",
+            en: "DEC + IMPL (re-verified 11 Nov 2026): “Report a problem” exists on listings, professional profiles and appointments, on the web and in the app, and opens a support ticket with context (create-support-ticket.dto.ts). Gaps: reviews cannot be reported; ticket categories are only “bug” and “question” (ticket.entity.ts); there is no notice form for illegal content open to people without an account. DSA art. 16 requires an easy, electronic notice mechanism: either add a report option on reviews plus an illegal-content form, or name a monitored email address (for example support@zavoia.com) in [report channel] above.",
+            ro: "DEC + IMPL (re-verificat 11 nov. 2026): „Raportează o problemă” există pe profilurile din marketplace, pe profilurile profesioniștilor și pe programări, pe web și în aplicație, și deschide un tichet de asistență cu context (create-support-ticket.dto.ts). Lacune: recenziile nu pot fi raportate; categoriile de tichete sunt doar „bug” și „întrebare” (ticket.entity.ts); nu există un formular de notificare pentru conținut ilegal deschis persoanelor fără cont. Art. 16 DSA cere un mecanism electronic de notificare ușor de folosit: fie adăugați raportarea recenziilor și un formular pentru conținut ilegal, fie indicați o adresă de email monitorizată (de exemplu support@zavoia.com) în [canalul de raportare] de mai sus.",
           },
         },
       ],

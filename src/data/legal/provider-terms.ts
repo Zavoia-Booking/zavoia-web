@@ -220,30 +220,36 @@ export const providerTerms: LegalDocument = {
       blueprintRef: "A6 / P2B art. 5",
       title: { en: "Ranking", ro: "Ierarhizare" },
       summary: {
-        en: "Main parameters, relative importance, no paid influence.",
-        ro: "Parametri principali, importanța relativă, fără influență plătită.",
+        en: "Main parameters, how they are applied, and the one section that depends on your plan.",
+        ro: "Parametrii principali, cum sunt aplicați și singura secțiune care depinde de planul dumneavoastră.",
       },
       body: [
         {
           kind: "list",
           items: {
             en: [
-              "Search results: ordered by relevance to the query, distance to the customer, rating and recency — in that order of importance for typical searches. When few results match, labelled fallback results with relaxed criteria are appended.",
-              "Homepage sections and category rails: each states its own ordering — for example newest-first for new businesses, or ordering by review count, name or rating.",
-              "Remuneration does not influence ranking: there is no paid placement, and no Zavoia product or subscription tier improves position. If this ever changes, this schedule will be amended first, with the notice period below.",
+              "Search with a typed name: results are ordered by how closely the business name matches the text, then by distance to the customer (or by rating when the customer's location is not known).",
+              "Search without a typed name: results are ordered by distance when the customer's location is known; otherwise by rating, then by how recently the business joined. Customers can re-sort the results they see, for example by rating or distance.",
+              "When nothing matches, Zavoia shows recommendations instead, found by relaxing the search step by step, with a label explaining why they are shown.",
+              "Homepage: “In your city” shows businesses within about 50 km in a random order that changes between visits; “Near you” is ordered by distance; the category section rotates daily; brands are ordered by rating, then by number of reviews.",
+              "The homepage section “Made with Web Studio” shows businesses that have published a Zavoia website, newest first. Publishing a website requires a plan that includes it (currently Plus), so only those businesses appear in that section.",
+              "Apart from the “Made with Web Studio” section, payment does not influence ranking: there is no paid placement, and no subscription tier changes the order of search results or of the other sections. If this changes, this schedule will be amended first, with the notice period below.",
             ],
             ro: [
-              "Rezultatele căutării: ordonate după relevanța față de căutare, distanța față de client, rating și recență — în această ordine a importanței pentru căutările tipice. Când puține rezultate corespund, se adaugă rezultate de rezervă etichetate, cu criterii relaxate.",
-              "Secțiunile paginii principale și ale categoriilor: fiecare își indică propria ordonare — de exemplu cele mai noi afaceri, ordonare după numărul de recenzii, nume sau rating.",
-              "Remunerarea nu influențează ierarhizarea: nu există plasare plătită, iar niciun produs sau nivel de abonament Zavoia nu îmbunătățește poziția. Dacă acest lucru se schimbă vreodată, acest document va fi modificat mai întâi, cu termenul de preaviz de mai jos.",
+              "Căutare după un nume tastat: rezultatele sunt ordonate după cât de bine se potrivește numele afacerii cu textul, apoi după distanța față de client (sau după rating, când locația clientului nu este cunoscută).",
+              "Căutare fără nume tastat: rezultatele sunt ordonate după distanță când locația clientului este cunoscută; altfel după rating, apoi după cât de recent s-a înscris afacerea. Clienții pot reordona rezultatele afișate, de exemplu după rating sau distanță.",
+              "Când nimic nu corespunde, Zavoia afișează în schimb recomandări, găsite prin relaxarea treptată a căutării, cu o etichetă care explică de ce sunt afișate.",
+              "Pagina principală: „În orașul tău” afișează afaceri pe o rază de aproximativ 50 km, într-o ordine aleatorie care se schimbă de la o vizită la alta; „Lângă tine” este ordonată după distanță; secțiunea de categorii se rotește zilnic; brandurile sunt ordonate după rating, apoi după numărul de recenzii.",
+              "Secțiunea „Site-uri create cu Web Studio” de pe pagina principală afișează afacerile care au publicat un site Zavoia, cele mai noi primele. Publicarea unui site necesită un plan care o include (în prezent Plus), așa că doar aceste afaceri apar în acea secțiune.",
+              "În afara secțiunii „Site-uri create cu Web Studio”, plata nu influențează ierarhizarea: nu există plasare plătită, iar niciun nivel de abonament nu schimbă ordinea rezultatelor căutării sau a celorlalte secțiuni. Dacă acest lucru se schimbă, acest document va fi modificat mai întâi, cu termenul de preaviz de mai jos.",
             ],
           },
         },
         {
           kind: "note",
           text: {
-            en: "Blueprint B5/A6: the disclosure must inventory each ranked surface as actually implemented (search similarity/distance/rating/recency; homepage newest-first; rails by review count/name/rating; the labelled relaxation ladder). Re-verify against code at publication.",
-            ro: "Blueprint B5/A6: prezentarea trebuie să inventarieze fiecare secțiune ierarhizată așa cum este efectiv implementată (căutare: similaritate/distanță/rating/recență; pagina principală: cele mai noi; secțiuni după numărul de recenzii/nume/rating; scara de relaxare etichetată). Reverificați față de cod la publicare.",
+            en: "DEC (re-verified 11 Nov 2026 — marketplace-public.service.ts applySearchOrder / relaxation ladder / Websites rail, zavoia-web home feed): the list above now describes each surface as implemented. The previous text was wrong: search order is not a fixed weighting, fallback results replace an empty result instead of being appended, sections do not label their ordering, and the Websites rail is limited to businesses with the websiteBuilder entitlement (Plus). Decide: keep the Plus-only Websites section with this disclosure (P2B art. 5(3)), or open it to every business with a published website. The privacy notice §ranking-profiling carries the same summary; re-verify both against the code at publication.",
+            ro: "DEC (re-verificat 11 nov. 2026 — marketplace-public.service.ts applySearchOrder / scara de relaxare / secțiunea Websites, fluxul paginii principale din zavoia-web): lista de mai sus descrie acum fiecare secțiune așa cum este implementată. Textul anterior era greșit: ordinea căutării nu este o ponderare fixă, rezultatele de rezervă înlocuiesc un rezultat gol în loc să fie adăugate, secțiunile nu își etichetează ordonarea, iar secțiunea Websites este limitată la afacerile cu dreptul websiteBuilder (Plus). Decideți: păstrați secțiunea Websites doar pentru Plus, cu această informare (P2B art. 5(3)), sau deschideți-o tuturor afacerilor cu un site publicat. Politica de confidențialitate §ranking-profiling conține același rezumat; reverificați-le pe amândouă față de cod la publicare.",
           },
         },
       ],

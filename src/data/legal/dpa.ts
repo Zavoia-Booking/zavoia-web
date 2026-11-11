@@ -112,15 +112,38 @@ export const dpa: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "We implement technical and organisational measures appropriate to the risk, including: encryption in transit, access controls and role scoping, tenant-scoped data separation within the application, logging, and personnel confidentiality. The concrete measures are listed in [Annex — Security Measures]; we may update them provided the overall security level does not decrease.",
-            ro: "Implementăm măsuri tehnice și organizatorice adecvate riscului, printre care: criptare în tranzit, controale de acces și limitarea rolurilor, separarea datelor pe spații de lucru în cadrul aplicației, jurnalizare și confidențialitatea personalului. Măsurile concrete sunt listate în [Anexa — Măsuri de securitate]; le putem actualiza cu condiția ca nivelul general de securitate să nu scadă.",
+            en: "We implement technical and organisational measures appropriate to the risk, including: encryption in transit, access controls and role scoping, tenant-scoped data separation within the application, logging, and personnel confidentiality. The concrete measures are listed below; we may update them provided the overall security level does not decrease.",
+            ro: "Implementăm măsuri tehnice și organizatorice adecvate riscului, printre care: criptare în tranzit, controale de acces și limitarea rolurilor, separarea datelor pe spații de lucru în cadrul aplicației, jurnalizare și confidențialitatea personalului. Măsurile concrete sunt listate mai jos; le putem actualiza cu condiția ca nivelul general de securitate să nu scadă.",
+          },
+        },
+        {
+          kind: "list",
+          items: {
+            en: [
+              "Encryption in transit: the website, the dashboard, the apps and our API communicate only over HTTPS (TLS), with HSTS on the web; the connection between our API and the database is encrypted with TLS.",
+              "Hosting: our API runs on Google Cloud Run, the database on Supabase, media files on Cloudflare R2, and the website and dashboard on Vercel.",
+              "Sign-in and sessions: passwords are stored only as bcrypt hashes; web sessions use cookies that scripts cannot read, together with protection against cross-site request forgery.",
+              "Access control: every request to our API is authenticated and checked against the user's role (owner, team member or customer); a business's data is reachable only by the users that business has added.",
+              "Data separation: all businesses share one database; each business's records are kept apart by business-scoped queries in our application, not by separate databases.",
+              "Logging: requests to our API are logged together with the user and the business they concern.",
+              "Personnel: only Zavoia staff who need it have access to production systems, and they are bound by confidentiality.",
+            ],
+            ro: [
+              "Criptare în tranzit: site-ul, panoul, aplicațiile și API-ul nostru comunică doar prin HTTPS (TLS), cu HSTS pe web; conexiunea dintre API-ul nostru și baza de date este criptată cu TLS.",
+              "Găzduire: API-ul nostru rulează pe Google Cloud Run, baza de date pe Supabase, fișierele media pe Cloudflare R2, iar site-ul și panoul pe Vercel.",
+              "Autentificare și sesiuni: parolele sunt stocate doar ca hash-uri bcrypt; sesiunile web folosesc cookie-uri inaccesibile scripturilor, împreună cu protecție împotriva falsificării cererilor (CSRF).",
+              "Controlul accesului: fiecare cerere către API-ul nostru este autentificată și verificată în funcție de rolul utilizatorului (proprietar, membru al echipei sau client); datele unei afaceri sunt accesibile doar utilizatorilor adăugați de acea afacere.",
+              "Separarea datelor: toate afacerile folosesc o singură bază de date; evidențele fiecărei afaceri sunt separate prin interogări limitate la afacere în aplicația noastră, nu prin baze de date separate.",
+              "Jurnalizare: cererile către API-ul nostru sunt jurnalizate împreună cu utilizatorul și afacerea la care se referă.",
+              "Personal: doar personalul Zavoia care are nevoie are acces la sistemele de producție și este obligat la confidențialitate.",
+            ],
           },
         },
         {
           kind: "note",
           text: {
-            en: "Write the security annex from the real infrastructure (verified in the audit: R2/Cloudflare, AWS, role-scoped access; 'tenant-scoped' means scoped queries in a shared database, not isolation). Backups were removed from the list — not evidenced in the audit; verify backup practices before listing them. Do not claim end-to-end encryption or certifications that do not exist.",
-            ro: "Redactați anexa de securitate pe baza infrastructurii reale (verificat în audit: R2/Cloudflare, AWS, acces limitat pe roluri; „pe spații de lucru” înseamnă interogări limitate într-o bază de date comună, nu izolare). Copiile de rezervă au fost eliminate din listă — nu sunt dovedite în audit; verificați practicile de backup înainte de a le lista. Nu pretindeți criptare end-to-end sau certificări inexistente.",
+            en: "Annex written 11 Nov 2026 from the code (data-source.ts, roles.guard.ts, upload.service.ts, auth, request logging). Deliberately NOT claimed, because they are not true today: certificate verification on the database connection (TLS runs with rejectUnauthorized:false — data-source.ts, app.module.ts); database-level tenant isolation (the API connects as the postgres user, so row-level security does not apply); an audit trail of who viewed client records; backups and encryption at rest (true at the vendors only if confirmed in their documentation and plan); end-to-end encryption; certifications. Before publication: confirm the staff confidentiality undertakings exist in writing, and check that every endpoint touching client data declares roles — roles.guard.ts lets a request through when an endpoint declares none.",
+            ro: "Anexă redactată pe 11 nov. 2026 pe baza codului (data-source.ts, roles.guard.ts, upload.service.ts, autentificare, jurnalizarea cererilor). NU sunt pretinse în mod deliberat, pentru că nu sunt adevărate astăzi: verificarea certificatului la conexiunea cu baza de date (TLS rulează cu rejectUnauthorized:false — data-source.ts, app.module.ts); izolarea între afaceri la nivelul bazei de date (API-ul se conectează ca utilizator postgres, deci securitatea la nivel de rând nu se aplică); un jurnal de audit al celor care au vizualizat evidențele clienților; copiile de rezervă și criptarea datelor stocate (adevărate la furnizori doar dacă sunt confirmate în documentația și planul lor); criptarea end-to-end; certificările. Înainte de publicare: confirmați că angajamentele de confidențialitate ale personalului există în scris și verificați ca fiecare endpoint care atinge datele clienților să declare roluri — roles.guard.ts permite trecerea unei cereri când endpoint-ul nu declară niciunul.",
           },
         },
       ],
