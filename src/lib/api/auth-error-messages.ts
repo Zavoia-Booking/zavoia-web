@@ -51,6 +51,10 @@ const CODE_TO_KEY: Record<string, keyof AuthErrorsDict> = {
   // Google identity whose email Google has verified.
   "CUSTOMER_AUTH.E56": "googleEmailUnverified",
   GOOGLE_EMAIL_UNVERIFIED: "googleEmailUnverified",
+  // E57 / `google_account_linked_elsewhere`: this Google account already
+  // belongs to a different Zavoia account.
+  "CUSTOMER_AUTH.E57": "googleAccountLinkedElsewhere",
+  GOOGLE_ACCOUNT_LINKED_ELSEWHERE: "googleAccountLinkedElsewhere",
 
   // ── Token validation (password reset & other emailed links) ──
   // Thrown by the backend's TokenService.validateToken: E06 = token not

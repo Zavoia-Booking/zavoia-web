@@ -74,9 +74,9 @@ export class AuthPage {
     this.signInTab = page.getByRole('tab', { name: 'Sign in' })
     this.createAccountTab = page.getByRole('tab', { name: 'Create account' })
 
-    this.enableAccessHeading = page.getByRole('heading', { name: 'Enable marketplace access' })
-    this.sendSecureLinkButton = page.getByRole('button', { name: 'Email me the secure link' })
-    this.backToSignInButton = page.getByRole('button', { name: 'Back to sign in' })
+    this.enableAccessHeading = page.getByRole('heading', { name: 'Use your existing Zavoia account' })
+    this.sendSecureLinkButton = page.getByRole('button', { name: 'Send confirmation link' })
+    this.backToSignInButton = page.getByRole('button', { name: 'Return to sign in' })
 
     this.verifyLinkConfirmHeading = page.getByRole('heading', { name: "Confirm it's you" })
     this.verifyLinkPassword = page.locator('#password')

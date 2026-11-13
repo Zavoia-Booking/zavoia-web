@@ -321,6 +321,8 @@ export const ro: Dictionary = {
         "Nu am putut confirma parola la timp. Introdu-o din nou pentru a continua.",
       googleEmailUnverified:
         "Emailul contului tău Google nu este verificat. Verifică-l la Google sau creează un cont cu emailul și o parolă.",
+      googleAccountLinkedElsewhere:
+        "Acest cont Google este deja conectat la alt cont Zavoia. Conectează-te în acel cont sau folosește alt cont Google.",
       linkCheckFailedHeading: "Nu am putut verifica linkul",
       linkCheckFailedBody:
         "E o problemă de partea noastră, nu cu linkul tău — s-ar putea să fie perfect valabil. Te rugăm să încerci din nou.",

@@ -284,6 +284,7 @@ export const en: {
       googleLinkExpired: string;
       googleLinkVerifyAgain: string;
       googleEmailUnverified: string;
+      googleAccountLinkedElsewhere: string;
       linkCheckFailedHeading: string;
       linkCheckFailedBody: string;
     };
@@ -2083,6 +2084,8 @@ export const en: {
         "We couldn't confirm your password in time. Enter it again to continue.",
       googleEmailUnverified:
         "Your Google account's email isn't verified. Verify it with Google, or create an account with your email and a password.",
+      googleAccountLinkedElsewhere:
+        "This Google account is already connected to another Zavoia account. Sign in to that account, or use a different Google account.",
       linkCheckFailedHeading: "We couldn't check this link",
       linkCheckFailedBody:
         "That's a problem on our side, not with your link — it may still be perfectly good. Please try again.",

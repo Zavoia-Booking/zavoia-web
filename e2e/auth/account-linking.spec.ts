@@ -65,7 +65,7 @@ test.describe('Account linking — register path', () => {
 })
 
 test.describe('Account linking — login path', () => {
-  test('AUTH-M02 logging in with a business-only email swaps the login form for EnableAccessPanel, greeting by name', async ({ page }) => {
+  test('AUTH-M02 logging in with a business-only email swaps the login form for EnableAccessPanel, showing the account email', async ({ page }) => {
     const owner = makeTestOwner()
     await withAnonContext((ctx) => registerBusinessOwnerViaApi(ctx, owner))
 
@@ -76,10 +76,10 @@ test.describe('Account linking — login path', () => {
     await expect(auth.enableAccessHeading).toBeVisible()
     await expect(auth.loginSubmit).toBeHidden()
     await expect(auth.signInTab).toBeHidden()
-    // Login's 409 carries the real firstName/lastName (register's doesn't) —
-    // the greeting must use the owner's real name, not their email.
-    await expect(page.getByText(`Hi ${owner.firstName} ${owner.lastName},`)).toBeVisible()
-    await expect(page.getByText(owner.email, { exact: false })).toBeHidden()
+    // Since the 16 Oct 2026 redesign (2a3ba9a) the panel no longer greets by
+    // name; it shows the business account's email under "Account email".
+    await expect(page.getByText('Account email')).toBeVisible()
+    await expect(page.getByText(owner.email, { exact: false })).toBeVisible()
   })
 })
 
