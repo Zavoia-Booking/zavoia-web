@@ -60,6 +60,7 @@ function svgToDataUrl(svg: SVGSVGElement): string {
   // `currentColor` has nothing to inherit from inside a standalone data URL,
   // so the colour has to be pinned on the root before serialising.
   clone.style.color = GLYPH_COLOR;
+  if (clone.hasAttribute("stroke-width")) clone.setAttribute("stroke-width", GLYPH_STROKE);
   for (const el of Array.from(clone.querySelectorAll("[stroke-width]"))) {
     el.setAttribute("stroke-width", GLYPH_STROKE);
   }

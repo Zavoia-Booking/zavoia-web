@@ -59,6 +59,8 @@ export type RatingBars = { "1": number; "2": number; "3": number; "4": number; "
 export interface LivePreviewProps {
   layout: SectionEntry[];
   data: PreviewData;
+  /** Optional host copy adapter, used by the design demo to label fictional reviews explicitly. */
+  translate?: T;
   /**
    * Render the site chrome (fixed nav + editorial footer) around the sections — true for the full-page
    * preview, false for the per-section scoped card (where a single section is shown on its own).

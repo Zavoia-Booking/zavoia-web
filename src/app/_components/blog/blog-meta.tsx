@@ -6,12 +6,11 @@ export interface BlogMetaProps {
   dot?: string;
 }
 
-// Inline "date · read" meta line with a 3px separator dot. Ported from
-// ZwBlogMeta (docs/web-blog.jsx:69-77).
+// Date and reading time may wrap as whole groups on a narrow card.
 export function BlogMeta({
   date,
   read,
-  size = 13,
+  size = 13.5,
   color = "var(--c-600)",
   dot = "var(--c-400)",
 }: BlogMetaProps) {
@@ -19,19 +18,24 @@ export function BlogMeta({
     <span
       style={{
         display: "inline-flex",
+        flexWrap: "wrap",
         alignItems: "center",
-        gap: 8,
+        gap: "4px 8px",
+        minWidth: 0,
         fontSize: size,
+        lineHeight: 1.45,
+        fontVariantNumeric: "tabular-nums",
         color,
-        whiteSpace: "nowrap",
       }}
     >
-      <span>{date}</span>
-      <span
-        aria-hidden="true"
-        style={{ width: 3, height: 3, borderRadius: "50%", background: dot }}
-      />
-      <span>{read}</span>
+      <span style={{ whiteSpace: "nowrap" }}>{date}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+        <span
+          aria-hidden="true"
+          style={{ width: 3, height: 3, flexShrink: 0, borderRadius: "50%", background: dot }}
+        />
+        {read}
+      </span>
     </span>
   );
 }

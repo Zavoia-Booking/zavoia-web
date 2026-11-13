@@ -1,0 +1,24 @@
+.thumbnail {
+  --wire-soft: var(--c-mist);
+  --wire-ink: color-mix(in oklch, var(--c-ink) 82%, transparent);
+  --wire-line: color-mix(in oklch, var(--c-ink) 20%, var(--c-canvas));
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 64 / 44;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--c-canvas);
+  pointer-events: none;
+}
+
+.thumbnail[data-dark] {
+  --wire-soft: color-mix(in oklch, var(--c-canvas) 30%, var(--c-ink));
+  --wire-ink: var(--c-canvas);
+  --wire-line: color-mix(in oklch, var(--c-canvas) 50%, var(--c-ink));
+}
+
+.thumbnail > i {
+  position: absolute;
+  display: block;
+}

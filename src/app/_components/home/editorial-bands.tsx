@@ -10,6 +10,7 @@ import { localeHref } from "@/i18n/routes";
 import { getMarketingMockup } from "@/lib/marketing/mockups";
 import { MarketingExampleNote } from "../marketing-example-note";
 import styles from "./editorial-bands.module.css";
+import studioActions from "./studio-actions.module.css";
 
 const caveat = localFont({
   src: [
@@ -178,7 +179,12 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
         <div className={styles["studio-copy"]}>
           <h2 className={styles["studio-title"]} id="web-studio-heading">{s.titleFirst}{" "}<br />{s.titleSecond}<em className={styles.signature}>{s.titleAccent}</em></h2>
           <p className={styles["studio-intro"]}>{s.sub}</p>
-          <Link className={styles["studio-cta"]} href={localeHref(locale, "web-studio")} title={s.cta}>{s.cta}<Arrow /></Link>
+          <div className={studioActions.actions}>
+            <Link className={styles["studio-cta"]} href={localeHref(locale, "web-studio")} title={s.cta}>{s.cta}<Arrow /></Link>
+            <Link className={studioActions.secondary} href={{ pathname: localeHref(locale, "web-studio", "demo"), query: { returnTo: `${localeHref(locale)}#web-studio` } }}>
+              {dictionaries[locale].webStudio.hero.demoCta}<Arrow />
+            </Link>
+          </div>
         </div>
       </div>
     </section>

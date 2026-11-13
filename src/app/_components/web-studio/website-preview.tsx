@@ -5,6 +5,7 @@ import type { Locale } from "@/i18n/locales";
 import type { SectionEntry, SectionType } from "@/features/website/types";
 import { displayFontFor } from "@/features/website/components/builder/theme";
 import { demoExampleData, type DemoExampleId } from "./demo-examples";
+import { withDemoSectionCopy } from "./demo-catalog";
 import { SpecimenPlate } from "./specimen-plate";
 import styles from "./preview-device.module.css";
 
@@ -36,13 +37,17 @@ export function WebsitePreview({ locale, example, variant, font, accent, portrai
   const smallScreen = useSyncExternalStore(subscribeDevice, currentDevice, serverDevice);
   const phone = !browser && (portrait || smallScreen);
   const data = useMemo(() => demoExampleData(locale, accent, font, example), [locale, accent, font, example]);
-  const previewLayout = useMemo(() => section && section !== "hero"
-    ? layout.map(entry => ({ ...entry, visible: entry.type === section || entry.type === "nav" }))
-    : layout, [layout, section]);
+  const previewLayout = useMemo(() => {
+    const authored = withDemoSectionCopy(layout, example);
+    return section && section !== "hero"
+      ? authored.map(entry => ({ ...entry, visible: entry.type === section || entry.type === "nav" }))
+      : authored;
+  }, [layout, example, section]);
   const assetKey = `${locale}:${font}:${data.heroImageUrl}`;
   const [loadedAssets, setLoadedAssets] = useState("");
 
   useEffect(() => {
+    if (pending) return;
     let active = true;
     const fontReady = async () => {
       const display = displayFontFor(font);
@@ -60,10 +65,10 @@ export function WebsitePreview({ locale, example, variant, font, accent, portrai
       if (active) setLoadedAssets(assetKey);
     });
     return () => { active = false; window.clearTimeout(timer); cover.onload = null; cover.onerror = null; };
-  }, [assetKey, font, data.businessName, data.heroImageUrl, variant]);
+  }, [assetKey, font, data.businessName, data.heroImageUrl, variant, pending]);
 
   return (
-    <figure className={styles.preview} aria-label={label} aria-busy={loadedAssets !== assetKey} data-studio-preview="" data-device={phone ? "phone" : "desktop"}>
+    <figure className={styles.preview} aria-label={label} aria-busy={pending || loadedAssets !== assetKey} data-studio-preview="" data-device={phone ? "phone" : "desktop"} data-responsive-phone={!browser && !portrait ? "" : undefined}>
       <div className={phone ? styles.phone : styles.browser}>
         {!phone && <div className={styles.browserBar} aria-hidden="true"><span className={styles.browserDots}><i /><i /><i /></span></div>}
         <div className={styles.glass}>

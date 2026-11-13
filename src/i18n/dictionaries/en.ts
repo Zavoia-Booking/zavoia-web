@@ -11,6 +11,14 @@ export const en: {
   locationPage: typeof locationPageEn;
   appointmentPage: typeof appointmentPageEn;
   textarea: typeof textareaEn;
+  datePicker: {
+    chooseMonth: string;
+    chooseYear: string;
+    previousYear: string;
+    nextYear: string;
+    previousYears: string;
+    nextYears: string;
+  };
   imageViewer: { unavailable: string };
   marketingExamples: { websites: string; product: string; improveMap: string };
   preposition: string;
@@ -189,8 +197,17 @@ export const en: {
     nothingHere: string;
     copyLink: string;
     linkCopied: string;
+    copyFailed: string;
+    shareFailed: string;
     shareLabel: string;
     backToTop: string;
+    filterLabel: string;
+    paginationLabel: string;
+    emptyCategoryTitle: string;
+    emptyCategoryBody: string;
+    showAll: string;
+    storySingular: string;
+    breadcrumbLabel: string;
   };
   auth: {
     pageTitle: string;
@@ -548,6 +565,7 @@ export const en: {
     };
     support: {
       intro: string;
+      filters: { label: string; all: string; active: string; closed: string; emptyTitle: string; emptyBody: string };
       report: {
         title: string;
         sub: string;
@@ -580,6 +598,9 @@ export const en: {
       new: {
         title: string;
         categoryLabel: string;
+        problemOption: string;
+        questionOption: string;
+        guidance: string;
         messageLabel: string;
         messagePlaceholder: string;
         submit: string;
@@ -587,6 +608,7 @@ export const en: {
         cancel: string;
       };
       thread: {
+        label: string;
         you: string;
         support: string;
         empty: string;
@@ -595,6 +617,7 @@ export const en: {
         placeholder: string;
         send: string;
         sending: string;
+        closedTitle: string;
         closedNote: string;
       };
       close: {
@@ -932,6 +955,7 @@ export const en: {
     whatSummary: string;
     whatPlaceholder: string;
     browseByIndustry: string;
+    allInIndustry: string;
     seeAllIndustries: string;
     allInCategory: string;
     seeMoreTags: string;
@@ -1148,11 +1172,34 @@ export const en: {
   tryStudio: {
     pageTitle: string;
     pageDescription: string;
-    demo: string;
+    panelTitle: string;
+    demoDisclosure: string;
     back: string;
     customize: string;
     closeCustomization: string;
+    sectionsTab: string;
+    moreColours: string;
+    fewerColours: string;
+    chooseFont: string;
+    changeExample: string;
+    demoInfo: string;
+    requiredSectionHint: string;
+    hideSection: string;
+    sectionHidden: string;
+    sectionHiddenHint: string;
+    visibleSectionLabel: string;
+    minimizeControls: string;
+    moveControls: string;
+    moveControlsHint: string;
+    positionControls: string;
+    moveUp: string;
+    moveDown: string;
+    moveLeft: string;
+    moveRight: string;
+    resetPosition: string;
+    previewSettings: string;
     shuffle: string;
+    shuffleCompact: string;
     cta: string;
     previous: string;
     reset: string;
@@ -1161,12 +1208,11 @@ export const en: {
     copyError: string;
     allLocked: string;
     locksLabel: string;
+    keepHint: string;
     dimension: { layout: string; colour: string; type: string };
     lock: { layout: string; colour: string; type: string };
-    locked: { layout: string; colour: string; type: string };
     section: string;
     showSection: string;
-    noExampleReviews: string;
     style: string;
     font: string;
     colour: string;
@@ -1175,8 +1221,6 @@ export const en: {
     trialNote: string;
     demoFeedback: string;
     previewLabel: string;
-    fontNames: Record<string, string>;
-    accentNames: Record<string, string>;
   };
   webStudio: {
     pageTitle: string;
@@ -1192,7 +1236,7 @@ export const en: {
       title: string;
       previewLink: string;
       stylesNote: string;
-      examples: Record<"fitness" | "pets" | "music" | "wellness" | "automotive", { body: string; previewAlt: string }>;
+      examples: Record<"fitness" | "pets" | "music" | "wellness" | "tattoo" | "tailoring" | "automotive", { body: string; previewAlt: string }>;
     };
     connected: {
       title: string;
@@ -1226,7 +1270,6 @@ export const en: {
       lead: string;
       planName: string;
       perMonth: string;
-      owner: string;
       features: string[];
       cta: string;
       trialNote: string;
@@ -1266,6 +1309,7 @@ export const en: {
       baseLimitNotice: string;
       subscription: string;
       memberPrice: string;
+      teamSeatPrice: { amount: string; label: string };
       totalFor: string;
       justYou: string;
       youAnd: string;
@@ -1366,7 +1410,6 @@ export const en: {
       lead: string;
       ownerIncluded: string;
       additionalTeamMembers: { one: string; few: string; other: string };
-      memberPrice: string;
       baseDescription: string;
       plusDescription: string;
       plusBenefitsTitle: string;
@@ -1397,7 +1440,6 @@ export const en: {
       titlePre: string;
       titleAccent: string;
       lead: string;
-      memberPrice: string;
     };
     billing: {
       currencyNote: string;
@@ -1719,9 +1761,17 @@ export const en: {
   locationPage: locationPageEn,
   appointmentPage: appointmentPageEn,
   textarea: textareaEn,
+  datePicker: {
+    chooseMonth: "Choose month",
+    chooseYear: "Choose year",
+    previousYear: "Previous year",
+    nextYear: "Next year",
+    previousYears: "Previous years",
+    nextYears: "Next years",
+  },
   imageViewer: { unavailable: "This photo couldn't be loaded." },
   marketingExamples: {
-    websites: "The businesses in these website examples are fictional.",
+    websites: "The businesses and teams in these website examples are fictional. Team portraits are AI-generated.",
     product: "Product previews use fictional businesses and sample data.",
     improveMap: "Improve this map",
   },
@@ -1901,7 +1951,7 @@ export const en: {
       "Guides, tips and news about local services across Romania.",
     empty: "No posts published yet. Check back soon.",
     readMore: "Read more",
-    backToList: "Back to blog",
+    backToList: "Back to Journal",
     kicker: "The Journal",
     heading: "Notes from the neighbourhood",
     intro:
@@ -1928,8 +1978,17 @@ export const en: {
     nothingHere: "Nothing here yet.",
     copyLink: "Copy link",
     linkCopied: "Link copied to clipboard",
+    copyFailed: "Couldn't copy the link. Please try again.",
+    shareFailed: "Couldn't share this article. Please try again.",
     shareLabel: "Share",
     backToTop: "Back to top",
+    filterLabel: "Filter articles",
+    paginationLabel: "Article pages",
+    emptyCategoryTitle: "No articles in this category yet.",
+    emptyCategoryBody: "Explore the other articles in the Journal.",
+    showAll: "View all articles",
+    storySingular: "article",
+    breadcrumbLabel: "Breadcrumb",
   },
   auth: {
     pageTitle: "Sign in or create an account — Zavoia",
@@ -2326,7 +2385,8 @@ export const en: {
     },
     support: {
       intro:
-        "Issues you've reported to our team. Track replies and reply back here.",
+        "Ask a question, report a problem and keep track of our replies here.",
+      filters: { label: "Filter tickets", all: "All", active: "Active", closed: "Closed", emptyTitle: "No tickets in this view", emptyBody: "Choose All to see your other conversations." },
       report: {
         title: "Report an issue",
         sub: "We look into every report, usually within a few hours",
@@ -2338,7 +2398,7 @@ export const en: {
         nothingYet:
           "Nothing to report? All good. If something goes wrong, open a ticket and we'll sort it.",
       },
-      newTicket: "Report an issue",
+      newTicket: "Contact support",
       backToTickets: "All tickets",
       loading: "Loading your tickets...",
       loadError: "Couldn't load your tickets. Please try again.",
@@ -2359,8 +2419,11 @@ export const en: {
       unreadAria: "Unread reply",
       updated: "Updated {date}",
       new: {
-        title: "Report an issue",
+        title: "How can we help?",
         categoryLabel: "What's this about?",
+        problemOption: "Something isn't working",
+        questionOption: "I have a question",
+        guidance: "Tell us what you need help with. If something isn't working, include the steps that led to the problem.",
         messageLabel: "Tell us what happened",
         messagePlaceholder: "Describe the issue or question in a few sentences…",
         submit: "Submit ticket",
@@ -2368,6 +2431,7 @@ export const en: {
         cancel: "Cancel",
       },
       thread: {
+        label: "Conversation",
         you: "You",
         support: "Zavoia Support",
         empty: "No messages yet.",
@@ -2376,7 +2440,8 @@ export const en: {
         placeholder: "Write a reply…",
         send: "Send",
         sending: "Sending…",
-        closedNote: "This ticket is closed. Report a new issue if you need further help.",
+        closedTitle: "Ticket closed",
+        closedNote: "You can still read the messages. Contact support if you need more help.",
       },
       close: {
         action: "Close ticket",
@@ -2734,7 +2799,8 @@ export const en: {
     when: "When?",
     whatSummary: "All services",
     whatPlaceholder: "All services and businesses",
-    browseByIndustry: "Browse by industry",
+    browseByIndustry: "Explore industries",
+    allInIndustry: "Any category in this industry",
     seeAllIndustries: "See all industries",
     allInCategory: "All",
     seeMoreTags: "See more",
@@ -3098,83 +3164,63 @@ export const en: {
   tryStudio: {
     "pageTitle": "Web Studio demo: explore website designs",
     "pageDescription": "Explore a complete sample website. Choose section styles, fonts and colours, or try another design. No account needed.",
-    "demo": "Fictional business",
-    "back": "Back to Web Studio",
+    "panelTitle": "Web Studio · Demo",
+    "demoDisclosure": "The business, team, reviews and ratings are fictional. Team portraits are AI-generated.",
+    "back": "Back",
     "customize": "Customize",
     "closeCustomization": "Close customization",
+    "sectionsTab": "Sections",
+    "moreColours": "More colours",
+    "fewerColours": "Fewer colours",
+    "chooseFont": "Choose a font",
+    "changeExample": "Choose demo business",
+    "demoInfo": "About this demo",
+    "requiredSectionHint": "Always visible. You can change its style.",
+    "hideSection": "Hide this section",
+    "sectionHidden": "Hidden",
+    "sectionHiddenHint": "This section is hidden. Turn it on to preview this style.",
+    "visibleSectionLabel": "Currently in view",
+    "minimizeControls": "Minimize panel",
+    "moveControls": "Move controls",
+    "moveControlsHint": "Drag to move. Click for positioning options. Arrow keys move; Home resets.",
+    "positionControls": "Position controls",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "moveLeft": "Move left",
+    "moveRight": "Move right",
+    "resetPosition": "Reset position",
+    "previewSettings": "Preview settings",
     "shuffle": "Try another design",
+    "shuffleCompact": "Shuffle",
     "cta": "Start free trial",
-    "previous": "Previous design",
+    "previous": "Undo last change",
     "reset": "Reset design",
     "copyLink": "Copy design link",
     "copied": "Design link copied",
     "copyError": "Could not copy the link. You can copy it from your address bar.",
-    "allLocked": "Unlock a choice in Customize to try another design.",
-    "locksLabel": "Keep when trying another design",
+    "allLocked": "Allow at least one setting to change.",
+    "locksLabel": "Keep unchanged",
+    "keepHint": "Selected settings stay the same when you try another design.",
     "dimension": {
-      "layout": "Layouts",
+      "layout": "Styles",
       "colour": "Colour",
       "type": "Font"
     },
     "lock": {
-      "layout": "Keep these layouts",
-      "colour": "Keep this colour",
-      "type": "Keep this font"
-    },
-    "locked": {
-      "layout": "Layouts kept. Select to unlock.",
-      "colour": "Colour kept. Select to unlock.",
-      "type": "Font kept. Select to unlock."
+      "layout": "Keep section styles",
+      "colour": "Keep the selected colour",
+      "type": "Keep the selected font"
     },
     "section": "Section",
     "showSection": "Show this section",
-    "noExampleReviews": "This fictional business has no customer reviews.",
     "style": "Style",
     "font": "Font",
     "colour": "Colour",
     "example": "Example business",
-    "stylesNote": "This demo includes standard and optional premium styles. Premium styles are purchased separately, once.",
-    "trialNote": "Your {days}-day trial starts on Base. Publishing your website requires Plus.",
-    "demoFeedback": "This is a sample business. Bookings and contact actions are unavailable in the demo.",
+    "stylesNote": "Explore included and optional premium styles. Premium styles are one-time purchases.",
+    "trialNote": "{days}-day Base trial · Publish with Plus",
+    "demoFeedback": "This is a demo business. Booking and contact actions are unavailable.",
     "previewLabel": "Sample website preview",
-    "fontNames": {
-      "modern": "Modern",
-      "classic": "Classic",
-      "elegant": "Elegant",
-      "friendly": "Friendly"
-    },
-    "accentNames": {
-      "terracotta": "Terracotta",
-      "jade": "Jade",
-      "mulberry": "Mulberry",
-      "forest": "Forest",
-      "marine": "Marine",
-      "ink": "Ink",
-      "espresso": "Espresso",
-      "ochre": "Ochre",
-      "olive": "Olive",
-      "moss": "Moss",
-      "pine": "Pine",
-      "petrol": "Petrol",
-      "slate": "Slate",
-      "indigo": "Indigo",
-      "violet": "Violet",
-      "orchid": "Orchid",
-      "plum": "Plum",
-      "rosewood": "Rosewood",
-      "blush": "Blush",
-      "copper": "Copper",
-      "brick": "Brick",
-      "rust": "Rust",
-      "amber": "Amber",
-      "caramel": "Caramel",
-      "greige": "Greige",
-      "teal": "Teal",
-      "peacock": "Peacock",
-      "navy": "Navy",
-      "burgundy": "Burgundy",
-      "graphite": "Graphite"
-    }
   },
   webStudio: {
     "pageTitle": "Web Studio: your own website, connected to Zavoia",
@@ -3205,6 +3251,14 @@ export const en: {
         "wellness": {
           "body": "Let the atmosphere speak. Pair photographs of your space with treatments, durations and a clear way to book.",
           "previewAlt": "Example massage and wellness website for {business}."
+        },
+        "tattoo": {
+          "body": "Introduce your studio and artists. Explain consultations, tattoo sessions and piercing appointments before clients choose their visit.",
+          "previewAlt": "Example tattoo and piercing website for {business}."
+        },
+        "tailoring": {
+          "body": "From a first fitting to the final stitch. Show your workshop, explain alterations and let clients book time to discuss their garments.",
+          "previewAlt": "Example tailoring and repairs website for {business}."
         },
         "automotive": {
           "body": "Make the next garage visit easier. Explain maintenance, diagnostics and tyre services, with a clear way to book.",
@@ -3271,7 +3325,6 @@ export const en: {
       "lead": "Website publishing is included in Zavoia Plus, alongside your calendar, online booking and tools for running your business.",
       "planName": "Zavoia Plus",
       "perMonth": "per month",
-      "owner": "Your account is included. Additional team seats cost {price} each per month.",
       "features": [
         "Your website at its own Zavoia address",
         "Online booking for locations where you enable it",
@@ -3345,6 +3398,7 @@ export const en: {
       baseLimitNotice: "Base supports up to {count} besides you. Choose Plus for a larger team.",
       subscription: "{price} plan per month, including you",
       memberPrice: "+ {price} per extra team member each month",
+      teamSeatPrice: { amount: "+{price}/month", label: "per additional team seat" },
       totalFor: "For {who}",
       justYou: "just you",
       youAnd: "you + {members}",
@@ -3545,7 +3599,6 @@ export const en: {
         few: "{count} additional team members",
         other: "{count} additional team members",
       },
-      memberPrice: "Each additional team seat costs {price}/month on either plan.",
       baseDescription: "Manage your bookings and your team.",
       plusDescription: "Publish your website and manage more locations.",
       plusBenefitsTitle: "Everything in Base",
@@ -3630,7 +3683,6 @@ export const en: {
       titlePre: "No booking ",
       titleAccent: "commission.",
       lead: "Online booking and team management, with your own website on Plus.",
-      memberPrice: "Your account is included. Each additional team seat costs {price}/month and covers one member across your business’s locations."
     },
     billing: {
       currencyNote: "Prices shown in {currency}. Your billing currency depends on your business country.",

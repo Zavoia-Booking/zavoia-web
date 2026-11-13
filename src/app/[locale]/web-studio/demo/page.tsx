@@ -4,6 +4,7 @@ import { LOCALES, isLocale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { ShuffleExperience } from "@/app/_components/try/shuffle-experience";
+import { demoReturnHref } from "@/app/_components/try/demo-return-href";
 
 export const dynamicParams = false;
 
@@ -36,5 +37,5 @@ export default async function WebsiteDemoPage({ params, searchParams }: Props) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const query = await searchParams;
-  return <ShuffleExperience locale={locale} initialCode={one(query.s)} source={one(query.src)} initialExample={one(query.example)} initialHidden={one(query.hide)} />;
+  return <ShuffleExperience locale={locale} backHref={demoReturnHref(one(query.returnTo), locale)} initialCode={one(query.s)} source={one(query.src)} initialExample={one(query.example)} initialHidden={one(query.hide)} initialDevice={one(query.device)} />;
 }

@@ -31,7 +31,10 @@
 .price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; margin: 0; }
 .price strong { font-size: clamp(46px, 4.4vw, 66px); font-weight: 500; line-height: 1; letter-spacing: -.05em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .price > span { color: oklch(81% .014 76); font-size: 14px; }
-.owner { margin: 24px 0; padding-top: 24px; border-top: 1px solid oklch(94% .01 76 / .2); color: oklch(81% .014 76); font-size: 14px; line-height: 1.6; }
+.charges { margin: 24px 0; padding-top: 24px; border-top: 1px solid oklch(94% .01 76 / .2); color: oklch(81% .014 76); }
+.owner { margin: 0; font-size: 14px; line-height: 1.6; }
+.charges .seatPrice { margin-top: 6px; }
+.seatPrice strong { color: var(--c-canvas); }
 .trial { width: 100%; padding: 8px 8px 8px 24px; background: oklch(97% .014 76); color: var(--c-ink); }
 .arrowWell { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; background: var(--p-500); color: var(--c-canvas); }
 .trialNote { margin: 14px 0 0; color: oklch(77% .014 76); font-size: 13px; line-height: 1.6; text-wrap: pretty; }
@@ -79,7 +82,7 @@
   .plusHeading { flex-direction: row; align-items: baseline; }
   .plusHeading h3 { font-size: 24px; }
   .price strong { font-size: 48px; }
-  .owner { margin-block: 18px; border: 0; padding: 0; }
+  .charges { margin-block: 18px; border: 0; padding: 0; }
   .stylesInfo { gap: 18px; margin-top: 34px; padding-top: 28px; }
 }
 @media (max-width: 360px) {

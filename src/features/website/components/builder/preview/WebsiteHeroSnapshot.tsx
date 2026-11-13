@@ -35,7 +35,9 @@ export function WebsiteHeroSnapshot({ entry, layout, data, t }: WebsiteHeroSnaps
   const first = visible.find((section) => !["announcement", "nav", "footer"].includes(section.type));
   // Match LivePreview: older layouts retain navigation; an explicit hidden entry disables it.
   const navOn = publishedLayout.length > 0 && !publishedLayout.some((section) => section.type === "nav" && !section.visible);
-  const firstHeroVariant = (!bar || floatingAnnouncement) && first?.type === "hero"
+  const navBelowAnnouncement = navOn && !!bar && !floatingAnnouncement
+    && first?.type === "hero";
+  const firstHeroVariant = (!bar || floatingAnnouncement || navBelowAnnouncement) && first?.type === "hero"
     ? first.variant
     : null;
   const overHero = firstHeroVariant !== null;
@@ -54,12 +56,22 @@ export function WebsiteHeroSnapshot({ entry, layout, data, t }: WebsiteHeroSnaps
 
   return (
     <StaticPreviewContext.Provider value={true}>
-      <div className={cn("mc-content", overHero && "mc-content--nav-overlay")}>
+      <div className={cn("mc-content", overHero && !navBelowAnnouncement && "mc-content--nav-overlay")}>
         {bar && !floatingAnnouncement ? (
-          <div className="relative z-30">
+          <div className={cn("relative z-30", navBelowAnnouncement && "mc-announcement-nav-overlay")}>
             {announcementNode}
             {navOn && (
-              <Nav data={data} layout={publishedLayout} t={t} overHero={false} progress={0} navRef={null} sticky={false} />
+              <Nav
+                data={data}
+                layout={publishedLayout}
+                t={t}
+                overHero={overHero}
+                overHeroTone={firstHeroVariant === "tumble" ? "light" : "dark"}
+                ctaFrost={firstHeroVariant === "default"}
+                progress={0}
+                navRef={null}
+                sticky={false}
+              />
             )}
           </div>
         ) : (

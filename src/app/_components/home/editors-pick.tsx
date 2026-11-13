@@ -11,6 +11,7 @@ import { industryVisual } from "@/lib/marketplace/industry-visuals";
 import type { Locale } from "@/i18n/locales";
 import { WebsiteHeroPreview } from "./website-hero-preview";
 import cardStyles from "./website-card.module.css";
+import studioActions from "./studio-actions.module.css";
 
 const pad2 = (n: number) => String(n + 1).padStart(2, "0");
 
@@ -377,6 +378,7 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
 
   return (
     <section
+      id="website-showcase"
       style={{
         position: "relative",
         overflow: "hidden",
@@ -501,28 +503,33 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
               >
                 {s.sub}
               </p>
-              <Link
-                href={localeHref(locale, "web-studio")}
-                title={s.cta}
-                className="tap zw-btn"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  background: "#fff",
-                  color: "var(--c-900)",
-                  border: "1px solid rgba(28,28,26,0.14)",
-                  borderRadius: "var(--r-full)",
-                  padding: "15px 28px",
-                  fontSize: 16,
-                  fontWeight: 600,
-                  letterSpacing: "-0.01em",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {s.cta}
-              </Link>
+              <div className={studioActions.actions}>
+                <Link
+                  href={localeHref(locale, "web-studio")}
+                  title={s.cta}
+                  className="tap zw-btn"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textDecoration: "none",
+                    background: "#fff",
+                    color: "var(--c-900)",
+                    border: "1px solid rgba(28,28,26,0.14)",
+                    borderRadius: "var(--r-full)",
+                    padding: "15px 28px",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    letterSpacing: "-0.01em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {s.cta}
+                </Link>
+                <Link className={studioActions.secondary} href={{ pathname: localeHref(locale, "web-studio", "demo"), query: { returnTo: `${localeHref(locale)}#website-showcase` } }}>
+                  {dict.webStudio.hero.demoCta}<Icon name="arrowR" size={16} />
+                </Link>
+              </div>
 
               {/* Pager (hidden by the rAF loop when the rail has no overflow) */}
               <div

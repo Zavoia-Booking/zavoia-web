@@ -1,6 +1,65 @@
 {
   "businessPage": {
+    "branding": {
+      "brandColor": {
+        "swatches": {
+          "terracotta": "Terracotta",
+          "jade": "Jade",
+          "mulberry": "Mulberry",
+          "forest": "Forest",
+          "marine": "Marine",
+          "ink": "Ink",
+          "espresso": "Espresso",
+          "ochre": "Ochre",
+          "olive": "Olive",
+          "moss": "Moss",
+          "pine": "Pine",
+          "petrol": "Petrol",
+          "slate": "Slate",
+          "indigo": "Indigo",
+          "violet": "Violet",
+          "orchid": "Orchid",
+          "plum": "Plum",
+          "rosewood": "Rosewood",
+          "blush": "Blush",
+          "copper": "Copper",
+          "brick": "Brick",
+          "rust": "Rust",
+          "amber": "Amber",
+          "caramel": "Caramel",
+          "greige": "Greige",
+          "teal": "Teal",
+          "peacock": "Peacock",
+          "navy": "Navy",
+          "burgundy": "Burgundy",
+          "graphite": "Graphite"
+        }
+      }
+    },
+    "theme": {
+      "fonts": {
+        "modern": "Geist",
+        "classic": "Libre Caslon",
+        "elegant": "Bodoni Moda",
+        "friendly": "Bricolage",
+        "playfair": "Playfair",
+        "cormorant": "Cormorant",
+        "italiana": "Italiana",
+        "marcellus": "Marcellus",
+        "dmserif": "DM Serif",
+        "crimson": "Crimson",
+        "grotesk": "Grotesk",
+        "sora": "Sora",
+        "manrope": "Manrope",
+        "unbounded": "Unbounded"
+      }
+    },
     "builder": {
+      "deviceGroup": "Preview device",
+      "deviceDesktop": "Desktop",
+      "deviceTablet": "Tablet",
+      "deviceMobile": "Mobile",
+      "inspectorAlwaysOn": "Always on",
       "preview": {
         "allHidden": "All sections are hidden. Show at least one to preview your page.",
         "book": "Book now",

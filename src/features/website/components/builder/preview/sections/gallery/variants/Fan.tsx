@@ -19,6 +19,10 @@ type FanProps = GalleryVariantProps & {
 
 const formatCount = (value: number) => String(value).padStart(2, "0");
 
+function useReducedMotionPreference() {
+  // Shared hook: OS preference + static thumbnails + the at-rest desktop mock (PreviewAtRestContext).
+  return useReducedMotion();
+}
 
 /** Undulating, slice-bent portrait wall with direct drag, idle drift, and lightbox handoff. */
 export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = false }: FanProps) {
@@ -26,7 +30,7 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
   const downIndexRef = useRef(-1);
   const directionRef = useRef(1);
   const optionPrefix = useId().replace(/:/g, "");
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useReducedMotionPreference();
   const inView = useInView(stageRef, { threshold: 0.05 });
   const [hovered, setHovered] = useState(false);
   const [phase, setPhase] = useState(0);
@@ -169,7 +173,7 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
 
           const selected = index === fan.active;
           const centered = distance < 0.5;
-          const cardX = offset * step * spread;
+          const cardX = Number((offset * step * spread).toFixed(1));
           return (
             <figure
               key={index}
@@ -187,7 +191,12 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
               }}
             >
               <div className="mc-galfan-bend" aria-hidden>
-                <span className="mc-galfan-glow" />
+                <span
+                  className="mc-galfan-glow"
+                  style={{
+                    transform: `translateX(${-cardX}px) perspective(var(--mc-galfan-perspective)) translateX(${cardX}px) translateZ(-16px)`,
+                  }}
+                />
                 {Array.from({ length: slices }, (_, slice) => {
                   const waveUnit = cardWidth / step;
                   const edgeA = offset + (slice / slices - 0.5) * waveUnit;
@@ -202,6 +211,11 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
                     `linear-gradient(90deg, rgba(4, 3, 3, ${shadeAt(edgeA).toFixed(3)}), ` +
                     `rgba(4, 3, 3, ${shadeAt(edgeB).toFixed(3)}))`;
                   const left = Math.round(slice * sliceWidth) - 1;
+                  const width = Math.round(sliceWidth) + 2;
+                  // Keep the stage's vanishing point, but project each strip independently.
+                  // Shared preserve-3d sorting cuts holes through overlapping strips at
+                  // fractional browser zoom. Flat composition keeps the same curved surface.
+                  const perspectiveOrigin = cardWidth / 2 - cardX - left - width / 2;
 
                   return (
                     <span
@@ -209,8 +223,9 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
                       className={`mc-galfan-slice${slice === 0 ? " is-first" : slice === slices - 1 ? " is-last" : ""}`}
                       style={{
                         left: `${left}px`,
-                        width: `${Math.round(sliceWidth) + 2}px`,
+                        width: `${width}px`,
                         transform:
+                          `translateX(${perspectiveOrigin}px) perspective(var(--mc-galfan-perspective)) translateX(${-perspectiveOrigin}px) ` +
                           `translateZ(${((depthA + depthB) / 2).toFixed(1)}px) ` +
                           `rotateY(${rotationY.toFixed(2)}deg) scaleX(${stretch.toFixed(4)})`,
                       }}

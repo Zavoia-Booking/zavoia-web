@@ -100,20 +100,3 @@ export function collectHeadings(
 
   return out;
 }
-
-// `_key` of the first body paragraph (style "normal" or unset). The prose
-// renderer adds the drop-cap to this paragraph only. Returns undefined when
-// the body opens with a non-paragraph block (heading, image, …).
-export function firstParagraphKey(
-  blocks: PortableTextBlock[] | undefined,
-): string | undefined {
-  if (!blocks) return undefined;
-  for (const block of blocks) {
-    if (!block || block._type !== "block") continue;
-    const style = (block as { style?: string }).style;
-    if (style === "normal" || style === undefined) {
-      return (block as { _key: string })._key;
-    }
-  }
-  return undefined;
-}

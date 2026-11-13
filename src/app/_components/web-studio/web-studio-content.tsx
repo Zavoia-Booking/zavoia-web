@@ -7,10 +7,11 @@ import { Icon } from "@/components/ui/icon";
 import { formatPrice, getPlanPricing, premiumStyleStartingPrice } from "@/lib/marketing/pricing";
 import { BRAND_ACCENT_CATALOG, FONT_CATALOG } from "@/features/website/components/builder/theme";
 import { MarketingFaq } from "@/app/_components/for-business/faq-section";
+import { TeamSeatPrice } from "@/app/_components/for-business/team-seat-price";
 import { registrationHref, SIGN_IN_URL } from "@/app/_components/for-business/links";
 import { caveat } from "@/styles/fonts";
 import m from "@/app/_components/for-business/marketing.module.css";
-import { WebsiteShowcase } from "./website-showcase";
+import { WebStudioHero } from "./web-studio-hero";
 import { ConnectedArt, StoryConnectors } from "./connected-art";
 import { ConnectedStory } from "./connected-story";
 import { SetupSection } from "./setup-section";
@@ -26,21 +27,7 @@ export function WebStudioContent({ locale, pending = false }: { locale: Locale; 
   const signupHref = registrationHref(locale);
   return (
     <div className={`${styles.page} ${caveat.variable}`} data-web-studio="" data-locale={locale}>
-      <section className={styles.hero} aria-labelledby="web-studio-title">
-        <div className={`zw-container ${styles.heroLayout}`}>
-          <div className={styles.heroCopy}>
-            <h1 id="web-studio-title" className={styles.title}>
-              <span>{t.hero.titleLead}</span>{" "}
-              <span>{t.hero.titleBridge}{" "}<span className={m.signature}>{t.hero.titleAccent}</span></span>
-            </h1>
-            <p className={styles.heroLead}>{t.hero.lead}</p>
-            <div className={styles.heroActions}>
-              <Link className={styles.primaryAction} href={demoHref}>{t.hero.demoCta}<span className={styles.heroArrow}><Icon name="arrowR" size={18} /></span></Link>
-            </div>
-          </div>
-          <div className={styles.designCanvas} id="designs"><WebsiteShowcase locale={locale} copy={t.showcase} pending={pending} /></div>
-        </div>
-      </section>
+      <WebStudioHero locale={locale} hero={t.hero} showcase={t.showcase} industries={dictionaries[locale].industries} exampleNote={dictionaries[locale].marketingExamples.websites} pending={pending} />
 
       <section className={styles.connected} aria-labelledby="connected-title" data-studio-connected="">
         <div className="zw-container">
@@ -83,7 +70,10 @@ export function WebStudioContent({ locale, pending = false }: { locale: Locale; 
                 <h3>{t.publishing.planName}</h3>
                 <p className={styles.price}><strong>{formatPrice(pricing.plans.plus.monthly, pricing.currency)}</strong><span>{t.publishing.perMonth}</span></p>
               </div>
-              <p className={styles.owner}>{format(t.publishing.owner, { price: formatPrice(pricing.teamMember, pricing.currency) })}</p>
+              <div className={styles.charges}>
+                <p className={styles.owner}>{dictionaries[locale].forBusiness.plans.ownerIncluded}</p>
+                <TeamSeatPrice locale={locale} className={styles.seatPrice} />
+              </div>
               <a className={styles.trial} href={signupHref}>{format(t.publishing.cta, values)}<span className={styles.arrowWell}><Icon name="arrowR" size={18} /></span></a>
               <p className={styles.trialNote}>{format(t.publishing.trialNote, values)}</p>
               <a className={`${styles.textLink} ${styles.signIn}`} href={SIGN_IN_URL}>{t.publishing.signInLink}<Icon name="arrowR" size={15} /></a>

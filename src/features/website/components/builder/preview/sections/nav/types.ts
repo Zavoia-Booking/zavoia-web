@@ -3,7 +3,7 @@ import type { SectionEntry } from "../../../../../types";
 import type { PreviewData, T } from "../../shared/types";
 
 /** Header snapshots use published identity without fetching the rest of the booking catalog. */
-export type NavPreviewData = Pick<PreviewData, "businessName" | "logo"> & Partial<Pick<PreviewData, "social">>;
+export type NavPreviewData = Pick<PreviewData, "businessName" | "logo"> & Partial<Pick<PreviewData, "social" | "fontKey">>;
 
 /** Contract the Nav layout variant renders against — the full set of chrome inputs LivePreview computes
  *  (frost progress, over-hero state, sticky-wrapper ownership, and the shared element ref). */

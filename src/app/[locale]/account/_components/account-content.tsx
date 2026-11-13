@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
@@ -52,6 +53,7 @@ import type {
 } from "@/lib/api/marketplace/types";
 import { SupportSection } from "./support-section";
 import styles from "./account-content.module.css";
+import disclosure from "@/components/ui/disclosure-motion.module.css";
 import {
   NAME_MAX_LENGTH,
   NAME_MIN_LENGTH,
@@ -68,54 +70,29 @@ type SectionId = "personal" | "preferences" | "security" | "support";
 type AcctDict = Dictionary["account"];
 
 // ─────────────────────────────────────────────
-// Card / section primitives (Tailwind-free inline styles, matching the
-// prototype's surface treatment so the page reads as one design system).
+// Shared account presentation: flat settings groups and readable section labels.
 // ─────────────────────────────────────────────
 
 function Card({ children }: { children: ReactNode }) {
+  return <div className={styles.settingsGroup}>{children}</div>;
+}
+
+/** Keep closing forms out of the tab order while Radix finishes their exit. */
+function FormReveal({ open, id, children }: { open: boolean; id?: string; children: ReactNode }) {
   return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.08)",
-        borderRadius: 16,
-        boxShadow: "var(--sh-sm)",
-        overflow: "hidden",
-      }}
-    >
-      {children}
-    </div>
+    <Collapsible.Root open={open} className={disclosure.root}>
+      <Collapsible.Content id={id} className={styles.formReveal} inert={!open} aria-hidden={!open}>
+        <div className={styles.formRevealBody}>{children}</div>
+      </Collapsible.Content>
+    </Collapsible.Root>
   );
 }
 
 function SectionLabel({ children, sub }: { children: ReactNode; sub?: string }) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "var(--c-500)",
-        }}
-      >
-        {children}
-      </div>
-      {sub && (
-        <div
-          className="txt-pretty"
-          style={{
-            fontSize: 13,
-            color: "var(--c-500)",
-            marginTop: 6,
-            lineHeight: 1.45,
-          }}
-        >
-          {sub}
-        </div>
-      )}
+    <div className={styles.groupHeading}>
+      <h2>{children}</h2>
+      {sub && <p className="txt-pretty">{sub}</p>}
     </div>
   );
 }
@@ -292,18 +269,19 @@ function EditableRow({
       }}
     >
       <div
+        className={styles.fieldRow}
+        data-editing={editing || undefined}
         style={{
           display: "flex",
-          alignItems: editing ? "center" : "flex-start",
           justifyContent: "space-between",
           gap: 16,
         }}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div>
           <div
             id={labelId}
             style={{
-              fontSize: 14.5,
+              fontSize: 15,
               fontWeight: 600,
               letterSpacing: "-0.01em",
               color: "var(--c-900)",
@@ -312,7 +290,7 @@ function EditableRow({
             {label}
           </div>
           {editing ? (
-            type === "date" ? (
+            <div className={styles.fieldEditor}>{type === "date" ? (
               <DatePicker
                 aria-labelledby={labelId}
                 value={draft}
@@ -350,8 +328,8 @@ function EditableRow({
                     borderRadius: 10,
                     border: error
                       ? "1px solid var(--s-error-600)"
-                      : "1px solid rgba(28,28,26,0.18)",
-                    fontSize: 14,
+                      : "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
+                    fontSize: 16,
                     color: "var(--c-900)",
                     background: "#fff",
                     outline: "none",
@@ -370,12 +348,12 @@ function EditableRow({
                   </InlineError>
                 )}
               </>
-            )
+            )}</div>
           ) : (
             <div
               style={{
-                fontSize: 14,
-                color: muted ? "var(--c-400)" : "var(--c-600)",
+                fontSize: 16,
+                color: muted ? "var(--c-500)" : "var(--c-700)",
                 marginTop: 4,
               }}
             >
@@ -391,12 +369,13 @@ function EditableRow({
               onClick={commit}
               disabled={saving || saveDisabled || Boolean(error)}
               style={{
-                padding: "7px 14px",
+                padding: "9px 16px",
+                minHeight: 44,
                 borderRadius: 999,
                 border: 0,
                 background: "var(--c-ink)",
                 color: "#fff",
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 600,
                 cursor: saving || saveDisabled || error ? "default" : "pointer",
                 opacity: error ? 0.6 : 1,
@@ -411,12 +390,13 @@ function EditableRow({
               onClick={cancel}
               disabled={saving || loading}
               style={{
-                padding: "7px 12px",
+                padding: "9px 14px",
+                minHeight: 44,
                 borderRadius: 999,
                 border: "1px solid rgba(28,28,26,0.14)",
                 background: "#fff",
                 color: "var(--c-700)",
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 600,
                 cursor: saving ? "default" : "pointer",
                 fontFamily: "inherit",
@@ -436,18 +416,20 @@ function EditableRow({
           >
             <Button loading={saving} spinnerSize={14}
               type="button"
-              className="tap"
+              className={styles.editAction}
               onClick={start}
               disabled={saving || loading}
               style={{
                 background: "transparent",
                 border: 0,
                 cursor: saving ? "default" : "pointer",
-                fontSize: 13.5,
+                fontSize: 14,
                 fontWeight: 600,
-                color: "var(--c-900)",
+                color: "var(--account-edit-color, var(--c-900))",
+                borderRadius: 4,
                 textDecoration: "underline",
-                padding: "2px 0",
+                padding: "10px 0",
+                minHeight: 44,
                 fontFamily: "inherit",
               }}
             >
@@ -590,8 +572,8 @@ function AddressRow({
     boxSizing: "border-box",
     padding: "9px 12px",
     borderRadius: 10,
-    border: "1px solid rgba(28,28,26,0.18)",
-    fontSize: 14,
+    border: "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
+    fontSize: 16,
     color: "var(--c-900)",
     background: "#fff",
     outline: "none",
@@ -599,7 +581,7 @@ function AddressRow({
   };
   const subLabelStyle: CSSProperties = {
     display: "block",
-    fontSize: 12.5,
+    fontSize: 13.5,
     fontWeight: 600,
     color: "var(--c-500)",
     marginBottom: 4,
@@ -660,17 +642,18 @@ function AddressRow({
       }}
     >
       <div
+        className={styles.fieldRow}
+        data-editing={editing || undefined}
         style={{
           display: "flex",
-          alignItems: "flex-start",
           justifyContent: "space-between",
           gap: 16,
         }}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div>
           <div
             style={{
-              fontSize: 14.5,
+              fontSize: 15,
               fontWeight: 600,
               letterSpacing: "-0.01em",
               color: "var(--c-900)",
@@ -680,6 +663,7 @@ function AddressRow({
           </div>
           {editing ? (
             <div
+              className={styles.fieldEditor}
               style={{
                 marginTop: 10,
                 maxWidth: 480,
@@ -699,15 +683,15 @@ function AddressRow({
           ) : (
             <div
               style={{
-                fontSize: 14,
-                color: summary ? "var(--c-600)" : "var(--c-400)",
+                fontSize: 16,
+                color: summary ? "var(--c-700)" : "var(--c-500)",
                 marginTop: 4,
               }}
             >
               {summary || fields.addressEmpty}
               {summary && profile.addressMentions ? (
                 <div
-                  style={{ fontSize: 12.5, color: "var(--c-400)", marginTop: 3 }}
+                  style={{ fontSize: 13.5, color: "var(--c-600)", marginTop: 6 }}
                 >
                   {profile.addressMentions}
                 </div>
@@ -723,12 +707,13 @@ function AddressRow({
               onClick={commit}
               disabled={saving || saveDisabled || hasError}
               style={{
-                padding: "7px 14px",
+                padding: "9px 16px",
+                minHeight: 44,
                 borderRadius: 999,
                 border: 0,
                 background: "var(--c-ink)",
                 color: "#fff",
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 600,
                 cursor: saving || saveDisabled || hasError ? "default" : "pointer",
                 opacity: hasError ? 0.6 : 1,
@@ -743,12 +728,13 @@ function AddressRow({
               onClick={cancel}
               disabled={saving}
               style={{
-                padding: "7px 12px",
+                padding: "9px 14px",
+                minHeight: 44,
                 borderRadius: 999,
                 border: "1px solid rgba(28,28,26,0.14)",
                 background: "#fff",
                 color: "var(--c-700)",
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 600,
                 cursor: saving ? "default" : "pointer",
                 fontFamily: "inherit",
@@ -768,18 +754,20 @@ function AddressRow({
           >
             <Button loading={saving} spinnerSize={14}
               type="button"
-              className="tap"
+              className={styles.editAction}
               onClick={start}
               disabled={saving}
               style={{
                 background: "transparent",
                 border: 0,
                 cursor: saving ? "default" : "pointer",
-                fontSize: 13.5,
+                fontSize: 14,
                 fontWeight: 600,
-                color: "var(--c-900)",
+                color: "var(--account-edit-color, var(--c-900))",
+                borderRadius: 4,
                 textDecoration: "underline",
-                padding: "2px 0",
+                padding: "10px 0",
+                minHeight: 44,
                 fontFamily: "inherit",
               }}
             >
@@ -811,22 +799,12 @@ function StatChip({
   unavailableLabel: string;
   onClick?: () => void;
 }) {
+  const Element = onClick ? "button" : "div";
   return (
-    <button
-      type="button"
-      className="tap zw-hover-lift"
+    <Element
+      type={onClick ? "button" : undefined}
+      className={styles.stat}
       onClick={onClick}
-      style={{
-        flex: "0 0 auto",
-        minWidth: 104,
-        textAlign: "left",
-        background: "var(--c-canvas)",
-        border: "1px solid rgba(28,28,26,0.07)",
-        borderRadius: 14,
-        padding: "12px 16px",
-        cursor: "pointer",
-        font: "inherit",
-      }}
     >
       <div
         style={{
@@ -843,10 +821,10 @@ function StatChip({
           </span>
         ) : <><span aria-hidden="true">—</span><span className="sr-only">{unavailableLabel}</span></>}
       </div>
-      <div style={{ fontSize: 12, color: "var(--c-500)", marginTop: 2 }}>
+      <div style={{ fontSize: 13, color: "var(--c-600)", marginTop: 2 }}>
         {label}
       </div>
-    </button>
+    </Element>
   );
 }
 
@@ -925,19 +903,7 @@ function ProfileBanner({
   const verified = profile?.email_verified ?? user?.emailVerified;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "clamp(18px, 3vw, 28px)",
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.08)",
-        borderRadius: 22,
-        boxShadow: "var(--sh-sm)",
-        padding: "clamp(20px, 2.5vw, 28px)",
-        flexWrap: "wrap",
-      }}
-    >
+    <div className={styles.profileBanner}>
       <input
         ref={fileRef}
         type="file"
@@ -956,8 +922,8 @@ function ProfileBanner({
         disabled={uploadingPhoto || !profile}
         onClick={() => fileRef.current?.click()}
         style={{
-          width: 84,
-          height: 84,
+          width: 48,
+          height: 48,
           borderRadius: "50%",
           border: 0,
           padding: 0,
@@ -966,7 +932,7 @@ function ProfileBanner({
           boxShadow: "0 0 0 3px var(--c-canvas), 0 0 0 4px rgba(28,28,26,0.10)",
         }}
       >
-        {identity ? <Avatar src={image} name={name} size={84} /> : <Skeleton w={84} h={84} r="50%" />}
+        {identity ? <Avatar src={image} name={name} size={48} /> : <Skeleton w={48} h={48} r="50%" />}
         <span className="zw-avatar-ov">
           {uploadingPhoto ? (
             <Spinner size={20} color="#fff" />
@@ -977,23 +943,23 @@ function ProfileBanner({
       </button>
 
       <div style={{ flex: 1, minWidth: 180 }}>
-        <h1
+        <h2
           style={{
             margin: 0,
-            fontSize: "clamp(24px, 2.8vw, 32px)",
+            fontSize: 22,
             fontWeight: 600,
             letterSpacing: "-0.03em",
             color: "var(--c-900)",
           }}
         >
-          {name ? name : <span aria-hidden="true" style={{ display: "flex", alignItems: "center", height: "1.5em" }}><Skeleton w="min(320px, 100%)" h={32} /></span>}
-        </h1>
+          {name ? name : <span aria-hidden="true" style={{ display: "flex", alignItems: "center", height: "1.5em" }}><Skeleton w="min(320px, 100%)" h={26} /></span>}
+        </h2>
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: 10,
-            marginTop: 8,
+            marginTop: 5,
             flexWrap: "wrap",
           }}
         >
@@ -1007,7 +973,7 @@ function ProfileBanner({
               display: "inline-flex",
               alignItems: "center",
               gap: 5,
-              fontSize: 11.5,
+              fontSize: 12.5,
               fontWeight: 600,
               color: verified ? "var(--s-success-600)" : "var(--c-600)",
               background: verified ? "var(--s-success-100)" : "var(--c-100)",
@@ -1026,7 +992,7 @@ function ProfileBanner({
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div aria-busy={summaryLoading} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div aria-busy={summaryLoading} className={styles.stats}>
           <StatChip
             value={summary?.totalAppointments ?? null}
             label={t.stats.appointments}
@@ -1133,7 +1099,7 @@ function NotificationsSection({
   };
 
   return (
-    <div aria-busy={!prefs || busyKey !== null}>
+    <div className={styles.notifications} aria-busy={!prefs || busyKey !== null}>
     <Card>
       <div className="zw-notif-grid zw-notif-head" aria-hidden="true">
         <div />
@@ -1251,8 +1217,8 @@ function PasswordForm({
           borderRadius: 10,
           border: invalid
             ? "1px solid var(--s-error-600)"
-            : "1px solid rgba(28,28,26,0.18)",
-          fontSize: 14,
+            : "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
+          fontSize: 16,
           color: "var(--c-900)",
           background: "#fff",
           outline: "none",
@@ -1357,7 +1323,7 @@ function PasswordForm({
         confirmRef,
         invalidField === "confirm",
       )}
-      <div style={{ fontSize: 12.5, color: "var(--c-500)" }}>
+      <div style={{ fontSize: 13.5, color: "var(--c-600)" }}>
         {t.password.rules}
       </div>
       {error && (
@@ -1465,6 +1431,7 @@ function GoogleConnectionRow({
       }}
     >
       <div
+        className={styles.connectionHead}
         style={{
           display: "flex",
           alignItems: "flex-start",
@@ -1472,19 +1439,19 @@ function GoogleConnectionRow({
           gap: 16,
         }}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: "1 1 240px", minWidth: 0 }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
-              fontSize: 14.5,
+              gap: 14,
+              fontSize: 15,
               fontWeight: 600,
               letterSpacing: "-0.01em",
               color: "var(--c-900)",
             }}
           >
-            <Icon name="googleG" size={17} />
+            <Icon name="googleG" size={20} />
             {g.title}
           </div>
           <div
@@ -1499,11 +1466,12 @@ function GoogleConnectionRow({
               padding: "3px 9px",
               borderRadius: 999,
               marginTop: 8,
+              marginLeft: 34,
             }}
           >
             {isLinked ? g.connected : g.notConnected}
           </div>
-          <div style={{ fontSize: 12.5, color: "var(--c-500)", marginTop: 8 }}>
+          <div style={{ fontSize: 13.5, color: "var(--c-600)", marginTop: 8, marginLeft: 34 }}>
             {isLinked ? g.connectedCaption : g.connectCaption}
           </div>
         </div>
@@ -1519,11 +1487,12 @@ function GoogleConnectionRow({
                 background: "transparent",
                 border: 0,
                 cursor: !hasPassword || busy ? "default" : "pointer",
-                fontSize: 13.5,
+                fontSize: 14,
                 fontWeight: 600,
                 color: !hasPassword ? "var(--c-400)" : "var(--s-error-600)",
                 textDecoration: "underline",
-                padding: "2px 0",
+                padding: "10px 0",
+                minHeight: 44,
                 fontFamily: "inherit",
               }}
             >
@@ -1543,7 +1512,7 @@ function GoogleConnectionRow({
         </div>
       </div>
 
-      {isLinked && promptOpen && hasPassword && (
+      <FormReveal open={isLinked && promptOpen && hasPassword}>
         <form
           onSubmit={submitDisconnect}
           style={{
@@ -1582,8 +1551,8 @@ function GoogleConnectionRow({
                 boxSizing: "border-box",
                 padding: "10px 12px",
                 borderRadius: 10,
-                border: "1px solid rgba(28,28,26,0.18)",
-                fontSize: 14,
+                border: "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
+                fontSize: 16,
                 color: "var(--c-900)",
                 background: "#fff",
                 outline: "none",
@@ -1624,7 +1593,7 @@ function GoogleConnectionRow({
             </Button>
           </div>
         </form>
-      )}
+      </FormReveal>
     </div>
   );
 }
@@ -1745,8 +1714,8 @@ function ChangeEmailRow({
     boxSizing: "border-box",
     padding: "9px 12px",
     borderRadius: 10,
-    border: "1px solid rgba(28,28,26,0.18)",
-    fontSize: 14,
+    border: "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
+    fontSize: 16,
     color: "var(--c-900)",
     background: "#fff",
     outline: "none",
@@ -1754,7 +1723,7 @@ function ChangeEmailRow({
   };
   const subLabelStyle: CSSProperties = {
     display: "block",
-    fontSize: 14.5,
+    fontSize: 15,
     fontWeight: 600,
     letterSpacing: "-0.01em",
     color: "var(--c-900)",
@@ -1782,7 +1751,7 @@ function ChangeEmailRow({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: 14.5,
+              fontSize: 15,
               fontWeight: 600,
               letterSpacing: "-0.01em",
               color: "var(--c-900)",
@@ -1792,13 +1761,13 @@ function ChangeEmailRow({
           </div>
           <div
             style={{
-              fontSize: 14,
+              fontSize: 16,
               color: "var(--c-600)",
               marginTop: 4,
               overflowWrap: "anywhere",
             }}
           >
-            <span style={{ color: "var(--c-400)" }}>{c.currentValueLabel}:</span>{" "}
+            <span style={{ color: "var(--c-600)" }}>{c.currentValueLabel}:</span>{" "}
             {loading ? <span aria-hidden="true" style={{ display: "inline-flex", verticalAlign: "middle" }}><Skeleton w={160} h={14} r={4} /></span> : currentEmail}
           </div>
           {/* Verification state. `emailVerified` is only guaranteed by /me, so
@@ -1830,7 +1799,7 @@ function ChangeEmailRow({
               <div
                 className="txt-pretty"
                 style={{
-                  fontSize: 12.5,
+                  fontSize: 13.5,
                   lineHeight: 1.5,
                   color: "var(--c-600)",
                   marginTop: 4,
@@ -1848,7 +1817,7 @@ function ChangeEmailRow({
                 alignItems: "center",
                 gap: 5,
                 marginTop: 7,
-                fontSize: 12.5,
+                fontSize: 13.5,
                 fontWeight: 600,
                 color: "var(--p-700)",
               }}
@@ -1859,7 +1828,7 @@ function ChangeEmailRow({
           )}
           <div
             className="txt-pretty"
-            style={{ fontSize: 12.5, color: "var(--c-400)", marginTop: 6 }}
+            style={{ fontSize: 13.5, color: "var(--c-600)", marginTop: 6 }}
           >
             {c.caption}
           </div>
@@ -1867,18 +1836,20 @@ function ChangeEmailRow({
         {!open && (
           <button
             type="button"
-            className="tap"
+            className={styles.editAction}
             onClick={() => setOpen(true)}
             style={{
               flexShrink: 0,
               background: "transparent",
               border: 0,
               cursor: "pointer",
-              fontSize: 13.5,
+              fontSize: 14,
               fontWeight: 600,
-              color: "var(--c-900)",
+              color: "var(--account-edit-color, var(--c-900))",
+              borderRadius: 4,
               textDecoration: "underline",
-              padding: "2px 0",
+              padding: "10px 0",
+              minHeight: 44,
               fontFamily: "inherit",
             }}
           >
@@ -1887,7 +1858,7 @@ function ChangeEmailRow({
         )}
       </div>
 
-      {open && (
+      <FormReveal open={open}>
         <form
           onSubmit={submit}
           style={{
@@ -1963,7 +1934,7 @@ function ChangeEmailRow({
               </InlineError>
             )}
           </label>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <Button
               loading={saving}
           kind="primary"
@@ -1984,7 +1955,7 @@ function ChangeEmailRow({
             </Button>
           </div>
         </form>
-      )}
+      </FormReveal>
     </div>
   );
 }
@@ -2040,7 +2011,7 @@ function DangerZone({
             gap: 14,
             width: "100%",
             textAlign: "left",
-            padding: "15px 18px",
+            padding: "20px 0",
             background: "transparent",
             border: 0,
             cursor: "pointer",
@@ -2062,8 +2033,8 @@ function DangerZone({
             <span
               style={{
                 display: "block",
-                fontSize: 12.5,
-                color: "var(--c-500)",
+                fontSize: 13.5,
+                color: "var(--c-600)",
                 marginTop: 2,
               }}
             >
@@ -2211,7 +2182,7 @@ function SectionBody({
     const dobValue = profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "";
     const authErrors = dictionary.auth.errors;
     return (
-      <div>
+      <div className={styles.settingsSection}>
         <EditableRow
           id="acct-firstName"
           label={t.fields.firstName}
@@ -2362,26 +2333,28 @@ function SecuritySection({
 
   return (
     <div
+      className={styles.settingsSection}
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "clamp(28px, 3.5vw, 40px)",
+        gap: 24,
       }}
     >
       <div>
-        <SectionLabel>{t.sections.password}</SectionLabel>
         <Card>
           <button
             type="button"
             className="tap zw-hover-row"
             onClick={() => setPwOpen((o) => !o)}
+            aria-expanded={pwOpen}
+            aria-controls="account-password-fields"
             style={{
               display: "flex",
               alignItems: "center",
               gap: 14,
               width: "100%",
               textAlign: "left",
-              padding: "15px 18px",
+              padding: "20px 0",
               background: "transparent",
               border: 0,
               cursor: "pointer",
@@ -2404,8 +2377,8 @@ function SecuritySection({
               <span
                 style={{
                   display: "block",
-                  fontSize: 12.5,
-                  color: "var(--c-500)",
+                  fontSize: 13.5,
+                  color: "var(--c-600)",
                   marginTop: 2,
                 }}
               >
@@ -2414,9 +2387,9 @@ function SecuritySection({
             </span>
             <span
               style={{
-                fontSize: 13.5,
+                fontSize: 14,
                 fontWeight: 600,
-                color: "var(--p-700)",
+                color: "var(--c-900)",
                 textDecoration: "underline",
                 flexShrink: 0,
               }}
@@ -2424,10 +2397,10 @@ function SecuritySection({
               {t.buttons.edit}
             </span>
           </button>
-          {pwOpen && (
+          <FormReveal open={pwOpen} id="account-password-fields">
             <div
               style={{
-                padding: "18px",
+                padding: "20px 0",
                 borderTop: "1px solid rgba(28,28,26,0.06)",
               }}
             >
@@ -2437,14 +2410,13 @@ function SecuritySection({
                 onDone={() => setPwOpen(false)}
               />
             </div>
-          )}
+          </FormReveal>
         </Card>
       </div>
 
       <div>
-        <SectionLabel>{t.sections.security}</SectionLabel>
         <Card>
-          <div style={{ padding: "2px 18px" }}>
+          <div style={{ padding: "2px 0" }}>
             <GoogleConnectionRow t={t} authErrors={authErrors} locale={locale} last />
           </div>
         </Card>
@@ -2468,15 +2440,17 @@ function SectionHeader({
   id,
   showBack,
   onBack,
+  hideTitle = false,
 }: {
   t: AcctDict;
   id: SectionId;
   showBack?: boolean;
   onBack?: () => void;
+  hideTitle?: boolean;
 }) {
   const sub = id === "preferences" ? t.preferencesSub : null;
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ marginBottom: hideTitle ? 12 : 24 }}>
       {showBack && (
         <button
           type="button"
@@ -2487,30 +2461,30 @@ function SectionHeader({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             borderRadius: "50%",
             background: "#fff",
             border: "1px solid rgba(28,28,26,0.10)",
             cursor: "pointer",
-            marginBottom: 16,
-            boxShadow: "var(--sh-sm)",
+            marginBottom: hideTitle ? 0 : 16,
           }}
         >
           <Icon name="back" size={16} color="var(--c-900)" />
         </button>
       )}
-      <h1
+      {!hideTitle && <h1
         style={{
           margin: 0,
-          fontSize: "clamp(23px, 2.4vw, 28px)",
+          fontSize: "var(--account-heading-size, 32px)",
           fontWeight: 600,
+          lineHeight: 1.2,
           letterSpacing: "-0.03em",
           color: "var(--c-900)",
         }}
       >
         {t.sectionTitles[id]}
-      </h1>
+      </h1>}
       {sub && (
         <p
           className="txt-pretty"
@@ -2529,8 +2503,7 @@ function SectionHeader({
 }
 
 // ─────────────────────────────────────────────
-// Desktop nav rail — sticky aside; section items with an active accent bar,
-// then a hairline divider + danger-styled Log out.
+// Desktop account navigation, separated from content by a quiet rule.
 // ─────────────────────────────────────────────
 
 const NAV_ITEMS: { id: SectionId; icon: "pencil" | "bell" | "lock" | "reply" }[] = [
@@ -2556,30 +2529,11 @@ function RailItem({
   return (
     <button
       type="button"
-      className="tap"
+      className={styles.railItem}
+      aria-current={on ? "page" : undefined}
+      data-active={on || undefined}
+      data-danger={danger || undefined}
       onClick={onClick}
-      style={{
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        width: "100%",
-        textAlign: "left",
-        padding: "12px 14px",
-        borderRadius: 12,
-        border: 0,
-        cursor: "pointer",
-        font: "inherit",
-        background: on ? "var(--c-shade)" : "transparent",
-        color: danger ? "var(--s-error-600)" : "var(--c-900)",
-        transition: "background-color .15s var(--ease-soft)",
-      }}
-      onMouseEnter={(e) => {
-        if (!on) e.currentTarget.style.background = "var(--c-100)";
-      }}
-      onMouseLeave={(e) => {
-        if (!on) e.currentTarget.style.background = "transparent";
-      }}
     >
       <Icon
         name={icon}
@@ -2595,7 +2549,7 @@ function RailItem({
       <span
         style={{
           flex: 1,
-          fontSize: 14.5,
+          fontSize: 15,
           fontWeight: on ? 600 : 500,
           letterSpacing: "-0.01em",
         }}
@@ -2618,30 +2572,8 @@ function NavRail({
   onLogout: () => void;
 }) {
   return (
-    <aside
-      style={{
-        position: "sticky",
-        top: "calc(var(--nav-h) + 24px)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 18,
-      }}
-    >
+    <nav className={styles.navRail} aria-label={t.hubGroupLabel}>
       <div>
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10.5,
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--c-500)",
-            padding: "0 14px",
-            marginBottom: 8,
-          }}
-        >
-          {t.sections.profile}
-        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {NAV_ITEMS.map((it) => (
             <RailItem
@@ -2661,7 +2593,7 @@ function NavRail({
         danger
         onClick={onLogout}
       />
-    </aside>
+    </nav>
   );
 }
 
@@ -2903,7 +2835,7 @@ function MobileHub({
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
-                fontSize: 11.5,
+                fontSize: 12.5,
                 fontWeight: 600,
                 color: verified ? "var(--s-success-600)" : "var(--c-600)",
                 background: verified ? "var(--s-success-100)" : "var(--c-100)",
@@ -3001,7 +2933,7 @@ function MobileHub({
 
       <button
         type="button"
-        className="tap"
+        className={`tap ${styles.logoutAction}`}
         onClick={onLogout}
         disabled={loggingOut}
         aria-label={t.logout}
@@ -3010,22 +2942,21 @@ function MobileHub({
           position: "relative",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "flex-start",
           gap: 10,
           width: "100%",
-          padding: "15px 18px",
-          borderRadius: 999,
-          background: "var(--c-ink)",
+          padding: "16px 4px",
+          borderRadius: 0,
+          background: "transparent",
           border: 0,
           cursor: loggingOut ? "default" : "pointer",
           fontSize: 15,
           fontWeight: 600,
-          color: "#fff",
+          color: "var(--s-error-600)",
           letterSpacing: "-0.01em",
           fontFamily: "inherit",
           opacity: loggingOut ? 0.7 : 1,
-          boxShadow:
-            "0 1px 0 rgba(0,0,0,0.04), 0 8px 20px rgba(28,28,26,0.16)",
+          borderTop: "1px solid rgba(28,28,26,0.10)",
         }}
       >
         <span
@@ -3058,12 +2989,12 @@ function LoadingState({ t, locale }: { t: AcctDict; locale: Locale }) {
   const { user } = useAuth();
   return (
     <div aria-busy="true">
-      <div className={`zw-container ${styles.desktop}`} style={{ paddingTop: 40, paddingBottom: 56, width: "100%" }}>
+      <div className={`zw-container ${styles.desktop} ${styles.page}`}>
         <div inert>
           <ProfileBanner t={t} locale={locale} profile={null} summary={null} summaryLoading summaryError={false} onRetrySummary={noop} uploadingPhoto={false} onPickPhoto={noop} />
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(200px, 244px) minmax(0, 1fr)", gap: "clamp(32px, 4.5vw, 64px)", alignItems: "start", marginTop: "clamp(28px, 3.5vw, 44px)" }}>
+          <div className={styles.workspace}>
             <NavRail t={t} active="personal" setActive={noop} onLogout={noop} />
-            <div style={{ minWidth: 0, maxWidth: 760 }}>
+            <div className={styles.content} data-section="personal">
               <SectionHeader t={t} id="personal" />
               {[t.fields.firstName, t.fields.lastName, t.fields.phone, t.fields.dateOfBirth].map((label, i) => (
                 <EditableRow key={label} id={`pending-profile-${i}`} label={label} value="" emptyLabel="" loading saving={false} buttons={t.buttons} onSave={noop} />
@@ -3074,8 +3005,8 @@ function LoadingState({ t, locale }: { t: AcctDict; locale: Locale }) {
           </div>
         </div>
       </div>
-      <div className={`zw-container ${styles.mobile}`} style={{ paddingTop: 32, paddingBottom: 24, width: "100%" }}>
-        <div inert style={{ maxWidth: 560, margin: "0 auto" }}>
+      <div className={`zw-container ${styles.mobile} ${styles.mobilePage}`}>
+        <div inert className={styles.mobileWorkspace}>
           <MobileHub t={t} locale={locale} profile={null} profilePending profileRetrying={false} onRetryProfile={noop} summary={null} summaryLoading summaryError={false} onRetrySummary={noop} uploadingPhoto={false} onPickPhoto={noop} setActive={noop} onLogout={noop} loggingOut={false} />
         </div>
       </div>
@@ -3089,18 +3020,44 @@ function LoadingState({ t, locale }: { t: AcctDict; locale: Locale }) {
 // ─────────────────────────────────────────────
 
 export function AccountContent({ locale }: { locale: Locale }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const { dict } = useTranslation();
+  const [leavingHome, setLeavingHome] = useState(false);
+  const leavingHomeRef = useRef(false);
+
+  const leaveForHome = useCallback(async () => {
+    if (leavingHomeRef.current) return;
+    leavingHomeRef.current = true;
+    // This intent must survive the identity reset below. Clear the session
+    // immediately, but do not make navigation wait for the server response.
+    setLeavingHome(true);
+    const pendingLogout = logout();
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    router.replace(localeHref(locale));
+    await pendingLogout;
+  }, [logout, router, locale]);
+
+  if (leavingHome) {
+    return (
+      <div className={`zw-container ${styles.page} ${styles.departure}`} aria-busy="true">
+        <span aria-hidden="true"><Spinner size={28} color="var(--c-ink)" /></span>
+        <span role="status" className="sr-only">{dict.account.loggingOut}</span>
+      </div>
+    );
+  }
+
   // Profile, statistics and preferences belong to this identity. A session
   // change discards pending requests and successful data from the previous user.
-  return <AccountSessionContent key={user?.uuid ?? "anonymous"} locale={locale} />;
+  return <AccountSessionContent key={user?.uuid ?? "anonymous"} locale={locale} onLeaveHome={leaveForHome} />;
 }
 
-function AccountSessionContent({ locale }: { locale: Locale }) {
+function AccountSessionContent({ locale, onLeaveHome: goHome }: { locale: Locale; onLeaveHome: () => Promise<void> }) {
   const dictionary = useTranslation().dict;
   const t = dictionary.account;
   const router = useRouter();
   const toast = useToast();
-  const { status, logout, refreshUser } = useAuth();
+  const { status, refreshUser } = useAuth();
   const { openAuthModal } = useAuthModal();
 
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
@@ -3292,11 +3249,6 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
     [t, toast, refreshUser],
   );
 
-  const goHome = useCallback(async () => {
-    await logout();
-    router.replace(localeHref(locale));
-  }, [logout, router, locale]);
-
   const handleLogout = useCallback(async () => {
     setLoggingOut(true);
     try {
@@ -3333,10 +3285,9 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
   if (isNarrow) {
     return (
       <div
-        className="zw-container"
-        style={{ paddingTop: 32, paddingBottom: 24, width: "100%" }}
+        className={`zw-container ${styles.mobilePage}`}
       >
-        <div style={{ maxWidth: 560, margin: "0 auto" }}>
+        <div className={styles.mobileWorkspace} data-section={active ?? "hub"}>
           {active === null ? (
             <MobileHub
               t={t}
@@ -3356,11 +3307,12 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
               loggingOut={loggingOut}
             />
           ) : (
-            <div className="zw-acct-in" key={active}>
+            <div key={active}>
               <SectionHeader
                 t={t}
                 id={active}
                 showBack
+                hideTitle={active === "support" && !!profile}
                 onBack={() => setActive(null)}
               />
               <SectionBody
@@ -3392,8 +3344,7 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
   const desktopActive: SectionId = active ?? "personal";
   return (
     <div
-      className="zw-container"
-      style={{ paddingTop: 40, paddingBottom: 56, width: "100%" }}
+      className={`zw-container ${styles.page}`}
     >
       {profile && (
         <ProfileBanner
@@ -3410,15 +3361,7 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
         />
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(200px, 244px) minmax(0, 1fr)",
-          gap: "clamp(32px, 4.5vw, 64px)",
-          alignItems: "start",
-          marginTop: profile ? "clamp(28px, 3.5vw, 44px)" : 0,
-        }}
-      >
+      <div className={styles.workspace}>
         <NavRail
           t={t}
           active={desktopActive}
@@ -3426,11 +3369,11 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
           onLogout={handleLogout}
         />
         <div
-          className={active ? "zw-acct-in" : undefined}
-          key={desktopActive}
-          style={{ minWidth: 0, maxWidth: 760 }}
+          className={styles.content}
+          data-section={desktopActive}
         >
-          <SectionHeader t={t} id={desktopActive} />
+          <div key={desktopActive}>
+          {(desktopActive !== "support" || !profile) && <SectionHeader t={t} id={desktopActive} />}
           <SectionBody
             id={desktopActive}
             t={t}
@@ -3449,6 +3392,7 @@ function AccountSessionContent({ locale }: { locale: Locale }) {
             onEmailChanged={handleEmailChanged}
             onDeleted={goHome}
           />
+          </div>
         </div>
       </div>
     </div>

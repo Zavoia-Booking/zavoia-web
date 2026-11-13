@@ -77,6 +77,13 @@ async function waitForFonts(page: Page) {
   })
 }
 
+async function openControls(page: Page) {
+  const panel = page.locator('[data-try-controls]')
+  if (!(await panel.isVisible())) await page.getByRole('button', { name: 'Web Studio: Personalizează', exact: true }).click()
+  await expect(panel).toBeVisible()
+  return panel
+}
+
 function recordFontRequests(page: Page) {
   const google: string[] = []
   const fonts = new Set<string>()
@@ -97,14 +104,15 @@ test.describe('Self-hosted Web Studio fonts', () => {
     await page.goto('/ro/web-studio/demo')
     const root = page.locator('[data-try-stage] .mc-root').first()
     await expect(root).toBeVisible()
-    await page.getByRole('button', { name: 'Personalizează', exact: true }).click()
-    const picker = page.getByRole('combobox', { name: 'Font', exact: true })
-    await expect(picker.locator('option')).toHaveCount(choices.length)
+    const panel = await openControls(page)
+    await panel.getByRole('button', { name: 'Alege un font', exact: true }).click()
+    const picker = panel.getByRole('group', { name: 'Font', exact: true })
+    await expect(picker.getByRole('radio')).toHaveCount(choices.length)
     const session = await inspectFonts(page)
 
     for (const choice of choices) {
       await test.step(choice.key, async () => {
-        await picker.selectOption(choice.key)
+        await picker.locator(`input[value="${choice.key}"]`).check()
         await addSamples(root)
         await waitForFonts(page)
         await expectRenderedFamily(session, '[data-font-sample="latin"]', choice.family)
@@ -134,7 +142,7 @@ test.describe('Self-hosted Web Studio fonts', () => {
     await session.detach()
   })
 
-  test('an individual website downloads only used fonts, and fetches a newly selected face on demand', async ({ page, browserName }) => {
+  test('shared designs download only their used fonts while the font chooser is closed', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'The actual rendered-font check uses Chromium CDP.')
     const requests = recordFontRequests(page)
     // This valid shared look selects the first layout/colour/font options.
@@ -144,7 +152,7 @@ test.describe('Self-hosted Web Studio fonts', () => {
     await expect(root).toBeVisible()
     // Wait for a real hydrated interaction before adding diagnostic samples;
     // React may otherwise replace them when the initial preview mounts.
-    await page.getByRole('button', { name: 'Personalizează', exact: true }).click()
+    await openControls(page)
     await addSamples(root)
     await waitForFonts(page)
     const session = await inspectFonts(page)
@@ -155,13 +163,16 @@ test.describe('Self-hosted Web Studio fonts', () => {
     // Loading all 14 display families would exceed this even with one file each.
     expect(initial.size, 'Unused display families must not be preloaded').toBeLessThanOrEqual(8)
 
-    await page.getByRole('combobox', { name: 'Font', exact: true }).selectOption('sora')
+    // Trying font specimens intentionally loads their faces. A shared design
+    // with the chooser closed must still fetch only the face it actually uses.
+    await page.goto('/ro/web-studio/demo?s=0000000000000b')
+    await openControls(page)
     await addSamples(root)
     await waitForFonts(page)
     await expectRenderedFamily(session, '[data-font-sample="romanian"]', /sora/i)
     const newlyRequested = [...requests.fonts].filter(url => !initial.has(url))
     expect(newlyRequested.length, 'The selected face should load on demand').toBeGreaterThan(0)
-    expect(newlyRequested.length, 'Selecting one face must not download the rest of the catalog').toBeLessThanOrEqual(3)
+    expect(newlyRequested.length, 'Opening one design must not download the rest of the catalog').toBeLessThanOrEqual(3)
     expect(requests.google).toEqual([])
     await session.detach()
   })
@@ -175,6 +186,7 @@ test.describe('Self-hosted Web Studio fonts', () => {
       for (const [industry, family] of [
         ['fitness', /spacegrotesk/i], ['pets', /bricolagegrotesque/i],
         ['music', /librecaslondisplay/i], ['wellness', /cormorantgaramond/i], ['automotive', /dmserifdisplay/i],
+        ['tattoo', /unbounded/i], ['tailoring', /italiana/i],
       ] as const) {
         const article = page.locator(`[data-studio-gallery] [data-example="${industry}"]`)
         await article.scrollIntoViewIfNeeded()
@@ -183,7 +195,8 @@ test.describe('Self-hosted Web Studio fonts', () => {
         await addSamples(article.locator('.mc-root').first())
         await waitForFonts(page)
         await expectRenderedFamily(session, `[data-example="${industry}"] [data-font-sample="latin"]`, family)
-        await expectRenderedFamily(session, `[data-example="${industry}"] [data-font-sample="romanian"]`, family)
+        await expectRenderedFamily(session, `[data-example="${industry}"] [data-font-sample="romanian"]`,
+          industry === 'tailoring' ? /italiana|bodonimoda/i : family)
         await expectRenderedFamily(session, `[data-example="${industry}"] [data-font-sample="body"]`, /^geist$/i)
         await expectRenderedFamily(session, `[data-example="${industry}"] [data-font-sample="mono"]`, /geistmono/i)
       }

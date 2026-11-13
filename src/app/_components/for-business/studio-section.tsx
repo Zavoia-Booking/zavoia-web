@@ -17,7 +17,7 @@ export function StudioSection({ locale }: { locale: Locale }) {
   const t = dictionaries[locale].forBusiness.studio;
 
   return (
-    <section className={styles.section} aria-labelledby="studio-title">
+    <section id="web-studio" className={styles.section} aria-labelledby="studio-title">
       <div className={`zw-container ${styles.layout}`}>
         <div className={styles.intro}>
           <h2 className={`${m.h2} ${styles.title}`} id="studio-title">{t.title}</h2>
@@ -85,9 +85,14 @@ export function StudioSection({ locale }: { locale: Locale }) {
         </ul>
 
         <div className={styles.actions}>
-          <Link className={styles.link} href={localeHref(locale, "web-studio")}>
-            {t.link}<Icon name="arrowR" size={16} />
-          </Link>
+          <div className={styles.actionLinks}>
+            <Link className={styles.primaryAction} href={localeHref(locale, "web-studio")}>
+              {t.link}<Icon name="arrowR" size={16} />
+            </Link>
+            <Link className={styles.link} href={{ pathname: localeHref(locale, "web-studio", "demo"), query: { returnTo: `${localeHref(locale, "for-business")}#web-studio` } }}>
+              {dictionaries[locale].webStudio.hero.demoCta}<Icon name="arrowR" size={16} />
+            </Link>
+          </div>
           <p className={styles.note}>{t.note}</p>
         </div>
       </div>

@@ -16,7 +16,8 @@ import {
   locationPostalAddress,
   type DayKey,
 } from "../../../shared/contact";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
+import { findScrollParent } from "../../../shared/util";
 import { LocationBookAction } from "../parts/LocationBookAction";
 import { LocationImage } from "../parts/LocationImage";
 import type { LocationsVariantProps } from "../types";
@@ -49,6 +50,12 @@ const PUSH_VECTOR: Record<string, readonly [number, number]> = {
 
 const PUSH_GAP = 0.85;
 
+// Match the dashboard's shorter slide on touch hardware.
+const COARSE_POINTER =
+  typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+const PUSH_MS = COARSE_POINTER ? 440 : 640;
+const PUSH_STAGGER_MS = COARSE_POINTER ? 40 : 55;
+
 type Location = LocationsVariantProps["loc"];
 type Translate = LocationsVariantProps["t"];
 type SupportImage = { src: string; alt: string };
@@ -58,11 +65,19 @@ type BentoAmenity = { key: string; label: string; slug: string };
 type TransitionState = {
   dir: number;
   ghosts: HTMLElement[];
+  animations: Animation[];
   timer: number | null;
 };
 
 const clearTransition = (transition: TransitionState) => {
   if (transition.timer !== null) window.clearTimeout(transition.timer);
+  transition.animations.forEach((animation) => {
+    try {
+      animation.cancel();
+    } catch {
+      // The animated node may already have been removed.
+    }
+  });
   transition.ghosts.forEach((ghost) => ghost.remove());
 };
 
@@ -93,26 +108,17 @@ const hoursLabel = (row: HoursRow, t: Translate) =>
         `businessPage.builder.preview.days.${DAY_KEYS[row.end]}`,
       )}`;
 
-function BentoAmenityItem({
-  amenity,
-  measuring = false,
-}: {
-  amenity: BentoAmenity;
-  measuring?: boolean;
-}) {
+function BentoAmenityItem({ amenity }: { amenity: BentoAmenity }) {
   const Icon = tagIcon(amenity.slug) ?? Check;
   return (
-    <li
-      className="mc-locb-amen-item"
-      data-bento-amenity-item={measuring ? "1" : undefined}
-    >
+    <li className="mc-locb-amen-item">
       <Icon aria-hidden="true" size={14} strokeWidth={1.7} />
       <span>{amenity.label}</span>
     </li>
   );
 }
 
-/** Fits a complete amenity prefix to the live tile geometry and always reserves the overflow summary. */
+/** Reserves a fixed number of chip rows; anything past the budget collapses into "+ N". */
 function BentoAmenities({
   amenities,
   t,
@@ -120,80 +126,56 @@ function BentoAmenities({
   amenities: BentoAmenity[];
   t: Translate;
 }) {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const measureRef = useRef<HTMLDivElement>(null);
-  const measureMoreRef = useRef<HTMLLIElement>(null);
-  const [visibleCount, setVisibleCount] = useState(amenities.length);
+  const listRef = useRef<HTMLUListElement>(null);
+  // 0 until the panel is measured once. Every chip is exactly one row tall, so the budget is a
+  // row count that holds for ANY location — page turns never measure, they just slice.
+  const [rowBudget, setRowBudget] = useState(0);
 
   useLayoutEffect(() => {
-    const host = hostRef.current;
-    const measure = measureRef.current;
-    const measureMore = measureMoreRef.current;
-    if (!host || !measure || !measureMore) return;
-
+    const list = listRef.current;
+    if (!list) return;
     let frame = 0;
-    let active = true;
-    const fit = () => {
-      const items = Array.from(
-        measure.querySelectorAll<HTMLElement>("[data-bento-amenity-item]"),
-      );
-      let nextCount = 0;
-
-      for (let count = items.length; count >= 0; count -= 1) {
-        items.forEach((item, index) => {
-          item.hidden = index >= count;
-        });
-        measureMore.textContent = t("businessPage.builder.preview.locAmenitiesMore", {
-          count: items.length - count,
-        });
-        measureMore.hidden = count >= items.length;
-        if (measure.scrollHeight <= measure.clientHeight + 1) {
-          nextCount = count;
-          break;
-        }
-      }
-
-      setVisibleCount((current) => (current === nextCount ? current : nextCount));
+    const measure = () => {
+      const chip = list.querySelector<HTMLElement>(".mc-locb-amen-item");
+      if (!chip) return;
+      const gap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
+      const pitch = chip.offsetHeight + gap;
+      if (pitch <= 0) return;
+      const rows = Math.floor((list.clientHeight + gap) / pitch);
+      setRowBudget((current) => (current === rows ? current : Math.max(1, rows)));
     };
-    const scheduleFit = () => {
-      if (!active) return;
+    measure();
+    // Only a real panel resize (device toggle, rotation) or a late webfont can change the answer.
+    // The list is flex:1, so its box does not move when the chip count does — no observer echo.
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
       window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(fit);
-    };
-
-    fit();
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleFit);
-    observer?.observe(host);
-    const previewRoot = host.closest(".mc-root");
-    const themeObserver = previewRoot && typeof MutationObserver !== "undefined"
-      ? new MutationObserver(scheduleFit)
-      : null;
-    if (previewRoot) {
-      themeObserver?.observe(previewRoot, { attributes: true, attributeFilter: ["class", "style"] });
-    }
+      frame = window.requestAnimationFrame(measure);
+    });
+    observer?.observe(list);
     const fonts = typeof document === "undefined" ? null : document.fonts;
-    fonts?.addEventListener("loadingdone", scheduleFit);
-    void fonts?.ready.then(scheduleFit);
-
+    fonts?.addEventListener("loadingdone", measure);
+    void fonts?.ready.then(measure);
     return () => {
-      active = false;
       window.cancelAnimationFrame(frame);
       observer?.disconnect();
-      themeObserver?.disconnect();
-      fonts?.removeEventListener("loadingdone", scheduleFit);
+      fonts?.removeEventListener("loadingdone", measure);
     };
-  }, [amenities, t]);
+  }, []);
 
+  // Worst case a chip takes a whole row, so `rowBudget` chips always fit; when they do not all
+  // fit, the last row is given to the summary instead.
+  const overflowing = rowBudget > 0 && amenities.length > rowBudget;
+  const visibleCount = overflowing ? Math.max(1, rowBudget - 1) : amenities.length;
   const remaining = Math.max(0, amenities.length - visibleCount);
   const title = t("businessPage.builder.preview.locAmenities");
 
   return (
-    <div ref={hostRef} className="mc-locb-amen-panel">
+    <div className="mc-locb-amen-panel">
       <div className="mc-locb-amen-content">
         <span className="mc-locb-amen-title">
           {title}
         </span>
-        <ul className="mc-locb-amen-list" aria-label={title}>
+        <ul ref={listRef} className="mc-locb-amen-list" aria-label={title}>
           {amenities.slice(0, visibleCount).map((amenity) => (
             <BentoAmenityItem key={amenity.key} amenity={amenity} />
           ))}
@@ -205,20 +187,6 @@ function BentoAmenities({
               {t("businessPage.builder.preview.locAmenitiesMore", { count: remaining })}
             </li>
           ) : null}
-        </ul>
-      </div>
-
-      <div ref={measureRef} className="mc-locb-amen-content mc-locb-amen-measure" aria-hidden="true">
-        <span className="mc-locb-amen-title">
-          {title}
-        </span>
-        <ul className="mc-locb-amen-list">
-          {amenities.map((amenity) => (
-            <BentoAmenityItem key={amenity.key} amenity={amenity} measuring />
-          ))}
-          <li ref={measureMoreRef} className="mc-locb-amen-more">
-            {t("businessPage.builder.preview.locAmenitiesMore", { count: amenities.length })}
-          </li>
         </ul>
       </div>
     </div>
@@ -241,6 +209,39 @@ export function Bento({
   const featured = shown[idx] ?? shown[0];
   const count = shown.length;
   const gridRef = useRef<HTMLDivElement>(null);
+  const [shortDesktop, setShortDesktop] = useState(false);
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    const root = grid?.closest<HTMLElement>(".mc-root");
+    if (!grid || !root) return;
+    const viewport = findScrollParent(root);
+    const measure = () => {
+      const rootScale = root.offsetWidth > 0
+        ? root.getBoundingClientRect().width / root.offsetWidth
+        : 1;
+      const safeScale = Number.isFinite(rootScale) && rootScale > 0 ? rootScale : 1;
+      const viewportScale = viewport && viewport.offsetWidth > 0
+        ? viewport.getBoundingClientRect().width / viewport.offsetWidth
+        : 1;
+      // Measure the same logical viewport that supplies --mc-vph, including scaled previews.
+      // Outer browser dimensions must not turn a phone preview into a short desktop layout.
+      const logicalHeight = viewport
+        ? viewport.clientHeight * viewportScale / safeScale
+        : window.innerHeight / safeScale;
+      const next = root.clientWidth > 900 && logicalHeight <= 840;
+      setShortDesktop((current) => current === next ? current : next);
+    };
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(root);
+    if (viewport) observer?.observe(viewport);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
   const firstRenderRef = useRef(true);
   const transitionRef = useRef<TransitionState | null>(null);
   const activeIndexRef = useRef(idx);
@@ -276,6 +277,7 @@ export function Bento({
   const rating = (featured.totalReviews ?? 0) > 0 ? Number(featured.averageRating ?? 0) : null;
   const hoursRows = buildHoursRows(featured, t);
   const todayIndex = locationClock(featured).dayIndex;
+  const reduced = useReducedMotion();
 
   useLayoutEffect(() => {
     if (firstRenderRef.current) {
@@ -286,7 +288,7 @@ export function Bento({
     if (!grid) return;
     const transition = transitionRef.current;
 
-    if (prefersReducedMotion()) {
+    if (reduced) {
       if (transition) {
         clearTransition(transition);
         transitionRef.current = null;
@@ -316,21 +318,23 @@ export function Bento({
         if (!live) return;
         const ghost = tile.querySelector<HTMLElement>(":scope > .mc-locb-slide.is-ghost");
         const vector = PUSH_VECTOR[tile.dataset.area ?? ""] ?? [1, 0];
-        const bounds = tile.getBoundingClientRect();
-        const dx = vector[0] * transition.dir * bounds.width * (1 + PUSH_GAP);
-        const dy = vector[1] * transition.dir * bounds.height * (1 + PUSH_GAP);
-        const delay = (PUSH_ORDER[tile.dataset.area ?? ""] ?? 0) * 55;
-        latestEnd = Math.max(latestEnd, delay + 640);
+        // Transforms use logical CSS pixels, even when the whole preview is scaled down.
+        const dx = vector[0] * transition.dir * tile.offsetWidth * (1 + PUSH_GAP);
+        const dy = vector[1] * transition.dir * tile.offsetHeight * (1 + PUSH_GAP);
+        const delay = (PUSH_ORDER[tile.dataset.area ?? ""] ?? 0) * PUSH_STAGGER_MS;
+        latestEnd = Math.max(latestEnd, delay + PUSH_MS);
 
         const incoming = live.animate(
           [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
-          { duration: 640, delay, easing, fill: "both" },
+          { duration: PUSH_MS, delay, easing, fill: "both" },
         );
+        transition.animations.push(incoming);
         finishCleanly(incoming);
-        ghost?.animate(
+        const outgoing = ghost?.animate(
           [{ transform: "none" }, { transform: `translate(${-dx}px, ${-dy}px)` }],
-          { duration: 640, delay, easing, fill: "both" },
+          { duration: PUSH_MS, delay, easing, fill: "both" },
         );
+        if (outgoing) transition.animations.push(outgoing);
       });
 
       transition.timer = window.setTimeout(() => {
@@ -352,7 +356,7 @@ export function Bento({
         );
         finishCleanly(settle);
       });
-  }, [idx]);
+  }, [idx, reduced]);
 
   useEffect(
     () => () => {
@@ -368,7 +372,7 @@ export function Bento({
     const grid = gridRef.current;
     const target = ((activeIndexRef.current + direction) % count + count) % count;
     activeIndexRef.current = target;
-    if (prefersReducedMotion() || !grid) {
+    if (reduced || !grid) {
       onSelect(target);
       return;
     }
@@ -382,14 +386,13 @@ export function Bento({
     grid.querySelectorAll<HTMLElement>(".mc-locb-tile").forEach((tile) => {
       const slide = tile.querySelector<HTMLElement>(":scope > .mc-locb-slide:not(.is-ghost)");
       if (!slide) return;
-      slide.getAnimations().forEach((animation) => animation.cancel());
       const ghost = slide.cloneNode(true) as HTMLElement;
       ghost.classList.add("is-ghost");
       ghost.setAttribute("aria-hidden", "true");
       tile.appendChild(ghost);
       ghosts.push(ghost);
     });
-    transitionRef.current = { dir: direction, ghosts, timer: null };
+    transitionRef.current = { dir: direction, ghosts, animations: [], timer: null };
     onSelect(target);
   };
 
@@ -420,7 +423,7 @@ export function Bento({
   const nextLabel = t("businessPage.builder.preview.locNext");
 
   return (
-    <div className="mc-locb-shell mc-mask-in" onKeyDown={handleKeyDown}>
+    <div className="mc-locb-shell mc-mask-in" data-short-desktop={shortDesktop ? "true" : undefined} onKeyDown={handleKeyDown}>
       <span className="sr-only" aria-live="polite" aria-atomic="true">
         {featured.name}
       </span>

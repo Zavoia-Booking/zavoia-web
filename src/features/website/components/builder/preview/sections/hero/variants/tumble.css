@@ -1,7 +1,8 @@
 /* Tumble — the full name falls as huge ink glyphs onto warm, grained paper (design source: .lb-herotb*).
    A faint accent world (bloom + editorial ring) sits behind the ink; the glyph transforms are driven by the
    component's physics. Viewport units become container-query units (the preview is width-driven). */
-.mc-herotb { position: relative; min-height: var(--mc-vph, clamp(560px, 100cqw, 900px)); overflow: hidden;
+.mc-herotb { --mc-tumble-content-inset: max(clamp(18px, 4cqw, 56px), calc((100% - var(--mc-content-max, 1400px)) / 2));
+  position: relative; min-height: var(--mc-vph, clamp(560px, 100cqw, 900px)); overflow: hidden;
   background: radial-gradient(126% 92% at 50% -8%, #FCFAF4 0%, #F1E9DB 56%, #E6DBC7 100%); }
 /* faint accent world behind the ink — a soft bloom + one editorial ring */
 .mc-herotb-underlay { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
@@ -25,11 +26,11 @@
   transform: translate(0, -130cqw) rotate(0deg);
   filter: drop-shadow(0 10px 13px rgba(48, 36, 22, 0.17)); }
 .mc-herotb-ch:active { cursor: grabbing; }
-.mc-herotb-side { position: absolute; top: clamp(80px, 20cqw, 220px); right: clamp(18px, 4cqw, 56px); z-index: 2; width: min(250px, 38cqw); text-align: right; }
-.mc-herotb-tag { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--mc-fg); text-wrap: pretty; }
-.mc-herotb-foottag { display: none; margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--mc-fg); text-wrap: pretty; max-width: 42ch; }
+.mc-herotb-side { position: absolute; top: clamp(80px, 20cqw, 220px); right: var(--mc-tumble-content-inset); z-index: 2; width: min(250px, 38cqw); text-align: right; }
+.mc-herotb-tag { margin: 0; font-size: clamp(16px, 1.6cqw, 18px); line-height: 1.6; color: var(--mc-fg); text-wrap: pretty; }
+.mc-herotb-foottag { display: none; margin: 0; font-size: clamp(16px, 1.6cqw, 18px); line-height: 1.55; color: var(--mc-fg); text-wrap: pretty; max-width: 42ch; }
 .mc-herotb-reg { display: inline-block; margin-top: 16px; font-size: 17px; color: var(--mc-muted); }
-.mc-herotb-foot { position: absolute; left: clamp(18px, 4cqw, 56px); right: clamp(18px, 4cqw, 56px); bottom: clamp(20px, 4cqw, 40px); z-index: 4; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px 28px; }
+.mc-herotb-foot { position: absolute; left: var(--mc-tumble-content-inset); right: var(--mc-tumble-content-inset); bottom: clamp(20px, 4cqw, 40px); z-index: 4; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px 28px; }
 .mc-herotb-cta { display: flex; align-items: center; gap: clamp(18px, 3.5cqw, 34px); flex-wrap: wrap; }
 
 /* Narrow: free the side tagline to a full-width line under the nav; centre the foot. */

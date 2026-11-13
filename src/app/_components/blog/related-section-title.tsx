@@ -1,32 +1,23 @@
-"use client";
+import Link from "next/link";
+import { Icon } from "@/components/ui/icon";
+import styles from "./blog-post.module.css";
 
-import { useRouter } from "next/navigation";
-import { SectionTitle } from "@/components/ui/section-title";
-
-export interface RelatedSectionTitleProps {
-  kicker: string;
-  title: string;
-  action: string;
-  href: string;
-}
-
-// Thin client wrapper around SectionTitle for the post page's "Related
-// stories" header. SectionTitle is itself a client component whose `onAction`
-// is a callback, so the navigation has to originate on the client — this lets
-// the server BlogPost stay a server component while reusing SectionTitle as-is.
 export function RelatedSectionTitle({
-  kicker,
   title,
   action,
   href,
-}: RelatedSectionTitleProps) {
-  const router = useRouter();
+}: {
+  title: string;
+  action: string;
+  href: string;
+}) {
   return (
-    <SectionTitle
-      kicker={kicker}
-      title={title}
-      action={action}
-      onAction={() => router.push(href)}
-    />
+    <div className={styles.relatedHeading}>
+      <h2>{title}</h2>
+      <Link href={href} className={styles.archiveLink}>
+        {action}
+        <Icon name="arrowR" size={16} />
+      </Link>
+    </div>
   );
 }

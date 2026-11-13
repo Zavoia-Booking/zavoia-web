@@ -1,12 +1,18 @@
 .mc-nav-underlay {
+  --mc-underlay-toggle-travel: max(0px, calc((100cqw - var(--mc-content-max, 1400px)) / 2 - clamp(18px, 4cqw, 56px)));
   z-index: 90;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 16px clamp(18px, 4cqw, 56px);
+  padding: 16px var(--mc-nav-content-inset);
 }
+/* Scroll drives surface and ink together; a time-based transition would lag behind it. */
+.mc-site-nav.mc-nav-underlay,
+.mc-nav-underlay .mc-nav-brand-mark { transition: none; }
 .mc-nav-underlay-toggle {
+  /* Follow the existing menu progress to its screen-edge panel without relaying out the row. */
+  transform: translateX(calc(var(--mc-underlay-toggle-travel) * var(--mc-underlay-progress, 0)));
   display: inline-flex;
   min-width: 44px;
   min-height: 44px;
@@ -21,7 +27,6 @@
   font-weight: 600;
   letter-spacing: .16em;
   text-transform: uppercase;
-  transition: color 220ms ease-out;
 }
 .mc-nav-underlay-toggle-label {
   width: calc(52px * (1 - var(--mc-underlay-progress, 0)));
@@ -127,13 +132,23 @@
 .mc-nav-underlay-panel .mc-nav-menu-footer { margin-top: 0; }
 
 .mc-root.mc-nav-underlay-active .mc-page-flow {
+  overflow: clip;
+  transition: none;
+}
+/* Page-slide machinery only while the menu is engaged (open or animating — Underlay.tsx manages the class).
+   Merely SELECTING this variant must not promote the whole page: an always-on transform + will-change here
+   forced Chrome to rasterise every section at native scale (worst in the scaled-down desktop preview, where
+   that meant tile-memory blowout and checkerboard flashes). Same promote-only-while-live rule as the hero. */
+.mc-root.mc-nav-underlay-engaged .mc-page-flow {
   border-top-right-radius: calc(22px * var(--mc-underlay-progress, 0));
   border-bottom-right-radius: calc(22px * var(--mc-underlay-progress, 0));
   box-shadow: 34px 0 90px -28px rgba(20,16,14,calc(.5 * var(--mc-underlay-progress, 0)));
-  overflow: clip;
   transform: translate3d(calc(-1 * var(--mc-underlay-travel) * var(--mc-underlay-progress, 0)), 0, 0);
-  transition: none;
   will-change: transform, border-radius, box-shadow;
+}
+/* The floating announcement belongs to the sliding page, not the revealed menu. */
+.mc-root.mc-nav-underlay-engaged .mc-anno-pill-layer {
+  transform: translate3d(calc(-1 * var(--mc-underlay-travel) * var(--mc-underlay-progress, 0)), 0, 0);
 }
 
 @container (max-width: 980px) {
@@ -166,13 +181,15 @@
 }
 
 @container (max-width: 600px) {
-  .mc-root.mc-nav-underlay-active {
-    --mc-underlay-width: 100cqw;
+  /* Query the preview root from its descendants; a container cannot query itself. */
+  .mc-root.mc-nav-underlay-active .mc-content {
     --mc-underlay-travel: 76cqw;
   }
   .mc-nav-underlay-panel {
+    width: 100cqw;
     padding-right: clamp(16px, 5cqw, 22px);
-    padding-left: clamp(18px, 6cqw, 26px);
+    /* Leave room for the 24% of the page that remains visible over the panel. */
+    padding-left: calc(24cqw + clamp(18px, 6cqw, 26px));
   }
   .mc-nav-underlay-panel .mc-nav-underlay-list {
     gap: clamp(6px, 1.6cqw, 8px);

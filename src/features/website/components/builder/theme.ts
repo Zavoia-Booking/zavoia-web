@@ -425,6 +425,9 @@ export function previewVars(
     "--mc-line": PAPER.line,
     "--mc-soft": PAPER.soft,
     "--mc-card": PAPER.card,
+    // Usable content width; responsive gutters sit outside this cap.
+    "--mc-content-max": "1400px",
+    "--mc-content-gutter": "clamp(16px, 2.4cqw, 28px)",
     "--mc-display": font.stack,
     "--mc-display-weight": String(font.weight),
     "--mc-display-tracking": font.tracking,

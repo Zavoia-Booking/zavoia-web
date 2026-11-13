@@ -2,7 +2,9 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import type { BlogTab } from "@/lib/blog";
+import { useTranslation } from "@/i18n/useTranslation";
 import { Skeleton } from "@/components/ui/skeleton";
+import styles from "./blog-list.module.css";
 
 export interface BlogTabsProps {
   cats: { id: BlogTab; label: string }[];
@@ -12,62 +14,50 @@ export interface BlogTabsProps {
   pending?: boolean;
 }
 
-// Editorial tab bar with a sliding ink underline + story counts. Ported from
-// ZwBlogTabs (docs/web-blog.jsx:82-110). The indicator is measured from the
-// active [data-on="1"] tab's offsetLeft/offsetWidth on mount, on active/cats
-// change, on resize, and once more after a short delay (fonts settling).
+/** Category filters keep the editorial underline and use native button semantics. */
 export function BlogTabs({ cats, counts, active, onChange, pending = false }: BlogTabsProps) {
+  const { dict } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [ind, setInd] = useState<{ left: number; width: number }>({
-    left: 0,
-    width: 0,
-  });
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
 
   useLayoutEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    let alive = true;
     const measure = () => {
-      const wrap = wrapRef.current;
-      if (!wrap) return;
-      const el = wrap.querySelector<HTMLElement>('[data-on="1"]');
-      if (el) setInd({ left: el.offsetLeft, width: el.offsetWidth });
+      if (!alive) return;
+      const selected = wrap.querySelector<HTMLElement>('[aria-pressed="true"]');
+      if (selected) setIndicator({ left: selected.offsetLeft, width: selected.offsetWidth });
     };
     measure();
-    window.addEventListener("resize", measure);
-    const t = setTimeout(measure, 60); // after fonts settle
-    return () => {
-      window.removeEventListener("resize", measure);
-      clearTimeout(t);
-    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrap);
+    for (const child of wrap.children) if (child instanceof HTMLElement) observer.observe(child);
+    void document.fonts.ready.then(measure);
+    return () => { alive = false; observer.disconnect(); };
   }, [active, cats]);
 
   return (
-    <div
-      ref={wrapRef}
-      className="zw-jtabs"
-      role="tablist"
-      aria-label="Filter stories"
-    >
-      {cats.map((c) => (
+    <div ref={wrapRef} className={styles.filters} role="group" aria-label={dict.blog.filterLabel}>
+      {cats.map((category) => (
         <button
-          key={c.id}
+          key={category.id}
           type="button"
-          className="zw-jtab"
-          role="tab"
-          aria-selected={active === c.id}
-          data-on={active === c.id ? "1" : "0"}
-          onClick={() => onChange(c.id)}
+          className={styles.filter}
+          aria-pressed={active === category.id}
+          onClick={() => { if (category.id !== active) onChange(category.id); }}
           disabled={pending}
         >
-          {c.label}
-          <span className="zw-jtab-n" style={{ minWidth: "2ch" }}>
-            {pending ? <Skeleton w="2ch" h={10} r={3} /> : counts[c.id]}
+          {category.label}
+          <span className={styles.filterCount}>
+            {pending ? <Skeleton w="2ch" h={12} r={3} /> : counts[category.id]}
           </span>
         </button>
       ))}
-      <span className="zw-jtabs-rail" aria-hidden="true" />
       <span
-        className="zw-jtabs-ind"
+        className={styles.indicator}
         aria-hidden="true"
-        style={{ left: ind.left, width: ind.width }}
+        style={{ transform: `translateX(${indicator.left}px) scaleX(${indicator.width})` }}
       />
     </div>
   );

@@ -9,6 +9,7 @@ import { formatPrice, getPlanPricing, type PlanId } from "@/lib/marketing/pricin
 import { REGISTER_URL, registrationHref, TrialLink } from "./links";
 import { PricingSignupLink } from "./pricing-signup-link";
 import { PlanArtwork } from "./plan-artwork";
+import { TeamSeatPrice } from "./team-seat-price";
 import m from "./marketing.module.css";
 import styles from "./plans-section.module.css";
 
@@ -78,6 +79,7 @@ export function PlanCards({
             </p>
             <div className={styles.charges}>
               <p className={styles.owner}>{t.ownerIncluded}</p>
+              <TeamSeatPrice locale={locale} className={styles.seatPrice} />
             </div>
           </div>
           <div className={clsx(styles.surface, styles.ticketBottom)}>

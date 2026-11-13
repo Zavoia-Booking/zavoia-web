@@ -7,6 +7,7 @@ import detailStyles from "@/app/[locale]/business/_components/business-detail.mo
 import galleryStyles from "@/app/[locale]/business/_components/location-gallery.module.css";
 import bookingStyles from "@/app/[locale]/business/_components/location-booking-summary.module.css";
 import searchStyles from "@/components/search/search-layout.module.css";
+import articleStyles from "@/app/_components/blog/blog-post.module.css";
 
 import { Skeleton } from "./skeleton";
 import { Icon } from "./icon";
@@ -177,27 +178,29 @@ export function FeedPageSkeleton() {
 export function ArticlePageSkeleton() {
   const { locale, dict } = useTranslation();
   return (
-    <main className="zw-post-shell" aria-busy="true">
-      <header className="zw-container" style={{ paddingTop: "clamp(36px, 4.5vw, 60px)" }}>
-        <div className="zw-post-head">
-          <Breadcrumb items={[{ label: dict.breadcrumbHome, href: localeHref(locale) }, { label: dict.blog.breadcrumbJournal, href: localeHref(locale, "blog") }]} />
-          <div aria-hidden="true">
-            <Skeleton w={90} h={25} r={999} style={{ marginTop: 24 }} />
-            <Skeleton w="96%" h="calc(clamp(32px, 4.2vw, 54px) * 2.04)" style={{ marginTop: 14 }} />
-            <Skeleton h="calc(clamp(16px, 1.5vw, 19px) * 3.2)" style={{ marginTop: 20, maxWidth: 680 }} />
-            <div style={{ marginTop: 28, paddingTop: 24, borderTop: "1px solid rgba(28,28,26,0.08)" }}><Skeleton w={190} h={21} /></div>
+    <main className={articleStyles.shell} data-toc="false" aria-busy="true">
+      <header className={`zw-container ${articleStyles.header}`}>
+        <div className={articleStyles.readingFrame}>
+          <div className={articleStyles.head}>
+            <Breadcrumb ariaLabel={dict.blog.breadcrumbLabel} items={[{ label: dict.breadcrumbHome, href: localeHref(locale) }, { label: dict.blog.breadcrumbJournal, href: localeHref(locale, "blog") }]} />
+            <div aria-hidden="true">
+              <Skeleton w="96%" h="calc(clamp(34px, 4.2vw, 58px) * 2.16)" style={{ marginTop: 24 }} />
+              <Skeleton h="calc(clamp(16px, 1.5vw, 19px) * 3.2)" style={{ marginTop: 18, maxWidth: 680 }} />
+              <div className={articleStyles.metadata}><Skeleton w={190} h={21} /><div className={articleStyles.actions}><Skeleton w={100} h={44} r={22} /><Skeleton w={90} h={44} r={22} /></div></div>
+            </div>
           </div>
         </div>
       </header>
-      <div className="zw-container" aria-hidden="true" style={{ paddingTop: "clamp(28px, 3.5vw, 44px)" }}>
-        <Skeleton h="auto" r="var(--r-2xl)" style={{ aspectRatio: "21 / 9" }} />
+      <div className={`zw-container ${articleStyles.coverFrame}`} aria-hidden="true">
+        <div className={articleStyles.cover}><Skeleton h="100%" r="inherit" /></div>
       </div>
-      <div className="zw-container" aria-hidden="true" style={{ paddingTop: "clamp(36px, 4.5vw, 56px)" }}>
-        <div className="zw-post-grid">
-          <div className="zw-post-main" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {["100%", "96%", "98%", "72%", "100%", "89%", "94%", "58%"].map((w, i) => <Skeleton key={i} w={w} h={17} />)}
+      <div className={`zw-container ${articleStyles.bodyFrame}`} aria-hidden="true">
+        <div className={articleStyles.readingFrame}>
+          <div className={articleStyles.readingGrid}>
+            <div className={`${articleStyles.body} ${articleStyles.skeletonProse}`}>
+              {["100%", "96%", "98%", "72%", "100%", "89%", "94%", "58%"].map((w, i) => <Skeleton key={i} w={w} h={18} />)}
+            </div>
           </div>
-          <div className="zw-only-desktop"><Skeleton h={180} /></div>
         </div>
       </div>
     </main>

@@ -2,10 +2,9 @@
  * Industry visual registry — one accent colour and one glyph per canonical
  * industry, keyed by the stable API slug.
  *
- * This is a verbatim port of the RN marketplace-app's
- * `features/industry-tags/visuals.ts`, which the admin dashboard also mirrors.
- * The three tables must agree: the same business shows the same colour on the
- * map pin, the result card's dot and the category rail, on every surface.
+ * Mirrors the RN marketplace-app's `features/industry-tags/visuals.ts`.
+ * The two tables and native map glyphs must agree: the same business shows the
+ * same colour and glyph on the map pin, result card and category rail.
  *
  * The canonical list is `admin-api/docs/industry-taxonomy.md` — 14 industries,
  * slugs never renamed once shipped.
@@ -63,7 +62,7 @@ export const INDUSTRY_VISUALS: Record<IndustrySlug, IndustryVisual> = {
   "professional-services": { icon: "briefcase", accent: "#7A4FB5" },
   "education-coaching": { icon: "graduationCap", accent: "#33499B" },
   "events-creative": { icon: "camera", accent: "#B0359A" },
-  "tailoring-repairs": { icon: "flash", accent: "#7E4A26" },
+  "tailoring-repairs": { icon: "spool", accent: "#7E4A26" },
   "other": { icon: "shapes", accent: "#615D59" },
 };
 

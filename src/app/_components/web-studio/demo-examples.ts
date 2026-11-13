@@ -1,7 +1,9 @@
 import type { MicrositeLocale } from "@/features/website/i18n/translate";
 import type { PreviewData } from "@/features/website/components/builder/preview/shared/types";
 import type { FaqItem, WebsiteBuilderService } from "@/features/website/types";
+import { joinAboutContent } from "@/features/website/components/builder/aboutContent";
 import { specimenData } from "./specimen-data";
+import { completeDemoData } from "./demo-catalog";
 
 /** Fictional businesses for product exploration, never customer endorsements. */
 export const DEMO_EXAMPLES = [
@@ -11,6 +13,8 @@ export const DEMO_EXAMPLES = [
   { id: "music", label: { en: "Music lessons", ro: "Lecții de muzică" } },
   { id: "wellness", label: { en: "Massage & wellness", ro: "Masaj și relaxare" } },
   { id: "automotive", label: { en: "Automotive", ro: "Auto" } },
+  { id: "tattoo", label: { en: "Tattoo & Piercing", ro: "Tatuaje & Piercing" } },
+  { id: "tailoring", label: { en: "Tailoring & Repairs", ro: "Croitorie & Reparații" } },
 ] as const;
 
 export type DemoExampleId = (typeof DEMO_EXAMPLES)[number]["id"];
@@ -25,14 +29,20 @@ const PHOTOS = {
   grooming: "/images/marketing/examples/pet-room.webp",
   dogBath: "/images/marketing/examples/pet-still-life.webp",
   dog: "/images/marketing/examples/pet-dog.webp",
+  petWash: "/images/marketing/examples/pet-wash.webp",
   gym: "/images/marketing/examples/fitness-room.webp",
   training: "/images/marketing/examples/fitness-equipment.webp",
+  mobility: "/images/marketing/examples/fitness-mobility.webp",
+  conditioning: "/images/marketing/examples/fitness-conditioning.webp",
   guitar: "/images/marketing/examples/music-guitar.webp",
   piano: "/images/marketing/examples/music-piano.webp",
   musicLesson: "/images/marketing/examples/music-room.webp",
+  guitarStrings: "/images/marketing/examples/music-strings.webp",
   massage: "/images/web-studio/spa/treatment-room.webp",
   relaxation: "/images/web-studio/spa/stones-and-oil.webp",
   treatmentRoom: "/images/web-studio/spa/quiet-corridor.webp",
+  linenAndTea: "/images/web-studio/spa/linen-and-tea.webp",
+  stoneBasin: "/images/web-studio/spa/stone-basin.webp",
   autoDiagnostics: "/images/marketing/examples/auto-diagnostics.webp",
   autoMaintenance: "/images/marketing/examples/auto-maintenance.webp",
   wheelChange: "/images/marketing/examples/auto-wheels.webp",
@@ -122,6 +132,39 @@ const AUTOMOTIVE_SERVICES: ServiceCopy[] = [
   { name: { en: "Tyre fitting & balancing", ro: "Montaj și echilibrare anvelope" }, description: { en: "Fit and balance four tyres. Confirm wheel dimensions when booking; tyres and replacement valves are charged separately.", ro: "Montăm și echilibrăm patru anvelope. Confirmă dimensiunea roților la programare; anvelopele și valvele înlocuite se plătesc separat." }, category: 2, duration: 60, price: 20000 },
 ];
 
+const TATTOO_CATEGORIES: Bilingual[] = [
+  { en: "Design & consultation", ro: "Design și consultație" },
+  { en: "Tattoo sessions", ro: "Ședințe de tatuaj" },
+  { en: "Piercing & jewellery", ro: "Piercing și bijuterii" },
+];
+
+const TATTOO_SERVICES: ServiceCopy[] = [
+  { name: { en: "Your first design consultation", ro: "Prima consultație pentru design" }, description: { en: "Discuss your idea, placement and scale. We agree on the next steps and a quote before booking the tattoo session.", ro: "Discutăm ideea, amplasarea și dimensiunea. Stabilim pașii următori și un preț înainte de programarea ședinței de tatuaj." }, category: 0, duration: 30, price: 10000 },
+  { name: { en: "Custom drawing appointment", ro: "Consultație pentru desen personalizat" }, description: { en: "Review a drawing with your artist and refine the composition, details and placement together.", ro: "Analizezi desenul împreună cu artistul și ajustați compoziția, detaliile și amplasarea." }, category: 0, duration: 45, price: 15000 },
+  { name: { en: "Small linework tattoo", ro: "Tatuaj mic, în linii fine" }, description: { en: "A session for a small linework design agreed with your artist. We confirm the design and total price before starting.", ro: "O ședință pentru un desen mic în linii fine, stabilit împreună cu artistul. Confirmăm desenul și prețul total înainte de a începe." }, category: 1, duration: 90, price: 50000 },
+  { name: { en: "Extended custom tattoo session", ro: "Ședință extinsă pentru tatuaj personalizat" }, description: { en: "A longer appointment for a design already discussed at consultation. Your artist confirms how many sessions the project needs.", ro: "O programare mai lungă pentru un proiect discutat la consultație. Artistul confirmă de câte ședințe are nevoie desenul." }, category: 1, duration: 180, price: 120000 },
+  { name: { en: "Single lobe piercing", ro: "Piercing într-un lob" }, description: { en: "An appointment for one lobe piercing. We discuss placement and confirm the jewellery choice and its separate cost with you.", ro: "O programare pentru un piercing într-un lob. Discutăm amplasarea și confirmăm împreună bijuteria și costul ei separat." }, category: 2, duration: 30, price: 12000 },
+  { name: { en: "Jewellery fitting", ro: "Probă și montare bijuterie" }, description: { en: "Choose a suitable size and style with our piercer. Jewellery is priced separately; tell us what you would like to change when booking.", ro: "Alegi dimensiunea și modelul împreună cu specialistul. Bijuteria se plătește separat; spune-ne la programare ce ai vrea să schimbi." }, category: 2, duration: 20, price: 6000 },
+  { name: { en: "Follow-up appointment", ro: "Consultație de revenire" }, description: { en: "A short follow-up for a previous visit to our studio, with time to discuss your questions and any next appointment.", ro: "O scurtă revenire după o vizită în studio, cu timp pentru întrebările tale și pentru stabilirea unei eventuale programări." }, category: 2, duration: 20, price: 0 },
+];
+
+const TAILORING_CATEGORIES: Bilingual[] = [
+  { en: "Alterations", ro: "Ajustări vestimentare" },
+  { en: "Repairs", ro: "Reparații" },
+  { en: "Fittings & finishing", ro: "Probe și finisaje" },
+];
+
+const TAILORING_SERVICES: ServiceCopy[] = [
+  { name: { en: "Trouser hem fitting", ro: "Probă pentru scurtat pantaloni" }, description: { en: "Bring your trousers and the shoes you wear with them. We mark the length and agree on the finish and collection date.", ro: "Adu pantalonii și încălțămintea cu care îi porți. Marcăm lungimea și stabilim finisajul și data ridicării." }, category: 0, duration: 20, price: 4000 },
+  { name: { en: "Waist adjustment fitting", ro: "Probă pentru ajustarea taliei" }, description: { en: "A fitting to check the waistband and garment construction, then confirm the alteration and final quote.", ro: "Verificăm la probă talia și construcția hainei, apoi confirmăm ajustarea și prețul final." }, category: 0, duration: 30, price: 8500 },
+  { name: { en: "Dress or skirt hem fitting", ro: "Probă pentru scurtat rochie sau fustă" }, description: { en: "We pin the new length and discuss the fabric and lining. The final price depends on the garment and the finish you choose.", ro: "Marcăm noua lungime și discutăm despre material și căptușeală. Prețul final depinde de haină și de finisajul ales." }, category: 0, duration: 45, price: 12000 },
+  { name: { en: "Zip replacement assessment", ro: "Evaluare pentru înlocuit fermoar" }, description: { en: "Bring the garment so we can match the zip and check the construction. A replacement zip is quoted separately.", ro: "Adu haina ca să potrivim fermoarul și să verificăm construcția. Fermoarul nou se ofertează separat." }, category: 1, duration: 30, price: 8000 },
+  { name: { en: "Open seam repair", ro: "Repararea unei cusături desfăcute" }, description: { en: "We inspect the seam and surrounding fabric, discuss the repair and agree on when your garment will be ready.", ro: "Verificăm cusătura și materialul din jur, discutăm reparația și stabilim când va fi gata haina." }, category: 1, duration: 20, price: 4500 },
+  { name: { en: "Lining repair assessment", ro: "Evaluare pentru reparat căptușeală" }, description: { en: "A visit to examine a jacket, coat or dress lining and agree on the repair. Replacement fabric is quoted separately when needed.", ro: "Examinăm căptușeala sacoului, paltonului sau rochiei și stabilim reparația. Dacă este necesar, materialul nou se ofertează separat." }, category: 1, duration: 45, price: 14000 },
+  { name: { en: "Garment fitting consultation", ro: "Consultație și probă vestimentară" }, description: { en: "Bring a garment you would like to adjust. We assess its fit and discuss practical alterations before you decide on the work.", ro: "Adu o haină pe care vrei să o ajustezi. Evaluăm cum se așază și discutăm modificările posibile înainte să alegi lucrarea." }, category: 2, duration: 30, price: 6000 },
+  { name: { en: "Final fitting & collection", ro: "Probă finală și ridicare" }, description: { en: "Try on your completed alteration with us and check the fit before taking your garment home.", ro: "Probezi haina ajustată împreună cu noi și verifici cum se așază înainte de a o lua acasă." }, category: 2, duration: 20, price: 0 },
+];
+
 function servicesFor(locale: MicrositeLocale, categories: Bilingual[], copies: ServiceCopy[], prefix: number): WebsiteBuilderService[] {
   return copies.map((service, index) => ({
     id: prefix + index,
@@ -164,6 +207,18 @@ const AUTOMOTIVE_FAQ: FaqItem[] = [
   { q: { en: "Can I book a check before deciding on a repair?", ro: "Pot programa o verificare înainte de a decide reparația?" }, a: { en: "Yes. Choose a diagnostic or inspection appointment. We explain what we find and discuss the proposed work before booking any repair.", ro: "Da. Alegi o programare pentru diagnoză sau verificare. Îți explicăm ce am constatat și discutăm lucrările propuse înainte de a programa reparația." } },
 ];
 
+const TATTOO_FAQ: FaqItem[] = [
+  { q: { en: "Where should I start with a new tattoo idea?", ro: "Cu ce încep dacă am o idee pentru un tatuaj?" }, a: { en: "Book a design consultation first. Bring your ideas and tell us the placement and approximate size you have in mind. We discuss the drawing, price and time before arranging a tattoo session.", ro: "Începe cu o consultație pentru design. Adu ideile tale și spune-ne amplasarea și dimensiunea aproximativă. Discutăm desenul, prețul și timpul necesar înainte de a programa ședința de tatuaj." } },
+  { q: { en: "Can I choose my artist?", ro: "Pot alege artistul?" }, a: { en: "Yes. Choose the artist when booking, then select one of their available consultation or session times.", ro: "Da. Alegi artistul la programare, apoi selectezi una dintre orele sale disponibile pentru consultație sau ședință." } },
+  { q: { en: "Is jewellery included in piercing prices?", ro: "Bijuteria este inclusă în prețul piercingului?" }, a: { en: "The displayed price covers the appointment described. Jewellery is selected and priced separately, with the total confirmed before the appointment begins.", ro: "Prețul afișat acoperă programarea descrisă. Bijuteria se alege și se plătește separat, iar totalul se confirmă înainte de începerea programării." } },
+];
+
+const TAILORING_FAQ: FaqItem[] = [
+  { q: { en: "Will my garment be ready during the appointment?", ro: "Haina va fi gata în timpul programării?" }, a: { en: "The appointment reserves time for your fitting or garment assessment. We agree on the work, final quote and collection date after seeing the garment.", ro: "Programarea rezervă timpul pentru probă sau evaluarea hainei. Stabilim lucrarea, prețul final și data ridicării după ce vedem haina." } },
+  { q: { en: "What should I bring to a fitting?", ro: "Ce aduc la probă?" }, a: { en: "Bring the garment and any shoes or layers you plan to wear with it. For a hem fitting, the shoes help us mark the right length.", ro: "Adu haina, încălțămintea și celelalte piese cu care o vei purta. La o probă pentru scurtare, încălțămintea ne ajută să marcăm lungimea potrivită." } },
+  { q: { en: "Are zips and replacement fabrics included?", ro: "Fermoarele și materialele noi sunt incluse?" }, a: { en: "The displayed prices cover the described labour. If a repair needs a new zip, lining or other material, we confirm that separate cost with you before starting.", ro: "Prețurile afișate acoperă manopera descrisă. Dacă reparația necesită un fermoar, o căptușeală sau alt material nou, confirmăm cu tine costul separat înainte de a începe." } },
+];
+
 /** A separate authored music-school example; it does not inherit salon content. */
 function musicData(base: PreviewData, locale: MicrositeLocale): PreviewData {
   const services = servicesFor(locale, MUSIC_CATEGORIES, MUSIC_SERVICES, 400);
@@ -189,7 +244,7 @@ function musicData(base: PreviewData, locale: MicrositeLocale): PreviewData {
       saturday: { open: "10:00", close: "16:00", isOpen: true },
       sunday: { open: null, close: null, isOpen: false },
     },
-    portfolioImages: [PHOTOS.guitar, PHOTOS.piano, PHOTOS.musicLesson].map((url, index) => ({ url, key: `demo-music-${index}`, originalName: `music-${index}.jpg` })),
+    portfolioImages: [PHOTOS.guitar, PHOTOS.piano, PHOTOS.musicLesson, PHOTOS.guitarStrings].map((url, index) => ({ url, key: `demo-music-${index}`, originalName: `music-${index}.jpg` })),
     featuredImage: PHOTOS.guitar,
     averageRating: null,
     totalReviews: 0,
@@ -209,7 +264,7 @@ function musicData(base: PreviewData, locale: MicrositeLocale): PreviewData {
     businessName: "Tempo Music",
     heroImageUrl: PHOTOS.guitar,
     tagline: locale === "ro" ? "Lecții de muzică. În ritmul tău." : "Music lessons. At your own tempo.",
-    aboutContent: about[locale],
+    aboutContent: joinAboutContent(locale === "ro" ? "Fă loc muzicii." : "Make room for music.", about[locale]),
     establishedYear: null,
     email: location.email,
     phone: "",
@@ -235,7 +290,7 @@ function wellnessData(base: PreviewData, locale: MicrositeLocale): PreviewData {
     en: "A quiet massage studio in Aviatorilor, with space to step out of the rush. Choose a short pause for your shoulders or a longer full-body session. We start by listening, agree on the pressure and give each appointment its own time.",
     ro: "Un studio de masaj liniștit în Aviatorilor, unde poți lăsa graba deoparte. Alegi o pauză scurtă pentru umeri sau o ședință mai lungă pentru întregul corp. Începem prin a te asculta, stabilim presiunea potrivită și acordăm fiecărei programări timpul ei.",
   };
-  const photos = [PHOTOS.massage, PHOTOS.treatmentRoom, PHOTOS.relaxation];
+  const photos = [PHOTOS.massage, PHOTOS.treatmentRoom, PHOTOS.relaxation, PHOTOS.linenAndTea, PHOTOS.stoneBasin];
   const location: PreviewData["locations"][number] = {
     id: 501,
     name: "Aviatorilor",
@@ -276,7 +331,7 @@ function wellnessData(base: PreviewData, locale: MicrositeLocale): PreviewData {
     logo: null,
     heroImageUrl: PHOTOS.massage,
     tagline: locale === "ro" ? "Masaj și relaxare. Timp doar pentru tine." : "Massage and relaxation. Time just for you.",
-    aboutContent: about[locale],
+    aboutContent: joinAboutContent(locale === "ro" ? "Puțin timp, doar pentru tine." : "A little time, just for you.", about[locale]),
     establishedYear: null,
     email: location.email!,
     phone: "",
@@ -343,7 +398,7 @@ function automotiveData(base: PreviewData, locale: MicrositeLocale): PreviewData
     logo: null,
     heroImageUrl: PHOTOS.autoDiagnostics,
     tagline: locale === "ro" ? "Întreținere și diagnoză. Cu programare." : "Maintenance and diagnostics. By appointment.",
-    aboutContent: about[locale],
+    aboutContent: joinAboutContent(locale === "ro" ? "Mașina ta, pregătită de drum." : "Your car, ready for the road.", about[locale]),
     establishedYear: null,
     email: location.email!,
     phone: "",
@@ -362,12 +417,110 @@ function automotiveData(base: PreviewData, locale: MicrositeLocale): PreviewData
   };
 }
 
+/** Two distinct craft businesses, with self-contained content and original photo sets. */
+function craftData(base: PreviewData, locale: MicrositeLocale, exampleId: "tattoo" | "tailoring"): PreviewData {
+  const tattoo = exampleId === "tattoo";
+  const prefix = tattoo ? 700 : 800;
+  const content = tattoo ? {
+    name: "Contur Ink",
+    location: "Iancului",
+    email: "hello@contur-ink.example.test",
+    photos: ["studio", "station", "ink", "designs", "jewellery", "reception", "wash", "detail"],
+    tagline: { en: "Your idea. A line of your own.", ro: "Ideea ta. Un contur doar al tău." },
+    headline: { en: "Start with a conversation.", ro: "Începem cu o conversație." },
+    about: {
+      en: "A small tattoo and piercing studio in Iancului, with time to talk through your idea before the first appointment. We work on original linework and custom designs, from a small motif to a project developed over several visits. Meet your artist, explore the studio and choose a time to discuss what you have in mind.",
+      ro: "Un studio de tatuaje și piercing în Iancului, cu timp pentru ideea ta înainte de prima ședință. Lucrăm la desene originale în linii fine și proiecte personalizate, de la un motiv mic până la compoziții construite în mai multe vizite. Cunoști artistul, descoperi studioul și alegi o oră pentru a discuta ce îți dorești.",
+    },
+    message: { en: "Your next design starts with a conversation", ro: "Următorul tău desen începe cu o conversație" },
+    details: { en: "Choose a consultation to discuss your idea, placement and size. We confirm the design, price and session time together before you book the tattoo appointment.", ro: "Alege o consultație ca să discutăm ideea, amplasarea și dimensiunea. Confirmăm împreună desenul, prețul și timpul necesar înainte de a programa ședința de tatuaj." },
+    team: [
+      { id: 701, firstName: "Daria", lastName: "Matei", profileImage: null },
+      { id: 702, firstName: "Luca", lastName: "Radu", profileImage: null },
+      { id: 703, firstName: "Ana", lastName: "Marin", profileImage: null },
+    ],
+  } : {
+    name: "Fir Atelier",
+    location: "Piața Romană",
+    email: "hello@fir-atelier.example.test",
+    photos: ["atelier", "machine", "fabrics", "tools", "form", "fitting", "pressing", "detail"],
+    tagline: { en: "Clothes you love. A fit that feels like you.", ro: "Hainele tale preferate. Croite să ți se potrivească." },
+    headline: { en: "A little adjustment. A new favourite.", ro: "O mică ajustare. Din nou, haina preferată." },
+    about: {
+      en: "A neighbourhood alterations and repair atelier near Piața Romană, for the clothes you want to keep wearing. We take time to understand the fit, look closely at the fabric and agree on each adjustment with you. Bring the trousers, dress or jacket you have in mind; we will plan the work and collection date at your fitting.",
+      ro: "Un atelier de ajustări și reparații lângă Piața Romană, pentru hainele pe care vrei să le porți în continuare. Avem timp să înțelegem cum vrei să se așeze, să verificăm materialul și să stabilim împreună fiecare modificare. Adu pantalonii, rochia sau sacoul la care te gândești; la probă alegem lucrarea și data ridicării.",
+    },
+    message: { en: "Make time for a better fit", ro: "Fă loc unei probe" },
+    details: { en: "Book a fitting or garment assessment and bring the item you would like to alter. The appointment reserves our time with you; we agree on the work, final price and collection date after seeing the garment.", ro: "Programează o probă sau o evaluare și adu haina pe care vrei să o ajustezi. Programarea rezervă timpul nostru pentru tine; stabilim lucrarea, prețul final și data ridicării după ce vedem haina." },
+    team: [
+      { id: 801, firstName: "Irina", lastName: "Dinu", profileImage: null },
+      { id: 802, firstName: "Sorin", lastName: "Munteanu", profileImage: null },
+    ],
+  };
+  const photos = content.photos.map(scene => `/images/marketing/examples/${exampleId}-${scene}.webp`);
+  const weekday = tattoo ? { open: "11:00", close: "20:00", isOpen: true } : { open: "09:00", close: "18:00", isOpen: true };
+  const location: PreviewData["locations"][number] = {
+    id: prefix + 1,
+    name: content.location,
+    description: content.about[locale],
+    phone: null,
+    email: content.email,
+    address: `${content.location}, București`,
+    addressComponents: { city: "București", country: "România" },
+    timezone: "Europe/Bucharest",
+    open247: false,
+    allowOnlineBooking: true,
+    workingHours: {
+      monday: weekday,
+      tuesday: weekday,
+      wednesday: weekday,
+      thursday: weekday,
+      friday: weekday,
+      saturday: tattoo ? { open: "11:00", close: "17:00", isOpen: true } : { open: "10:00", close: "14:00", isOpen: true },
+      sunday: { open: null, close: null, isOpen: false },
+    },
+    portfolioImages: photos.map((url, index) => ({ url, key: `demo-${exampleId}-${index}`, originalName: `${exampleId}-${content.photos[index]}.webp` })),
+    featuredImage: photos[0],
+    averageRating: null,
+    totalReviews: 0,
+    amenityTagIds: [],
+    paymentMethodTagIds: [1, 2],
+    languageTagIds: [1, 2],
+    services: servicesFor(locale, tattoo ? TATTOO_CATEGORIES : TAILORING_CATEGORIES, tattoo ? TATTOO_SERVICES : TAILORING_SERVICES, prefix),
+    bundles: [],
+    teamMembers: content.team,
+  };
+  return {
+    ...base,
+    businessName: content.name,
+    logo: null,
+    heroImageUrl: photos[0],
+    tagline: content.tagline[locale],
+    aboutContent: joinAboutContent(content.headline[locale], content.about[locale]),
+    establishedYear: null,
+    email: content.email,
+    phone: "",
+    social: {},
+    locations: [location],
+    faq: tattoo ? TATTOO_FAQ : TAILORING_FAQ,
+    announcement: {
+      message: content.message,
+      details: content.details,
+      cta: { enabled: false, label: { en: "", ro: "" }, url: "", newTab: false, showArrow: true },
+      schedule: null,
+    },
+    reviews: [],
+    teamRatings: {},
+    ratingDistribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
+  };
+}
+
 /**
  * All sample content travels together when changing industry. These examples
  * intentionally have no customer quotes or rating totals; a demonstration must
  * not suggest that a fictional business has real customer endorsements.
  */
-export function demoExampleData(
+function demoSeedData(
   locale: MicrositeLocale,
   brandColor: string,
   fontKey: string,
@@ -378,11 +531,14 @@ export function demoExampleData(
   if (exampleId === "music") return musicData(base, locale);
   if (exampleId === "wellness") return wellnessData(base, locale);
   if (exampleId === "automotive") return automotiveData(base, locale);
+  if (exampleId === "tattoo" || exampleId === "tailoring") return craftData(base, locale, exampleId);
 
   const pets = exampleId === "pets";
   const services = servicesFor(locale, pets ? PET_CATEGORIES : FITNESS_CATEGORIES, pets ? PET_SERVICES : FITNESS_SERVICES, pets ? 200 : 300);
   const name = pets ? "Paw & Co" : "Forma Studio";
-  const photos = pets ? [PHOTOS.dog, PHOTOS.grooming, PHOTOS.dogBath] : [PHOTOS.gym, PHOTOS.training];
+  const photos = pets
+    ? [PHOTOS.dog, PHOTOS.grooming, PHOTOS.dogBath, PHOTOS.petWash]
+    : [PHOTOS.gym, PHOTOS.training, PHOTOS.mobility, PHOTOS.conditioning];
   const locationName = pets ? "Cotroceni" : "Tineretului";
   const team = pets
     ? [{ id: 201, firstName: "Mara", lastName: "Ionescu", profileImage: null }, { id: 202, firstName: "Alex", lastName: "Dumitrescu", profileImage: null }]
@@ -393,6 +549,9 @@ export function demoExampleData(
   const about: Bilingual = pets
     ? { en: "A calm grooming studio in Cotroceni, with time to get to know your dog. We plan each visit around their coat, comfort and everyday care, from a quick paw tidy to a full groom.", ro: "Un studio de toaletaj liniștit în Cotroceni, unde avem timp să îți cunoaștem câinele. Adaptăm fiecare vizită blănii, confortului și îngrijirii sale, de la lăbuțe până la un toaletaj complet." }
     : { en: "A neighbourhood training studio in Tineretului for people who want a clear plan and personal guidance. We work on strength, movement and confidence, one well-paced session at a time.", ro: "Un studio de antrenament în Tineretului, pentru cei care își doresc un plan clar și îndrumare personală. Lucrăm la forță, mișcare și încredere, cu fiecare ședință în ritmul potrivit." };
+  const aboutHeadline: Bilingual = pets
+    ? { en: "Care at your dog's pace.", ro: "Îngrijire în ritmul câinelui tău." }
+    : { en: "Find your own strength.", ro: "Descoperă-ți forța." };
 
   const location = {
     ...base.locations[0],
@@ -436,7 +595,7 @@ export function demoExampleData(
     businessName: name,
     heroImageUrl: photos[0],
     tagline: tagline[locale],
-    aboutContent: about[locale],
+    aboutContent: joinAboutContent(aboutHeadline[locale], about[locale]),
     establishedYear: null,
     email: location.email,
     phone: "",
@@ -453,4 +612,14 @@ export function demoExampleData(
     teamRatings: {},
     ratingDistribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
   };
+}
+
+/** The showcase and interactive demo share the same complete branch menus. */
+export function demoExampleData(
+  locale: MicrositeLocale,
+  brandColor: string,
+  fontKey: string,
+  exampleId: DemoExampleId = "beauty",
+): PreviewData {
+  return completeDemoData(demoSeedData(locale, brandColor, fontKey, exampleId), exampleId, locale);
 }

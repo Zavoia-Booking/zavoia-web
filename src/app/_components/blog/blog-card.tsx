@@ -5,141 +5,39 @@ import { categoryAccent, formatReadingTime } from "@/lib/blog";
 import { urlForImage } from "@/sanity/image";
 import { Icon } from "@/components/ui/icon";
 import { Img } from "@/components/ui/image";
+import { BlogMeta } from "./blog-meta";
+import { CatChip } from "./cat-chip";
 import type { BlogCardVM } from "./types";
+import styles from "./blog-list.module.css";
 
 export interface BlogCardProps {
   locale: Locale;
   post: BlogCardVM;
   categoryLabel: string;
+  headingLevel?: 2 | 3;
 }
 
-// Editorial grid card. Ported from ZwBlogCard (docs/web-blog.jsx:218-266).
-// Differences from the prototype:
-//  - The card root is a real next/link <Link> to the post (better SSR/SEO)
-//    instead of the role=button/onClick affordance.
-//  - The footer omits the author avatar/name (no author data exists). It keeps
-//    the full-bleed top border, renders only the date on the left, the flex
-//    spacer, and the circular go-arrow on the right.
-// This component uses no client-only APIs so it can be rendered from either a
-// server or a client parent — slice 3's "related" grid reuses it server-side.
-export function BlogCard({ locale, post, categoryLabel }: BlogCardProps) {
-  const accent = categoryAccent(post.category);
-  const readLabel = formatReadingTime(post.readingMinutes).replace(" read", "");
+/** A single article link, shared by the Journal and related-article lists. */
+export function BlogCard({ locale, post, categoryLabel, headingLevel = 3 }: BlogCardProps) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   const cover = post.coverImage?.asset
     ? urlForImage(post.coverImage).width(640).height(360).url()
     : undefined;
 
   return (
-    <Link
-      href={localeHref(locale, "blog", post.slug)}
-      className="zw-hover-lift zw-zoom-parent"
-      style={{
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.06)",
-        borderRadius: "var(--card-r, 18px)",
-        overflow: "hidden",
-        boxShadow: "var(--sh-sm)",
-        display: "flex",
-        flexDirection: "column",
-        textDecoration: "none",
-        color: "inherit",
-      }}
-    >
-      <div
-        className="zw-zoom-wrap"
-        style={{
-          position: "relative",
-          aspectRatio: "16 / 9",
-          background: "var(--c-300)",
-        }}
-      >
-        <Img
-          src={cover}
-          alt={post.coverImage?.alt || post.title}
-          style={{ width: "100%", height: "100%" }}
-        />
-        <span className="zw-bcard-cat">
-          <span
-            aria-hidden="true"
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: accent,
-            }}
-          />
-          {categoryLabel}
-        </span>
-        <span className="zw-readtag">
-          <Icon name="clock" size={11} color="#fff" />
-          {readLabel}
-        </span>
+    <Link href={localeHref(locale, "blog", post.slug)} className={styles.card}>
+      <div className={styles.cardMedia}>
+        <Img src={cover} alt={post.coverImage?.alt || post.title} className={styles.cardImage} />
       </div>
-      <div
-        style={{
-          padding: "17px 20px 18px",
-          display: "flex",
-          flexDirection: "column",
-          flex: 1,
-        }}
-      >
-        <h3
-          className="txt-balance"
-          style={{
-            margin: 0,
-            fontSize: 18.5,
-            fontWeight: 600,
-            letterSpacing: "-0.024em",
-            lineHeight: 1.22,
-            color: "var(--c-900)",
-          }}
-        >
-          <span className="zw-card-title">{post.title}</span>
-        </h3>
-        {post.excerpt && (
-          <p
-            className="txt-pretty"
-            style={{
-              margin: "9px 0 0",
-              fontSize: 13.5,
-              lineHeight: 1.55,
-              color: "var(--c-600)",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {post.excerpt}
-          </p>
-        )}
-        <div
-          style={{
-            marginTop: "auto",
-            paddingTop: 15,
-            marginLeft: -20,
-            marginRight: -20,
-            paddingLeft: 20,
-            paddingRight: 20,
-            borderTop: "1px solid rgba(28,28,26,0.06)",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 12.5,
-              color: "var(--c-500)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {post.dateLabel}
-          </span>
-          <span style={{ flex: 1 }} />
-          <span className="zw-bcard-go" aria-hidden="true">
-            <Icon name="arrowR" size={15} />
-          </span>
+      <div className={styles.cardBody}>
+        <div className={styles.cardCopy}>
+          {categoryLabel && <CatChip label={categoryLabel} accent={categoryAccent(post.category)} />}
+          <Heading className={styles.cardTitle}>{post.title}</Heading>
+          {post.excerpt && <p className={styles.cardDescription}>{post.excerpt}</p>}
+        </div>
+        <div className={styles.cardFooter}>
+          <BlogMeta date={post.dateLabel} read={formatReadingTime(post.readingMinutes, locale)} />
+          <span className={styles.cardArrow} aria-hidden="true"><Icon name="arrowR" size={18} /></span>
         </div>
       </div>
     </Link>

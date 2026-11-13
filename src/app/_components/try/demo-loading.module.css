@@ -1,0 +1,30 @@
+.loading .panel, .loading .compact { pointer-events: none; }
+.loading .compact { display: none; }
+.rail { position: absolute; top: 11px; left: calc(50% - 16px); width: 32px; height: 4px; border-radius: 99px; background: color-mix(in oklch, var(--c-ink) 28%, var(--c-canvas)); }
+.title { flex: 1; min-width: 0; padding-inline: 8px; font-size: 15px; font-weight: 600; line-height: 1.3; }
+.compact .title { padding: 0; font-size: 14px; }
+.loading .settings { overflow: hidden; }
+.example { display: flex; align-items: center; gap: 10px; min-height: 78px; }
+.exampleCopy { display: grid; flex: 1; gap: 4px; }
+.colours { padding-block: 16px 10px; border-block: 1px solid rgb(28 28 26 / 13%); }
+.swatches { display: flex; justify-content: space-between; padding: 10px 6px 3px; }
+.font { display: flex; align-items: center; justify-content: space-between; min-height: 52px; border-bottom: 1px solid rgb(28 28 26 / 13%); }
+.sectionRow { display: flex; align-items: center; gap: 10px; height: 48px; }
+/* The default tablet canvas uses the same 834x1080 logical viewport and 16px gutters. */
+@media (min-width: 601px) and (max-width: 980px) {
+  .loading { --demo-frame-height: min(calc(100dvh - 32px), calc(min(834px, 100vw - 32px) * 1080 / 834)); }
+  .loading .viewport {
+    width: min(834px, calc(100vw - 32px));
+    height: var(--demo-frame-height);
+    margin-top: calc((100dvh - var(--demo-frame-height)) / 2);
+    border-radius: 14px;
+    clip-path: inset(0 round 14px);
+    outline: 1px solid rgb(28 28 26 / 14%);
+    box-shadow: 0 5px 14px rgb(28 28 26 / 8%), 0 18px 40px rgb(28 28 26 / 12%);
+  }
+  .loading .stage { --mc-vph: var(--demo-frame-height); }
+}
+@media (max-width: 1023px) {
+  .loading .panel { display: none; }
+  .loading .compact { display: flex; }
+}

@@ -35,12 +35,18 @@ export interface Look {
 export type LockKey = "layout" | "colour" | "type";
 export type Locks = Record<LockKey, boolean>;
 
+/** Options still unexplored in each dimension's current shuffle cycle. Session-only UI state. */
+export type ShuffleCycle = Partial<Record<SectionType | "accent" | "fontKey", {
+  remaining: readonly string[];
+  previous: string;
+}>>;
+
 export const NO_LOCKS: Locks = { layout: false, colour: false, type: false };
 
 /**
  * The look the page opens on. Chosen, not random: a QR scan gets one first
- * impression and it should be the product at its best. Every subsequent
- * shuffle is genuinely random.
+ * impression and it should be the product at its best. Subsequent shuffles
+ * randomly explore the remaining options in each dimension before repeating.
  */
 export const OPENING_LOOK: Look = {
   variants: {
@@ -63,41 +69,46 @@ export const OPENING_LOOK: Look = {
 
 const BASE36 = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-function pickDifferent<T>(pool: readonly T[], current: T | undefined): T {
+function pickUnseen(pool: readonly string[], current: string, cycle?: ShuffleCycle[keyof ShuffleCycle]) {
   if (pool.length === 0) throw new Error("shuffle: empty pool");
-  if (pool.length === 1) return pool[0];
-  let next = current;
-  // Guarantee visible change: a shuffle that lands on what you already had
-  // reads as a broken button, not as chance.
-  while (next === current) {
-    next = pool[Math.floor(Math.random() * pool.length)];
-  }
-  return next as T;
+  let remaining = cycle?.remaining.filter(value => pool.includes(value)) ?? [];
+  if (!remaining.length) remaining = [...pool];
+  // Initial and manually selected values count as explored. On a normal cycle
+  // boundary, keep the last style in the bag for later but exclude it from this draw.
+  if (current !== cycle?.previous) remaining = remaining.filter(value => value !== current);
+  if (!remaining.length) remaining = pool.filter(value => value !== current);
+  const available = remaining.filter(value => value !== current);
+  if (!available.length) return { value: pool[0], remaining: [] };
+  const value = available[Math.floor(Math.random() * available.length)];
+  return { value, remaining: remaining.filter(option => option !== value) };
 }
 
-/** Re-roll every unlocked dimension of `from`, guaranteeing each one changes. */
-export function shuffleLook(from: Look, locks: Locks): Look {
+/** Change every unlocked dimension, exploring its alternatives before starting a new cycle. */
+export function shuffleLook(from: Look, locks: Locks, cycle: ShuffleCycle = {}): { look: Look; cycle: ShuffleCycle } {
+  const nextCycle = { ...cycle };
+  const choose = (key: keyof ShuffleCycle, pool: readonly string[], current: string) => {
+    const next = pickUnseen(pool, current, cycle[key]);
+    nextCycle[key] = { remaining: next.remaining, previous: next.value };
+    return next.value;
+  };
   const variants = { ...from.variants };
   if (!locks.layout) {
     for (const type of SECTION_TYPES) {
       const ids = SECTION_META[type].variants.map((v) => v.id);
-      variants[type] = pickDifferent(ids, from.variants[type]);
+      variants[type] = choose(type, ids, from.variants[type]);
     }
   }
   return {
-    variants,
-    accent: locks.colour
-      ? from.accent
-      : pickDifferent(
-          BRAND_ACCENT_CATALOG.map((a) => a.hex),
-          from.accent,
-        ),
-    fontKey: locks.type
-      ? from.fontKey
-      : pickDifferent(
-          FONT_CATALOG.map((f) => f.key),
-          from.fontKey,
-        ),
+    look: {
+      variants,
+      accent: locks.colour
+        ? from.accent
+        : choose("accent", BRAND_ACCENT_CATALOG.map((a) => a.hex), from.accent),
+      fontKey: locks.type
+        ? from.fontKey
+        : choose("fontKey", FONT_CATALOG.map((f) => f.key), from.fontKey),
+    },
+    cycle: nextCycle,
   };
 }
 

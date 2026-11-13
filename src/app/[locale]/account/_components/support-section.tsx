@@ -1,14 +1,20 @@
 "use client";
 
+import Link from "next/link";
+import * as Collapsible from "@radix-ui/react-collapsible";
+import { Close as DialogClose } from "@radix-ui/react-dialog";
+import { ActionModal } from "@/app/[locale]/appointments/_components/actions/action-modal";
+import { localeHref } from "@/i18n/routes";
+import styles from "./support-section.module.css";
+import disclosure from "@/components/ui/disclosure-motion.module.css";
+
 import type { Dictionary } from "@/i18n/dictionaries";
 
 /**
  * Support tab — ticket-based support UI inside the account settings page.
  *
- * Ported from the design prototype `docs/web-support.jsx` (ticket rows, status
- * dot, message bubbles, composer), adapted onto the REAL API shape and the
- * narrower single-column account layout (list ⇄ detail, no fixed two-pane
- * desktop inbox chrome).
+ * One responsive ticket list with inline, single-open conversations.
+ * Presentation changes preserve the authenticated API and existing state flow.
  *
  * Data-shape notes (see src/lib/api/marketplace/types.ts):
  * - `Ticket.details.history` entries have NO per-message timestamp — only
@@ -20,7 +26,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
  * - No pagination, no attachments — out of scope.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
 import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
@@ -94,47 +100,13 @@ function preview(ticket: Ticket): string {
 }
 
 // ─────────────────────────────────────────────
-// Status badge — dashed pill, matching the appointment detail's StampPill
-// visual language (src/app/[locale]/appointments/[uuid]/_components/sections.tsx).
+// Status stays readable without depending on colour.
 // ─────────────────────────────────────────────
 
-function TicketStatusBadge({
-  status,
-  t,
-}: {
-  status: TicketStatus;
-  t: SupportDict;
-}) {
-  const color = statusColor(status);
+function TicketStatusBadge({ status, t }: { status: TicketStatus; t: SupportDict }) {
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "3px 9px 3px 7px",
-        border: "1.5px dashed " + color,
-        borderRadius: 6,
-        fontFamily: "var(--font-mono)",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.10em",
-        textTransform: "uppercase",
-        color,
-        background: "#fff",
-        whiteSpace: "nowrap",
-        lineHeight: 1,
-      }}
-    >
-      <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: color,
-          flexShrink: 0,
-        }}
-      />
+    <span className={styles.status} data-closed={status === "CLOSED" || undefined}>
+      {status === "CLOSED" ? <Icon name="lock" size={14} aria-hidden="true" /> : <span aria-hidden="true" className={styles.statusDot} style={{ background: statusColor(status) }} />}
       {statusLabel(t, status)}
     </span>
   );
@@ -149,11 +121,13 @@ function TicketRow({
   t,
   locale,
   onClick,
+  selected = false,
 }: {
   ticket: TicketListItem;
   t: SupportDict;
   locale: Locale;
-  onClick: () => void;
+  onClick: (button: HTMLButtonElement) => void;
+  selected?: boolean;
 }) {
   const updated = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
@@ -161,84 +135,30 @@ function TicketRow({
   const text = preview(ticket) || categoryLabel(t, ticket.category);
 
   return (
-    <button
-      type="button"
-      className="tap zw-hover-row"
-      onClick={onClick}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        width: "100%",
-        textAlign: "left",
-        padding: "15px 18px",
-        background: "transparent",
-        border: 0,
-        borderBottom: "1px solid rgba(28,28,26,0.06)",
-        cursor: "pointer",
-        font: "inherit",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
-        <TicketStatusBadge status={ticket.status} t={t} />
-        <span style={{ flex: 1 }} />
-        {ticket.hasUnread && (
-          <span
-            aria-label={t.unreadAria}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "var(--p-500)",
-              flexShrink: 0,
-            }}
-          />
-        )}
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10.5,
-            color: "var(--c-500)",
-          }}
-        >
-          {format(t.updated, { date: updated })}
+    <h3 className={styles.ticketHeading}><Collapsible.Trigger asChild>
+    <button type="button" className={styles.ticketRow} aria-current={selected ? "true" : undefined} onClick={(event) => onClick(event.currentTarget)}>
+      <span className={styles.ticketSubject}>
+        <span className={styles.ticketTitle} data-unread={ticket.hasUnread || undefined}>
+          {ticket.hasUnread && <span role="img" className={styles.unread} aria-label={t.unreadAria} />}
+          <span>{text}</span>
         </span>
-      </div>
-      <span
-        style={{
-          fontSize: 14.5,
-          fontWeight: ticket.hasUnread ? 600 : 500,
-          color: "var(--c-900)",
-          letterSpacing: "-0.01em",
-          lineHeight: 1.35,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-        }}
-      >
-        {text}
+        <span className={styles.ticketMeta}>#{ticket.id} · {categoryLabel(t, ticket.category)}</span>
       </span>
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          color: "var(--c-500)",
-          letterSpacing: "0.04em",
-        }}
-      >
-        #{ticket.id} · {categoryLabel(t, ticket.category)}
-      </span>
+      <TicketStatusBadge status={ticket.status} t={t} />
+      <time className={styles.ticketDate} dateTime={ticket.updatedAt} aria-label={format(t.updated, { date: updated })}>
+        {updated}
+      </time>
+      <span className={styles.rowArrow} aria-hidden="true"><Icon name="chevD" size={18} /></span>
     </button>
+    </Collapsible.Trigger></h3>
   );
 }
 
 // ─────────────────────────────────────────────
-// Thread bubble
+// Message transcript
 // ─────────────────────────────────────────────
 
-function Bubble({
+function MessageEntry({
   mine,
   label,
   text,
@@ -248,49 +168,28 @@ function Bubble({
   text: string;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: mine ? "flex-end" : "flex-start",
-      }}
-    >
-      <div style={{ maxWidth: "84%" }}>
-        <div
-          className="txt-pretty"
-          style={{
-            padding: "11px 15px",
-            fontSize: 14,
-            lineHeight: 1.5,
-            letterSpacing: "-0.005em",
-            background: mine ? "var(--c-ink)" : "#fff",
-            color: mine ? "#fff" : "var(--c-900)",
-            border: mine ? 0 : "1px solid rgba(28,28,26,0.08)",
-            borderRadius: mine ? "18px 18px 5px 18px" : "18px 18px 18px 5px",
-            boxShadow: "var(--sh-sm)",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {text}
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 9.5,
-            color: "var(--c-500)",
-            marginTop: 4,
-            textAlign: mine ? "right" : "left",
-            padding: "0 4px",
-          }}
-        >
-          {label}
-        </div>
-      </div>
-    </div>
+    <article className={styles.message} data-mine={mine || undefined} aria-label={label}>
+      <div className={styles.messageAuthor}><Icon name={mine ? "user" : "reply"} size={17} aria-hidden="true" /><span>{label}</span></div>
+      <div className={styles.messageText}>{text}</div>
+    </article>
+  );
+}
+
+function SupportEmptyArtwork() {
+  return (
+    <svg aria-hidden="true" width="112" height="88" viewBox="0 0 112 88" fill="none">
+      <ellipse cx="56" cy="79" rx="44" ry="3" fill="var(--c-ink)" opacity=".05" />
+      <path d="M25 31L76 23L84 69L33 77L25 31Z" fill="var(--c-shade)" stroke="var(--c-500)" />
+      <rect x="30" y="13" width="57" height="60" rx="4" fill="var(--c-canvas)" stroke="var(--c-600)" />
+      <path d="M41 28H65M41 37H76M41 46H70" stroke="var(--c-500)" strokeLinecap="round" />
+      <path d="M48 57H80C83 57 85 59 85 62V72C85 75 83 77 80 77H67L60 83V77H48C45 77 43 75 43 72V62C43 59 45 57 48 57Z" fill="var(--c-canvas)" stroke="var(--p-500)" strokeLinejoin="round" />
+      <path d="M53 67H74" stroke="var(--p-500)" strokeLinecap="round" />
+    </svg>
   );
 }
 
 // ─────────────────────────────────────────────
-// New ticket form (inline card)
+// New ticket form
 // ─────────────────────────────────────────────
 
 function NewTicketForm({
@@ -312,6 +211,7 @@ function NewTicketForm({
   const messageRef = useRef<HTMLTextAreaElement | null>(null);
   const inFlight = useRef(false);
   const dismissed = useRef(false);
+  const guidanceId = useId();
 
   const submit = async () => {
     if (inFlight.current || dismissed.current) return;
@@ -346,57 +246,44 @@ function NewTicketForm({
   const categoryBtn = (value: TicketCategory, label: string) => (
     <button
       type="button"
-      className="tap"
+      className={styles.categoryOption}
       onClick={() => setCategory(value)}
       disabled={submitting}
-      style={{
-        flex: 1,
-        padding: "10px 14px",
-        borderRadius: 12,
-        border:
-          category === value
-            ? "1.5px solid var(--c-ink)"
-            : "1px solid rgba(28,28,26,0.14)",
-        background: category === value ? "var(--c-shade)" : "#fff",
-        color: "var(--c-900)",
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: submitting ? "default" : "pointer",
-        fontFamily: "inherit",
-      }}
+      aria-pressed={category === value}
     >
-      {label}
+      <Icon name={value === "bug" ? "warn" : "info"} size={19} />
+      <span>{label}</span>
+      <span className={styles.categoryCheck} aria-hidden="true">{category === value && <Icon name="check" size={16} />}</span>
     </button>
   );
 
   return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid rgba(28,28,26,0.08)",
-        borderRadius: 16,
-        boxShadow: "var(--sh-sm)",
-        padding: 18,
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-      }}
+    <ActionModal
+      title={t.new.title}
+      width={620}
+      className={styles.contactModal}
+      dismissible={!submitting}
+      onClosing={() => { dismissed.current = true; }}
+      onClose={onCancel}
+      footer={<div className={styles.contactActions}>
+        <DialogClose asChild><Button kind="secondary" size="md" disabled={submitting} style={{ paddingInline: "var(--support-action-padding, 20px)" }}>{t.new.cancel}</Button></DialogClose>
+        <Button
+          loading={submitting}
+          kind="primary"
+          size="md"
+          onClick={submit}
+          style={{ paddingInline: "var(--support-action-padding, 20px)" }}
+          disabled={submitting || validatePlainText(message, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH }) !== null}
+        >
+          {t.new.submit}
+        </Button>
+      </div>}
     >
-      <div
-        style={{
-          fontSize: 15.5,
-          fontWeight: 600,
-          letterSpacing: "-0.012em",
-          color: "var(--c-900)",
-        }}
-      >
-        {t.new.title}
-      </div>
-
+    <div className={styles.newForm}>
       <div>
         <div
           style={{
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 600,
             color: "var(--c-700)",
             marginBottom: 8,
@@ -404,9 +291,9 @@ function NewTicketForm({
         >
           {t.new.categoryLabel}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {categoryBtn("bug", t.category.bug)}
-          {categoryBtn("question", t.category.question)}
+        <div className={styles.categoryOptions}>
+          {categoryBtn("bug", t.new.problemOption)}
+          {categoryBtn("question", t.new.questionOption)}
         </div>
       </div>
 
@@ -425,29 +312,14 @@ function NewTicketForm({
         maxLength={SUPPORT_MESSAGE_MAX_LENGTH}
         required
         rows={5}
+        aria-describedby={guidanceId}
       />
+      <p id={guidanceId} className={styles.formGuidance}>{t.new.guidance}</p>
 
       {requestError && <InlineError>{requestError}</InlineError>}
 
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-        <Button kind="secondary" size="md" onClick={() => {
-          if (inFlight.current) return;
-          dismissed.current = true;
-          onCancel();
-        }} disabled={submitting}>
-          {t.new.cancel}
-        </Button>
-        <Button
-          loading={submitting}
-          kind="primary"
-          size="md"
-          onClick={submit}
-          disabled={submitting || validatePlainText(message, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH }) !== null}
-        >
-          {t.new.submit}
-        </Button>
-      </div>
     </div>
+    </ActionModal>
   );
 }
 
@@ -459,14 +331,16 @@ function TicketDetailView({
   ticketId,
   t,
   profile,
-  onBack,
   onUpdated,
+  draft,
+  setDraft,
 }: {
   ticketId: number;
   t: SupportDict;
   profile: CustomerProfile;
-  onBack: () => void;
   onUpdated: (ticket: Ticket) => void;
+  draft: string;
+  setDraft: (value: string) => void;
 }) {
   const toast = useToast();
   const { dict, locale } = useTranslation();
@@ -475,14 +349,12 @@ function TicketDetailView({
   const [loadError, setLoadError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
-  const [draft, setDraft] = useState("");
   const [replyVersion, setReplyVersion] = useState(0);
   const [sending, setSending] = useState(false);
   const [replyFieldError, setReplyFieldError] = useState<string | null>(null);
   const [replyError, setReplyError] = useState<string | null>(null);
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [closing, setClosing] = useState(false);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
   const replyRef = useRef<HTMLTextAreaElement | null>(null);
   const replyInFlight = useRef(false);
   // Closing a ticket is irreversible from here (it drops out of the active
@@ -491,6 +363,11 @@ function TicketDetailView({
   // button only after a re-render, and a fast double click on the modal can
   // still fire closeTicket() twice before that render happens.
   const submitLockRef = useRef(false);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    if (!loading) headingRef.current?.focus({ preventScroll: true });
+  }, [loading, loadError]);
 
   // `loading` is initialised to true and this component is remounted (via a
   // `key={ticketId}` at the call site) whenever the selected ticket changes,
@@ -516,12 +393,6 @@ function TicketDetailView({
       alive = false;
     };
   }, [ticketId, attempt]);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [ticket?.details.history.length]);
 
   const send = async () => {
     if (!ticket || replyInFlight.current || !ACTIVE_STATUSES.includes(ticket.status)) return;
@@ -582,55 +453,31 @@ function TicketDetailView({
     }
   };
 
-  const backButton = (
-    <button
-      type="button"
-      className="tap zw-hover-row"
-      onClick={onBack}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        marginBottom: 16,
-        background: "transparent",
-        border: 0,
-        cursor: "pointer",
-        fontSize: 13.5,
-        fontWeight: 600,
-        color: "var(--c-600)",
-        padding: "4px 0",
-        font: "inherit",
-      }}
-    >
-      <Icon name="back" size={14} color="var(--c-600)" />
-      {t.backToTickets}
-    </button>
-  );
-
   if (loading) {
     return (
-      <div>
-        {backButton}
-        <div aria-busy="true" style={{ border: "1px solid rgba(28,28,26,0.08)", borderRadius: 20, overflow: "hidden" }}>
-          <div aria-hidden="true" style={{ padding: "16px 18px", borderBottom: "1px solid rgba(28,28,26,0.07)", display: "flex", gap: 10 }}><Skeleton w={86} h={25} r={999} /><Skeleton w={70} h={25} /></div>
-          <div aria-hidden="true" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14, background: "var(--c-50, var(--c-canvas))" }}>
-            <Skeleton w="72%" h={76} r={14} /><Skeleton w="65%" h={96} r={14} style={{ alignSelf: "flex-end" }} /><Skeleton w="58%" h={56} r={14} />
+      <section className={styles.detailView} aria-label={t.thread.label}>
+        <div aria-busy="true" className={styles.thread}>
+          <div aria-hidden="true" className={styles.messages}>
+            {[0, 1].map((index) => <div key={index} className={styles.message}><Skeleton w={index === 0 ? 42 : 110} h={14} r={4} /><Skeleton w={index === 0 ? "72%" : "86%"} h={44} r={4} /></div>)}
           </div>
-          <div aria-hidden="true" style={{ padding: "14px 16px", borderTop: "1px solid rgba(28,28,26,0.07)", display: "flex", gap: 10, alignItems: "flex-end" }}><Skeleton h={64} r={14} /><Skeleton w={88} h={46} r={999} style={{ flexShrink: 0 }} /></div>
+          <div aria-hidden="true" className={styles.composer} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <Skeleton w={88} h={16} /><Skeleton h={100} r={14} />
+            <div className={styles.replyActions}><Skeleton w={88} h={16} /><Skeleton w={78} h={44} r={999} /></div>
+          </div>
           <span role="status" className="sr-only">{dict.account.loading}</span>
         </div>
-      </div>
+      </section>
     );
   }
 
   if (loadError || !ticket) {
     return (
-      <div>
-        {backButton}
+      <section className={styles.detailView} aria-label={t.thread.label}>
+        <h4 ref={headingRef} tabIndex={-1} className="sr-only">{t.thread.label}</h4>
         <InlineError>{t.loadError}</InlineError>
         <Button kind="secondary" size="sm" loading={retrying} onClick={() => { setRetrying(true); setAttempt((n) => n + 1); }} style={{ marginTop: 16 }}>{dict.errors.retry}</Button>
         <span role="status" className="sr-only">{retrying ? dict.account.loading : ""}</span>
-      </div>
+      </section>
     );
   }
 
@@ -638,80 +485,20 @@ function TicketDetailView({
   const history = ticket.details?.history ?? [];
 
   return (
-    <div>
-      {backButton}
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid rgba(28,28,26,0.08)",
-          borderRadius: 20,
-          boxShadow: "var(--sh-md)",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div
-          style={{
-            padding: "16px 18px",
-            borderBottom: "1px solid rgba(28,28,26,0.07)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <TicketStatusBadge status={ticket.status} t={t} />
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                color: "var(--c-500)",
-              }}
-            >
-              #{ticket.id} · {categoryLabel(t, ticket.category)}
-            </span>
-          </div>
-          {canReply && (
-            <button
-              type="button"
-              className="tap"
-              onClick={() => setConfirmingClose(true)}
-              style={{
-                background: "transparent",
-                border: 0,
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--s-error-600)",
-                padding: "4px 0",
-                fontFamily: "inherit",
-              }}
-            >
-              {t.close.action}
-            </button>
-          )}
-        </div>
+    <section className={styles.detailView} aria-label={t.thread.label}>
+      <div className={styles.thread}>
+        <h4 ref={headingRef} tabIndex={-1} className="sr-only">{t.thread.label}</h4>
+        {!canReply && <div className={styles.closedNotice} role="status" aria-label={t.composer.closedTitle}>
+          <Icon name="lock" size={21} aria-hidden="true" />
+          <div><p className={styles.closedTitle}>{t.composer.closedTitle}</p><p>{t.composer.closedNote}</p></div>
+        </div>}
 
-        <div
-          ref={scrollRef}
-          style={{
-            padding: "18px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-            background: "var(--c-50, var(--c-canvas))",
-            maxHeight: 460,
-            overflowY: "auto",
-          }}
-        >
+        <div className={styles.messages}>
           {history.length === 0 ? (
             <div
               style={{
                 fontSize: 13.5,
-                color: "var(--c-500)",
+                color: "var(--c-600)",
                 textAlign: "center",
                 padding: "12px 0",
               }}
@@ -722,7 +509,7 @@ function TicketDetailView({
             history.map((entry, i) => {
               const mine = entry.createdBy === String(profile.id);
               return (
-                <Bubble
+                <MessageEntry
                   key={i}
                   mine={mine}
                   label={mine ? t.thread.you : t.thread.support}
@@ -733,14 +520,7 @@ function TicketDetailView({
           )}
         </div>
 
-        <div
-          style={{
-            padding: "14px 16px",
-            borderTop: "1px solid rgba(28,28,26,0.07)",
-            background: "#fff",
-          }}
-        >
-          {canReply ? (
+        {canReply && <div className={styles.composer}>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <TextareaField
                 key={replyVersion}
@@ -766,30 +546,20 @@ function TicketDetailView({
                 rows={2}
               />
               {replyError && <InlineError>{replyError}</InlineError>}
+              <div className={styles.replyActions}>
+              <button type="button" className={styles.closeAction} onClick={() => setConfirmingClose(true)}>{t.close.action}</button>
               <Button
                 loading={sending}
-                kind="accent"
+                kind="primary"
                 size="md"
                 onClick={send}
                 disabled={sending || validatePlainText(draft, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH }) !== null}
-                style={{ alignSelf: "flex-end" }}
               >
                 {t.composer.send}
               </Button>
+              </div>
             </div>
-          ) : (
-            <div
-              style={{
-                fontSize: 13,
-                color: "var(--c-500)",
-                textAlign: "center",
-                padding: "6px 0",
-              }}
-            >
-              {t.composer.closedNote}
-            </div>
-          )}
-        </div>
+        </div>}
       </div>
 
       {confirmingClose && (
@@ -863,167 +633,7 @@ function TicketDetailView({
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// "Report an issue" card — ported from the Help Centre aside in the design
-// prototype `docs/web-help.jsx` (ZwHelpAside): title + response-time promise,
-// a "My tickets" snapshot of up to 3 open tickets, and the primary CTA.
-// The design's "Open inbox" action is dropped — here the full inbox renders
-// directly below the card, so the CTA always starts a new ticket.
-// ─────────────────────────────────────────────
-
-function ReportIssueCard({
-  t,
-  locale,
-  tickets,
-  failed = false,
-  loading = false,
-  onOpenTicket,
-  onNew,
-}: {
-  t: SupportDict;
-  locale: Locale;
-  tickets: TicketListItem[] | null;
-  failed?: boolean;
-  loading?: boolean;
-  onOpenTicket: (id: number) => void;
-  onNew: () => void;
-}) {
-  const open = (tickets ?? []).filter((tk) => ACTIVE_STATUSES.includes(tk.status));
-  const hasHistory = (tickets?.length ?? 0) > 0;
-  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
-
-  return (
-    <div className="zw-help-card">
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 600,
-          letterSpacing: "-0.02em",
-          color: "var(--c-900)",
-        }}
-      >
-        {t.report.title}
-      </div>
-      <div style={{ marginTop: 6 }}>
-        <span style={{ fontSize: 12.5, color: "var(--c-600)" }}>
-          {t.report.sub}
-        </span>
-      </div>
-
-      <div style={{ marginTop: 18 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: tickets === null && !failed || open.length ? 2 : 8,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10.5,
-              fontWeight: 600,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--c-500)",
-            }}
-          >
-            {t.report.myTickets}
-          </span>
-          {open.length > 0 && (
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 10.5,
-                fontWeight: 600,
-                color: "var(--p-700)",
-              }}
-            >
-              {open.length === 1
-                ? t.report.openCountOne
-                : format(t.report.openCount, { count: String(open.length) })}
-            </span>
-          )}
-        </div>
-        {tickets === null ? failed ? null : <div aria-hidden="true" style={{ padding: "11px 0", borderTop: "1px solid rgba(28,28,26,0.07)", display: "flex", flexDirection: "column", gap: 1 }}><Skeleton w="70%" h={20.25} r={4} /><Skeleton w="45%" h={17.25} r={4} /></div> : open.length > 0 ? (
-          open.slice(0, 3).map((tk) => (
-            <button
-              key={tk.id}
-              type="button"
-              className="zw-help-treq tap"
-              onClick={() => onOpenTicket(tk.id)}
-            >
-              <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: statusColor(tk.status),
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    color: "var(--c-900)",
-                    letterSpacing: "-0.01em",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {preview(tk) || categoryLabel(t, tk.category)}
-                </span>
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: 11.5,
-                    color: "var(--c-500)",
-                    marginTop: 1,
-                  }}
-                >
-                  {statusLabel(t, tk.status)} ·{" "}
-                  {dateFmt.format(new Date(tk.updatedAt))}
-                </span>
-              </span>
-              <Icon name="chevR" size={14} color="var(--c-400)" />
-            </button>
-          ))
-        ) : (
-          <p
-            className="txt-pretty"
-            style={{
-              margin: 0,
-              fontSize: 13,
-              lineHeight: 1.5,
-              color: "var(--c-600)",
-            }}
-          >
-            {hasHistory ? t.report.noneOpen : t.report.nothingYet}
-          </p>
-        )}
-      </div>
-
-      <div style={{ display: "flex", marginTop: 16 }}>
-        <Button
-          kind="primary"
-          size="md"
-          onClick={onNew}
-          disabled={loading}
-          style={{ flex: 1, justifyContent: "center" }}
-        >
-          {t.newTicket}
-        </Button>
-      </div>
-    </div>
+    </section>
   );
 }
 
@@ -1048,6 +658,23 @@ export function SupportSection({
   const [retrying, setRetrying] = useState(false);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
+  const [filter, setFilter] = useState<"all" | "active" | "closed">("all");
+  // Keep unsent text for each conversation while switching within Support.
+  // This is temporary UI state, cleared when this account section unmounts.
+  const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({});
+  const lastTicketButton = useRef<HTMLButtonElement | null>(null);
+  const inboxHeading = useRef<HTMLHeadingElement | null>(null);
+
+  const backToInbox = () => {
+    setActiveId(null);
+    requestAnimationFrame(() => {
+      const target = lastTicketButton.current;
+      if (target?.isConnected) {
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      } else inboxHeading.current?.focus({ preventScroll: true });
+    });
+  };
 
   // Keep the current state visible during an explicit retry. Cleanup prevents
   // a superseded request from updating this account section.
@@ -1094,73 +721,89 @@ export function SupportSection({
     );
   };
 
-  if (activeId !== null) {
-    return (
-      <TicketDetailView
-        key={activeId}
-        ticketId={activeId}
-        t={st}
-        profile={profile}
-        onBack={() => setActiveId(null)}
-        onUpdated={handleUpdated}
-      />
-    );
-  }
-
-  if (creating) {
-    return (
-      <NewTicketForm
-        t={st}
-        onCancel={() => setCreating(false)}
-        onCreated={handleCreated}
-      />
-    );
-  }
+  const activeCount = (tickets ?? []).filter((ticket) => ACTIVE_STATUSES.includes(ticket.status)).length;
+  const visibleTickets = (tickets ?? []).filter((ticket) =>
+    filter === "all" || (filter === "active" ? ACTIVE_STATUSES.includes(ticket.status) : ticket.status === "CLOSED"),
+  );
+  const counts = { all: tickets?.length ?? 0, active: activeCount, closed: (tickets?.length ?? 0) - activeCount };
+  const pending = (tickets === null && !loadError) || retrying;
 
   return (
-    <div aria-busy={(tickets === null && !loadError) || retrying} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <ReportIssueCard
-        t={st}
-        locale={locale}
-        tickets={tickets}
-        failed={loadError}
-        loading={(tickets === null && !loadError) || retrying}
-        onOpenTicket={openTicket}
-        onNew={() => setCreating(true)}
-      />
-      {tickets === null && !loadError && <div aria-hidden="true" style={{ background: "#fff", border: "1px solid rgba(28,28,26,0.08)", borderRadius: 16, overflow: "hidden" }}>
-        {[0, 1, 2].map((i) => <div key={i} style={{ padding: "15px 18px", display: "flex", flexDirection: "column", gap: 8, borderBottom: "1px solid rgba(28,28,26,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}><span style={{ display: "inline-flex", padding: "3px 9px 3px 7px", border: "1.5px solid transparent" }}><Skeleton w={44} h={10} r={4} /></span><Skeleton w={92} h={15.75} r={4} /></div>
-          <Skeleton w="75%" h={19.575} r={4} />
-          <Skeleton w="35%" h={15} r={4} />
-        </div>)}
-      </div>}
-      {tickets && tickets.length > 0 && (
-        <div
-          style={{
-            background: "#fff",
-            border: "1px solid rgba(28,28,26,0.08)",
-            borderRadius: 16,
-            boxShadow: "var(--sh-sm)",
-            overflow: "hidden",
-          }}
-        >
-          {tickets.map((ticket) => (
-            <TicketRow
-              key={ticket.id}
-              ticket={ticket}
-              t={st}
-              locale={locale}
-              onClick={() => openTicket(ticket.id)}
-            />
-          ))}
+    <div className={styles.support} aria-busy={pending}>
+      <div className={styles.supportHeader}>
+        <h1>{t.sectionNav.support}</h1>
+        <Button kind="primary" size="md" aria-haspopup="dialog" onClick={() => setCreating(true)} disabled={pending}>
+          <Icon name="plus" size={17} />
+          {st.newTicket}
+        </Button>
+      </div>
+      <div className={styles.intro}>
+        <p>{st.intro}</p>
+        <Link className={styles.helpLink} href={localeHref(locale, "help")}>
+          {dict.help.pageTitle}<Icon name="arrowR" size={16} />
+        </Link>
+      </div>
+      <div className={styles.supportWorkspace}>
+      <div className={styles.inbox}>
+        <div className={styles.inboxHeader}>
+          <h2 ref={inboxHeading} tabIndex={-1}>{st.report.myTickets}</h2>
+          {tickets && tickets.length > 0 && (
+            <div className={styles.filters} role="group" aria-label={st.filters.label}>
+              {(["all", "active", "closed"] as const).map((value) => (
+                <button key={value} type="button" aria-pressed={filter === value} onClick={() => { setActiveId(null); setFilter(value); }}>
+                  {st.filters[value]} <span>{counts[value]}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-      {loadError && <div>
-        <InlineError>{st.loadError}</InlineError>
-        <Button kind="secondary" size="sm" loading={retrying} onClick={() => { setRetrying(true); setAttempt((n) => n + 1); }} style={{ marginTop: 16 }}>{dict.errors.retry}</Button>
-      </div>}
-      <span role="status" className="sr-only">{(tickets === null && !loadError) || retrying ? t.loading : ""}</span>
+        {tickets === null && !loadError && (
+          <div aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={styles.ticketRow}>
+                <span className={styles.ticketSubject}><Skeleton w="76%" h={18} r={4} /><Skeleton w={110} h={14} r={4} /></span>
+                <span className={styles.status}><Skeleton w={88} h={16} r={4} /></span><span className={styles.ticketDate}><Skeleton w={98} h={14} r={4} /></span>
+              </div>
+            ))}
+          </div>
+        )}
+        {tickets && visibleTickets.length > 0 && (
+          <ul className={styles.ticketList}>
+            {visibleTickets.map((ticket) => {
+              const expanded = activeId === ticket.id;
+              return <Collapsible.Root key={ticket.id} asChild open={expanded} onOpenChange={(open) => {
+                if (open) openTicket(ticket.id);
+                else backToInbox();
+              }}>
+                <li className={`${styles.ticketItem} ${disclosure.root}`} data-open={expanded}>
+                  <TicketRow ticket={ticket} t={st} locale={locale} selected={expanded} onClick={(button) => { lastTicketButton.current = button; }} />
+                  <Collapsible.Content className={styles.conversationReveal} inert={!expanded} aria-hidden={!expanded}>
+                    <div className={styles.conversationBody}>
+                      <TicketDetailView ticketId={ticket.id} t={st} profile={profile}
+                        onUpdated={(updated) => { handleUpdated(updated); if (updated.status === "CLOSED") setFilter("all"); }}
+                        draft={replyDrafts[ticket.id] ?? ""} setDraft={(value) => setReplyDrafts((prev) => ({ ...prev, [ticket.id]: value }))} />
+                    </div>
+                  </Collapsible.Content>
+                </li>
+              </Collapsible.Root>;
+            })}
+          </ul>
+        )}
+        {tickets && visibleTickets.length === 0 && !loadError && (
+          <div className={styles.empty}>
+            <SupportEmptyArtwork />
+            <h3>{tickets.length === 0 ? st.empty.title : st.filters.emptyTitle}</h3>
+            <p>{tickets.length === 0 ? st.empty.body : st.filters.emptyBody}</p>
+          </div>
+        )}
+        {loadError && <div className={styles.error}>
+          <InlineError>{st.loadError}</InlineError>
+          <Button kind="secondary" size="sm" loading={retrying} onClick={() => { setRetrying(true); setAttempt((n) => n + 1); }} style={{ marginTop: 16 }}>{dict.errors.retry}</Button>
+        </div>}
+      </div>
+      </div>
+      {creating && <NewTicketForm t={st} onCancel={() => setCreating(false)} onCreated={(ticket) => { setFilter("all"); handleCreated(ticket); }} />}
+      <span role="status" className="sr-only">{pending ? t.loading : ""}</span>
     </div>
   );
 }

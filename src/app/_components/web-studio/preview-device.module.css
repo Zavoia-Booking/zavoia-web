@@ -48,3 +48,33 @@
 .browserDots { display: flex; align-items: center; gap: 6px; }
 .browserDots i { width: 6px; height: 6px; border: 1px solid color-mix(in oklch, var(--c-ink) 24%, transparent); border-radius: 50%; }
 .browser .glass { border: 1px solid color-mix(in oklch, var(--c-ink) 8%, transparent); border-radius: 4px 4px 10px 10px; }
+
+/* Match the phone frame before hydration chooses its logical render viewport. */
+@media (max-width: 700px) {
+  .preview[data-responsive-phone] { --studio-preview-ratio: 430 / 840; }
+  .preview[data-responsive-phone] .browser {
+    position: relative;
+    overflow: visible;
+    padding: 1.8cqw;
+    border: 1px solid oklch(57% .008 70);
+    border-radius: 15cqw;
+    background: oklch(20% .004 70);
+    box-shadow:
+      inset 0 0 0 1px oklch(38% .008 70),
+      inset 0 1px 0 rgb(250 250 247 / .38),
+      0 2px 4px -1px rgb(28 28 26 / .28),
+      8px 22px 32px -16px rgb(28 28 26 / .22),
+      16px 38px 56px -28px rgb(28 28 26 / .2);
+  }
+  .preview[data-responsive-phone] .browser::before,
+  .preview[data-responsive-phone] .browser::after {
+    content: "";
+    position: absolute;
+    width: 2px;
+    background: oklch(49% .008 70);
+  }
+  .preview[data-responsive-phone] .browser::before { right: -3px; top: 43cqw; height: 15cqw; border-radius: 0 2px 2px 0; }
+  .preview[data-responsive-phone] .browser::after { left: -3px; top: 36cqw; height: 12cqw; border-radius: 2px 0 0 2px; }
+  .preview[data-responsive-phone] .browser .glass { border: 0; border-radius: 12.8cqw; }
+  .preview[data-responsive-phone] .browserBar { display: none; }
+}

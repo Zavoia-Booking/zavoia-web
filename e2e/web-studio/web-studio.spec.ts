@@ -26,6 +26,18 @@ const examples = [
     service: 'Relaxation massage', member: 'Elena Radu',
   },
   {
+    id: 'tattoo', business: 'Contur Ink', hero: '.mc-hero-cine',
+    title: { en: 'Tattoo & Piercing', ro: 'Tatuaje & Piercing' },
+    nav: 'underlay', services: 'feature', gallery: 'index', team: '.mc-tmc', locations: 'panorama', footer: 'signature',
+    service: 'Your first design consultation', member: 'Daria Matei',
+  },
+  {
+    id: 'tailoring', business: 'Fir Atelier', hero: '.mc-heropt',
+    title: { en: 'Tailoring & Repairs', ro: 'Croitorie & Reparații' },
+    nav: 'capsule', services: 'bento', gallery: 'masonry', team: '.mc-tmr', locations: 'atlas', footer: 'editorial',
+    service: 'Trouser hem fitting', member: 'Irina Dinu',
+  },
+  {
     id: 'automotive', business: 'Nord Auto', hero: '.mc-herodr',
     title: { en: 'Automotive', ro: 'Auto' },
     nav: 'editorial', services: 'grid', gallery: 'fan', team: '.mc-roster', locations: 'showcase', footer: 'marque',
@@ -66,7 +78,7 @@ async function expectReadablePreview(example: Locator, business: string, booking
 }
 
 test.describe('Web Studio marketing', () => {
-  test('explains the product with five canonical industries and links to the business trial', async ({ page }) => {
+  test('explains the product with seven canonical industries and links to the business trial', async ({ page }) => {
     const errors: string[] = []
     page.on('pageerror', error => errors.push(error.message))
     await page.goto('/web-studio')
@@ -80,7 +92,7 @@ test.describe('Web Studio marketing', () => {
     await expect(page.locator('[aria-labelledby="web-studio-title"]').getByRole('link', { name: 'Try the demo', exact: true })).toHaveAttribute('href', '/web-studio/demo')
 
     const gallery = page.locator('[data-studio-gallery]')
-    await expect(gallery.locator('article[data-example]')).toHaveCount(5)
+    await expect(gallery.locator('article[data-example]')).toHaveCount(7)
     // Marketing presents the results; controls belong to the separate demo.
     await expect(gallery.getByRole('button')).toHaveCount(0)
     await expect(gallery.getByRole('tab')).toHaveCount(0)
@@ -100,8 +112,8 @@ test.describe('Web Studio marketing', () => {
         await expect(article.locator('[data-auto-scene]')).toHaveCount(3)
         await expect(article.locator('[data-auto-scene="gallery"] .mc-galfan-card')).toHaveCount(5)
         const cards = article.locator('[data-auto-scene="services"] .mc-services-card')
-        await expect(cards).toHaveCount(3)
-        for (const card of await cards.all()) await expect(card.locator('.mc-services-card-item')).toHaveCount(2)
+        await expect(cards).toHaveCount(6)
+        for (const card of await cards.all()) await expect(card.locator('.mc-services-card-item')).toHaveCount(4)
       }
     }
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true)
@@ -138,18 +150,35 @@ test.describe('Web Studio marketing', () => {
         await expect(rendered).toBeInViewport()
       }
       await expect(stage.locator('[data-preview-section="services"]')).toContainText(example.service)
+      if (example.id === 'tattoo' || example.id === 'tailoring') {
+        const gallery = stage.locator('[data-preview-section="gallery"]')
+        const imageSources = () => gallery.locator('img').evaluateAll(images =>
+          images.map(image => (image as HTMLImageElement).getAttribute('src')),
+        )
+        const photos = new Set(await imageSources())
+        if (example.id === 'tattoo') {
+          // Mosaic mounts its visible page, so inspect both pages of the photo set.
+          await gallery.getByRole('button', { name: 'Next gallery page', exact: true }).click()
+          await expect(gallery.locator('img[src$="tattoo-detail.webp"]')).toHaveCount(1)
+          for (const src of await imageSources()) photos.add(src)
+        }
+        expect(photos.size).toBe(8)
+        expect([...photos].every(src => src?.startsWith(`/images/marketing/examples/${example.id}-`))).toBe(true)
+      }
       const team = stage.locator(`[data-preview-section="team"] ${example.team}`)
       await team.scrollIntoViewIfNeeded()
       await expect(team).toBeInViewport()
       await expect(team).toContainText(example.member)
       const footer = stage.locator(`[data-preview-section="footer"].mc-footer--${example.footer}`)
-      await footer.scrollIntoViewIfNeeded()
+      // Fit-to-width footer lettering can resize as its font loads. Exercise
+      // the preview's scroll container rather than waiting to scroll that text.
+      await stage.evaluate(element => { element.scrollTop = element.scrollHeight })
       await expect(footer).toBeInViewport()
       expect(new URL(page.url()).searchParams.get('s')).toBe(destination.searchParams.get('s'))
       expect(new URL(page.url()).searchParams.get('example')).toBe(example.id)
       await expect(stage.locator('[data-preview-section="announcement"], [data-preview-section="marquee"], [data-preview-section="testimonials"]')).toHaveCount(0)
     }
-    expect(encodedLooks.size).toBe(5)
+    expect(encodedLooks.size).toBe(7)
   })
 
   test('Romanian examples, editor image and business signup use the selected language', async ({ page }) => {
@@ -170,14 +199,31 @@ test.describe('Web Studio marketing', () => {
     await expect(page.getByText('Perioada de probă de 14 zile cu Base începe când îți creezi afacerea în Zavoia.', { exact: false })).toBeVisible()
   })
 
-  test('keyboard users can enter a mockup without tabbing through its inert controls', async ({ page }) => {
-    await page.goto('/web-studio')
+  test('keyboard focus survives lazy preview loading and skips its inert controls', async ({ page }) => {
+    let releasePreviewStyles!: () => void
+    const previewStylesReady = new Promise<void>(resolve => { releasePreviewStyles = resolve })
+    let previewStylesRequested = false
+    // Keep the lazy renderer pending while a keyboard visitor reaches the
+    // example links. Its Suspense boundary must never hide the marketing page.
+    await page.route('**/*builder_preview*.css', async route => {
+      previewStylesRequested = true
+      await previewStylesReady
+      await route.continue()
+    })
+    await page.goto('/web-studio', { waitUntil: 'domcontentloaded' })
     const gallery = page.locator('[data-studio-gallery]')
     const first = previewLink(gallery.locator('[data-example="fitness"]'), 'Forma Studio')
     const second = previewLink(gallery.locator('[data-example="pets"]'), 'Paw & Co')
-    await first.focus()
-    await expect(first).toBeFocused()
-    await page.keyboard.press('Tab')
+    try {
+      await first.focus()
+      await expect(first).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(second).toBeFocused()
+      await expect.poll(() => previewStylesRequested).toBe(true)
+    } finally {
+      releasePreviewStyles()
+    }
+    await expectReadablePreview(gallery.locator('[data-example="pets"]'), 'Paw & Co', 'Book now')
     await expect(second).toBeFocused()
     const destination = await second.getAttribute('href')
     await page.keyboard.press('Enter')

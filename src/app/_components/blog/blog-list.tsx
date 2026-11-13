@@ -1,279 +1,182 @@
 "use client";
 
+import { useMemo, useRef, useSyncExternalStore } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
-import { useMemo, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
-import { localeHref } from "@/i18n/routes";
-import {
-  CATEGORY_ORDER,
-  categoryLabelKey,
-  type BlogTab,
-} from "@/lib/blog";
-import { Kicker } from "@/components/ui/kicker";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { CATEGORY_ORDER, categoryLabelKey, type BlogTab } from "@/lib/blog";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { Icon } from "@/components/ui/icon";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BlogTabs } from "./blog-tabs";
 import { BlogFeatured } from "./blog-featured";
 import { BlogCard } from "./blog-card";
 import { Pagination } from "./pagination";
 import type { BlogCardVM } from "./types";
-import { Skeleton } from "@/components/ui/skeleton";
+import styles from "./blog-list.module.css";
 
 const PAGE_SIZE = 6;
-
+const QUERY_CHANGED = "zavoia:blog-query-changed";
 type BlogDict = Dictionary["blog"];
 
-// Resolve the display label for a tab/category id against dict.blog.
 function tabLabel(blog: BlogDict, id: BlogTab): string {
   return blog[categoryLabelKey(id) as keyof BlogDict] as string;
 }
 
-// The Journal — list page. Ported from ZwBlogList (docs/web-blog.jsx:268-363).
-// Receives a serialized view-model (no Portable Text body). Filtering + paging
-// run client-side; the first post of the active filter is the lead feature on
-// page 0.
-export function BlogList({
-  locale,
-  posts,
-  pending = false,
-}: {
+function subscribeQuery(onChange: () => void) {
+  window.addEventListener("popstate", onChange);
+  window.addEventListener(QUERY_CHANGED, onChange);
+  return () => {
+    window.removeEventListener("popstate", onChange);
+    window.removeEventListener(QUERY_CHANGED, onChange);
+  };
+}
+
+function browserQuery() { return window.location.search; }
+function serverQuery() { return ""; }
+
+function queryCategory(query: URLSearchParams): BlogTab {
+  const category = query.get("category");
+  return CATEGORY_ORDER.find((id) => id === category) ?? "all";
+}
+
+function queryPage(query: URLSearchParams): number {
+  const value = query.get("page");
+  if (!value || !/^[1-9]\d*$/.test(value)) return 0;
+  const page = Number(value);
+  return Number.isSafeInteger(page) ? page - 1 : 0;
+}
+
+/** Native history preserves the current pathname, unrelated parameters and hash. */
+function updateQuery(category: BlogTab, page: number) {
+  const url = new URL(window.location.href);
+  if (category === "all") url.searchParams.delete("category");
+  else url.searchParams.set("category", category);
+  if (page === 0) url.searchParams.delete("page");
+  else url.searchParams.set("page", String(page + 1));
+  if (url.href === window.location.href) return;
+  window.history.pushState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  window.dispatchEvent(new Event(QUERY_CHANGED));
+}
+
+/** Keep the complete default index server-rendered; hydrate URL refinements locally. */
+export function BlogList({ locale, posts, pending = false }: {
   locale: Locale;
   posts: BlogCardVM[];
   pending?: boolean;
 }) {
-  const dictionary = useTranslation().dict;
-  const dict = dictionary;
-  const [cat, setCat] = useState<BlogTab>("all");
-  const [page, setPage] = useState(0);
-  const [filterChanged, setFilterChanged] = useState(false);
+  const { dict } = useTranslation();
+  const search = useSyncExternalStore(subscribeQuery, browserQuery, serverQuery);
+  const query = useMemo(() => new URLSearchParams(search), [search]);
+  const category = queryCategory(query);
+  const page = queryPage(query);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Reset paging whenever the active filter changes. Done by adjusting state
-  // during render (React's recommended pattern) rather than in an effect, so
-  // there's no extra commit/flash on filter change.
-  const [pageCat, setPageCat] = useState<BlogTab>(cat);
-  if (pageCat !== cat) {
-    setPageCat(cat);
-    setPage(0);
-  }
-
-  const cats = useMemo(
-    () => [
-      { id: "all" as BlogTab, label: tabLabel(dict.blog, "all") },
-      ...CATEGORY_ORDER.map((id) => ({
-        id: id as BlogTab,
-        label: tabLabel(dict.blog, id),
-      })),
-    ],
-    [dict],
-  );
+  const categories = useMemo(() => [
+    { id: "all" as BlogTab, label: tabLabel(dict.blog, "all") },
+    ...CATEGORY_ORDER.map((id) => ({ id, label: tabLabel(dict.blog, id) })),
+  ], [dict.blog]);
 
   const counts = useMemo(() => {
-    const m: Record<string, number> = { all: posts.length };
-    for (const id of CATEGORY_ORDER) {
-      m[id] = posts.filter((p) => p.category === id).length;
-    }
-    return m;
+    const result: Record<string, number> = { all: posts.length };
+    for (const id of CATEGORY_ORDER) result[id] = posts.filter((post) => post.category === id).length;
+    return result;
   }, [posts]);
 
   const filtered = useMemo(
-    () => (cat === "all" ? posts : posts.filter((p) => p.category === cat)),
-    [cat, posts],
+    () => category === "all" ? posts : posts.filter((post) => post.category === category),
+    [category, posts],
   );
-
   const [featured, ...rest] = filtered;
   const totalPages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
-  const pageItems = rest.slice(
-    safePage * PAGE_SIZE,
-    safePage * PAGE_SIZE + PAGE_SIZE,
-  );
+  const pageItems = rest.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
   const showFeatured = !!featured && safePage === 0;
+  const countLabel = filtered.length === 1 ? dict.blog.storySingular : dict.blog.storiesLabel;
+  const labelFor = (post: BlogCardVM) => post.category ? tabLabel(dict.blog, post.category) : "";
 
-  const changePage = (p: number) => {
-    setPage(p);
+  const changePage = (next: number) => {
+    updateQuery(category, next);
     requestAnimationFrame(() => {
-      const el = resultsRef.current;
-      if (!el) return;
-      const y = el.getBoundingClientRect().top + window.scrollY - 92;
-      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+      resultsRef.current?.scrollIntoView({ block: "start", behavior });
     });
   };
 
-  // Label resolved per card's own category (not the active tab).
-  const labelFor = (vm: BlogCardVM): string =>
-    vm.category ? tabLabel(dict.blog, vm.category) : tabLabel(dict.blog, "all");
-
   return (
-    <div data-screen-label="Blog — list" aria-busy={pending || undefined}>
-      <header
-        className="zw-container"
-        style={{ paddingTop: "clamp(36px, 5vw, 64px)" }}
-      >
-        <div style={{ marginBottom: "clamp(22px, 3vw, 36px)" }}>
-          <Breadcrumb
-            items={[
-              { label: dict.breadcrumbHome, href: localeHref(locale) },
-              { label: dict.blog.breadcrumbJournal },
-            ]}
-          />
-        </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            gap: 24,
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ maxWidth: 760 }}>
-            <Kicker style={{ marginBottom: 16 }}>{dict.blog.kicker}</Kicker>
-            <h1
-              className="txt-balance"
-              style={{
-                margin: 0,
-                fontSize: "clamp(38px, 5vw, 66px)",
-                fontWeight: 600,
-                letterSpacing: "-0.045em",
-                lineHeight: 0.96,
-                color: "var(--c-900)",
-              }}
-            >
-              {dict.blog.heading}
-            </h1>
-            <p
-              className="txt-pretty"
-              style={{
-                margin: "20px 0 0",
-                fontSize: "clamp(15.5px, 1.4vw, 18px)",
-                lineHeight: 1.6,
-                color: "var(--c-600)",
-                maxWidth: 540,
-              }}
-            >
-              {dict.blog.intro}
-            </p>
-          </div>
-          <div
-            className="zw-only-desktop"
-            style={{
-              textAlign: "right",
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "var(--c-500)",
-              lineHeight: 1.9,
-            }}
-          >
-            <div>{dict.blog.updatedWeekly}</div>
-            <div style={{ color: "var(--c-400)" }}>
-              {pending ? <Skeleton w={80} h={21} style={{ marginLeft: "auto" }} /> : <>{posts.length} {dict.blog.storiesLabel}</>}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ marginTop: "clamp(28px, 3.2vw, 44px)" }}>
-          <BlogTabs
-            cats={cats}
-            counts={counts}
-            active={cat}
-            onChange={(next) => { setFilterChanged(true); setCat(next); }}
-            pending={pending}
-          />
-        </div>
+    <main className={styles.page} data-screen-label="Blog — list" aria-busy={pending || undefined}>
+      <header className={`zw-container ${styles.header}`}>
+        <h1 className={styles.heading}>{dict.blog.heading}</h1>
+        <p className={styles.intro}>{dict.blog.intro}</p>
+        <BlogTabs
+          cats={categories}
+          counts={counts}
+          active={category}
+          onChange={(next) => updateQuery(next, 0)}
+          pending={pending}
+        />
       </header>
-
-      <div
-        className="zw-container"
-        ref={resultsRef}
-        style={{ paddingTop: "clamp(28px, 3.4vw, 44px)" }}
-      >
-        {pending && <BlogResultsSkeleton />}
-        {showFeatured && featured && (
-          <BlogFeatured
-            key={`f-${cat}`}
-            locale={locale}
-            post={featured}
-            categoryLabel={labelFor(featured)}
-            animate={filterChanged}
-          />
-        )}
-        {!pending && !featured && (
-          <p
-            style={{
-              textAlign: "center",
-              color: "var(--c-600)",
-              padding: "40px 0",
-            }}
-          >
-            {dict.blog.nothingHere}
-          </p>
-        )}
-        {pageItems.length > 0 && (
-          <div
-            className="zw-mgrid"
-            data-cols="3"
-            style={{
-              marginTop: showFeatured ? "clamp(20px, 2.4vw, 32px)" : 0,
-            }}
-          >
-            {pageItems.map((p) => (
-              <BlogCard
-                key={`${cat}-${p.id}`}
-                locale={locale}
-                post={p}
-                categoryLabel={labelFor(p)}
-              />
-            ))}
-          </div>
-        )}
-        {totalPages > 1 && (
-          <div className="zw-pag-wrap">
-            <span className="zw-pag-count">
-              {dict.blog.pageLabel}&nbsp;
-              <b>{String(safePage + 1).padStart(2, "0")}</b>&nbsp;
-              {dict.blog.ofLabel} {String(totalPages).padStart(2, "0")} ·{" "}
-              {filtered.length} {dict.blog.storiesLabel}
-            </span>
-            <Pagination
-              page={safePage}
-              totalPages={totalPages}
-              onChange={changePage}
-            />
-          </div>
+      <div className={`zw-container ${styles.results}`} ref={resultsRef}>
+        <span className="sr-only" role="status" aria-atomic="true">
+          {!pending && `${filtered.length} ${countLabel}. ${dict.blog.pageLabel} ${safePage + 1} ${dict.blog.ofLabel} ${totalPages}.`}
+        </span>
+        {pending ? <BlogResultsSkeleton /> : (
+          <>
+            {showFeatured && featured && <BlogFeatured locale={locale} post={featured} categoryLabel={labelFor(featured)} />}
+            {!featured && (
+              <div className={styles.empty}>
+                {category === "all" ? <p>{dict.blog.empty}</p> : (
+                  <>
+                    <h2>{dict.blog.emptyCategoryTitle}</h2>
+                    <p>{dict.blog.emptyCategoryBody}</p>
+                    <button type="button" className={styles.resetFilter} onClick={() => updateQuery("all", 0)}>
+                      {dict.blog.showAll}<Icon name="arrowR" size={17} />
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+            {pageItems.length > 0 && (
+              <div className={`zw-mgrid ${styles.grid}`} data-cols="3" data-has-feature={showFeatured}>
+                {pageItems.map((post) => <BlogCard key={post.id} locale={locale} post={post} categoryLabel={labelFor(post)} headingLevel={2} />)}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className={styles.paginationRow}>
+                <span className={styles.pageCount}>
+                  {dict.blog.pageLabel} <b>{safePage + 1}</b> {dict.blog.ofLabel} {totalPages} · {filtered.length} {countLabel}
+                </span>
+                <Pagination page={safePage} totalPages={totalPages} onChange={changePage} />
+              </div>
+            )}
+          </>
         )}
       </div>
-    </div>
+    </main>
   );
 }
 
-/** Uses the feature and card grids' real breakpoints and media proportions. */
+/** Pending content shares the resolved feature and card geometry. */
 function BlogResultsSkeleton() {
   return (
     <div aria-hidden="true">
-      <div data-feature-grid="" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.18fr) minmax(0, 1fr)", border: "1px solid rgba(28,28,26,0.06)", borderRadius: "var(--r-2xl)", overflow: "hidden", background: "#fff" }}>
-        <Skeleton h="100%" r={0} style={{ minHeight: 360 }} />
-        <div style={{ padding: "clamp(28px, 3.6vw, 52px)", display: "flex", flexDirection: "column" }}>
-          <Skeleton w={90} h={25} r={999} />
-          <Skeleton w="95%" h="calc(clamp(25px, 2.9vw, 37px) * 2.16)" style={{ marginTop: 20 }} />
-          <Skeleton h={50} style={{ marginTop: 16 }} />
-          <div style={{ marginTop: "auto", paddingTop: 28, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <Skeleton w="42%" h={19} /><Skeleton w={36} h={36} r={999} />
-          </div>
+      <div className={styles.feature} data-feature-grid="">
+        <div className={styles.featureMedia}><Skeleton h="100%" r={0} style={{ position: "absolute", inset: 0 }} /></div>
+        <div className={styles.featureBody}>
+          <Skeleton w={94} h={21} />
+          <Skeleton h="calc(clamp(28px, 3.1vw, 44px) * 2.24)" style={{ marginTop: 18 }} />
+          <Skeleton h={54} style={{ marginTop: 18 }} />
+          <div className={styles.featureFooter}><Skeleton w="48%" h={20} /><Skeleton w={120} h={36} r={18} /></div>
         </div>
       </div>
-      <div className="zw-mgrid" data-cols="3" style={{ marginTop: "clamp(20px, 2.4vw, 32px)" }}>
-        {Array.from({ length: PAGE_SIZE }, (_, i) => (
-          <div key={i} style={{ border: "1px solid rgba(28,28,26,0.06)", borderRadius: "var(--card-r, 18px)", overflow: "hidden", background: "#fff" }}>
-            <Skeleton h="auto" r={0} style={{ aspectRatio: "16 / 9" }} />
-            <div style={{ padding: "17px 20px 18px", display: "flex", flexDirection: "column", gap: 9 }}>
-              <Skeleton h={45} /><Skeleton h={42} />
-              <div style={{ paddingTop: 15, marginTop: 9, borderTop: "1px solid rgba(28,28,26,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Skeleton w={84} h={19} /><Skeleton w={30} h={30} r={999} />
+      <div className={`zw-mgrid ${styles.grid}`} data-cols="3">
+        {Array.from({ length: PAGE_SIZE }, (_, index) => (
+          <div key={index} className={styles.card}>
+            <div className={styles.cardMedia}><Skeleton h="100%" r={0} /></div>
+            <div className={styles.cardBody}>
+              <div className={styles.cardCopy}>
+                <Skeleton w={94} h={21} /><Skeleton h={54} style={{ marginTop: 12 }} /><Skeleton h={70} style={{ marginTop: 12 }} />
               </div>
+              <div className={styles.cardFooter}><Skeleton w="72%" h={20} /><Skeleton w={28} h={32} /></div>
             </div>
           </div>
         ))}

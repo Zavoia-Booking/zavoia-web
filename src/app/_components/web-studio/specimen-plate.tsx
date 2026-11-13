@@ -7,10 +7,13 @@ import type { PreviewData } from "@/features/website/components/builder/preview/
 import { Skeleton } from "@/components/ui/skeleton";
 import { StaticPreviewContext } from "@/features/website/components/builder/preview/shared/hooks";
 
-const LivePreview = dynamic(() =>
-  import("@/features/website/components/builder/preview/Microsite").then(
+const LivePreview = dynamic(
+  () => import("@/features/website/components/builder/preview/Microsite").then(
     (module) => module.LivePreview,
   ),
+  // Keep renderer/CSS loading inside the plate so it cannot hide the page or
+  // steal focus from a mockup link. The reserved frame below owns the Skeleton.
+  { loading: () => null },
 );
 
 /**
@@ -107,10 +110,11 @@ export function SpecimenPlate({
   return (
     <div
       ref={outerRef}
+      aria-busy={!ready}
       style={{
         position: "relative",
         width: "100%",
-        aspectRatio: String(ratio),
+        aspectRatio: `var(--studio-preview-ratio, ${ratio})`,
         minHeight,
         maxHeight,
         overflow: "hidden",

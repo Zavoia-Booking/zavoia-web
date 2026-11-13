@@ -1,6 +1,65 @@
 {
   "businessPage": {
+    "branding": {
+      "brandColor": {
+        "swatches": {
+          "terracotta": "Teracotă",
+          "jade": "Jad",
+          "mulberry": "Dudă",
+          "forest": "Verde pădure",
+          "marine": "Albastru marin",
+          "ink": "Cerneală",
+          "espresso": "Espresso",
+          "ochre": "Ocru",
+          "olive": "Măsliniu",
+          "moss": "Verde mușchi",
+          "pine": "Verde pin",
+          "petrol": "Petrol",
+          "slate": "Ardezie",
+          "indigo": "Indigo",
+          "violet": "Violet",
+          "orchid": "Orhidee",
+          "plum": "Prună",
+          "rosewood": "Palisandru",
+          "blush": "Roz pal",
+          "copper": "Cupru",
+          "brick": "Cărămiziu",
+          "rust": "Ruginiu",
+          "amber": "Chihlimbar",
+          "caramel": "Caramel",
+          "greige": "Gri-bej",
+          "teal": "Verde-petrol",
+          "peacock": "Albastru-păun",
+          "navy": "Bleumarin",
+          "burgundy": "Bordo",
+          "graphite": "Grafit"
+        }
+      }
+    },
+    "theme": {
+      "fonts": {
+        "modern": "Geist",
+        "classic": "Libre Caslon",
+        "elegant": "Bodoni Moda",
+        "friendly": "Bricolage",
+        "playfair": "Playfair",
+        "cormorant": "Cormorant",
+        "italiana": "Italiana",
+        "marcellus": "Marcellus",
+        "dmserif": "DM Serif",
+        "crimson": "Crimson",
+        "grotesk": "Grotesk",
+        "sora": "Sora",
+        "manrope": "Manrope",
+        "unbounded": "Unbounded"
+      }
+    },
     "builder": {
+      "deviceGroup": "Dispozitiv de previzualizare",
+      "deviceDesktop": "Desktop",
+      "deviceTablet": "Tabletă",
+      "deviceMobile": "Mobil",
+      "inspectorAlwaysOn": "Întotdeauna activă",
       "preview": {
         "allHidden": "Toate secțiunile sunt ascunse. Afișează cel puțin una pentru previzualizare.",
         "book": "Programează acum",

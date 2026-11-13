@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactElement, SVGProps } from "react";
+import { Spool } from "lucide-react";
 
 // Ported 1:1 from docs/icons.jsx (ICONS map). Each entry is the inner
 // SVG content rendered inside a 24x24 viewBox. SVG attrs converted to
@@ -456,9 +457,9 @@ const ICONS = {
   ),
 } satisfies Record<string, ReactElement>;
 
-export type IconName = keyof typeof ICONS;
+export type IconName = keyof typeof ICONS | "spool";
 
-export const ICON_NAMES = Object.keys(ICONS) as IconName[];
+export const ICON_NAMES = [...Object.keys(ICONS), "spool"] as IconName[];
 
 export interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name" | "color"> {
   name: IconName;
@@ -469,6 +470,10 @@ export interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name" | "color
 }
 
 export function Icon({ name, size = 20, color, style, ...rest }: IconProps) {
+  const iconStyle: CSSProperties = { color: color || "currentColor", display: "block", flexShrink: 0, ...style };
+  if (name === "spool") {
+    return <Spool width={size} height={size} strokeWidth={1.7} style={iconStyle} aria-hidden="true" {...rest} />;
+  }
   const path = ICONS[name];
   if (!path) return null;
   return (
@@ -476,7 +481,7 @@ export function Icon({ name, size = 20, color, style, ...rest }: IconProps) {
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      style={{ color: color || "currentColor", display: "block", flexShrink: 0, ...style }}
+      style={iconStyle}
       aria-hidden="true"
       {...rest}
     >

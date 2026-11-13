@@ -138,13 +138,14 @@ const formTest = test.extend<{ forms: Awaited<ReturnType<typeof installFormsFixt
 
 async function openAccountSupport(page: Page, locale: 'en' | 'ro' = 'en') {
   await page.goto(`${locale === 'ro' ? '/ro' : ''}/account`)
+  await expect(page.getByRole('heading', { name: `${user.firstName} ${user.lastName}`, exact: true })).toBeVisible()
   await page.getByRole('button', { name: locale === 'ro' ? 'Asistență' : 'Support', exact: true }).click()
-  await expect(page.getByRole('button', { name: locale === 'ro' ? 'Raportează o problemă' : 'Report an issue', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: locale === 'ro' ? 'Contactează asistența' : 'Contact support', exact: true })).toBeEnabled()
 }
 
 async function openNewTicket(page: Page, locale: 'en' | 'ro' = 'en') {
   await openAccountSupport(page, locale)
-  await page.getByRole('button', { name: locale === 'ro' ? 'Raportează o problemă' : 'Report an issue', exact: true }).click()
+  await page.getByRole('button', { name: locale === 'ro' ? 'Contactează asistența' : 'Contact support', exact: true }).click()
   return page.getByRole('textbox', { name: locale === 'ro' ? 'Spune-ne ce s-a întâmplat' : 'Tell us what happened', exact: true })
 }
 
@@ -192,8 +193,17 @@ async function expectFixedDarkFocus(field: Locator) {
     borderWidth: '1px', outline: 'none', shadow: 'none', ink })
 }
 
-formTest('account ticket rejects markup and scripts inline without posting; safe punctuation and multiline Romanian remain intact', async ({ page, forms }) => {
+formTest('account ticket rejects markup and scripts inline without posting; safe punctuation and multiline Romanian remain intact', async ({ page, forms }, testInfo) => {
   const field = await openNewTicket(page)
+  const dialog = page.getByRole('dialog', { name: 'How can we help?', exact: true })
+  await expect(dialog).toBeVisible()
+  const problem = page.getByRole('button', { name: "Something isn't working", exact: true })
+  const question = page.getByRole('button', { name: 'I have a question', exact: true })
+  await expect(problem).toHaveAttribute('aria-pressed', 'true')
+  await question.click()
+  await expect(question).toHaveAttribute('aria-pressed', 'true')
+  await problem.click()
+  await expect(problem).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByText('0 / 9,500 characters', { exact: true })).toBeVisible()
   await expect(field).toHaveAttribute('maxlength', String(MAX))
   await expectFixedDarkFocus(field)
@@ -212,14 +222,20 @@ formTest('account ticket rejects markup and scripts inline without posting; safe
   await field.fill(SAFE_MESSAGE)
   await expect(page.locator('[role="alert"]:not(#__next-route-announcer__)')).toHaveCount(0)
   await expectFieldAssociation(field)
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+  await page.screenshot({ path: testInfo.outputPath('support-contact-modal-en.png') })
   await page.getByRole('button', { name: 'Submit ticket', exact: true }).click()
+  await expect(dialog).toBeHidden()
   await expect(page.getByRole('textbox', { name: 'Reply', exact: true })).toBeVisible()
   expect(forms.mutations).toEqual([{ path: '/marketplace/support/tickets', body: { category: 'bug', message: SAFE_MESSAGE.trim() } }])
-  await expect(page.getByText(SAFE_MESSAGE.trim(), { exact: true })).toBeVisible()
+  await expect(page.getByRole('region').getByText(SAFE_MESSAGE.trim(), { exact: true }).last()).toBeVisible()
 })
 
 formTest('Romanian account ticket keeps its draft after a request failure and retries once without duplicate submissions', async ({ page, forms }) => {
   const field = await openNewTicket(page, 'ro')
+  const dialog = page.getByRole('dialog', { name: 'Cu ce te putem ajuta?', exact: true })
+  await expect(dialog).toBeVisible()
+  await page.getByRole('button', { name: 'Am o întrebare', exact: true }).click()
   await expect(page.getByText('0 / 9.500 de caractere', { exact: true })).toBeVisible()
   await field.fill('<script>')
   await expect(page.locator('[role="alert"]:not(#__next-route-announcer__)')).toHaveText(UNSAFE_RO)
@@ -234,9 +250,18 @@ formTest('Romanian account ticket keeps its draft after a request failure and re
   await expect(button).toBeDisabled()
   await expect(field).toBeDisabled()
   await expect.poll(() => forms.mutations.length).toBe(2)
+  await expect(dialog.getByRole('button', { name: 'Închide', exact: true })).toBeDisabled()
+  await expect(dialog.getByRole('button', { name: 'Anulează', exact: true })).toBeDisabled()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeVisible()
+  await page.mouse.click(10, 200)
+  await expect(dialog).toBeVisible()
+  expect(forms.mutations).toHaveLength(2)
   forms.createGate.release()
+  await expect(dialog).toBeHidden()
   await expect(page.getByRole('textbox', { name: 'Răspuns', exact: true })).toBeVisible()
   expect(forms.mutations.map((mutation) => mutation.body.message)).toEqual([SAFE_MESSAGE.trim(), SAFE_MESSAGE.trim()])
+  expect(forms.mutations.map((mutation) => mutation.body.category)).toEqual(['question', 'question'])
 })
 
 formTest('account reply blocks unsafe Enter submission, preserves failed drafts and resets required validation after success', async ({ page, forms }) => {

@@ -245,9 +245,9 @@ stagger via `.zw-stagger` (0.06s steps, 8 children deep). Both are gated behind
 
 - Zavoia page shells, headers and footers share the 1400px content limit. Smaller
   prose columns, forms, dialogs and cards stay readable inside that boundary.
-- Full-bleed backgrounds, the search map and customer website previews retain
-  their own layout. Customer website templates and Sanity Studio are separate
-  surfaces; do not impose marketplace containers on them.
+- Full-bleed backgrounds, the search map and Sanity Studio retain their own
+  layout. Customer websites use the shared Studio content-width contract below;
+  do not wrap their entire renderer in a marketplace container.
 - Use `minmax(min(Npx, 100%), 1fr)` for auto-fill card grids so their minimum
   cannot exceed the available mobile width. Preserve the existing breakpoints.
 - Ordinary text inherits `cursor: default`, without disabling text selection.
@@ -371,15 +371,130 @@ zero result; a failed request must offer recovery instead of claiming either.
 - **Top bar:** sticky, `--nav-h` (68px), with an opaque `--c-canvas` background and a subtle bottom hairline. The background stays solid before and after scrolling, on desktop and mobile. Text links (`.zw-navlink`) are 14px/600 at `--c-600`; hover and active simply darken to `--c-900` — color alone carries the state, no underline or pill.
 - **Header search:** a 52px segmented pill at viewport widths of 1200px and above, with a viewport-based width of 400–480px that stays consistent across English, Romanian and active query values. Three equal fields use 10px mono labels, 14px values, visible focus rings and ellipsis for long selections. The terracotta search action is 44px square. At 601–1199px, a compact labelled control (180–220px) opens the same search flow; phones up to 600px use a 44px search icon. On home, the control appears after the hero search scrolls away, with a short 180ms rise/fade when reduced motion is off. Field hover uses a faint inset highlight, without changing the outer shadow or showing native tooltips. Press feedback stays subtle; widths never animate. Styles live in `site-header.module.css`.
 - **Language navigation:** reuse `LanguageSwitcher` in the header, beside the account controls. Show the current language name on desktop and its existing 44px globe trigger up to 920px. The menu opens below the trigger and preserves the existing route, query, hash and translated destinations. Search uses this same header control; the standalone 404 uses its own header. The footer's trailing slot holds the existing 250 × 50px ANPC/SAL badge, on a separate row on narrow screens.
-- **Tabs** (Journal `.zw-jtab`, detail pages): 14.5px/600 quiet text (inactive `--c-500`, hover `--c-800`, active `--c-900`) over a 1px hairline rail, with a 2px ink indicator that springs (`0.42s var(--ease-spring)`) between tabs; mono micro-counts sit beside labels and turn terracotta when active. Tab panels enter with `.zv-tab-in` (6px rise + fade, 0.32s).
+- **Tabs** (detail pages): quiet text above a hairline rail, with an ink indicator between tabs. Tab panels enter with `.zv-tab-in` (6px rise + fade, 0.32s). The Journal uses category filter buttons with `aria-pressed`, a 220ms ink underline and readable counts; it does not present them as tab panels.
 - **Pagination:** 42px mono pill buttons; active = ink; hover = shade + stronger hairline.
 - **Service catalog:** homepage industry tiles, See all industries and the map's More action share `ServiceCatalogProvider`. Use a wide desktop dialog with a fixed industry sidebar and grouped service rows; up to 760px it becomes a full-height sheet with horizontal industry filters. Select exactly one industry or All industries; selecting the active industry again keeps it selected. Keep option positions and typography stable, and reset on each opening. The active option uses a neutral gray fill, a thin neutral outline, dark text and its canonical colored icon, with a neutral trailing chevron on desktop. Industry focus rings also stay neutral; do not use terracotta for catalog selection styling. Choosing a service applies immediately, preserving the map's place, date and refinements. Keep the homepage's real search and `/industries` links for direct navigation. Reuse loaded taxonomy; retain keyboard focus in view, restore opener focus on dismissal, and use the shared loading/error components for recovery.
+- **Search overlay industry browser:** keep the search overlay's What/Where/When flow distinct from the catalogue's immediate application. Use an 860px desktop dialog with fixed heading/footer and non-shrinking 54px step headers; only the active step's content scrolls vertically. Its What field stays sticky with a visible container focus indicator, and the committed What summary stays visible even while open. Show all saved recent searches (up to six, newest first) above Explore industries, with no expand/collapse control; keep history visible and usable while taxonomy loads or fails. Put “All industries” / “Toate industriile” first beneath that heading as a full-width 54px selectable row, with a grid icon, neutral outline and a trailing circle/check selection indicator. Never place it above history or style it as a small pill. The active What/Where/When header has no click handler, hover or press animation; expose its expanded/unavailable state with aria-disabled and skip it in tab order while retaining programmatic focus on step advancement. Only collapsed step headers are interactive, and none of the headers scale on press. Industries form one vertical list of disclosures with canonical colored icons, 15px labels and 52px triggers. Open one industry inline beneath its trigger, keeping history and other industries mounted; show a whole-industry action followed by category choices in two columns above 760px and one column below. Include industries without tags. Use the shared disclosure rhythm (280ms expand/collapse, 220ms enter/140ms exit, rotating chevron), keep transitions interruptible, and make closed content inert and hidden from assistive technology. Keyboard and reduced-motion changes stay immediate. Do not replace the overview with a separate view, render every category at once, add a sidebar/horizontal industry rail or introduce nested scrolling. Expansion does not commit a filter: checkmarks/pressed state indicate query selection only. All clears only What's industry/tag filters and collapses the list, preserving location/date. Selecting a whole industry sets its canonical slug and clears tags; selecting a tag sets its canonical industry/tag; both advance to Where. Preserve selected-tag clearing, Escape/focus restoration, live business/location suggestions and the expanded industry while typing or resizing. Prefer a requested opening industry while keeping Other last; infer the opening industry from tag-only queries and honor explicit All entry. Category entry points focus the matching disclosure without raising the mobile keyboard. Use neutral selection styling, at least 48px category targets and matching row skeletons. Clear all resets browsing; the separate recent-history Clear action removes the saved searches.
+- **Search overlay calendar:** the When content fills the active section’s available height. Let the calendar grow above its non-shrinking presets, sharing extra height across six equal week rows. Desktop rows may contract to 28px to fit shorter viewports; phone rows retain a 40px minimum. Use 15px dates, 16px month text and 44px month-navigation/preset controls, with a 10px gap above the presets. Only use the existing section scroller when the viewport cannot accommodate these minimums; never add a nested calendar scrollbar or hide overflowing controls. Keep localized month/day labels, past-date disabling and query behavior unchanged.
 - **Explore service rail:** an active industry, service or text query appears as one centered, clearable pill; hide suggestions and More until it is cleared. Pointer changes use a short rise/fade with the shared ease-out curve; keyboard and reduced-motion changes stay immediate. Inactive layers are inert and hidden from assistive technology. Move focus to the selected pill after choosing, and back to More after clearing; keep the 44px clear target and its focus ring within the rail.
 
 ### StatusPill
 6px status dot + 600-weight label in the status color (`--s-success-600` open /
 `--c-500` closed), followed by an optional `--c-600` "· closes {time}" suffix.
 The whole pill is one 12.5px inline-flex span.
+
+### Journal
+
+Keep the editorial listing, featured article and responsive card grid. Omit
+repeated eyebrows, freshness badges and unsupported publishing-cadence claims.
+Show category once per card and keep localized date/reading time visible on
+every device. Card hover changes the border and nudges its arrow; no spotlight,
+image badges or replayed entrance animation. Category and page live in the URL
+through native history, preserving refresh, Back and unrelated parameters while
+the complete default index stays server-rendered and cached.
+
+Article headings, covers and prose share the site's left content edge; do not
+center the reading column independently. Prose uses 17px type, 18px on desktop,
+in a column up to 720px. For three or more headings, use a nearby 220px contents
+column with a 64px gap. At 1024px and below, replace the sidebar with an inline
+contents disclosure. Short articles keep the same left alignment without a
+sidebar. Covers cap at 1004px wide and 320px tall on desktop, with a 16:10 frame
+on phones; inline figures preserve their authored proportions. Use ordinary bullets,
+true numbered lists and visible FAQ answers. Do not add automatic drop caps,
+noninteractive tags or a second related-article banner.
+
+Sharing lives beside article metadata on all devices. Confirm a copied link only
+after clipboard success and use the shared error toast on failure. Keep one
+reading-progress hairline, measured through the article rather than the footer
+or related posts. Skeletons reuse the listing/article layout classes and shared
+Skeleton component. Global header and footer styles remain independent.
+
+### Account and support
+
+On desktop, the account identity sits directly on the canvas above a hairline,
+with a compact avatar, quiet inline statistics and a ruled navigation rail. Keep the existing
+900px hub-to-section breakpoint. Use the shared page container and the same
+available content-column width for every account section. Keep narrower limits
+on individual form fields and conversation text, not on the section shell.
+Reserve a 680px minimum desktop content height (growing with the viewport) and
+an 820px minimum mobile drill-in height; longer content expands naturally.
+Keep the outer workspace mounted while section contents change, and avoid
+fading the entire mobile section from invisible on every navigation.
+Avoid floating profile cards, nested ticket cards and duplicate ticket previews.
+An intentional Account logout (also used after successful account deletion)
+starts the localized homepage navigation immediately, while the existing session
+store clears identity and finishes server logout. Keep that departure intent above
+the identity-keyed account content, reset the outgoing document scroll, and show
+only the shared pending-action spinner
+until navigation commits. Do not flash the signed-out account gate or retain private
+profile data during this exit. Direct guest visits and involuntary session expiry
+still use the normal gate; header-menu logout retains its current-page behavior.
+
+Support has one Contact support action, a single ticket list and All / Active / Closed
+filters. Active includes Open, In progress and Reopened. Show the first-message
+preview, ticket ID/category, labelled status dot and updated date in aligned
+desktop columns; stack metadata on phones. Use 16px subjects, 13px metadata and
+44px filter targets. Preserve list order, unread state and all ticket operations.
+An explicitly selected conversation expands immediately below its ticket row at
+every screen size. Only one conversation is expanded at a time. Use the shared
+280ms disclosure rhythm, a rotating chevron and Radix Collapsible presence for
+opening and closing; closed panels are inert and inaccessible immediately.
+Do not select or fetch a conversation automatically. Resizing preserves the same
+mounted thread. Keep the original message excerpt, status and reference in the
+trigger row. The same row and chevron toggle the disclosure; do not add a second
+collapse button or a visible generic Conversation heading. Keep the region name
+and focus heading available to assistive technology. Selected rows remain on the
+page canvas, with weight/chevron changes rather than a filled background.
+Unsent replies remain temporary per-ticket UI state while switching conversations.
+Move focus to the form or loaded conversation heading; returning restores the
+originating ticket button. Contact support opens the existing ActionModal shell
+used by appointment actions, with a 620px maximum width, standard header/close
+control, shared textarea and fixed action footer. Keep the page list and contact
+opener mounted behind it. Use its focus trap, exit animation, scroll lock and
+focus restoration; prevent dismissal while submitting, and synchronously guard
+submission once dismissal starts. Contact categories use human labels while
+retaining the existing API values. Keep the Help centre link near the introduction.
+Show messages as a flat transcript on the page canvas: customer messages align
+right and Zavoia Support replies align left, matching the native support flow.
+Use a visible 14px/600 author label and user/reply icon above each 16px message,
+with hairlines between entries. Keep full message bodies left-aligned for reading.
+Do not use
+chat bubbles, coloured message backgrounds, nested rounded cards or a minimum
+message-area height that creates a blank block for short messages. Keep the
+transcript and shared textarea/composer at a readable 760px maximum, with message
+text capped at 640px and 86% of the transcript (94% on phones). The existing Close
+ticket action sits beside Send as a quiet secondary action. The document is the
+only transcript scroller: do not cap message-history height or contain its
+overscroll, which traps wheel input at the history boundary. Do not auto-scroll
+history to its bottom on expansion. Closed rows use a lock icon and stronger
+status label; expanded closed tickets show an explicit Ticket closed notice above
+their history and omit the reply composer. Closed does not mean resolved.
+Settings groups use flat rules, 18px headings, readable
+15–16px values and 13–14px helper text. Keep labels/value groups aligned with their
+editing actions, allow long values to wrap, and place expanded-form actions at
+the bottom of their field group. Text, phone, email and password fields use a
+single ink border on focus; invalid fields retain their error border. Do not clip
+keyboard focus outlines at settings-group boundaries. Notification channel labels
+use the normal UI font and casing. Security rows supply their own titles, without
+repeating Password or the page title above the same rows.
+Email, password and Google-disconnect forms use the shared 280ms disclosure
+rhythm with Radix presence; closing content becomes inert immediately. Simple
+inline field editors enter with a short, restrained fade. The birthday calendar
+uses the same shared MonthCalendar presentation as Search: round month navigation,
+weekday labels, selected dates and hover/focus states. Keep its compact popover
+transition and choose months/years inside that panel, with a paged 12-year grid
+for birth dates rather than operating-system select menus. Search retains its
+future-date/query rules; Account retains ISO values, its 110-year picker range,
+future-date disabling and explicit Save behavior.
+Birthday popovers use the room above or below their trigger, avoiding the sticky
+header and phone navigation. Month/year choices return focus to their caption;
+date selection and Escape return focus to the field. On narrow phones, keep the
+field full width with Save/Cancel below, and keep month names on one line.
+Respect reduced motion for all these transitions.
+Match skeletons to these same layouts. Never invent
+per-message timestamps or response-time promises. Hover feedback stays subtle,
+with no lifting rows; keyboard focus remains clearly visible. Contact uses the
+shared modal motion; respect reduced motion for conversation disclosures.
 
 ### Saved collections
 
@@ -990,7 +1105,7 @@ and accessible link label.
 ### Web Studio marketing and design demo
 
 `/web-studio` explains the product through finished websites for different
-industries. Give it a distinct, light marketing composition with five visible
+industries. Give it a distinct, light marketing composition with seven visible
 industry examples, followed by the connected business information, setup,
 publishing terms and FAQ. Keep the standard marketplace header, footer and 1400px
 content boundary. Website editing and design/device controls belong only in the
@@ -1012,19 +1127,57 @@ inventory counters, specimen captions, exhaustive font grids or repeated closing
 CTA. Explain the connection to existing business information once, with all
 benefits visible.
 
+The marketing route fallback reuses `WebStudioHero` with `pending`, preserving
+known localized copy and the exact responsive showcase frames. Skeletons
+stay inside those frames; do not recreate an older mockup grid or removed copy.
+Explicitly pending mockups do not preload their finished images or fonts.
+Reserve responsive phone hardware and its screen ratio through CSS before
+hydration; fixed browser examples retain their browser frames. Keep the frame
+busy until the renderer is measurable, including while its chunk loads.
+The demo has its own route fallback, also selected by the parent boundary during
+demo navigation: the full viewport canvas with the same 420px expanded controls
+on desktop and bottom pill below 1024px. Match its default tablet frame at
+601–980px. Its lazy renderer
+skeleton fills `--mc-vph`, so framed tablet/phone previews retain their measured
+height. Use shared Skeleton motion and screen-reader-only loading status.
+
 The curated examples use the actual website renderer with bilingual synthetic
 businesses from `web-studio/demo-examples.ts`. Show fitness, pet grooming, music
-lessons, wellness and an auto shop as distinct, finished websites with their own
+lessons, wellness, tattoo and piercing, tailoring and an auto shop as distinct, finished websites with their own
 content and complete designs, including the sections below each hero. Use each
 example's canonical industry slug to resolve its heading from the shared industry
 dictionary, matching backend `industry.name` / `industry.nameRo`; service types
 such as personal training or music lessons are not substitute industry names.
 The canonical names are seeded in the API repository's
-`scripts/supabase-seed-1-industries.sql`. Keep all five industry stories visible
+`scripts/supabase-seed-1-industries.sql`. Keep all seven industry stories visible
 without tabs or a carousel. Each has a concise
 explanation of what a client can discover or book. The mockup itself links to its
 matching demo, with a unique localized business-specific accessible name; do not
 repeat a text CTA below each example.
+All eight interactive examples, including the beauty studio, use the authored
+menus in `web-studio/demo-catalogs/`. Keep three described branches per business,
+five service categories with at least four services each, and four packages in
+the renderer's separate Packages group. Assign three people to each branch from
+the business's five named team members. Descriptions and included package services
+must translate together; packages describe combined visits, not recurring passes.
+Keep sample prices, identities and assignments outside customer website data.
+Each catalogue also owns its EN/RO announcements, FAQs and editable section copy.
+Apply those headings through the dashboard's existing configuration fields in
+both the interactive demo and marketing website previews. Keep shared button and
+navigation labels identical to the dashboard. Service descriptions lead with the
+included work and retain meaningful cost exclusions. Feature uses an authored
+bundle description when present, falling back to included service names only
+when empty. Service descriptions flow in full across all three layouts, including
+phone widths; do not truncate a price exclusion or appointment prerequisite.
+Fir Atelier's sample fees cover fitting or assessment; alteration work and
+materials are quoted separately. Paw & Co's extended long-coat groom replaces
+the size-based option when additional coat-care time is needed.
+Use the shared set of seven generated portraits from `images/marketing/examples/team/`,
+with five distinct faces per example and the same member image across locations
+and languages. These original demo portraits
+are not customer uploads, real staff photographs or endorsements. Keep their
+generation prompts and provenance in the asset README, and identify them as
+AI-generated in the existing marketing example note and expanded demo information.
 The rendered website remains inert and accessible as a figure, with stable ratios
 and actual virtual viewport heights. `StaticPreviewContext` settles JS motion and
 `mc-scaled-preview-static` parks CSS choreography. Put the native demo link as an
@@ -1087,22 +1240,298 @@ Keep the demo `noindex`; the marketing page is the indexable destination. Match
 its nested route precisely when suppressing marketplace chrome.
 
 The demo uses the same renderer and real section/font/colour registries. Load the
-selected display face on direct entry as well as navigation. Its compact ink dock
-contains a return link, language control, customization, previous design, copy link,
-try-another-design action and business trial link. Customization offers actual
-section styles, fonts, colours, examples and locks. When all dimensions are locked,
-disable shuffle and explain how to resume. Keep page scroll position stable during
-changes. Keyboard changes are immediate; pointer-triggered changes can briefly
-settle, respecting reduced motion. Fictional booking/contact actions give demo
-feedback; navigation and gallery exploration remain usable.
+selected display face on direct entry as well as navigation. Use one floating
+control panel initially on the left of the full-screen website canvas. It minimizes into a
+compact pill; there is no docked sidebar or permanent toolbar above the website.
+Warm paper, ink labels and fine neutral borders keep the controls consistent
+across different website designs. Selected options use an ink outline, a soft
+paper fill and an ink checkmark; focus rings remain neutral and clearly visible.
+Keep actual brand-colour swatches distinct from control-selection styling. The
+panel contains the return link, minimize action, device selection, undo last change, reset, copy
+link and language selection. Reuse the main header's language disclosure, with
+a compact globe-and-chevron trigger and full native language names in the menu.
+Keep it driven by the locale registry and preserve the current design URL when
+switching language. Escape closes the language menu before the parent panel.
+Preserve the design, selected section and preview position while minimizing.
+Keep all demo information inside the controls; do not reserve an external footer strip below the website.
+Keep Back as a separate 44px icon-only chevron target in both control states.
+Homepage and For Business demo links carry their source section in `returnTo`; both Back links
+use the validated local destination, falling back to Web Studio for direct visits.
+Preserve that destination through design and language changes, but omit it when
+copying a demo link to share.
+The title and remaining header space toggle the panel; the grab rail and minimized
+shuffle retain their own actions. Keep dragging on the grab rail and header padding,
+separate from the title toggle and Back.
+On a fresh demo or reset, disable Announcement and Band (`marquee`) and enable all
+other sections, including Reviews. Explicit shared-link visibility and subsequent
+user choices take precedence; switching example businesses preserves those choices.
+
+At 1024px and above, open the panel initially and allow the expanded panel or
+minimized pill to be dragged by its header/handle. The expanded panel is 420px wide
+and fills the viewport height with 16px floating margins above and below. Its full
+height constrains vertical movement; horizontal dragging remains available, while
+the minimized pill can move in both directions. Keep its chosen position through
+minimizing and reopening; clamp each form separately so an expanded panel stays
+reachable when a pill was moved near an edge. Re-clamp on viewport changes without
+resizing or scrolling the website. Place the expanded panel's grab rail along
+its top edge, separate from Back and minimize; use the same centered top rail on the
+340px-wide minimized pill. Keep the pill to one 78px-high row including its grab rail:
+Back, the clickable Web Studio title, a quiet outlined Shuffle button ("Shuffle" /
+"Alt design"), and a dedicated settings-circle button to expand the tools. Give the row's controls at least 44px height,
+and keep them as separate non-overlapping targets. Constrain the pill to the available
+phone width, allowing 8px side margins below 360px so both language labels fit. Keep
+the fictional-business and review notices inside the expanded settings, not in
+the minimized pill. Keep a clear grab cursor and a labelled target with a movement
+hint. The move handle supports arrow keys in 20px steps, Shift+arrow in 60px steps, and Home to reset to the screen's initial placement. Clicking
+the grip opens positioning options with four direction buttons and an explicit
+reset; a click must not unexpectedly reset the panel. Keyboard activation opens
+the same options, so moving the controls never depends on dragging alone.
+
+On screens below 1024px, start with the compact pill centered at the bottom,
+clear of safe areas. Expose the same top grab rail and positioning options for
+touch dragging, including moving the pill to the top. Preserve its chosen position
+through expansion and minimization, while the expanded panel fits the available
+screen. Reset restores the default bottom placement. Clamp both forms to the
+viewport and safe areas. Page scrolling and the panel's own settings scroll must
+leave the controls' screen position fixed; only the header/rail handles dragging.
+Keep the same floating-control model at every breakpoint, fitted to the available
+screen, with a clearly labelled way to reopen it.
+When a desktop visitor selects tablet or phone preview, use the For Business
+hero's `--surface-warm` gradient and `hero-grain.svg` texture at .11 opacity behind
+the framed website. Keep the texture below the preview and non-interactive.
+The expand/minimize motion follows the phone Capsule header: expansion takes
+620ms, with width growing during the first 38% before height expands; collapse
+takes 480ms, with height shrinking during the first 62% before width contracts.
+Animate the control shell, never the website canvas or its responsive breakpoints.
+Keyboard and reduced-motion changes are immediate. Minimized content must leave
+the tab order, and minimizing returns focus to the pill's reopen control.
+
+Use one compact settings view for the example business, colour, font and section
+designs. Do not separate Appearance into a tab or replace the section list with a
+second inspector view. Replace native dropdowns with labelled inline choices.
+The current example opens eight business choices in place; keep their existing
+localized example labels and a visible fictional-business disclosure.
+Example and font pickers stay open after choosing an option so visitors can
+compare alternatives. Only one of those two pickers needs to be open at a time.
+
+Show the first five colours from the dashboard catalog immediately. A labelled
+more/fewer-colours control expands the remaining swatches below them. Keep those
+five quick choices in a stable order; when another colour is selected, identify
+it in the colour header even while the extra swatches are collapsed. Show the
+current font on its compact row; expanding it reveals a two-column grid of the
+14 included fonts, with names rendered in their own faces. Mount the additional
+font specimens only when opened so the initial view does not load every font.
+Names, values and choices come from the existing registries; do not invent
+premium restrictions for fonts or colours.
+
+Section rows show their real names, current variants and optional visibility
+switches. Expand one section at a time directly beneath its row, with compact
+two-column variant choices backed by native radios. Each choice is a horizontal
+58px minimum row with a small schematic and its name. Use 15px section names,
+13px secondary labels, and 38×22px switches inside 46×48px hit areas.
+Keep neighbouring rows in the
+same list so trying a style never requires Back or previous/next
+navigation. Required sections remain on and explain that their style can still change.
+Hidden sections retain their style name in the collapsed row and explain how
+to show the preview when expanded. Indicate the section currently visible in
+the website separately from the section being customized.
+
+Inline panels expand in 250ms with ease-out and collapse in 180ms with ease-in,
+using restrained easing. Keyboard and reduced-motion changes are immediate.
+Keep focus on the trigger. After expansion, scroll only the settings area as
+much as needed to bring choices into view; skip this adjustment if the visitor
+has already moved focus elsewhere. Collapsed choices leave the tab order. The
+settings share one scroll area with hidden scrollbars. Style radios cover their
+full visible cards so native keyboard focus scrolls the selected choice into
+view. At heights up to 720px, let the whole panel body scroll instead of
+compressing the settings.
+
+Group the three Keep toggles in one always-visible footer row, under a concise
+label "Keep unchanged", with a hint explaining that selected settings stay the
+same when trying another design. Label the buttons Styles, Colour and Font;
+avoid small controls scattered among the settings.
+These preserve the corresponding choices without disabling manual editing.
+Keep each toggle's accessible name stable while `aria-pressed` communicates its
+state. Do not use an unlabelled padlock that could be confused with required
+sections. Below this group, place both footer actions on one row: the quieter
+business trial link on the left and try-another-design on the right. The shuffle
+button has its label followed by a shuffle icon, without a second arrow icon.
+Label the trial action "Start free trial" and place the concise, dynamically
+dated Base-trial/Plus-publishing note directly below the action row, linked to
+the trial action with `aria-describedby`.
+Place the entire demo information at the bottom of the scrollable
+settings, after the section list, as visible text rather than an accordion.
+Give the expanded panel the title "Web Studio · Demo". Keep fictional-business,
+team, review and rating information in one paragraph, identifying the generated
+portraits, followed by one paragraph explaining included and optional premium
+styles. When all dimensions are kept, disable shuffle and
+explain how to resume beside that action. Do not duplicate live
+status announcements outside the panel. Keep fictional-business, generated-portrait
+and review information inside the expanded controls only. This is a public design explorer: do not
+add draft saving, publishing, purchases or business-data editing. Keyboard changes
+are immediate; pointer-triggered design changes can briefly settle. Fictional
+booking/contact actions give demo feedback; navigation and gallery exploration
+remain usable.
+
+Shuffle preserves the section actually being read and the relative position within
+it, including delayed font and section-size changes. Keep this reading anchor for
+undo, theme changes and device resizing, and release it immediately when the
+visitor scrolls or interacts with the preview. Explicitly opening a section,
+choosing one of its styles or showing it may navigate to that section; an inspector
+left open must never redirect a global shuffle. Keep a visitor at the end when
+shuffling from the footer, and clear anchors whose section has been removed.
+Each unlocked section draws randomly from its remaining styles before beginning
+another cycle; never repeat the current style at a cycle boundary when alternatives
+exist. Apply the same rule to unlocked colours and fonts. A manual choice counts
+as seen on the next shuffle. Keep cycles in memory for this demo session, outside
+the shared design URL. Preserve every section's enabled/disabled choice when
+shuffling, including styles shuffled while hidden. Keep toggles pause their
+dimension's cycle until unlocked.
+
+Keep the dashboard's required Navigation, Hero and Footer visible in the demo,
+including when reading `hide` from a shared URL. Use the dashboard's font and
+colour label keys, not separate marketing names. Both web and dashboard renderers
+cap contained content at **1400px usable width**, with gutters outside that cap:
+`--mc-content-gutter: clamp(16px, 2.4cqw, 28px)`. Preserve narrower reading columns,
+full-bleed heroes, Gallery Fan stages and full-width navigation/footer
+compositions. Keep container queries on the logical preview root, never a nested
+content wrapper.
+
+Mosaic's photo wall uses at most 1400px of usable content plus its existing 12px
+edge padding. Center the wall so its photos align with the gallery heading on wide
+screens; keep the dark section background full width. Preserve its existing layout
+below that maximum, including phone spacing, focus/expand behavior and paging.
+
+On wide public canvases, keep Editorial, Split and Underlay header content within
+1400px using their existing row's inline padding; the header surface remains full
+width. Underlay's close control follows its menu progress back to the screen-edge
+panel. Capsule retains its measured width morph, with the expanded content capped
+at 1400px. Keep each header's tablet and phone composition. Align the photo-panel
+hero card and Tumble's supporting copy/actions to the same content boundary;
+preserve their full-width images, letter stage and backgrounds. Keep Cinematic's
+existing 1400px cap and the narrower Poster, Drift and Portal content limits.
+
+The demo's desktop canvas fills the available browser width above 980px so
+section backgrounds remain edge-to-edge. Apply the 1400px usable-content limit
+to inner content wrappers, including each complete footer composition; never cap
+the outer preview or footer background. Explicit desktop previews on smaller
+screens retain the dashboard's 1280px logical canvas. Tablet and phone use the
+dashboard's logical widths of 834px and 390px, with heights capped at 1080px and
+800px respectively. Fit frames within the available canvas and safe areas, and
+scale the page rather than changing its responsive breakpoints. Expanding or
+minimizing the floating panel does not resize the canvas or change the logical
+device selection.
+On phone screens (up to 600px), offer only desktop and mobile. Both fill the
+available screen without a device frame, gutters or backdrop. Mobile renders
+at the phone's actual width and scale 1; desktop keeps its 1280px logical canvas
+scaled to the same available width. Shared tablet-preview links fall back to
+mobile on these screens. Larger screens retain all three device choices.
+The demo scroll host supplies its measured logical height as `--mc-vph`; unscaled
+published-site hosts use `100dvh`, and marketing previews retain their measured
+virtual heights. Preserve the visible section when switching devices. Section
+sizes, scrolling and motion must use this same logical viewport contract.
+Section choices scroll only this logical viewport. Pointer selection may scroll
+smoothly; keyboard and reduced-motion selection are immediate. Keep the selected
+heading below the measured sticky navigation and floating announcement, and
+refocus after a selected variant or section visibility changes.
+
+Size type for the native website, not the apparent size of the dashboard's scaled
+1280px canvas. Hero booking actions use 16px labels, 18px arrows and a 48–52px
+height; hero copy starts at 16px and reaches 18–20px on desktop. Shared section
+introductions use 16–18px. About Manifesto pairs its display headline with
+18–21px reading text rather than a fixed 16px paragraph.
+Hero rating scores use lining tabular figures, a unit line-height and a top-aligned
+number box beside the stars/count stack, including Cinematic's larger score.
+On phones, Portal's resting portrait and wordmark reserve the measured description
+and booking-action height, with a 16–24px gap and shared inline gutters. Recalculate
+when copy, fonts or viewport size change; keep the full-bleed reveal's final geometry.
+Service descriptions use 16px (15px in compact Bento), with 18px semibold Cards
+names, 20–22px display-face Feature names and 13px duration metadata. Location
+switches use 13px labels and a 44px control height. Cards keep at most three
+columns within the 1400px content cap; names wrap and descriptions span the row.
+Bento rows share their price/duration column so dividers and service text remain
+aligned when amounts or durations have different lengths.
+Footer variants preserve the dashboard source typography, spacing, grids and
+responsive behavior. On wide public canvases, center each complete inner footer
+composition within 1400px of usable content plus its existing gutters. Fit the
+wordmark within that same content wrapper, keeping the footer background full
+width. Do not restructure the grids or alter type sizes to enforce this limit.
+Fit wordmarks using measurements at their rendered font size, including wrapped
+words; optical-size fonts do not scale linearly from a larger measurement.
+Keep these role sizes synchronized with the dashboard renderer. Card hover
+lifts are restrained, fine-pointer-only, and removed for reduced motion.
+Measure CSS geometry with logical `client`/`offset` dimensions. Convert screen-space
+pointer deltas and bounding rectangles by the preview scale before using them in
+CSS transforms. Keep the Fan renderer synchronized with the dashboard. Project its
+strips independently through the same vanishing point and composite them flat:
+shared `preserve-3d` sorting can cut holes through overlapping strips at fractional
+browser zoom. Verify actual browser zoom as well as scaled device previews; changing
+the test device's pixel ratio does not exercise the same rendering path.
+Gallery Bento uses independent groups of up to eight photos, with balanced shapes
+for each group size. Keep the full eight-photo desktop, tablet and phone geometry;
+five photos use one feature and four smaller tiles. Split nine to eleven photos
+into groups of at least four instead of leaving a one-to-three-photo tail.
+Keep global photo order, lightbox indices, entrance delays and image feedback
+unchanged, and mirror the component and CSS between web and dashboard.
+Cancelled touch gestures must never activate gallery images.
+Team Carousel uses the same scale-correct pointer contract: only the owning
+primary pointer moves the rail, and cancellation restores its position without
+selecting another member. Reviews Deck uses frame-synchronized tweens, follows
+the live position when grabbed mid-animation, and accepts only the owning primary
+pointer. Cancellation or lost capture returns to the selected review without
+advancing. Retain its one-card release threshold, easing and stack transforms.
+Drift and Reviews Deck pause offscreen and in hidden
+tabs; returning resumes the composition without restarting its entrance. FAQ
+reveal measurements are batched per frame and stop once the entrance completes.
+
+Capsule navigation starts transparent over the hero. Its dark surface, border
+and shadow follow the same scroll progress as its width morph, becoming fully
+opaque when the morph completes. All four headers use the same surface progress:
+0–55% of the preview's logical viewport height, refreshed when it resizes.
+Ribbon and Ticker reserve only their own height; headers float over the hero beneath
+them and stay attached to their sticky wrapper. Underlay ends in opaque paper;
+Editorial and Split retain their frosted-paper endpoint. Surface and solid light/dark
+ink follow scroll directly. Editorial's compact-layout threshold is separate from its fade.
+Capsule keeps stable geometry in compact and reduced-motion views. Use dark ink
+over Tumble's light hero until the surface darkens. Its desktop collapsed width
+includes 40px of breathing room beyond the padding morph and remeasures when the
+selected font changes or finishes loading; retain the available-width clamp.
+Navigation without hero overlap and expanded menus stay opaque. Keep shared CTA and portrait styles on component
+classes so dashboard presentation elements and executable web buttons match.
+Floating announcement pills sit 12px below the measured visible header, including
+Capsule's inset, and follow header resizing in both full-size and scaled previews.
+Underlay moves the floating announcement with the page. While its menu is open,
+the background page, announcement and footer are inert; restore their previous
+interaction state when closing or changing navigation variants.
+The full-page demo hides its scrollbar without disabling native scrolling.
+Where backdrop blur is used, place the standard declaration after its prefixed
+fallback and verify the compiled CSS. Responsive density and drag distances must
+use the rendered preview's dimensions and scale, not the outer dashboard window.
+Demo About content needs a headline and body separated by a blank line. Each
+example gallery has at least four distinct original images, matching the
+dashboard's publication requirements.
+
+Reviews can be explored using explicitly fictional EN/RO design samples, added
+only by the demo host while that section is visible. Identify both reviews and
+ratings as fictional samples in the expanded controls' directly visible information.
+The demo host supplies review-only translated labels so sample cards, counts and
+ratings never claim verification. Shared customer translations and booking
+actions retain the dashboard's vocabulary.
+The shared marketing
+examples and customer website data must never inherit these samples. Preserve the dashboard's Gallery lightbox
+presentation and motion in the Studio renderer, with accessible focus handling,
+keyboard navigation, scroll locking and image failure feedback. The marketplace's
+shared image viewer remains independent.
 
 The `s` query encodes registry indices: preserve ordering/legacy decoding when
-adding designs. Preserve `s`, example and campaign `src` across language switching
-and sharing. Business signup uses `registrationHref(locale)` and retains `src`;
+adding designs. Preserve `s`, example, hidden sections, selected preview `device`
+and campaign `src` across language switching and copied links. Business signup
+uses `registrationHref(locale)` and retains `src`;
 selected designs are not currently imported into onboarding. Do not imply a design
 handoff. The dashboard owns design implementation; the API owns active commercial
-availability, prices and entitlements. Preserve web booking, locale and image-viewer
-adapters when bringing dashboard renderer updates across.
+availability, prices and entitlements. Preserve web booking, locale and accessible
+modal adapters when bringing dashboard renderer updates across. Synchronize active
+motion behavior without copying unreachable editor branches.
 
 Draft work needs an active trial/subscription. The trial starts on Base; Plus
 publishes the website and purchases optional premium styles. Explain these terms
@@ -1331,9 +1760,12 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   presentation and copy with `/pricing`; section wrappers own their headings
   and background. Heading level and ID prefix follow each page’s hierarchy. No team counter, calculator
   provider, computed team totals, price animation, live announcement or sticky
-  controls belong in this section. Show one fixed monthly plan price and owner
-  inclusion on each ticket. State the monthly additional-member charge once above
-  the cards. Base supports 20 additional members besides the owner; Plus has no
+  controls belong in this section. Show one fixed monthly plan price, owner
+  inclusion and the monthly paid-seat rate on each ticket, above its tear seam.
+  Emphasize the seat amount below the subscription price, with a readable label;
+  do not repeat a fee-only paragraph above the cards. Reuse `TeamSeatPrice` in
+  Web Studio's Plus summary and beneath the compact mobile pricing links.
+  Base supports 20 additional members besides the owner; Plus has no
   customer-facing team-size limit. State these differences in the benefits, and
   charge each additional member on either plan. Capacity applies across the
   business's locations. Put each plan's location limit in its benefits.

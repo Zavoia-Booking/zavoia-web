@@ -3,33 +3,20 @@ import type { Locale } from "@/i18n/locales";
 import type { Post } from "@/sanity/types";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
-import {
-  categoryAccent,
-  categoryLabelKey,
-  formatReadingTime,
-  readingMinutes,
-} from "@/lib/blog";
+import { categoryLabelKey, formatReadingTime, readingMinutes } from "@/lib/blog";
 import { urlForImage } from "@/sanity/image";
 import { blogPostStructuredData, serializeJsonLd } from "@/lib/seo/page-structured-data";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { FaqList } from "@/components/ui/faq-list";
 import { Img } from "@/components/ui/image";
-import { CatChip } from "./cat-chip";
+import { Icon } from "@/components/ui/icon";
 import { BlogMeta } from "./blog-meta";
-import { BlogCard } from "./blog-card";
-import { ReadingChrome } from "./reading-chrome";
+import { BlogRelatedArticles } from "./blog-related-articles";
+import { ArticleActions, ReadingChrome } from "./reading-chrome";
 import { Toc } from "./toc";
-import { RelatedSectionTitle } from "./related-section-title";
 import { PortableTextRenderer } from "./portable-text-renderer";
-import { collectHeadings, firstParagraphKey } from "./vm";
+import { collectHeadings } from "./vm";
 import type { BlogCardVM } from "./types";
+import styles from "./blog-post.module.css";
 
-// Editorial post page. Ported from ZwBlogPost (web-blog.jsx:514-621).
-// Author omissions vs. the prototype (no author data exists in Sanity):
-//  - Header byline (avatar / name / role, web-blog.jsx:547-554): the meta row,
-//    its top border and spacing are kept, but only the date · read line renders.
-//  - CTA band (web-blog.jsx:584-596): the avatar/name/bio are dropped; a short
-//    lead line + a "More from the Journal" link to /blog remain.
 export function BlogPost({
   locale,
   post,
@@ -40,41 +27,33 @@ export function BlogPost({
   related: BlogCardVM[];
 }) {
   const dict = dictionaries[locale];
-
   const body = post.body?.[locale] ?? [];
   const headings = collectHeadings(body);
-  const headingIds = new Map(headings.map((h) => [h.key, h.id]));
-  const firstKey = firstParagraphKey(body);
-
+  const headingIds = new Map(headings.map((heading) => [heading.key, heading.id]));
   const minutes = readingMinutes(body);
   const dateLabel = new Date(post.publishedAt).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
-
-  const accent = categoryAccent(post.category);
   const categoryLabel = post.category
     ? dict.blog[categoryLabelKey(post.category) as keyof typeof dict.blog]
     : "";
   const title = post.title[locale] ?? "";
   const excerpt = post.excerpt?.[locale] ?? "";
-
   const cover = post.coverImage?.asset
-    ? urlForImage(post.coverImage).width(1600).height(686).url()
+    ? urlForImage(post.coverImage).width(1200).height(800).fit("crop").url()
     : undefined;
-
   const faqItems = (post.faq ?? []).flatMap((item) => {
     const q = item.question?.[locale];
     const a = item.answer?.[locale];
     return q && a ? [{ q, a }] : [];
   });
-
   const tocHeadings = [
-    ...headings.map((h) => ({ id: h.id, text: h.text })),
-    ...(faqItems.length > 0 ? [{ id: "faq", text: dict.blog.faqTitle }] : []),
+    ...headings.map((heading) => ({ id: heading.id, text: heading.text, level: heading.level })),
+    ...(faqItems.length > 0 ? [{ id: "faq", text: dict.blog.faqTitle, level: 2 as const }] : []),
   ];
-
+  const hasContents = tocHeadings.length >= 3;
   const faqJsonLd =
     faqItems.length > 0
       ? {
@@ -87,7 +66,6 @@ export function BlogPost({
           })),
         }
       : null;
-
   const postSlug = post.slug[locale]?.current;
   const articleJsonLd = postSlug
     ? blogPostStructuredData({
@@ -99,15 +77,8 @@ export function BlogPost({
         image: cover,
       })
     : null;
-
-  const breadcrumbItems = [
-    { label: dict.breadcrumbHome, href: localeHref(locale) },
-    { label: dict.blog.breadcrumbJournal, href: localeHref(locale, "blog") },
-    ...(categoryLabel ? [{ label: categoryLabel }] : []),
-  ];
-
   return (
-    <div className="zw-post-shell">
+    <main className={styles.shell} data-toc={hasContents}>
       {articleJsonLd && (
         <script
           type="application/ld+json"
@@ -117,255 +88,72 @@ export function BlogPost({
       {faqJsonLd && (
         <script
           type="application/ld+json"
-          // Editor-supplied answers must not be able to close the script element.
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
         />
       )}
-      <ReadingChrome title={title} />
-
-      <article>
-        <header
-          className="zw-container"
-          style={{ paddingTop: "clamp(36px, 4.5vw, 60px)" }}
-        >
-          <div className="zw-post-head">
-            <Breadcrumb items={breadcrumbItems} />
-
-            {categoryLabel && (
-              <div style={{ marginTop: 24 }}>
-                <CatChip label={categoryLabel} accent={accent} />
+      <ReadingChrome articleId="blog-article" />
+      <article id="blog-article">
+        <header className={`zw-container ${styles.header}`}>
+          <div className={styles.readingFrame}>
+            <nav className={styles.navigation} aria-label={dict.blog.breadcrumbLabel}>
+              <Link href={localeHref(locale, "blog")} className={styles.backLink}>
+                <Icon name="back" size={17} />{dict.blog.backToList}
+              </Link>
+              {categoryLabel && <>
+                <span className={styles.navigationSeparator} aria-hidden="true">/</span>
+                <Link className={styles.categoryLink} href={`${localeHref(locale, "blog")}?category=${post.category}`}>{categoryLabel}</Link>
+              </>}
+            </nav>
+            <div className={styles.opening} data-cover={Boolean(cover)}>
+              <div className={styles.head}>
+                <h1 className={`txt-balance ${styles.title}`}>{title}</h1>
+                {excerpt && <p className={`txt-pretty ${styles.excerpt}`}>{excerpt}</p>}
+                <div className={styles.metadata}>
+                  <BlogMeta date={dateLabel} read={formatReadingTime(minutes, locale)} />
+                  <ArticleActions title={title} />
+                </div>
               </div>
-            )}
-
-            <h1
-              className="txt-balance"
-              style={{
-                margin: "14px 0 0",
-                fontSize: "clamp(32px, 4.2vw, 54px)",
-                fontWeight: 600,
-                letterSpacing: "-0.042em",
-                lineHeight: 1.02,
-                color: "var(--c-900)",
-              }}
-            >
-              {title}
-            </h1>
-
-            {excerpt && (
-              <p
-                className="txt-pretty"
-                style={{
-                  margin: "20px 0 0",
-                  fontSize: "clamp(16px, 1.5vw, 19px)",
-                  lineHeight: 1.6,
-                  color: "var(--c-600)",
-                  maxWidth: 680,
-                }}
-              >
-                {excerpt}
-              </p>
-            )}
-
-            {/* Meta row — byline omitted (no author data), date · read only */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginTop: 28,
-                paddingTop: 24,
-                borderTop: "1px solid rgba(28,28,26,0.08)",
-              }}
-            >
-              <BlogMeta date={dateLabel} read={formatReadingTime(minutes)} />
+              {cover && <figure className={styles.cover}>
+                <Img src={cover} alt={post.coverImage?.alt || title} loading="eager" fetchPriority="high" style={{ width: "100%", height: "100%" }} />
+              </figure>}
             </div>
           </div>
         </header>
-
-        {/* Hero */}
-        <div
-          className="zw-container"
-          style={{ paddingTop: "clamp(28px, 3.5vw, 44px)" }}
-        >
-          <div
-            className="zw-zoom-parent"
-            style={{
-              borderRadius: "var(--r-2xl)",
-              overflow: "hidden",
-              aspectRatio: "21 / 9",
-              background: "var(--c-300)",
-              boxShadow: "var(--sh-md)",
-            }}
-          >
-            <div className="zw-zoom-wrap" style={{ width: "100%", height: "100%" }}>
-              <Img
-                src={cover}
-                alt={post.coverImage?.alt || title}
-                style={{ width: "100%", height: "100%" }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Body + sticky TOC */}
-        <div
-          className="zw-container"
-          style={{ paddingTop: "clamp(36px, 4.5vw, 56px)" }}
-        >
-          <div className="zw-post-grid">
-            <div className="zw-post-main">
-              <PortableTextRenderer
-                blocks={body}
-                headingIds={headingIds}
-                firstParagraphKey={firstKey}
-              />
-
-              {/* FAQ */}
-              {faqItems.length > 0 && (
-                <section id="faq" style={{ scrollMarginTop: 90 }}>
-                  <h2
-                    className="txt-balance"
-                    style={{
-                      margin: "44px 0 14px",
-                      fontSize: "clamp(21px, 2vw, 26px)",
-                      fontWeight: 600,
-                      letterSpacing: "-0.026em",
-                      lineHeight: 1.2,
-                      color: "var(--c-900)",
-                    }}
-                  >
-                    {dict.blog.faqTitle}
-                  </h2>
-                  <FaqList items={faqItems} />
-                </section>
+        <div className={`zw-container ${styles.bodyFrame}`}>
+          <div className={styles.readingFrame}>
+            <div className={styles.readingGrid}>
+              {hasContents && (
+                <aside className={styles.contents}>
+                  <Toc headings={tocHeadings} label={dict.blog.inThisArticle} />
+                </aside>
               )}
-
-              {/* Tags */}
-              <div
-                style={{
-                  marginTop: 40,
-                  display: "flex",
-                  gap: 8,
-                  flexWrap: "wrap",
-                }}
-              >
-                {[`#${post.category ?? "journal"}`, "#zavoia"].map((tag) => (
-                  <span
-                    key={tag}
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: "0.06em",
-                      color: "var(--c-600)",
-                      background: "var(--c-shade)",
-                      borderRadius: 999,
-                      padding: "7px 13px",
-                    }}
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
-              {/* CTA band — author bio omitted (no author data) */}
-              <div
-                style={{
-                  marginTop: 28,
-                  padding: "24px 26px",
-                  borderRadius: "var(--r-xl)",
-                  background: "var(--c-shade)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  flexWrap: "wrap",
-                }}
-              >
-                <span style={{ flex: 1, minWidth: 200 }}>
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: 15.5,
-                      fontWeight: 600,
-                      color: "var(--c-900)",
-                      letterSpacing: "-0.015em",
-                    }}
-                  >
-                    {dict.blog.relatedStories}
-                  </span>
-                  <span
-                    style={{
-                      display: "block",
-                      marginTop: 3,
-                      fontSize: 13,
-                      color: "var(--c-600)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {dict.blog.listDescription}
-                  </span>
-                </span>
-                <Link
-                  href={localeHref(locale, "blog")}
-                  className="tap zw-btn"
-                  style={{
-                    background: "#fff",
-                    color: "var(--c-900)",
-                    border: "1px solid rgba(28,28,26,0.14)",
-                    padding: "8px 14px",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    borderRadius: "var(--r-full)",
-                    letterSpacing: "-0.01em",
-                    whiteSpace: "nowrap",
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    justifyContent: "center",
-                  }}
-                >
-                  {dict.blog.moreFromJournal}
-                </Link>
+              <div className={styles.body}>
+                <PortableTextRenderer blocks={body} headingIds={headingIds} />
+                {faqItems.length > 0 && (
+                  <section id="faq" className={styles.faq} tabIndex={-1}>
+                    <h2 className="txt-balance">{dict.blog.faqTitle}</h2>
+                    {faqItems.map((item, index) => (
+                      <div key={index} className={styles.faqItem}>
+                        <h3>{item.q}</h3>
+                        <p>{item.a}</p>
+                      </div>
+                    ))}
+                  </section>
+                )}
+                {related.length === 0 && (
+                  <div className={styles.ending}>
+                    <Link href={localeHref(locale, "blog")} className={styles.archiveLink}>
+                      <Icon name="back" size={16} />
+                      {dict.blog.backToList}
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
-
-            <aside className="zw-post-aside">
-              <Toc headings={tocHeadings} label={dict.blog.inThisArticle} />
-            </aside>
           </div>
         </div>
       </article>
-
-      {related.length > 0 && (
-        <section
-          className="zw-container"
-          style={{ paddingTop: "clamp(56px, 7vw, 88px)" }}
-        >
-          <RelatedSectionTitle
-            kicker={dict.blog.keepReading}
-            title={dict.blog.relatedStories}
-            action={dict.blog.allStories}
-            href={localeHref(locale, "blog")}
-          />
-          <div className="zw-mgrid" data-cols="3">
-            {related.map((vm) => (
-              <BlogCard
-                key={vm.id}
-                locale={locale}
-                post={vm}
-                categoryLabel={
-                  vm.category
-                    ? dict.blog[
-                        categoryLabelKey(vm.category) as keyof typeof dict.blog
-                      ]
-                    : ""
-                }
-              />
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
+      {related.length > 0 && <BlogRelatedArticles locale={locale} posts={related} />}
+    </main>
   );
 }

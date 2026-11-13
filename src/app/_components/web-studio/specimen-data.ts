@@ -6,6 +6,7 @@ import type {
 import type { PreviewData } from "@/features/website/components/builder/preview/shared/types";
 import type { ResolvedTagDictionaries } from "@/features/marketplace/hooks/useLocationTagDictionaries";
 import type { MicrositeLocale } from "@/features/website/i18n/translate";
+import { joinAboutContent } from "@/features/website/components/builder/aboutContent";
 
 /**
  * SYNTHETIC DEMONSTRATION BUSINESS — "Studio Lumina" is not a real Zavoia
@@ -219,8 +220,8 @@ const FAQ: FaqItem[] = [
       ro: "Am nevoie de programare?",
     },
     a: {
-      en: "Walk in if a chair is free — but Saturdays book out about ten days ahead, so online is safer.",
-      ro: "Poți veni și fără programare dacă un scaun e liber, dar sâmbetele se ocupă cu zece zile înainte.",
+      en: "Choose your studio, service and stylist, then select an available time. Booking ahead reserves time for your consultation and the service you choose.",
+      ro: "Alegi salonul, serviciul și stilistul, apoi selectezi o oră disponibilă. Programarea rezervă timp pentru consultație și pentru serviciul ales.",
     },
   },
   {
@@ -229,8 +230,8 @@ const FAQ: FaqItem[] = [
       ro: "Cât durează o ședință de vopsit?",
     },
     a: {
-      en: "A root touch-up is about 75 minutes. A full balayage is three hours, and we'll say so when you book.",
-      ro: "Un retuș de rădăcină durează circa 75 de minute. Un balayage complet durează trei ore.",
+      en: "Each service shows its appointment duration. If you are planning a significant colour change, book a colour consultation first so we can discuss your hair, the process and the time needed.",
+      ro: "Fiecare serviciu afișează durata programării. Pentru o schimbare importantă de culoare, alege mai întâi o consultație: discutăm despre părul tău, etapele lucrării și timpul necesar.",
     },
   },
   {
@@ -249,25 +250,25 @@ const FAQ: FaqItem[] = [
       ro: "Ce fac dacă trebuie să anulez?",
     },
     a: {
-      en: "Move or cancel it yourself up to 24 hours before. After that, give us a ring and we'll sort it.",
-      ro: "Poți muta sau anula singur cu 24 de ore înainte. După, sună-ne și rezolvăm.",
+      en: "Check the options in your booking confirmation. If you need help changing the appointment, contact the studio you booked with so we can find another available time.",
+      ro: "Verifică opțiunile din confirmarea programării. Dacă ai nevoie de ajutor pentru o modificare, contactează salonul ales și căutăm împreună o altă oră disponibilă.",
     },
   },
 ];
 
 const ANNOUNCEMENT: AnnouncementContent = {
   message: {
-    en: "January colour club — three root touch-ups, booked ahead",
-    ro: "Pachetul de culoare în ianuarie — trei retușuri, programate din timp",
+    en: "A fresh cut or a new colour? Start with a conversation",
+    ro: "O tunsoare nouă sau o altă culoare? Începem cu o discuție",
   },
   details: {
-    en: "Book all three before the end of the month and the third is half price. Applies at both studios.",
-    ro: "Programează toate trei până la finalul lunii și al treilea e la jumătate de preț.",
+    en: "Explore the services at our three Bucharest studios. Choose a consultation if you would like to discuss a change before deciding on your appointment.",
+    ro: "Descoperă serviciile celor trei saloane din București. Alege o consultație dacă vrei să discutăm despre o schimbare înainte de a stabili programarea.",
   },
   cta: {
-    enabled: true,
-    label: { en: "See the offer", ro: "Vezi oferta" },
-    url: "#",
+    enabled: false,
+    label: { en: "", ro: "" },
+    url: "",
     newTab: false,
     showArrow: true,
   },
@@ -373,10 +374,12 @@ export function specimenData(
       locale === "ro"
         ? "Păr, culoare și liniște, în două studiouri din București."
         : "Hair, colour and quiet, in two Bucharest studios.",
-    aboutContent:
+    aboutContent: joinAboutContent(
+      locale === "ro" ? "Un stil ușor de purtat." : "Good hair, every day.",
       locale === "ro"
         ? "Am deschis prima cameră deasupra florăriei din Dorobanți în 2016, cu patru scaune și o singură regulă: nimeni nu pleacă cu o tunsoare pe care nu o poate reface acasă. Opt ani mai târziu suntem două studiouri și unsprezece oameni, cu aceeași regulă."
         : "We opened the first room above the flower shop in Dorobanți in 2016 with four chairs and one rule: nobody leaves with a haircut they can't recreate at home. Eight years on we're two studios and eleven people, with the same rule.",
+    ),
     establishedYear: 2016,
     businessCurrency: "RON",
     email: "hello@studio-lumina.example.test",

@@ -51,7 +51,7 @@ export function recentSearchId(parts: {
   return `${search}|${industry}|${tagIds}`;
 }
 
-/** Read the recent-searches list (most-recent first). */
+/** Read at most MAX_RECENT_SEARCHES entries (most-recent first). */
 export function getRecentSearches(): RecentSearch[] {
   if (typeof window === "undefined") return [];
   try {
@@ -64,7 +64,7 @@ export function getRecentSearches(): RecentSearch[] {
         typeof v === "object" &&
         typeof (v as RecentSearch).id === "string" &&
         typeof (v as RecentSearch).label === "string",
-    );
+    ).slice(0, MAX_RECENT_SEARCHES);
   } catch {
     return [];
   }

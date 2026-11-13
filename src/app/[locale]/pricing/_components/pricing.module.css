@@ -11,8 +11,8 @@
 .title > span { display: block; }
 .title .signature { line-height: 1.1; padding-bottom: .08em; }
 .lead { max-width: 76ch; margin: 16px 0 0; color: var(--c-700); font-size: 1.0625rem; line-height: 1.6; text-wrap: pretty; }
-.memberPrice { margin: 10px 0 0; color: var(--c-600); font-size: .9375rem; line-height: 1.55; }
 .planShortcuts { display: none; }
+.planShortcuts .shortcutSeatPrice { grid-column: 1 / -1; margin-top: 4px; color: var(--c-700); }
 .plans { min-width: 0; margin-top: -14px; }
 .billing { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 8px 32px; margin-top: 22px; }
 .billing p { max-width: 75ch; margin: 0; color: var(--c-600); font-size: .875rem; line-height: 1.6; text-wrap: pretty; }
@@ -43,7 +43,7 @@
 @media (max-width: 960px) {
   .planShortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; margin-top: 18px; }
   .planShortcuts a { display: grid; align-content: center; gap: 4px; min-width: 0; min-height: 64px; padding-block: 8px; color: var(--c-900); text-decoration: none; }
-  .planShortcuts strong { font-size: 1rem; font-weight: 550; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--c-400); }
+  .planShortcuts a > strong { font-size: 1rem; font-weight: 550; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--c-400); }
   .planShortcuts a > span { color: var(--c-700); font-size: .9375rem; line-height: 1.45; }
   .planShortcuts a > span > span { font-size: .8125rem; color: var(--c-600); }
 }
@@ -61,7 +61,6 @@
   .addon { grid-template-columns: 132px minmax(0, 1fr); }
 }
 @media (max-width: 600px) {
-  .memberPrice { max-width: 38ch; font-size: .875rem; }
   .plans { margin-top: -4px; }
   .sectionLead { margin-top: 14px; font-size: 1rem; }
   .extras { padding-block: 64px; }

@@ -18,11 +18,14 @@
 }
 
 .mc-galmosaic-stage {
+  /* Limit the photo wall to 1400px of content plus its existing 12px edge padding.
+     Keep the narrower preview layout and the section's full-width dark surface. */
+  --mc-galmosaic-stage-width: min(100cqw, calc(var(--mc-content-max, 1400px) + 24px));
   position: relative;
   box-sizing: border-box;
-  inline-size: 100cqw;
+  inline-size: var(--mc-galmosaic-stage-width);
   height: clamp(600px, calc(var(--mc-vph, 760px) * 0.86), 980px);
-  margin-inline: calc(50% - 50cqw);
+  margin-inline: calc((100% - var(--mc-galmosaic-stage-width)) / 2);
   overflow: hidden;
   padding: 12px;
   background: #0b0a09;

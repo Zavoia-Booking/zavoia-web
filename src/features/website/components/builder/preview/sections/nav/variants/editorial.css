@@ -4,7 +4,7 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: clamp(16px, 3cqw, 40px);
-  padding: 16px clamp(18px, 4cqw, 56px);
+  padding: 16px var(--mc-nav-content-inset);
 }
 .mc-nav-editorial > .mc-nav-brand { justify-self: start; }
 .mc-nav-editorial-links { justify-self: center; }

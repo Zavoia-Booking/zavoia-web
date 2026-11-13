@@ -1,0 +1,28 @@
+.picker {
+  flex: none;
+  margin-left: 3px;
+  padding-left: 3px;
+  border-left: 1px solid rgb(28 28 26 / 12%);
+}
+
+/* Keep the shared picker and its native-language menu. Only its trigger is
+   compact here: the panel stays narrow even on a wide desktop viewport. */
+.picker summary {
+  width: 44px;
+  min-height: 40px;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.picker summary > span[lang] { display: none; }
+.picker summary > span:first-child { display: block; }
+.picker summary:focus-visible,
+.picker nav a:focus-visible { outline-color: var(--c-ink); }
+.picker nav a[aria-current="true"] svg { color: var(--c-ink); }
+
+@media (max-width: 359px) {
+  .picker { margin-left: 0; padding-left: 0; }
+  .picker summary { width: 40px; }
+}

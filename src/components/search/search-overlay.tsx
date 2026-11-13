@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -12,6 +13,9 @@ import {
 import { useRouter } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
+import { CalendarDay, MonthCalendar } from "@/components/ui/month-calendar";
+import { SearchIndustryBrowser, SearchIndustryBrowserSkeleton } from "./search-industry-browser";
+import styles from "./search-overlay.module.css";
 import { Icon } from "@/components/ui/icon";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,11 +29,6 @@ import {
   businessCardToData,
   locationCardToData,
 } from "@/lib/marketplace/card-mappers";
-import {
-  industryAccent,
-  industryIcon,
-  resolveIndustrySlug,
-} from "@/lib/marketplace/industry-visuals";
 import { getIndustries } from "@/lib/api/marketplace/public";
 import { otherIndustryLast } from "@/lib/marketplace/industry-order";
 import type {
@@ -342,363 +341,95 @@ function SearchPreviewBlock({
   );
 }
 
-// ── Stacked accordion card — header + collapsing body ──
-function Section({
-  label,
-  summary,
-  open,
-  onToggle,
-  children,
-}: {
+// The active card owns scrolling; collapsed headers never shrink or clip.
+function Section({ label, summary, open, showSummaryWhenOpen = false, onToggle, children }: {
   label: string;
   summary: string;
   open: boolean;
+  showSummaryWhenOpen?: boolean;
   onToggle: () => void;
   children: ReactNode;
 }) {
+  const id = useId();
+  const headerRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(open);
+  useEffect(() => {
+    if (open && !wasOpen.current) headerRef.current?.focus({ preventScroll: true });
+    wasOpen.current = open;
+  }, [open]);
   return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 18,
-        border: "1px solid rgba(28,28,26,0.06)",
-        boxShadow: "var(--sh-sm)",
-        overflow: "hidden",
-      }}
-    >
+    <div className={styles.section} data-search-section="" data-open={open}>
       <button
+        ref={headerRef}
         type="button"
-        onClick={onToggle}
-        className="tap"
+        onClick={open ? undefined : onToggle}
+        className={styles.sectionHeader}
         aria-expanded={open}
-        style={{
-          width: "100%",
-          minHeight: 54,
-          background: "transparent",
-          border: 0,
-          cursor: "pointer",
-          padding: "13px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
+        aria-controls={id}
+        aria-disabled={open || undefined}
+        tabIndex={open ? -1 : 0}
       >
-        <span
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "var(--c-900)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {label}
-        </span>
-        {!open && (
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 500,
-              color: "var(--c-600)",
-              letterSpacing: "-0.005em",
-              textAlign: "right",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: "60%",
-            }}
-          >
-            {summary}
-          </span>
-        )}
+        <span className={styles.sectionLabel}>{label}</span>
+        {(!open || showSummaryWhenOpen) && <span className={styles.sectionSummary}>{summary}</span>}
       </button>
-      {/* Grid-rows collapse (0fr ↔ 1fr) animates to the CONTENT's real height —
-          a max-height sized for the tallest section makes short ones appear to
-          snap. Children stay mounted so the close animates too; `inert` keeps
-          the hidden body out of tab order and accessibility tree. */}
-      <div
-        inert={!open}
-        style={{
-          display: "grid",
-          gridTemplateRows: open ? "1fr" : "0fr",
-          transition: open
-            ? "grid-template-rows .42s var(--ease-out)"
-            : "grid-template-rows .3s var(--ease-soft)",
-        }}
-      >
-        <div
-          style={{
-            overflow: "hidden",
-            minHeight: 0,
-            opacity: open ? 1 : 0,
-            transition: open
-              ? "opacity .25s var(--ease-out) .05s"
-              : "opacity .15s var(--ease-soft)",
-          }}
-        >
-          <div style={{ padding: "0 20px 20px" }}>{children}</div>
+      <div id={id} className={styles.sectionReveal} inert={!open}>
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionScroll} data-search-section-scroll="" onFocusCapture={event => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement) || !target.matches(':focus-visible')) return;
+            const container = event.currentTarget;
+            const frame = container.getBoundingClientRect();
+            const item = target.getBoundingClientRect();
+            const field = container.querySelector<HTMLElement>('[data-search-what-field-shell]');
+            const inset = field && !field.contains(target) ? field.getBoundingClientRect().height + 8 : 8;
+            if (item.top < frame.top + inset) container.scrollBy({ top: item.top - frame.top - inset, behavior: "instant" });
+            else if (item.bottom > frame.bottom - 8) container.scrollBy({ top: item.bottom - frame.bottom + 8, behavior: "instant" });
+          }}>{children}</div>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Browse by category: industries grouped like the dashboard amenities
-// section — an icon + name header per industry, plain tag chips beneath it,
-// and an inline "see more" that expands that industry's full tag list in
-// place (no popup, no navigation). The whole block scrolls past a reasonable
-// height. Chips carry no per-tag icon anymore; the icon lives on the header.
-const TAGS_COLLAPSED = 6;
-
-function CategoryBrowse({
-  industries,
-  initialIndustry,
-  selectedIndustries,
-  onIndustriesChange,
-  tagIds,
-  onSelectTag,
-}: {
-  industries: Industry[];
-  initialIndustry?: string;
-  selectedIndustries: string[];
-  onIndustriesChange: (slugs: string[]) => void;
-  tagIds: number[];
-  onSelectTag: (industrySlug: string, tagId: number) => void;
+function RecentSearches({ entries, onSelect, onClear }: {
+  entries: RecentSearch[];
+  onSelect: (entry: RecentSearch) => void;
+  onClear: () => void;
 }) {
-  const { locale, dict } = useTranslation();
+  const { dict } = useTranslation();
   const t = dict.searchOverlay;
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const showingAll = selectedIndustries.length === 0;
-  // Keep the opening industry first, except Other, which always stays last.
-  // Toggling filters changes their state, never their position beneath the pointer.
-  const orderedIndustries = useMemo(
-    () => otherIndustryLast(
-      initialIndustry
-        ? [
-            ...industries.filter((ind) => ind.slug === initialIndustry),
-            ...industries.filter((ind) => ind.slug !== initialIndustry),
-          ]
-        : industries,
-      (industry) => industry.slug,
-    ),
-    [industries, initialIndustry],
-  );
-  const visibleIndustries = showingAll
-    ? industries
-    : industries.filter((ind) => selectedIndustries.includes(ind.slug));
-  const filterStyle = (active: boolean): CSSProperties => ({
-    flexShrink: 0,
-    minHeight: 44,
-    padding: "8px 14px",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 7,
-    border: `1px solid ${active ? "var(--c-ink)" : "rgba(28,28,26,0.10)"}`,
-    borderRadius: 999,
-    background: active ? "var(--c-ink)" : "#fff",
-    color: active ? "#fff" : "var(--c-800)",
-    fontSize: 13.5,
-    fontWeight: 600,
-    whiteSpace: "nowrap",
-    cursor: "pointer",
-  });
-
   return (
-    <div>
-      <div
-        role="group"
-        aria-label={t.browseByIndustry}
-        className="zw-scroll-x"
-        style={{ gap: 8, padding: "2px 0 12px" }}
-      >
-        <button
-          type="button"
-          className="tap"
-          data-industry-filter
-          aria-pressed={showingAll}
-          onClick={() => onIndustriesChange([])}
-          style={filterStyle(showingAll)}
-        >
-          {t.allInCategory}
-        </button>
-        {orderedIndustries.map((ind) => {
-          const active = selectedIndustries.includes(ind.slug);
-          const visualSlug = resolveIndustrySlug(ind.slug);
-          return (
-            <button
-              key={ind.id}
-              type="button"
-              className="tap"
-              data-industry-filter
-              aria-pressed={active}
-              onClick={() =>
-                onIndustriesChange(
-                  active
-                    ? selectedIndustries.filter((slug) => slug !== ind.slug)
-                    : [...selectedIndustries, ind.slug],
-                )
-              }
-              style={filterStyle(active)}
-            >
-              <Icon
-                name={industryIcon(visualSlug)}
-                size={16}
-                color={active ? "#fff" : industryAccent(visualSlug)}
-              />
-              {taxonomyLabel(ind, locale, dict.industries)}
-            </button>
-          );
-        })}
+    <div className={styles.recents}>
+      <div className={styles.recentsHeader}>
+        <h3>{t.recentSearches}</h3>
+        <button type="button" className={styles.recentsAction} onClick={onClear}>{t.clearRecents}</button>
       </div>
-      <div
-        className="zw-noscrollbar"
-        style={{
-          marginTop: 6,
-          maxHeight: 340,
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 18,
-          padding: "2px 0",
-        }}
-      >
-        {visibleIndustries.map((ind) => {
-          const slug = resolveIndustrySlug(ind.slug);
-          const isExpanded = !!expanded[ind.slug];
-          const overflow = ind.tags.length > TAGS_COLLAPSED;
-          // Collapsed → first N tags, plus any selected tag beyond the window
-          // so an active choice never disappears behind "see more".
-          const visible =
-            !overflow || isExpanded
-              ? ind.tags
-              : [
-                  ...ind.tags.slice(0, TAGS_COLLAPSED),
-                  ...ind.tags
-                    .slice(TAGS_COLLAPSED)
-                    .filter(
-                      (tag) => tagIds.includes(tag.id),
-                    ),
-                ];
+      <ul className={styles.recentList} data-search-recents="">
+        {entries.map(entry => {
+          const subtitle = [entry.whenLabel, entry.whereLabel].filter(value => value?.trim()).join(" · ");
           return (
-            <div key={ind.id}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 8,
-                  padding: "0 2px",
-                }}
-              >
-                <Icon
-                  name={industryIcon(slug)}
-                  size={15}
-                  color={industryAccent(slug)}
-                />
-                <span
-                  style={{
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    color: "var(--c-900)",
-                    letterSpacing: "-0.01em",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {taxonomyLabel(ind, locale, dict.industries)}
+            <li key={entry.id}>
+              <button type="button" className={styles.recentChoice} onClick={() => onSelect(entry)}>
+                <Icon name="arrowUL" size={17} aria-hidden="true" />
+                <span className={styles.recentCopy}>
+                  <span className={styles.recentLabel}>{entry.label}</span>
+                  {subtitle && <span className={styles.recentSubtitle}>{subtitle}</span>}
                 </span>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {visible.map((tag) => {
-                  const active = tagIds.includes(tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => onSelectTag(ind.slug, tag.id)}
-                      className="tap zw-chip-lift"
-                      aria-pressed={active}
-                      style={{
-                        flex: "0 0 auto",
-                        minHeight: 44,
-                        padding: "8px 13px",
-                        background: active ? "var(--c-ink)" : "#fff",
-                        border: `1px solid ${active ? "var(--c-ink)" : "rgba(28,28,26,0.09)"}`,
-                        borderRadius: 999,
-                        cursor: "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: active ? "#fff" : "var(--c-800)",
-                          letterSpacing: "-0.008em",
-                          lineHeight: 1,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {taxonomyLabel(tag, locale, dict.industryTags)}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              {overflow && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setExpanded((prev) => ({
-                      ...prev,
-                      [ind.slug]: !prev[ind.slug],
-                    }))
-                  }
-                  className="tap"
-                  aria-expanded={isExpanded}
-                  style={{
-                    marginTop: 7,
-                    background: "transparent",
-                    border: 0,
-                    cursor: "pointer",
-                    minHeight: 44,
-                    padding: "6px 2px",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "var(--c-600)",
-                    letterSpacing: "-0.005em",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  {isExpanded
-                    ? t.seeLessTags
-                    : `${t.seeMoreTags} (${ind.tags.length - TAGS_COLLAPSED})`}
-                  <Icon
-                    name="chevR"
-                    size={11}
-                    color="var(--c-500)"
-                    style={{
-                      transform: isExpanded
-                        ? "rotate(-90deg)"
-                        : "rotate(90deg)",
-                    }}
-                  />
-                </button>
-              )}
-            </div>
+                <Icon name="chevR" size={14} aria-hidden="true" />
+              </button>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }
 
-// ── What: free text + recent searches + browse-by-category grid ──
+// ── What: free text + recent searches + inline industry disclosures ──
 function WhatSection({
   what,
   setWhat,
+  industry,
   tagIds,
   industries,
   industriesLoading,
@@ -711,11 +442,14 @@ function WhatSection({
   onSelectResult,
   autoFocus,
   initialBrowseIndustry,
-  browseIndustries,
-  onBrowseIndustriesChange,
+  browsedIndustry,
+  onBrowseIndustry,
+  onSelectAllIndustries,
+  onSelectIndustry,
 }: {
   what: string;
   setWhat: (v: string) => void;
+  industry: string;
   tagIds: number[];
   industries: Industry[];
   industriesLoading: boolean;
@@ -728,8 +462,10 @@ function WhatSection({
   onSelectResult: (href: string) => void;
   autoFocus: boolean;
   initialBrowseIndustry?: string;
-  browseIndustries: string[];
-  onBrowseIndustriesChange: (slugs: string[]) => void;
+  browsedIndustry?: string;
+  onBrowseIndustry: (slug: string) => void;
+  onSelectAllIndustries: () => void;
+  onSelectIndustry: (slug: string) => void;
 }) {
   const { locale, dict } = useTranslation();
   const t = dict.searchOverlay;
@@ -738,72 +474,75 @@ function WhatSection({
   const preview = useSearchPreview(what);
   const showPreview = what.trim().length >= 2;
   const showHint = what.trim().length === 1;
-
-  // Industries with no tags have nothing to offer in the browse list — an
-  // icon + name header with zero chips under it — so they are not rendered.
-  const browsable = industries.filter((ind) => ind.tags.length > 0);
+  const showIndustryBrowser = industries.length > 0 || (!industriesLoading && !industriesFailed);
+  const recentHistory = recentSearches.length > 0 && <RecentSearches
+    entries={recentSearches}
+    onSelect={onSelectRecentSearch}
+    onClear={onClearRecentSearches}
+  />;
+  const industryError = industriesFailed && <div style={{ display: "grid", gap: 10, paddingBlock: 12 }}>
+    <InlineError>{t.industriesError}</InlineError>
+    <Button kind="secondary" size="sm" loading={industriesLoading} onClick={retryIndustries} style={{ justifySelf: "start" }}>{dict.search.retry}</Button>
+  </div>;
 
   useEffect(() => {
     if (!autoFocus) return;
-    const id = setTimeout(() => inputRef.current?.focus(), 240);
+    const id = setTimeout(() => {
+      // Do not steal focus if the visitor already started browsing while the
+      // dialog's entrance animation was finishing.
+      if (document.activeElement?.closest('[data-search-section-scroll]')) return;
+      inputRef.current?.focus({ preventScroll: true });
+    }, 240);
     return () => clearTimeout(id);
   }, [autoFocus]);
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 9,
-          padding: "12px 15px",
-          background: "var(--c-100)",
-          borderRadius: 13,
-        }}
-      >
-        <Icon name="search" size={16} color="var(--c-700)" />
-        <input
-          ref={inputRef}
-          value={what}
-          onChange={(e) => setWhat(e.target.value)}
-          placeholder={t.whatPlaceholder}
-          aria-label={t.whatPlaceholder}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            border: 0,
-            outline: "none",
-            background: "transparent",
-            fontSize: 15,
-            color: "var(--c-900)",
-            fontFamily: "var(--font-sans)",
-            letterSpacing: "-0.005em",
-          }}
-        />
-        {what && (
-          <button
-            type="button"
-            onClick={() => setWhat("")}
-            className="tap"
-            aria-label={t.clearInput}
+      <div className={styles.searchFieldShell} data-search-what-field-shell="">
+        <div className={styles.searchField}>
+          <Icon name="search" size={16} color="var(--c-700)" />
+          <input
+            ref={inputRef}
+            value={what}
+            onChange={(e) => setWhat(e.target.value)}
+            placeholder={t.whatPlaceholder}
+            aria-label={t.whatPlaceholder}
             style={{
-              width: 22,
-              height: 22,
-              borderRadius: "50%",
-              background: "var(--c-300)",
-              color: "var(--c-700)",
+              flex: 1,
+              minWidth: 0,
               border: 0,
-              padding: 0,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
+              outline: "none",
+              background: "transparent",
+              color: "var(--c-900)",
+              fontFamily: "var(--font-sans)",
+              letterSpacing: "-0.005em",
             }}
-          >
-            <Icon name="x" size={11} />
-          </button>
-        )}
+          />
+          {what && (
+            <button
+              type="button"
+              onClick={() => setWhat("")}
+              className="tap"
+              aria-label={t.clearInput}
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: "var(--c-300)",
+                color: "var(--c-700)",
+                border: 0,
+                padding: 0,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Icon name="x" size={11} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Live search-as-you-type preview — replaces the recents + categories
@@ -835,140 +574,28 @@ function WhatSection({
         </div>
       )}
 
-      {/* Recent searches — shown only when the text box is empty AND no preview
-          is active. Selecting a row re-applies the past query and re-runs it. */}
-      {initialBrowseIndustry === undefined &&
-        !showPreview &&
-        what.trim().length === 0 &&
-        recentSearches.length > 0 && (
-          <div style={{ marginTop: 18 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 6,
-              }}
-            >
-              <span style={{ ...eyebrow, marginBottom: 0 }}>
-                {t.recentSearches}
-              </span>
-              <button
-                type="button"
-                onClick={onClearRecentSearches}
-                className="tap"
-                style={{
-                  background: "transparent",
-                  border: 0,
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: "var(--c-600)",
-                  padding: "0 4px",
-                }}
-              >
-                {t.clearRecents}
-              </button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {recentSearches.map((entry) => {
-                const subtitle = [entry.whenLabel, entry.whereLabel]
-                  .filter((v) => v && v.trim())
-                  .join(" · ");
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => onSelectRecentSearch(entry)}
-                    className="tap zw-cal-day"
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      background: "transparent",
-                      border: 0,
-                      borderRadius: 12,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 11,
-                      textAlign: "left",
-                    }}
-                  >
-                    <Icon
-                      name="arrowUL"
-                      size={17}
-                      color="var(--c-700)"
-                      style={{ flexShrink: 0 }}
-                    />
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: 14,
-                          fontWeight: 600,
-                          color: "var(--c-900)",
-                          letterSpacing: "-0.008em",
-                          lineHeight: 1.2,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {entry.label}
-                      </span>
-                      {subtitle && (
-                        <span
-                          style={{
-                            display: "block",
-                            marginTop: 2,
-                            fontSize: 12.5,
-                            color: "var(--c-600)",
-                            letterSpacing: "-0.005em",
-                            lineHeight: 1.2,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {subtitle}
-                        </span>
-                      )}
-                    </span>
-                    <Icon
-                      name="chevR"
-                      size={14}
-                      color="var(--c-500)"
-                      style={{ flexShrink: 0 }}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
-      {what.trim().length === 0 && (browsable.length > 0 || industriesLoading || industriesFailed) && (
-        <div style={{ marginTop: 18 }}>
-          <span style={eyebrow}>{t.browseByIndustry}</span>
+      {what.trim().length === 0 && (
+        <div style={{ marginTop: 4 }}>
           <span role="status" className="sr-only">{industriesLoading ? t.searching : ""}</span>
-          {industriesFailed && <div style={{ display: "grid", gap: 10, paddingBlock: 12 }}>
-            <InlineError>{t.industriesError}</InlineError>
-            <Button kind="secondary" size="sm" loading={industriesLoading} onClick={retryIndustries} style={{ justifySelf: "start" }}>{dict.search.retry}</Button>
-          </div>}
-          {industriesLoading && !industriesFailed && browsable.length === 0 && <div aria-hidden="true" style={{ display: "grid", gap: 20 }}>
-            <div style={{ display: "flex", gap: 8, overflow: "hidden" }}>{[80, 112, 96].map(w => <Skeleton key={w} w={w} h={44} r={999} style={{ flexShrink: 0 }} />)}</div>
-            {[0, 1, 2].map(row => <div key={row} style={{ display: "grid", gap: 12 }}><Skeleton w="45%" h={21} /><div style={{ display: "flex", gap: 8 }}><Skeleton w="36%" h={40} r={999} /><Skeleton w="42%" h={40} r={999} /></div></div>)}
-          </div>}
-          {browsable.length > 0 &&
-          <CategoryBrowse
-            industries={browsable}
+          {showIndustryBrowser && industryError}
+          <SearchIndustryBrowser
+            industries={industries}
             initialIndustry={initialBrowseIndustry}
-            selectedIndustries={browseIndustries}
-            onIndustriesChange={onBrowseIndustriesChange}
+            browsedIndustry={browsedIndustry}
+            industry={industry}
             tagIds={tagIds}
+            onBrowseIndustry={onBrowseIndustry}
+            onSelectAll={onSelectAllIndustries}
+            onSelectIndustry={onSelectIndustry}
             onSelectTag={onSelectTag}
-          />
-          }
+            catalogFallback={!showIndustryBrowser ? <>
+              {industryError}
+              {industriesLoading && !industriesFailed && <SearchIndustryBrowserSkeleton />}
+            </> : undefined}
+          >
+            {recentHistory}
+          </SearchIndustryBrowser>
         </div>
       )}
     </div>
@@ -1471,127 +1098,37 @@ function MonthPicker({
       return { year: d.getFullYear(), month: d.getMonth() };
     });
 
-  const navBtn: CSSProperties = {
-    width: 32,
-    height: 32,
-    borderRadius: "50%",
-    background: "transparent",
-    border: "1px solid rgba(28,28,26,0.08)",
-    cursor: "pointer",
-    padding: 0,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-
   return (
-    <div
-      style={{
-        padding: "14px 14px 12px",
-        borderRadius: 14,
-        border: "1px solid rgba(28,28,26,0.07)",
-        background: "#fff",
-      }}
+    <MonthCalendar
+      data-search-calendar=""
+      title={monthLabel}
+      previousLabel={t.prevMonth}
+      nextLabel={t.nextMonth}
+      onPrevious={() => stepMonth(-1)}
+      onNext={() => stepMonth(1)}
+      weekdays={dow}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          marginBottom: 10,
-          padding: "0 2px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: 14.5,
-            fontWeight: 700,
-            color: "var(--c-900)",
-            letterSpacing: "-0.012em",
-            textTransform: "capitalize",
-          }}
-        >
-          {monthLabel}
-        </span>
-        <div style={{ display: "inline-flex", gap: 6 }}>
-          <button
-            type="button"
-            onClick={() => stepMonth(-1)}
-            className="tap"
-            aria-label={t.prevMonth}
-            style={navBtn}
-          >
-            <Icon name="chevL" size={14} color="var(--c-900)" />
-          </button>
-          <button
-            type="button"
-            onClick={() => stepMonth(1)}
-            className="tap"
-            aria-label={t.nextMonth}
-            style={navBtn}
-          >
-            <Icon name="chevR" size={14} color="var(--c-900)" />
-          </button>
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 2,
-          marginBottom: 4,
-        }}
-      >
-        {dow.map((d, i) => (
-          <div
+      {cells.map((d, i) => {
+        const inMonth = d.getMonth() === view.month;
+        const isPast = d < today;
+        const isToday = zwSameDay(d, today);
+        const isPicked = zwSameDay(d, pickedDate);
+        const disabled = isPast;
+        return (
+          <CalendarDay
             key={i}
-            style={{
-              textAlign: "center",
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: "0.05em",
-              color: "var(--c-500)",
-              padding: "4px 0",
-              textTransform: "capitalize",
-            }}
-          >
-            {d}
-          </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 2,
-        }}
-      >
-        {cells.map((d, i) => {
-          const inMonth = d.getMonth() === view.month;
-          const isPast = d < today;
-          const isToday = zwSameDay(d, today);
-          const isPicked = zwSameDay(d, pickedDate);
-          const disabled = isPast;
-          return (
-            <button
-              key={i}
-              type="button"
-              disabled={disabled}
-              onClick={() => !disabled && onPick(`date:${zwFmtDateISO(d)}`)}
-              aria-label={d.toLocaleDateString(locale, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
+            type="button"
+            disabled={disabled}
+            onClick={() => !disabled && onPick(`date:${zwFmtDateISO(d)}`)}
+            aria-label={d.toLocaleDateString(locale, {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
               aria-pressed={isPicked}
-              className={disabled ? undefined : "zw-cal-day"}
+              data-today={isToday}
+              data-outside={!inMonth}
               style={{
-                height: 38,
-                background: isPicked ? "var(--p-500)" : "transparent",
                 color: isPicked
                   ? "#fff"
                   : disabled
@@ -1606,18 +1143,16 @@ function MonthPicker({
                 borderRadius: 999,
                 cursor: disabled ? "default" : "pointer",
                 padding: 0,
-                fontSize: 13.5,
                 fontWeight: isPicked || isToday ? 700 : 500,
                 fontVariantNumeric: "tabular-nums",
                 letterSpacing: "-0.005em",
               }}
             >
               {d.getDate()}
-            </button>
+            </CalendarDay>
           );
         })}
-      </div>
-    </div>
+    </MonthCalendar>
   );
 }
 
@@ -1636,9 +1171,9 @@ function WhenSection({
     { id: "tom", label: t.dateTomorrow },
   ];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div className={styles.when}>
       <MonthPicker when={when} onPick={onChange} />
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div className={styles.datePresets}>
         {presets.map((p) => {
           const active = when === p.id;
           return (
@@ -1649,7 +1184,7 @@ function WhenSection({
               className="tap"
               aria-pressed={active}
               style={{
-                height: 40,
+                height: 44,
                 padding: "0 16px",
                 background: active ? "var(--c-ink)" : "#fff",
                 color: active ? "#fff" : "var(--c-900)",
@@ -1724,9 +1259,15 @@ export function SearchOverlay({
   const [industriesLoading, setIndustriesLoading] = useState(initialIndustries === undefined && cachedIndustries === null);
   const [industriesFailed, setIndustriesFailed] = useState(false);
   const [industriesAttempt, setIndustriesAttempt] = useState(0);
-  const [browseIndustries, setBrowseIndustries] = useState<string[]>(() =>
-    browseIndustry ? [browseIndustry] : [],
-  );
+  const [browseReset, setBrowseReset] = useState(0);
+  // Keep browsing independent from applied query filters, and alive while the
+  // text suggestions replace the catalogue. Empty string collapses all rows.
+  const [browsedIndustry, setBrowsedIndustry] = useState<string>();
+  const openingIndustry = browseReset === 0
+    ? browseIndustry ?? (initial.industry || industries.find(industry =>
+        industry.tags.some(tag => initial.tagIds?.includes(tag.id)),
+      )?.slug)
+    : undefined;
   const [resolvingLocation, setResolvingLocation] = useState(false);
 
   // Recents are localStorage-only → read once on mount (in an effect, never
@@ -1890,8 +1431,20 @@ export function SearchOverlay({
 
   const clearAll = () => {
     setQ(EMPTY_QUERY);
-    setBrowseIndustries([]);
+    setBrowseReset(value => value + 1);
+    setBrowsedIndustry("");
     setStep("what");
+  };
+
+  const selectAllIndustries = () => {
+    setBrowsedIndustry("");
+    setQ(previous => ({ ...previous, what: "", industry: "", tagIds: [] }));
+  };
+
+  const selectIndustry = (slug: string) => {
+    setBrowsedIndustry(slug);
+    setQ(previous => ({ ...previous, what: "", industry: slug, tagIds: [] }));
+    setStep("where");
   };
 
   // Build the /search querystring from a query model (slice 6a contract).
@@ -2005,7 +1558,7 @@ export function SearchOverlay({
       ? taxonomyLabel(selectedTag, locale, dict.industryTags)
       : selectedIndustry
         ? taxonomyLabel(selectedIndustry, locale, dict.industries)
-        : t.whatSummary);
+        : q.industry || (q.tagIds.length ? dict.search.selectedServices : dict.serviceCatalog.allIndustries));
   const whereSum = q.where.label?.trim()
     ? q.where.label.trim()
     : hasGeo
@@ -2022,36 +1575,31 @@ export function SearchOverlay({
     >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
-          className="zv-sheet-backdrop"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 300,
-            background: "rgba(28,28,26,0.40)",
-            cursor: "pointer",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "center",
-            padding: "6vh 16px 40px",
-            overflowY: "auto",
-          }}
+          className={`zv-sheet-backdrop ${styles.overlay}`}
         >
           <DialogPrimitive.Content
             ref={contentRef}
-            className="zv-sheet-card"
+            className={`zv-sheet-card ${styles.dialog}`}
             aria-describedby={undefined}
             onOpenAutoFocus={(event) => {
               if (browseIndustry === undefined) return;
-              // Category entry points focus the selected filter, not the text
-              // field: opening a catalogue should not raise the mobile keyboard.
+              // Category entry points focus the catalogue, without raising the
+              // mobile keyboard. Focus the requested industry's disclosure.
               event.preventDefault();
-              const filter =
-                contentRef.current?.querySelector<HTMLButtonElement>(
-                  '[data-industry-filter][aria-pressed="true"]',
-                );
+              const filters = Array.from(contentRef.current?.querySelectorAll<HTMLButtonElement>(
+                '[data-search-all-industries], [data-industry-filter]',
+              ) ?? []).filter(node => node.getClientRects().length > 0);
+              const filter = filters.find(node => node.dataset.industryFilter === openingIndustry)
+                ?? filters.find(node => node.hasAttribute('data-search-all-industries'));
               (filter ?? contentRef.current)?.focus({ preventScroll: true });
+              if (filter) {
+                const scroller = filter.closest<HTMLElement>('[data-search-section-scroll]');
+                if (scroller) {
+                  const frame = scroller.getBoundingClientRect();
+                  const item = filter.getBoundingClientRect();
+                  if (item.bottom > frame.bottom - 8) scroller.scrollBy({ top: item.bottom - frame.bottom + 8, behavior: "instant" });
+                }
+              }
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
@@ -2059,29 +1607,8 @@ export function SearchOverlay({
                 returnFocusRef.current.focus({ preventScroll: true });
               }
             }}
-            style={{
-              width: "100%",
-              maxWidth: 600,
-              cursor: "default",
-              background: "var(--c-canvas)",
-              borderRadius: 28,
-              boxShadow: "var(--sh-xl)",
-              border: "1px solid rgba(28,28,26,0.06)",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              maxHeight: "88vh",
-            }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "18px 20px 14px",
-                flexShrink: 0,
-              }}
-            >
+            <div className={styles.header}>
               <DialogPrimitive.Title asChild>
                 <span
                   style={{
@@ -2097,44 +1624,25 @@ export function SearchOverlay({
               <button
                 type="button"
                 onClick={onClose}
-                className="tap"
+                className={`${styles.close} tap`}
                 aria-label={t.close}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "50%",
-                  border: "1px solid rgba(28,28,26,0.10)",
-                  background: "#fff",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
               >
                 <Icon name="x" size={16} color="var(--c-800)" />
               </button>
             </div>
 
-            <div
-              className="zw-noscrollbar"
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: "0 16px 8px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-              }}
-            >
+            <div className={styles.body}>
               <Section
                 label={t.what}
                 summary={whatSum}
+                showSummaryWhenOpen
                 open={step === "what"}
                 onToggle={() => toggleStep("what")}
               >
                 <WhatSection
+                  key={browseReset}
                   what={q.what}
+                  industry={q.industry}
                   setWhat={(v) =>
                     setQ((p) => ({
                       ...p,
@@ -2145,9 +1653,9 @@ export function SearchOverlay({
                   }
                   tagIds={q.tagIds}
                   industries={industries}
-                industriesLoading={industriesLoading}
-                industriesFailed={industriesFailed}
-                retryIndustries={() => setIndustriesAttempt(value => value + 1)}
+                  industriesLoading={industriesLoading}
+                  industriesFailed={industriesFailed}
+                  retryIndustries={() => setIndustriesAttempt(value => value + 1)}
                   recentSearches={recentSearches}
                   onSelectRecentSearch={onSelectRecentSearch}
                   onClearRecentSearches={onClearRecentSearches}
@@ -2156,10 +1664,13 @@ export function SearchOverlay({
                     router.push(href);
                   }}
                   autoFocus={step === "what" && browseIndustry === undefined}
-                  initialBrowseIndustry={browseIndustry}
-                  browseIndustries={browseIndustries}
-                  onBrowseIndustriesChange={setBrowseIndustries}
+                  initialBrowseIndustry={openingIndustry}
+                  browsedIndustry={browsedIndustry ?? openingIndustry}
+                  onBrowseIndustry={setBrowsedIndustry}
+                  onSelectAllIndustries={selectAllIndustries}
+                  onSelectIndustry={selectIndustry}
                   onSelectTag={(slug, id) => {
+                    setBrowsedIndustry(slug);
                     const active = q.tagIds.includes(id);
                     if (active) {
                       // Re-tapping the selected tag clears it; stay on "what".
@@ -2212,17 +1723,7 @@ export function SearchOverlay({
               </Section>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "14px 20px",
-                borderTop: "1px solid rgba(28,28,26,0.07)",
-                background: "#fff",
-                flexShrink: 0,
-              }}
-            >
+            <div className={styles.footer}>
               <button
                 type="button"
                 className="tap"

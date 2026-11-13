@@ -19,11 +19,16 @@
   height: min(780px, calc(100dvh - 48px));
   min-height: 0;
   overflow: hidden;
-  border-radius: 24px;
-  outline: none;
   background: var(--c-canvas);
   color: var(--c-900);
   box-shadow: var(--sh-xl);
+}
+
+/* Opening focuses the shell; keep global focus styles on its controls only. */
+.dialog,
+.dialog:focus-visible {
+  border-radius: 24px;
+  outline: none;
 }
 
 .header {

@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { formatPrice, getPlanPricing } from "@/lib/marketing/pricing";
 import { caveat } from "@/styles/fonts";
 import { PlanCards } from "@/app/_components/for-business/plan-cards";
+import { TeamSeatPrice } from "@/app/_components/for-business/team-seat-price";
 import { MarketingFaq } from "@/app/_components/for-business/faq-section";
 import { StudioFeatureArt } from "@/app/_components/for-business/studio-feature-art";
 import m from "@/app/_components/for-business/marketing.module.css";
@@ -23,9 +24,6 @@ export function PricingContent({ locale }: { locale: Locale }) {
   const pricing = getPlanPricing(locale);
   const days = formatCount(pricing.trialDays, locale, b.counts.days);
   const baseTeamMembers = formatCount(pricing.teamMemberLimits.base, locale, b.counts.teamMembers);
-  const memberPrice = format(t.hero.memberPrice, {
-    price: formatPrice(pricing.teamMember, pricing.currency),
-  });
   const values = { days, seat: formatPrice(pricing.teamMember, pricing.currency), baseTeamMembers };
 
   return (
@@ -38,7 +36,6 @@ export function PricingContent({ locale }: { locale: Locale }) {
               <span>{t.hero.titlePre}<span className={clsx(m.signature, styles.signature)}>{t.hero.titleAccent}</span></span>
             </h1>
             <p className={styles.lead}>{t.hero.lead}</p>
-            <p className={styles.memberPrice}>{memberPrice}</p>
             <nav className={styles.planShortcuts} aria-label={t.plansLabel}>
               {(["base", "plus"] as const).map(id => (
                 <a key={id} href={`#pricing-plan-${id}`}>
@@ -46,6 +43,7 @@ export function PricingContent({ locale }: { locale: Locale }) {
                   <span>{formatPrice(pricing.plans[id].monthly, pricing.currency)} <span>{b.plans.perMonth}</span></span>
                 </a>
               ))}
+              <TeamSeatPrice locale={locale} className={styles.shortcutSeatPrice} />
             </nav>
           </header>
           <div className={styles.plans} id="pricing-plans" tabIndex={-1} aria-label={t.plansLabel}>

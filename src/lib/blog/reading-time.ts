@@ -1,4 +1,5 @@
 import type { PortableTextBlock } from "@portabletext/types";
+import type { Locale } from "@/i18n/locales";
 
 // Estimate reading time from Portable Text body. Flattens every `block`-type
 // entry's text children, counts whitespace-delimited words, and assumes a
@@ -29,6 +30,6 @@ export function readingMinutes(
   return Math.max(1, Math.round(words / 200));
 }
 
-export function formatReadingTime(minutes: number): string {
-  return `${minutes} min read`;
+export function formatReadingTime(minutes: number, locale: Locale = "en"): string {
+  return locale === "ro" ? `${minutes} min de citit` : `${minutes} min read`;
 }

@@ -8,6 +8,8 @@
 .example[data-example="pets"] { grid-column: 9 / 13; --preview-angle: 3deg; }
 .example[data-example="music"] { grid-column: 2 / 5; --preview-angle: -3deg; }
 .example[data-example="wellness"] { grid-column: 6 / 13; padding-top: 40px; --preview-angle: 1.5deg; }
+.example[data-example="tattoo"] { grid-column: 1 / 9; padding-top: 32px; --preview-angle: -1deg; }
+.example[data-example="tailoring"] { grid-column: 10 / 13; --preview-angle: 2deg; }
 .example[data-example="automotive"] { grid-column: 1 / -1; padding-top: 8px; --preview-angle: -1deg; }
 .industry { position: relative; display: flex; align-items: center; gap: 12px; margin: 0 0 76px 24px; }
 .connector { position: absolute; top: calc(50% + 20px); left: 0; width: 148px; height: 96px; overflow: visible; fill: none; stroke: var(--industry-accent); stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: 1 5; opacity: .6; pointer-events: none; }
@@ -38,6 +40,8 @@
   .example[data-example="pets"] { grid-column: 9 / 13; }
   .example[data-example="music"] { grid-column: 1 / 5; }
   .example[data-example="wellness"] { grid-column: 6 / 13; padding-top: 40px; }
+  .example[data-example="tattoo"] { grid-column: 1 / 8; }
+  .example[data-example="tailoring"] { grid-column: 9 / 13; }
   .industry { margin-left: 8px; gap: 8px; }
   .industry h3 { font-size: 18px; }
   .story p { font-size: 15px; }
@@ -45,7 +49,7 @@
 }
 @media (min-width: 701px) and (max-width: 900px) {
   .examples { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 44px; padding-inline: 12px; }
-  .example[data-example="fitness"], .example[data-example="wellness"], .example[data-example="automotive"] { grid-column: 1 / -1; padding-top: 0; }
+  .example[data-example="fitness"], .example[data-example="wellness"], .example[data-example="tattoo"], .example[data-example="tailoring"], .example[data-example="automotive"] { grid-column: 1 / -1; padding-top: 0; }
   .example[data-example="pets"] { grid-column: 1; }
   .example[data-example="music"] { grid-column: 2; }
   .example[data-format="phone"] .screen { width: min(100%, 270px); }

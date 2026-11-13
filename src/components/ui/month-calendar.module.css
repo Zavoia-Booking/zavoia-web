@@ -1,0 +1,30 @@
+.calendar { display: flex; flex: 1; flex-direction: column; min-width: 0; padding: 14px 14px 12px; border: 1px solid var(--c-200); border-radius: 14px; background: #fff; }
+.header { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; padding-inline: 2px; }
+.title { min-width: 0; color: var(--c-900); font-size: 16px; font-weight: 700; line-height: 1.4; letter-spacing: -.012em; text-transform: capitalize; }
+.navigation { display: inline-flex; flex: none; gap: 6px; }
+.nav { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--c-200); border-radius: 50%; background: transparent; cursor: pointer; }
+.nav:disabled { opacity: .4; cursor: default; }
+.weekdays, .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.weekdays { flex: none; margin-bottom: 4px; }
+.weekday { padding-block: 4px; color: var(--c-500); font-family: var(--font-mono); font-size: 11px; font-weight: 600; line-height: 1.5; letter-spacing: .05em; text-align: center; text-transform: capitalize; }
+.days { flex: 1; grid-template-rows: repeat(6, minmax(28px, 1fr)); }
+.day { min-width: 0; min-height: 28px; padding: 0; border: 1px solid transparent; border-radius: 999px; background: transparent; color: var(--c-900); font-family: inherit; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -.005em; cursor: pointer; }
+.day[data-outside="true"] { color: var(--c-500); }
+.day:disabled { color: var(--c-400); cursor: default; }
+.day[data-today="true"] { border-color: var(--p-500); font-weight: 700; }
+.day[aria-pressed="true"] { border-color: transparent; background: var(--p-500); color: #fff; font-weight: 700; }
+.nav:focus-visible, .day:focus-visible { outline: 2px solid var(--c-700); outline-offset: 3px; }
+.calendar[data-density="compact"] { flex: none; }
+.calendar[data-density="compact"] .days { flex: none; grid-template-rows: repeat(6, 40px); }
+.calendar[data-density="compact"] .day { min-height: 40px; }
+@media (hover: hover) and (pointer: fine) {
+  .day:not(:disabled)[aria-pressed="false"]:hover { background: var(--c-200); }
+  .day:not(:disabled)[aria-pressed="true"]:hover { background: var(--p-600); }
+}
+@media (max-width: 760px) {
+  .days { grid-template-rows: repeat(6, minmax(40px, 1fr)); }
+  .day { min-height: 40px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .day { transition: background-color 150ms var(--ease-out); }
+}

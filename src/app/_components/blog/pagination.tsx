@@ -3,64 +3,57 @@
 import { pageWindow } from "@/lib/blog";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Icon } from "@/components/ui/icon";
+import styles from "./blog-list.module.css";
 
 export interface PaginationProps {
   page: number;
   totalPages: number;
-  onChange: (p: number) => void;
+  onChange: (page: number) => void;
 }
 
-// Numbered pagination with a windowed ellipsis. Ported from ZwPagination
-// (docs/web-blog.jsx:125-149), using the slice-1 `pageWindow` helper. Page
-// indices are 0-based. Returns null when there is a single page.
 export function Pagination({ page, totalPages, onChange }: PaginationProps) {
   const { dict } = useTranslation();
   if (totalPages <= 1) return null;
-
-  const go = (p: number) => {
-    if (p >= 0 && p < totalPages && p !== page) onChange(p);
+  const go = (next: number) => {
+    if (next >= 0 && next < totalPages && next !== page) onChange(next);
   };
 
   return (
-    <nav className="zw-pag" aria-label="Stories pagination">
+    <nav className={styles.pagination} aria-label={dict.blog.paginationLabel}>
       <button
         type="button"
-        className="zw-pag-btn zw-pag-arrow"
+        className={`${styles.pageButton} ${styles.pageArrow}`}
         onClick={() => go(page - 1)}
         disabled={page === 0}
         aria-label={dict.blog.prev}
       >
-        <Icon name="chevL" size={15} />
-        <span className="zw-pag-lbl">{dict.blog.prev}</span>
+        <Icon name="chevL" size={16} />
+        <span className={styles.pageLabel}>{dict.blog.prev}</span>
       </button>
-      {pageWindow(page, totalPages).map((p, i) =>
-        p === "gap" ? (
-          <span key={`g${i}`} className="zw-pag-gap" aria-hidden="true">
-            ···
-          </span>
-        ) : (
-          <button
-            key={p}
-            type="button"
-            className="zw-pag-btn"
-            data-on={p === page ? "1" : "0"}
-            aria-current={p === page ? "page" : undefined}
-            aria-label={`${dict.blog.pageLabel} ${p + 1}`}
-            onClick={() => go(p)}
-          >
-            {String(p + 1).padStart(2, "0")}
-          </button>
-        ),
-      )}
+      {pageWindow(page, totalPages).map((number, index) => number === "gap" ? (
+        <span key={`gap-${index}`} className={styles.pageGap} aria-hidden="true">…</span>
+      ) : (
+        <button
+          key={number}
+          type="button"
+          className={styles.pageButton}
+          data-number=""
+          aria-current={number === page ? "page" : undefined}
+          aria-label={`${dict.blog.pageLabel} ${number + 1}`}
+          onClick={() => go(number)}
+        >
+          {String(number + 1).padStart(2, "0")}
+        </button>
+      ))}
       <button
         type="button"
-        className="zw-pag-btn zw-pag-arrow"
+        className={`${styles.pageButton} ${styles.pageArrow}`}
         onClick={() => go(page + 1)}
         disabled={page === totalPages - 1}
         aria-label={dict.blog.next}
       >
-        <span className="zw-pag-lbl">{dict.blog.next}</span>
-        <Icon name="chevR" size={15} />
+        <span className={styles.pageLabel}>{dict.blog.next}</span>
+        <Icon name="chevR" size={16} />
       </button>
     </nav>
   );

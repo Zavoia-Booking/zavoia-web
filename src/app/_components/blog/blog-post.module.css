@@ -1,0 +1,308 @@
+.shell {
+  position: relative;
+}
+.header {
+  padding-top: clamp(28px, 3vw, 40px);
+}
+.readingFrame {
+  max-width: 1280px;
+  margin-inline: 0;
+}
+.navigation {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.backLink, .categoryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--c-600);
+  font-size: 14px;
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+.backLink { color: var(--c-900); font-weight: 500; }
+.navigationSeparator { color: var(--c-400); font-size: 13px; }
+.opening {
+  display: grid;
+  grid-template-columns: minmax(0, 720px) minmax(0, 1fr);
+  align-items: start;
+  gap: 28px 64px;
+  margin-top: 22px;
+}
+.opening[data-cover="false"] { grid-template-columns: minmax(0, 720px); }
+.head {
+  min-width: 0;
+}
+.title {
+  margin: 0;
+  font-size: clamp(34px, 4vw, 54px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.042em;
+  color: var(--c-900);
+  overflow-wrap: anywhere;
+}
+.excerpt {
+  margin: 18px 0 0;
+  max-width: 680px;
+  font-size: clamp(18px, 1.6vw, 21px);
+  line-height: 1.6;
+  color: var(--c-600);
+}
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px 24px;
+  margin-top: 18px;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.shareAction {
+  min-height: 44px;
+  min-width: 116px;
+}
+.actions .shareAction:not(:disabled):hover {
+  --article-action-bg: var(--c-shade);
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+.actions .shareAction:not(:disabled):active {
+  transform: scale(0.98);
+}
+.cover {
+  width: 100%;
+  margin: 0;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  background: var(--c-shade);
+}
+.bodyFrame {
+  padding-top: clamp(32px, 3.6vw, 48px);
+}
+.readingGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 720px) 220px;
+  gap: 0 64px;
+  align-items: start;
+}
+.shell[data-toc="false"] .readingGrid {
+  grid-template-columns: minmax(0, 720px);
+  justify-content: start;
+}
+.body {
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1;
+}
+.contents {
+  grid-column: 2;
+  grid-row: 1;
+  height: 100%;
+  min-width: 0;
+}
+.tocDesktop {
+  position: sticky;
+  top: calc(var(--nav-h) + 32px);
+}
+.tocLabel {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-900);
+}
+.tocLink {
+  display: block;
+  padding: 9px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--c-600);
+  text-decoration: none;
+  text-underline-offset: 4px;
+  overflow-wrap: anywhere;
+  transition: color 160ms var(--ease-out);
+}
+.tocLink[data-level="3"] {
+  padding-inline-start: 14px;
+}
+.tocLink[aria-current="location"] {
+  color: var(--c-900);
+  text-decoration: underline;
+  text-decoration-color: var(--p-500);
+}
+.tocMobile {
+  display: none;
+}
+.faq {
+  margin-top: 44px;
+  scroll-margin-top: calc(var(--nav-h) + 28px);
+}
+.faq > h2 {
+  margin: 0 0 8px;
+  font-size: clamp(24px, 2.3vw, 30px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.026em;
+}
+.faqItem {
+  padding: 22px 0;
+  border-bottom: 1px solid rgba(28, 28, 26, 0.1);
+}
+.faqItem h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.018em;
+  color: var(--c-900);
+}
+.faqItem p {
+  margin: 10px 0 0;
+  white-space: pre-line;
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--c-700);
+  overflow-wrap: anywhere;
+}
+.ending {
+  margin-top: 36px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(28, 28, 26, 0.1);
+}
+.archiveLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-900);
+  text-decoration: underline;
+  text-decoration-color: rgba(28, 28, 26, 0.35);
+  text-underline-offset: 5px;
+}
+.archiveLink svg {
+  flex-shrink: 0;
+  transition: transform 180ms var(--ease-out);
+}
+.progress {
+  position: fixed;
+  inset: var(--nav-h) 0 auto;
+  height: 2px;
+  pointer-events: none;
+  z-index: 120;
+}
+.progressFill {
+  height: 100%;
+  background: var(--p-500);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.skeletonProse {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .backLink:hover, .categoryLink:hover { color: var(--c-900); text-decoration: underline; }
+  .tocLink:hover {
+    color: var(--c-900);
+  }
+  .archiveLink:hover {
+    text-decoration-color: var(--c-900);
+  }
+  .archiveLink:hover svg {
+    transform: translateX(3px);
+  }
+}
+@media (max-width: 1120px) {
+  .opening {
+    grid-template-columns: minmax(0, 720px);
+    gap: 24px;
+  }
+  .cover { max-width: 540px; }
+}
+@media (max-width: 1024px) {
+  .readingGrid {
+    grid-template-columns: minmax(0, 720px);
+    justify-content: start;
+  }
+  .contents {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 24px;
+    height: auto;
+  }
+  .shell[data-toc="true"] .body {
+    grid-row: 2;
+  }
+  .tocDesktop {
+    display: none;
+  }
+  .tocMobile {
+    display: block;
+    border-block: 1px solid rgba(28, 28, 26, 0.1);
+  }
+  .tocMobile summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 52px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    list-style: none;
+  }
+  .tocMobile summary::-webkit-details-marker {
+    display: none;
+  }
+  .tocMobile summary svg {
+    transition: transform 180ms var(--ease-out);
+  }
+  .tocMobile[open] summary svg {
+    transform: rotate(180deg);
+  }
+  .tocMobile nav {
+    padding-bottom: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .metadata {
+    gap: 8px 16px;
+  }
+  .actions {
+    width: auto;
+    margin-left: 0;
+  }
+  .cover {
+    border-radius: var(--r-lg);
+  }
+  .faqItem p {
+    font-size: 16.5px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .actions .shareAction,
+  .tocLink,
+  .archiveLink svg,
+  .tocMobile summary svg {
+    transition: none;
+  }
+  .actions .shareAction:not(:disabled):active,
+  .archiveLink:hover svg {
+    transform: none;
+  }
+}

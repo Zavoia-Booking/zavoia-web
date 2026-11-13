@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { TeamMemberProfileModal, type TeamMemberSeed } from "@/app/[locale]/business/_components/team-member-profile-modal";
@@ -172,7 +172,7 @@ export function BusinessMicrosite({ site, locale }: { site: PublicWebsite; local
 
   return (
     <>
-      <main ref={mainRef} data-locale-scroll={`website:${site.slug}`} style={{ height: "100dvh", overflowY: "auto", overflowX: "hidden" }}>
+      <main ref={mainRef} data-locale-scroll={`website:${site.slug}`} style={{ "--mc-vph": "100dvh", height: "100dvh", overflowY: "auto", overflowX: "hidden" } as CSSProperties}>
         <MicrositeActionsContext.Provider value={actions}>
           <LivePreview
             layout={layout}

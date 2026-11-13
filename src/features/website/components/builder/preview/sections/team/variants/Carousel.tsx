@@ -16,7 +16,7 @@ import { TeamCard } from "../parts/TeamCard";
 import type { TeamVariantProps } from "../types";
 import "./carousel.css";
 
-type DragState = { x0: number; last: number; t: number; v: number; dx: number; downIndex: number };
+type DragState = { pointerId: number; scale: number; x0: number; last: number; t: number; v: number; dx: number; downIndex: number };
 
 /** Carousel (paid) — everyone on a centre-stage rail: the focused portrait blooms while its neighbours scale
  *  down and desaturate. 1:1 drag with a velocity flick, endpoint rubber-band, and snap settling; tap a side
@@ -86,14 +86,17 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if ((event.button != null && event.button !== 0) || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    if (!event.isPrimary || event.button !== 0 || dragRef.current || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
       /* synthetic/stale pointer ids can throw — the drag still works uncaptured */
     }
     const slide = (event.target as Element).closest<HTMLElement>(".mc-tmr-slide");
+    const scale = event.currentTarget.getBoundingClientRect().width / event.currentTarget.clientWidth;
     dragRef.current = {
+      pointerId: event.pointerId,
+      scale: Number.isFinite(scale) && scale > 0 ? scale : 1,
       x0: event.clientX,
       last: event.clientX,
       t: performance.now(),
@@ -107,25 +110,28 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
-    if (!drag) return;
-    let dx = event.clientX - drag.x0;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const screenDelta = event.clientX - drag.x0;
+    let dx = screenDelta / drag.scale;
     if ((active === 0 && dx > 0) || (active === count - 1 && dx < 0)) dx *= 0.35;
-    if (Math.abs(dx) > 5) movedRef.current = true;
+    if (Math.abs(screenDelta) > 5) movedRef.current = true;
     const now = performance.now();
     const dt = Math.max(1, now - drag.t);
-    drag.v = 0.6 * drag.v + 0.4 * ((event.clientX - drag.last) / dt);
+    drag.v = 0.6 * drag.v + 0.4 * ((event.clientX - drag.last) / (dt * drag.scale));
     drag.last = event.clientX;
     drag.t = now;
     drag.dx = dx;
     setDragDX(dx);
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
-    if (!drag) return;
+    if (!drag || event.pointerId !== drag.pointerId) return;
     dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     pointerIndexRef.current = drag.downIndex;
     setDragging(false);
+    setDragDX(0);
 
     if (!movedRef.current) {
       // Published cards use click so native links also work with keyboards and
@@ -138,14 +144,21 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
     let step = -drag.dx / slidePitch;
     if (Math.abs(drag.v) > 0.32) step += -Math.sign(drag.v) * 0.6;
     settleTo(active + Math.round(step));
-    window.setTimeout(() => {
-      movedRef.current = false;
-    }, 0);
+  };
+
+  const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current || event.pointerId !== dragRef.current.pointerId) return;
+    dragRef.current = null;
+    movedRef.current = true;
+    pointerIndexRef.current = -1;
+    setDragging(false);
+    setDragDX(0);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   const handleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (!actions || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    if (movedRef.current) {
+    if (event.detail !== 0 && movedRef.current) {
       event.preventDefault();
       return;
     }
@@ -182,8 +195,8 @@ export function Carousel({ members, ratings, nameOf, initialsOf, tintOf, t }: Te
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onLostPointerCapture={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handlePointerCancel}
         onClick={handleClick}
       >
         <div className="mc-tmr-track" ref={trackRef} data-drag={dragging ? "1" : "0"} style={{ transform: `translate3d(${offset + dragDX}px, 0, 0)` }}>

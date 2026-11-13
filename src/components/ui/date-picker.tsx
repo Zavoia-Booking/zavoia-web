@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import { Icon } from "./icon";
+import { CalendarDay, MonthCalendar } from "./month-calendar";
+import { useTranslation } from "@/i18n/useTranslation";
+import styles from "./date-picker.module.css";
 
 /**
  * Popover calendar date picker (replaces the bare native `<input
  * type="date">`). Value in/out is an ISO date string ("YYYY-MM-DD") or ""
- * when unset. Tuned for date-of-birth style picking: month + year dropdowns
- * for fast long-range navigation, Monday-first grid, future dates disabled
- * by default (`maxDate` = today). Month/weekday names localize via Intl.
+ * when unset. Reuses Search's calendar presentation, with inline month/year
+ * choices for birth dates. Future dates remain disabled; names localize via Intl.
  */
 
 function pad(n: number): string {
@@ -50,8 +53,14 @@ export function DatePicker({
   yearsBack?: number;
 }) {
   const valueId = useId();
+  const { dict } = useTranslation();
+  const copy = dict.datePicker;
   const [open, setOpen] = useState(false);
+  const [panel, setPanel] = useState<"days" | "months" | "years">("days");
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const captionRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   const today = new Date();
   const todayY = today.getFullYear();
@@ -63,12 +72,14 @@ export function DatePicker({
     y: selected?.y ?? todayY,
     m: selected?.m ?? todayM,
   }));
+  const [yearPage, setYearPage] = useState(view.y - 5);
 
   // Re-anchor the visible month on the current value each time the popover
   // opens (the value may have changed since the last open).
   const openPicker = () => {
     const sel = parseIso(value);
     setView({ y: sel?.y ?? todayY, m: sel?.m ?? todayM });
+    setPanel("days");
     setOpen(true);
   };
 
@@ -81,7 +92,10 @@ export function DatePicker({
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus({ preventScroll: true });
+      }
     };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
@@ -90,6 +104,27 @@ export function DatePicker({
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const position = () => {
+      const root = rootRef.current;
+      const popover = popoverRef.current;
+      if (!root || !popover) return;
+      const bounds = root.getBoundingClientRect();
+      const headerHeight = parseFloat(getComputedStyle(root).getPropertyValue("--nav-h")) || 0;
+      const mobileNavigation = document.querySelector<HTMLElement>("nav[data-marketplace-chrome]")?.getBoundingClientRect();
+      const bottom = mobileNavigation?.height ? mobileNavigation.top : window.innerHeight;
+      const above = Math.max(0, bounds.top - headerHeight - 12);
+      const below = Math.max(0, bottom - bounds.bottom - 12);
+      const side = popover.scrollHeight > below && above > below ? "top" : "bottom";
+      popover.dataset.side = side;
+      popover.style.setProperty("--date-picker-max-height", `${side === "top" ? above : below}px`);
+    };
+    position();
+    window.addEventListener("resize", position);
+    return () => window.removeEventListener("resize", position);
+  }, [open, panel]);
 
   const monthNames = useMemo(() => {
     const fmt = new Intl.DateTimeFormat(locale, { month: "long" });
@@ -100,7 +135,7 @@ export function DatePicker({
     const fmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
     // 2024-01-01 is a Monday.
     return Array.from({ length: 7 }, (_, i) =>
-      fmt.format(new Date(2024, 0, 1 + i)).slice(0, 2),
+      fmt.format(new Date(2024, 0, 1 + i)),
     );
   }, [locale]);
 
@@ -131,37 +166,27 @@ export function DatePicker({
   const nextMonth = () =>
     setView((v) => (v.m === 11 ? { y: v.y + 1, m: 0 } : { y: v.y, m: v.m + 1 }));
 
-  const navBtn: React.CSSProperties = {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    border: "1px solid rgba(28,28,26,0.12)",
-    background: "#fff",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    flexShrink: 0,
-  };
+  const minimumYear = years.at(-1) ?? todayY;
+  const lastYearPage = Math.max(minimumYear, todayY - 11);
+  const pageStart = Math.max(minimumYear, Math.min(lastYearPage, yearPage));
+  const visibleYears = Array.from({ length: 12 }, (_, i) => pageStart + i)
+    .filter((year) => year <= todayY);
+  const monthLabel = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" })
+    .format(new Date(view.y, view.m, 1));
 
-  const selectStyle: React.CSSProperties = {
-    fontFamily: "inherit",
-    fontSize: 13.5,
-    fontWeight: 600,
-    color: "var(--c-900)",
-    border: "1px solid rgba(28,28,26,0.12)",
-    borderRadius: 8,
-    background: "#fff",
-    padding: "5px 6px",
-    outline: "none",
-    cursor: "pointer",
-    minWidth: 0,
+  const showYears = () => {
+    setYearPage(view.y - 5);
+    setPanel("years");
   };
+  const stepYear = (delta: number) => setView((v) => ({ ...v, y: v.y + delta }));
+  const stepYears = (delta: number) => setYearPage(pageStart + delta * 12);
+  const caption = panel === "days" ? monthLabel : panel === "months"
+    ? String(view.y) : `${pageStart}–${visibleYears.at(-1)}`;
 
   return (
-    <div ref={rootRef} style={{ position: "relative", maxWidth: 340 }}>
-      {/* Trigger — styled like the account text inputs. */}
+    <Collapsible.Root ref={rootRef} open={open && !disabled} className={styles.root}>
       <button
+        ref={triggerRef}
         type="button"
         aria-labelledby={labelledBy}
         aria-describedby={labelledBy ? valueId : undefined}
@@ -169,161 +194,74 @@ export function DatePicker({
         disabled={disabled}
         aria-haspopup="dialog"
         aria-expanded={open && !disabled}
-        style={{
-          marginTop: 8,
-          width: "100%",
-          boxSizing: "border-box",
-          padding: "9px 12px",
-          borderRadius: 10,
-          border: `1px solid ${open ? "var(--p-500)" : "rgba(28,28,26,0.18)"}`,
-          fontSize: 14,
-          color: displayLabel ? "var(--c-900)" : "var(--c-400)",
-          background: "#fff",
-          outline: "none",
-          fontFamily: "inherit",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          cursor: disabled ? "default" : "pointer",
-          textAlign: "left",
-        }}
+        aria-controls={`${valueId}-calendar`}
+        className={styles.trigger}
+        data-open={open && !disabled}
+        data-empty={!displayLabel || undefined}
       >
-        <span id={labelledBy ? valueId : undefined} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span id={labelledBy ? valueId : undefined} className={styles.value}>
           {displayLabel || placeholder}
         </span>
-        <Icon name="cal" size={15} color="var(--p-500)" />
+        <Icon name="cal" size={17} color="var(--c-600)" />
       </button>
 
-      {open && !disabled && (
-        <div
-          role="dialog"
-          style={{
-            position: "absolute",
-            zIndex: 40,
-            top: "calc(100% + 6px)",
-            left: 0,
-            width: 292,
-            background: "#fff",
-            border: "1px solid rgba(28,28,26,0.10)",
-            borderRadius: 14,
-            boxShadow: "var(--sh-lg)",
-            padding: 12,
-          }}
-        >
-          {/* Header: prev / month + year selects / next */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <button type="button" className="tap" onClick={prevMonth} style={navBtn} aria-label={monthNames[(view.m + 11) % 12]}>
-              <Icon name="chevL" size={14} color="var(--c-700)" />
+      <Collapsible.Content
+        ref={popoverRef}
+        id={`${valueId}-calendar`}
+        role="dialog"
+        aria-labelledby={labelledBy}
+        className={styles.popover}
+        inert={!open || disabled}
+        aria-hidden={!open || disabled}
+      >
+        <MonthCalendar
+          density="compact"
+          title={
+            <button ref={captionRef} type="button" className={styles.caption}
+              aria-label={panel === "days" ? copy.chooseMonth : panel === "months" ? copy.chooseYear : dict.searchOverlay.pickDate}
+              onClick={panel === "days" ? () => setPanel("months") : panel === "months" ? showYears : () => setPanel("days")}
+            >
+              {caption}<Icon name="chevD" size={14} />
             </button>
-            <div style={{ flex: 1, display: "flex", gap: 6, justifyContent: "center", minWidth: 0 }}>
-              <select
-                value={view.m}
-                onChange={(e) => setView((v) => ({ ...v, m: Number(e.target.value) }))}
-                style={{ ...selectStyle, flex: "1 1 auto" }}
-              >
-                {monthNames.map((name, m) => (
-                  <option key={m} value={m}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={view.y}
-                onChange={(e) => setView((v) => ({ ...v, y: Number(e.target.value) }))}
-                style={selectStyle}
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button type="button" className="tap" onClick={nextMonth} style={navBtn} aria-label={monthNames[(view.m + 1) % 12]}>
-              <Icon name="chevR" size={14} color="var(--c-700)" />
-            </button>
-          </div>
-
-          {/* Weekday header */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7, 1fr)",
-              marginTop: 10,
-              marginBottom: 2,
-            }}
-          >
-            {weekdayInitials.map((w, i) => (
-              <span
-                key={i}
-                style={{
-                  textAlign: "center",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  color: "var(--c-500)",
-                  padding: "4px 0",
-                }}
-              >
-                {w}
-              </span>
-            ))}
-          </div>
-
-          {/* Day grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
-            {Array.from({ length: leadingBlanks }, (_, i) => (
-              <span key={`b${i}`} />
-            ))}
-            {Array.from({ length: daysInMonth }, (_, i) => {
-              const d = i + 1;
-              const isSelected =
-                selected?.y === view.y && selected.m === view.m && selected.d === d;
-              const isToday = view.y === todayY && view.m === todayM && d === todayD;
-              const future = isFuture(d);
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  className="tap"
-                  disabled={future}
-                  onClick={() => {
-                    onChange(toIso(view.y, view.m, d));
-                    setOpen(false);
-                  }}
-                  style={{
-                    height: 34,
-                    borderRadius: 9,
-                    border: isToday && !isSelected ? "1px solid rgba(28,28,26,0.18)" : "1px solid transparent",
-                    background: isSelected ? "var(--p-500)" : "transparent",
-                    color: future
-                      ? "var(--c-300)"
-                      : isSelected
-                        ? "#fff"
-                        : "var(--c-800)",
-                    fontSize: 13.5,
-                    fontWeight: isSelected ? 700 : 500,
-                    fontFamily: "inherit",
-                    cursor: future ? "default" : "pointer",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected && !future)
-                      e.currentTarget.style.background = "var(--c-100)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  {d}
+          }
+          previousLabel={panel === "days" ? dict.searchOverlay.prevMonth : panel === "months" ? copy.previousYear : copy.previousYears}
+          nextLabel={panel === "days" ? dict.searchOverlay.nextMonth : panel === "months" ? copy.nextYear : copy.nextYears}
+          onPrevious={panel === "days" ? prevMonth : panel === "months" ? () => stepYear(-1) : () => stepYears(-1)}
+          onNext={panel === "days" ? nextMonth : panel === "months" ? () => stepYear(1) : () => stepYears(1)}
+          previousDisabled={panel === "years" ? pageStart <= minimumYear : panel === "months" && view.y <= minimumYear}
+          nextDisabled={panel === "years" ? pageStart + 11 >= todayY : panel === "months" && view.y >= todayY}
+          weekdays={weekdayInitials}
+          body={panel === "days" ? undefined : (
+            <div key={panel} className={styles.choices} role="group"
+              aria-label={panel === "months" ? copy.chooseMonth : copy.chooseYear}>
+              {panel === "months" ? monthNames.map((month, m) => (
+                <button key={m} type="button" className={styles.choice} aria-pressed={view.m === m}
+                  onClick={() => { setView((v) => ({ ...v, m })); setPanel("days"); captionRef.current?.focus({ preventScroll: true }); }}>
+                  {month}
                 </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
+              )) : visibleYears.map((year) => (
+                <button key={year} type="button" className={styles.choice} aria-pressed={view.y === year}
+                  onClick={() => { setView((v) => ({ ...v, y: year })); setPanel("months"); captionRef.current?.focus({ preventScroll: true }); }}>
+                  {year}
+                </button>
+              ))}
+            </div>
+          )}
+        >
+          {Array.from({ length: leadingBlanks }, (_, i) => <span key={`blank-${i}`} />)}
+          {Array.from({ length: daysInMonth }, (_, i) => {
+            const d = i + 1;
+            const isSelected = selected?.y === view.y && selected.m === view.m && selected.d === d;
+            const isToday = view.y === todayY && view.m === todayM && d === todayD;
+            return (
+              <CalendarDay key={d} disabled={isFuture(d)} aria-pressed={isSelected} data-today={isToday}
+                onClick={() => { onChange(toIso(view.y, view.m, d)); setOpen(false); triggerRef.current?.focus({ preventScroll: true }); }}>
+                {d}
+              </CalendarDay>
+            );
+          })}
+        </MonthCalendar>
+      </Collapsible.Content>
+    </Collapsible.Root>
   );
 }
