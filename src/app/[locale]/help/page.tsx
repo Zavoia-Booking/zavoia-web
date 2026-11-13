@@ -8,6 +8,7 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
+import { socialMetadata } from "@/lib/site";
 import { HelpContent } from "./_components/help-content";
 
 export async function generateStaticParams() {
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   ) as Record<Locale, string>;
 
   return {
-    title: dict.help.pageTitle,
+    title: dict.help.metaTitle,
     description: dict.help.pageDescription,
     alternates: {
       canonical: localeHref(locale, "help"),
@@ -35,6 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         "x-default": localeHref(DEFAULT_LOCALE, "help"),
       },
     },
+    ...socialMetadata(locale, localeHref(locale, "help"), dict.help.metaTitle, dict.help.pageDescription),
   };
 }
 

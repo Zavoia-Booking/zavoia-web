@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Icon, Kicker, type IconName } from "@/components/ui";
+import disclosure from "@/components/ui/disclosure-motion.module.css";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
 import { ReportIssue } from "./report-issue";
@@ -24,40 +25,20 @@ interface HelpCenterProps {
   report: Dictionary["help"]["report"];
 }
 
-// One expandable Q&A row. Mirrors ZwHelpQARow — a header button that toggles
-// the answer paragraph below. We only carry a single answer string, so the
-// body is a single <p> (no "Open full guide" link, no per-article route).
-function QARow({
-  item,
-  open,
-  onToggle,
-}: {
-  item: QA;
-  open: boolean;
-  onToggle: () => void;
-}) {
+// One expandable Q&A row: a native disclosure, so every answer is in the
+// server HTML and opens without JavaScript, as on the business FAQs. We only
+// carry a single answer string, so the body is a single <p>.
+function QARow({ item }: { item: QA }) {
   return (
-    <div className="zw-help-qa-row" data-on={open ? "1" : "0"}>
-      <button
-        type="button"
-        className="zw-help-qa-q tap"
-        onClick={onToggle}
-        aria-expanded={open}
-      >
+    <details className={`zw-help-qa-row ${disclosure.root} ${disclosure.native}`}>
+      <summary className="zw-help-qa-q tap">
         <span className="zw-help-qa-qt">{item.q}</span>
         <span className="zw-help-qa-ic">
-          <Icon
-            name={open ? "chevU" : "chevD"}
-            size={14}
-            color={open ? "#fff" : "var(--c-700)"}
-          />
+          <Icon name="chevD" size={14} />
         </span>
-      </button>
-      {open && (
-        <div
-          className="zv-fade"
-          style={{ padding: "0 4px 20px", maxWidth: 660 }}
-        >
+      </summary>
+      <div className={disclosure.body}>
+        <div style={{ padding: "0 4px 20px", maxWidth: 660 }}>
           <p
             className="txt-pretty"
             style={{
@@ -70,8 +51,8 @@ function QARow({
             {item.a}
           </p>
         </div>
-      )}
-    </div>
+      </div>
+    </details>
   );
 }
 
@@ -89,12 +70,11 @@ export function HelpCenter({
 }: HelpCenterProps) {
   const [q, setQ] = useState("");
   const [topic, setTopic] = useState("all");
-  const [openId, setOpenId] = useState<string | null>(null);
 
   const query = q.trim().toLowerCase();
 
   // Flat, cross-topic search results (only when there's a query). Each entry
-  // keeps a stable id so a single-open accordion works across both modes.
+  // keeps a stable id, used as its key in both modes.
   const results = useMemo(() => {
     if (!query) return null;
     const matches: { id: string; item: QA }[] = [];
@@ -110,8 +90,6 @@ export function HelpCenter({
     });
     return matches;
   }, [query, topics]);
-
-  const toggle = (id: string) => setOpenId((prev) => (prev === id ? null : id));
 
   const visibleTopics =
     topic === "all" ? topics : topics.filter((tp) => tp.id === topic);
@@ -212,12 +190,7 @@ export function HelpCenter({
               ) : (
                 <div className="zw-help-qa">
                   {results?.map(({ id, item }) => (
-                    <QARow
-                      key={id}
-                      item={item}
-                      open={openId === id}
-                      onToggle={() => toggle(id)}
-                    />
+                    <QARow key={id} item={item} />
                   ))}
                 </div>
               )}
@@ -251,26 +224,18 @@ export function HelpCenter({
                 if (!tp.items.length) return null;
                 return (
                   <section key={tp.id} style={{ marginTop: 26 }}>
-                    <div className="zw-help-grouphead">
+                    <h2 className="zw-help-grouphead">
                       <Icon
                         name={tp.icon as IconName}
                         size={14}
                         color="var(--p-600)"
                       />
                       {tp.label}
-                    </div>
+                    </h2>
                     <div className="zw-help-qa">
-                      {tp.items.map((item, i) => {
-                        const id = `${tp.id}-${i}`;
-                        return (
-                          <QARow
-                            key={id}
-                            item={item}
-                            open={openId === id}
-                            onToggle={() => toggle(id)}
-                          />
-                        );
-                      })}
+                      {tp.items.map((item, i) => (
+                        <QARow key={`${tp.id}-${i}`} item={item} />
+                      ))}
                     </div>
                   </section>
                 );

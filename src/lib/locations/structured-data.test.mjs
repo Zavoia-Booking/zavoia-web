@@ -162,7 +162,32 @@ test("merchant text cannot terminate the JSON-LD script and round-trips without 
   const serialized = serializeLocationStructuredData(listing, "ro");
   assert.equal(serialized.includes("<"), false);
   const parsed = JSON.parse(serialized);
-  assert.equal(venue(parsed).name, listing.location.name);
+  assert.equal(venue(parsed).name, `${listing.name} – ${listing.location.name}`);
   assert.equal(venue(parsed).description, listing.location.description);
   assert.deepEqual(parsed, locationStructuredData(listing, "ro"));
+});
+
+test("the venue is named as brand and branch, without repeating an identical name", () => {
+  const listing = listingFixture();
+  listing.name = "Atelier Nova";
+  listing.location.name = "Băneasa";
+  const graph = locationStructuredData(listing, "en", { ancestors: [{ name: "Hair salons in Bucharest", href: "/bucharest/hair-salon" }] });
+  assert.equal(venue(graph).name, "Atelier Nova – Băneasa");
+  assert.equal(ofType(graph, "BreadcrumbList").itemListElement.at(-1).name, "Băneasa", "The trail ends on the visible heading");
+  listing.location.name = "  atelier   NOVA ";
+  assert.equal(venue(locationStructuredData(listing, "en")).name, "Atelier Nova");
+});
+
+test("the address country is the ISO code for any country, however the business typed it", () => {
+  const listing = listingFixture();
+  const country = (value) => {
+    listing.location.addressComponents = { city: "Somewhere", country: value };
+    return venue(locationStructuredData(listing, "en")).address.addressCountry;
+  };
+  // English, Romanian or the country's own language; no country is built in.
+  for (const [typed, code] of [
+    ["Romania", "RO"], ["România", "RO"], ["ro", "RO"], ["Germany", "DE"], ["Germania", "DE"], ["Deutschland", "DE"],
+    ["Magyarország", "HU"], ["Republica Moldova", "MD"], ["  united   kingdom ", "GB"], ["UK", "GB"], ["България", "BG"],
+  ]) assert.equal(country(typed), code, typed);
+  assert.equal(country("Atlantis"), "Atlantis", "A name that matches no country is kept as written");
 });

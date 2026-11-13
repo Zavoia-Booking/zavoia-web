@@ -108,9 +108,10 @@ and Geist Mono families, which are already self-hosted at build time. Published
 sites, demos and marketing previews make no browser requests to Google Fonts.
 The dashboard uses the same display binaries with local CSS loaders. Keep font
 keys stable for saved designs and keep the Italiana/Bodoni and Marcellus/Libre
-Caslon Romanian fallbacks in both apps. Asset provenance, original licences and
-update instructions live in [public/fonts/web-studio](public/fonts/web-studio/README.md);
-the public notice index is `/fonts/web-studio/index.html`. Browser regressions in
+Caslon Romanian fallbacks in both apps. Asset provenance and update instructions
+live in [docs/assets/web-studio-fonts.md](docs/assets/web-studio-fonts.md); the
+original licences stay beside the fonts in `public/fonts/web-studio`, and the
+public notice index is `/fonts/web-studio/index.html`. Browser regressions in
 `e2e/web-studio/fonts.spec.ts` verify actual rendered glyphs and on-demand loading.
 
 The existing design playground is `public/playgrounds/claim-page.html`. Production behavior lives in the route/components above.

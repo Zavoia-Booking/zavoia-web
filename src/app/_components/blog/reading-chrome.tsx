@@ -66,8 +66,10 @@ function subscribeSharingCapability(onChange: () => void) {
 
 function serverSharingCapability() { return false; }
 
-/** One action uses the native share sheet when available, or copies the link. */
-export function ArticleActions({ title }: { title: string }) {
+/** One action uses the native share sheet when available, or copies the link.
+ * It shares the post's canonical path on the current origin, without the
+ * visitor's query string or hash, as the location page does. */
+export function ArticleActions({ title, path }: { title: string; path?: string }) {
   const { dict } = useTranslation();
   const toast = useToast();
   const nativeShare = useSyncExternalStore(
@@ -81,14 +83,15 @@ export function ArticleActions({ title }: { title: string }) {
   const act = async () => {
     if (pendingRef.current) return;
     const useNativeShare = supportsNativeShare();
+    const url = path ? new URL(path, window.location.origin).href : window.location.href;
     pendingRef.current = true;
     setPending(true);
     try {
       if (useNativeShare) {
-        await navigator.share({ title, url: window.location.href });
+        await navigator.share({ title, url });
       } else {
         if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
-        await navigator.clipboard.writeText(window.location.href);
+        await navigator.clipboard.writeText(url);
         toast(dict.blog.linkCopied, "check");
       }
     } catch (error) {

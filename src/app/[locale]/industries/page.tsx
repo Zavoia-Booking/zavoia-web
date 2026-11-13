@@ -16,7 +16,7 @@ import { otherIndustryLast } from "@/lib/marketplace/industry-order";
 import { industryVisual } from "@/lib/marketplace/industry-visuals";
 import { getCategoryDiscoveryGroups } from "@/lib/seo/category-discovery";
 import { getOptionalSitemapFeed } from "@/lib/seo/sitemap-feed.server";
-import { DEFAULT_SOCIAL_IMAGE, OPEN_GRAPH_LOCALES, SITE_URL } from "@/lib/site";
+import { OPEN_GRAPH_LOCALES, SITE_URL, defaultSocialImage } from "@/lib/site";
 import { IndustryBrowser } from "./industry-browser";
 import styles from "./page.module.css";
 
@@ -51,13 +51,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: "Zavoia",
       locale: OPEN_GRAPH_LOCALES[locale],
       alternateLocale: LOCALES.filter((language) => language !== locale).map((language) => OPEN_GRAPH_LOCALES[language]),
-      images: [DEFAULT_SOCIAL_IMAGE],
+      images: [defaultSocialImage(locale)],
     },
     twitter: {
       card: "summary_large_image",
       title: t.pageTitle,
       description: t.pageDescription,
-      images: [DEFAULT_SOCIAL_IMAGE],
+      images: [defaultSocialImage(locale)],
     },
   };
 }

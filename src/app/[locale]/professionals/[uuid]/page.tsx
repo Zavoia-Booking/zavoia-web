@@ -4,7 +4,7 @@ import { notFoundMetadata } from "@/app/_components/not-found/metadata";
 import { ProfessionalProfile } from "@/app/[locale]/business/_components/professional-profile";
 import { dictionaries } from "@/i18n/dictionaries";
 import { DEFAULT_LOCALE, LOCALES, isLocale } from "@/i18n/locales";
-import { DEFAULT_SOCIAL_IMAGE, SITE_URL } from "@/lib/site";
+import { OPEN_GRAPH_LOCALES, SITE_URL, defaultSocialImage } from "@/lib/site";
 import { getProfessionalPageBookingContext, getProfessionalPageProfile } from "@/lib/professionals/server";
 import { professionalHref } from "@/lib/professionals/urls";
 import { format } from "@/i18n/format";
@@ -26,19 +26,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       || [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim()
       || dictionaries[locale].saved.unnamedPerson;
     const title = profile.about?.professionalTitle?.trim();
+    // The role is what people search with the name ("Ana Pop, hair stylist").
+    const pageTitle = title ? `${name}, ${title}` : name;
     const description = profile.about?.aboutMe?.trim()
-      || format(dictionaries[locale].business.memberMetaDescription, {
-        name: title ? `${name}, ${title}` : name,
-      });
+      || format(dictionaries[locale].business.memberMetaDescription, { name: pageTitle });
     const languages = Object.fromEntries(
       LOCALES.map((language) => [language, professionalHref(language, profile.uuid)]),
     );
     const url = `${SITE_URL}${professionalHref(locale, profile.uuid)}`;
     const image = profile.profileImage?.trim();
-    const socialImage = image ? { url: image, alt: name } : DEFAULT_SOCIAL_IMAGE;
+    const socialImage = image ? { url: image, alt: name } : defaultSocialImage(locale);
 
     return {
-      title: name,
+      title: pageTitle,
       description,
       alternates: {
         canonical: url,
@@ -47,14 +47,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       openGraph: {
         type: "website",
         siteName: "Zavoia",
-        title: name,
+        title: pageTitle,
         description,
         url,
+        locale: OPEN_GRAPH_LOCALES[locale],
+        alternateLocale: LOCALES.filter((language) => language !== locale).map((language) => OPEN_GRAPH_LOCALES[language]),
         images: [socialImage],
       },
       twitter: {
         card: image ? "summary" : "summary_large_image",
-        title: name,
+        title: pageTitle,
         description,
         images: [socialImage],
       },

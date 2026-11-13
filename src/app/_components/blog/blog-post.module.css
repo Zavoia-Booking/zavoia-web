@@ -209,12 +209,6 @@
   transform: scaleX(0);
   transform-origin: left center;
 }
-.skeletonProse {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
 @media (hover: hover) and (pointer: fine) {
   .backLink:hover, .categoryLink:hover { color: var(--c-900); text-decoration: underline; }
   .tocLink:hover {

@@ -1,9 +1,39 @@
 /* Scan application sources only; temporary build outputs are not class sources. */
 @import "tailwindcss" source("../");
 
+/* Caveat 700: the one handwritten word in the home page bands and the
+   business pages' headlines (--font-caveat). Declared here, not with
+   next/font, so the business pages can preload exactly these files
+   (preloadSignatureFont); next/font would preload them on every route.
+   next.config.ts caches public/fonts/caveat for a year: to replace a file,
+   rename it. No unicode-range, as next/font emitted them. */
+@font-face {
+  font-family: "Zavoia Caveat";
+  src: url("/fonts/caveat/caveat-latin-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Zavoia Caveat";
+  src: url("/fonts/caveat/caveat-latin-ext-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+/* The stand-in next/font generated: Arial with Caveat's vertical metrics. */
+@font-face {
+  font-family: "Zavoia Caveat Fallback";
+  src: local("Arial");
+  ascent-override: 96%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
+
 /* ─────────────────────────────────────────────
    Zavoia Web — design tokens (ported 1:1 from docs/web.css)
-   Fonts are declared in src/styles/fonts.ts (next/font) and exposed
+   Fonts are declared in src/styles/fonts.ts (next/font; Caveat is the
+   @font-face above) and exposed
    to CSS via the --font-geist-* CSS variables on <html>, where these
    root font tokens resolve before their values are inherited.
    ───────────────────────────────────────────── */
@@ -12,6 +42,8 @@
   /* Type */
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* The handwritten word. The 404 page sets its own on its root. */
+  --font-caveat: "Zavoia Caveat", "Zavoia Caveat Fallback";
 
   /* Neutrals */
   --c-50:  oklch(99% 0.004 70);
@@ -823,7 +855,9 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 .zw-help-qa-q {
   width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
   background: transparent; border: 0; cursor: pointer; padding: 17px 4px; text-align: left;
+  list-style: none;
 }
+.zw-help-qa-q::-webkit-details-marker { display: none; }
 .zw-help-qa-qt {
   font-size: 16px; font-weight: 600; letter-spacing: -0.016em; color: var(--c-900); line-height: 1.35;
   transition: color .15s var(--ease-soft);
@@ -831,11 +865,12 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 .zw-help-qa-q:hover .zw-help-qa-qt { color: var(--p-700); }
 .zw-help-qa-ic {
   width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-  border: 1px solid rgba(28,28,26,0.14); background: #fff;
+  border: 1px solid rgba(28,28,26,0.14); background: #fff; color: var(--c-700);
   display: inline-flex; align-items: center; justify-content: center;
   transition: background-color .2s var(--ease-soft), border-color .2s var(--ease-soft);
 }
-.zw-help-qa-row[data-on="1"] .zw-help-qa-ic { background: var(--c-ink); border-color: var(--c-ink); }
+.zw-help-qa-row[open] .zw-help-qa-ic { background: var(--c-ink); border-color: var(--c-ink); color: #fff; }
+.zw-help-qa-row[open] .zw-help-qa-ic svg { transform: rotate(180deg); }
 
 .zw-help-card {
   background: #fff; border: 1px solid rgba(28,28,26,0.08); border-radius: var(--r-xl);

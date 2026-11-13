@@ -7,16 +7,12 @@ import detailStyles from "@/app/[locale]/business/_components/business-detail.mo
 import galleryStyles from "@/app/[locale]/business/_components/location-gallery.module.css";
 import bookingStyles from "@/app/[locale]/business/_components/location-booking-summary.module.css";
 import searchStyles from "@/components/search/search-layout.module.css";
-import articleStyles from "@/app/_components/blog/blog-post.module.css";
 
 import { Skeleton } from "./skeleton";
 import { Icon } from "./icon";
-import { Breadcrumb } from "./breadcrumb";
 import { Button } from "./button";
 import { Kicker } from "./kicker";
 import { useTranslation } from "@/i18n/useTranslation";
-import { localeHref } from "@/i18n/routes";
-import { BlogList } from "@/app/_components/blog/blog-list";
 
 // Route-level loading fallbacks, used from the `loading.tsx` files. The shared
 // chrome (header, footer, mobile tabs) lives in the locale layout and paints
@@ -160,45 +156,6 @@ export function SearchPageSkeleton({ showRail = true, desktopControlsBottom = 24
           <div className={`${searchStyles.resultsFrame} ${searchStyles.placeholderResults}`}>
             <div className={searchStyles.resultItems}>
               {[0, 1, 2, 3, 4].map(row => <RowSkeleton key={row} />)}
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-// Card-grid index routes (the blog list).
-export function FeedPageSkeleton() {
-  const { locale } = useTranslation();
-  return <BlogList locale={locale} posts={[]} pending />;
-}
-
-// Long-form prose routes (a blog post).
-export function ArticlePageSkeleton() {
-  const { locale, dict } = useTranslation();
-  return (
-    <main className={articleStyles.shell} data-toc="false" aria-busy="true">
-      <header className={`zw-container ${articleStyles.header}`}>
-        <div className={articleStyles.readingFrame}>
-          <div className={articleStyles.head}>
-            <Breadcrumb ariaLabel={dict.blog.breadcrumbLabel} items={[{ label: dict.breadcrumbHome, href: localeHref(locale) }, { label: dict.blog.breadcrumbJournal, href: localeHref(locale, "blog") }]} />
-            <div aria-hidden="true">
-              <Skeleton w="96%" h="calc(clamp(34px, 4.2vw, 58px) * 2.16)" style={{ marginTop: 24 }} />
-              <Skeleton h="calc(clamp(16px, 1.5vw, 19px) * 3.2)" style={{ marginTop: 18, maxWidth: 680 }} />
-              <div className={articleStyles.metadata}><Skeleton w={190} h={21} /><div className={articleStyles.actions}><Skeleton w={100} h={44} r={22} /><Skeleton w={90} h={44} r={22} /></div></div>
-            </div>
-          </div>
-        </div>
-      </header>
-      <div className={`zw-container ${articleStyles.coverFrame}`} aria-hidden="true">
-        <div className={articleStyles.cover}><Skeleton h="100%" r="inherit" /></div>
-      </div>
-      <div className={`zw-container ${articleStyles.bodyFrame}`} aria-hidden="true">
-        <div className={articleStyles.readingFrame}>
-          <div className={articleStyles.readingGrid}>
-            <div className={`${articleStyles.body} ${articleStyles.skeletonProse}`}>
-              {["100%", "96%", "98%", "72%", "100%", "89%", "94%", "58%"].map((w, i) => <Skeleton key={i} w={w} h={18} />)}
             </div>
           </div>
         </div>

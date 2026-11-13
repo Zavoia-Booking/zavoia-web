@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
 import {
+  categorySearchName,
   getCategoryAlternates,
-  taxonomyDisplayName,
   type CityView,
   type TaxonomyView,
 } from "@/data/seo";
@@ -12,7 +12,8 @@ import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { LocaleRouteAlternates } from "@/i18n/locale-navigation";
 import { searchListings } from "@/lib/api/marketplace/public";
-import { OPEN_GRAPH_LOCALES } from "@/lib/site";
+import { OPEN_GRAPH_LOCALES, defaultSocialImage } from "@/lib/site";
+import { MIN_LISTINGS_TO_INDEX } from "@/lib/seo/category-discovery";
 import { resolveCategoryRoute } from "@/lib/seo/category-page.server";
 import type {
   Industry,
@@ -92,10 +93,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { city, entry, industries, listings } = resolved;
   const dict = dictionaries[localeParam];
-  const name = taxonomyDisplayName(entry, industries, localeParam, dict);
+  const name = categorySearchName(entry, industries, localeParam, dict);
   const vars = {
     industry: name,
-    industryLower: name.toLocaleLowerCase(localeParam),
     city: city.name,
   };
 
@@ -103,15 +103,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = format(dict.category.descriptionTemplate, vars);
   const canonical = localeHref(localeParam, city.slug, entry.slug);
   const languages = getCategoryAlternates(industries, city.id, entry.id);
+  const image = defaultSocialImage(localeParam);
 
   return {
     title,
     description,
-    // A page with nothing to list is still useful to a visitor who arrived from
-    // an internal link, but it is thin content and must not be offered to the
-    // index. It starts being indexable the moment a business opens here.
+    // Below MIN_LISTINGS_TO_INDEX the page still helps a visitor who arrived
+    // from an internal link, but it is not offered to the index: an empty page
+    // is thin content, and one listing only repeats that business's own page.
+    // The sitemap and the city links use the same threshold.
     // Omit the key otherwise: an undefined robots would replace the layout's.
-    ...(listings.length === 0 && { robots: { index: false, follow: true } }),
+    ...(listings.length < MIN_LISTINGS_TO_INDEX && { robots: { index: false, follow: true } }),
     alternates: {
       canonical,
       languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] },
@@ -121,11 +123,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: canonical,
       type: "website",
+      siteName: "Zavoia",
       locale: OPEN_GRAPH_LOCALES[localeParam],
       // Only languages with their own translated destination are alternates.
       alternateLocale: LOCALES.filter((language) => language !== localeParam && languages[language])
         .map((language) => OPEN_GRAPH_LOCALES[language]),
+      images: [image],
     },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
   };
 }
 

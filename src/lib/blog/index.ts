@@ -10,3 +10,4 @@ export { headingSlug } from "./slug";
 export { pageWindow } from "./pagination";
 export { selectRelated } from "./related";
 export { getPostAlternates, getPostTranslation } from "./alternates";
+export { BLOG_AUTHOR } from "./author";

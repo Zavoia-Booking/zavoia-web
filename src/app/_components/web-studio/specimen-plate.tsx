@@ -128,6 +128,8 @@ export function SpecimenPlate({
         // the specimen's real links and buttons would stay focusable.
         inert
         aria-hidden="true"
+        // The specimens are invented businesses: keep their text out of search snippets.
+        data-nosnippet=""
         style={{
           position: "absolute",
           top: 0,

@@ -51,6 +51,7 @@ export async function generateMetadata({
     robots: { "max-image-preview": "large" },
     icons: {
       icon: { url: "/favicon.ico", type: "image/x-icon" },
+      apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     },
   };
 }

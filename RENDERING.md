@@ -247,8 +247,8 @@ All six already wrap their client form in `<Suspense>` (they read
 
 | Route                   | Segment config                         | Server data                                              | Build | Boundary      |
 | ----------------------- | -------------------------------------- | -------------------------------------------------------- | ----- | ------------- |
-| `/[locale]/blog`        | `revalidate = 3600`                       | `listPosts()`, tagged `post`                             | `●` en/ro | `loading.tsx` |
-| `/[locale]/blog/[slug]` | `revalidate = 3600`, `dynamicParams=true` | `getPostBySlug`, tagged `post` + `post:<slug>`           | `●` per post | `loading.tsx` |
+| `/[locale]/blog`        | `revalidate = 3600`                       | `listPosts()`, tagged `post`                             | `●` en/ro | none          |
+| `/[locale]/blog/[slug]` | `revalidate = 3600`, `dynamicParams=true` | `getPostBySlug`, tagged `post` + `post:<slug>`           | `●` per post | none          |
 
 Both were `revalidate = 0` — opted out of caching entirely, which left the
 existing `/api/revalidate` Sanity webhook with nothing to invalidate. They now
@@ -267,7 +267,7 @@ request and caches from then on.
 | `/[locale]/terms`            | —                     | none                                                                                              | `●` en/ro    | n/a           |
 | `/[locale]/terms/[document]` | —                     | none                                                                                              | `●` 24 paths | n/a           |
 | `/[locale]/try`              | `dynamicParams=false` | none — reads `?s` / `?src`                                                                        | `ƒ`          | n/a           |
-| `/[locale]/web-studio`       | `revalidate = 3600`   | `loadShowcase` → `getPublicWebsite` for the first qualifying slug, tagged `website`               | `●` en/ro    | `loading.tsx` |
+| `/[locale]/web-studio`       | `revalidate = 3600`   | `loadShowcase` → `getPublicWebsite` for the first qualifying slug, tagged `website`               | `●` en/ro    | none          |
 
 ## Outside the locale tree
 

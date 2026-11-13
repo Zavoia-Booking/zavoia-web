@@ -54,7 +54,6 @@ export const en: {
       kicker: string;
       title: string;
       action: string;
-      empty: string;
     };
     nearYou: {
       kicker: string;
@@ -148,6 +147,8 @@ export const en: {
   category: {
     titleTemplate: string;
     descriptionTemplate: string;
+    /** The catch-all industry in search titles and descriptions, where its directory label alone reads "Other in {city}". */
+    otherIndustryName: string;
     heading: string;
     intro: string;
     resultsHeading: { one: string; few: string; other: string };
@@ -184,6 +185,7 @@ export const en: {
     catBusiness: string;
     catProduct: string;
     breadcrumbJournal: string;
+    byline: string;
     pageLabel: string;
     ofLabel: string;
     prev: string;
@@ -771,6 +773,10 @@ export const en: {
     since: string;
     viewLocation: string;
     worksAt: string;
+    /** Document title. The page lists the brand's locations. */
+    metaTitle: string;
+    /** Meta description when the brand has written none. */
+    metaDescription: string;
   };
   booking: {
     stepServicesTitle: string;
@@ -1120,6 +1126,7 @@ export const en: {
     draftNotice: string;
     onThisPage: string;
     backToLegal: string;
+    breadcrumbLabel: string;
     lastUpdated: string;
     readDocument: string;
     statusDraft: string;
@@ -1630,7 +1637,10 @@ export const en: {
     errorLoading: string;
   };
   help: {
+    /** Visible label, also the account page's link to the help centre. */
     pageTitle: string;
+    /** The help page's title in search results and link previews. */
+    metaTitle: string;
     pageDescription: string;
     head: {
       kicker: string;
@@ -1817,7 +1827,6 @@ export const en: {
       kicker: "Discover",
       title: "Brands",
       action: "See all",
-      empty: "Brands will show up here soon — check back.",
     },
     nearYou: {
       kicker: "Near you",
@@ -1908,7 +1917,7 @@ export const en: {
     resultsMany: "{count} industries",
     noResultsTitle: "No matching industries or services",
     noResultsBody: "Try a different word, or clear your search to explore all industries.",
-    pageTitle: "Explore all industries",
+    pageTitle: "Browse local services by category",
     pageDescription: "Browse industries and services on Zavoia. Find local businesses and book your next appointment.",
     heading: "All industries",
     intro: "Choose an industry or service for your next appointment.",
@@ -1921,7 +1930,8 @@ export const en: {
   category: {
     titleTemplate: "{industry} in {city}",
     descriptionTemplate:
-      "Explore {industryLower} in {city}. View businesses, compare services and prices, and book an appointment on Zavoia.",
+      "{industry} in {city}: compare local businesses, services and prices, then book online on Zavoia.",
+    otherIndustryName: "Other services",
     heading: "{industry} in {city}",
     intro: "Check reviews and opening hours, then explore services, prices and appointment options.",
     resultsHeading: {
@@ -1943,9 +1953,9 @@ export const en: {
     relatedServicesHeading: "More to explore in {city}",
   },
   blog: {
-    listTitle: "Blog — Zavoia",
+    listTitle: "Zavoia Journal — Booking guides and product news",
     listDescription:
-      "Guides, tips and news about local services across Romania.",
+      "Guides for booking well, playbooks for the businesses being booked, and what's new on Zavoia.",
     listHeading: "Blog",
     listIntro:
       "Guides, tips and news about local services across Romania.",
@@ -1965,6 +1975,7 @@ export const en: {
     catBusiness: "For business",
     catProduct: "Product news",
     breadcrumbJournal: "Journal",
+    byline: "By {author} from Zavoia",
     pageLabel: "Page",
     ofLabel: "of",
     prev: "Prev",
@@ -2389,7 +2400,7 @@ export const en: {
       filters: { label: "Filter tickets", all: "All", active: "Active", closed: "Closed", emptyTitle: "No tickets in this view", emptyBody: "Choose All to see your other conversations." },
       report: {
         title: "Report an issue",
-        sub: "We look into every report, usually within a few hours",
+        sub: "We look into every report",
         myTickets: "My tickets",
         openCount: "{count} open",
         openCountOne: "1 open",
@@ -2587,7 +2598,7 @@ export const en: {
     reviewsEmptyBody: "Be the first to book and share your experience.",
     servicesEmptyTitle: "No services yet",
     servicesEmptyBody:
-      "This location hasn't published its menu. Try calling them directly.",
+      "This location hasn't published its list of services. Try calling them directly.",
     aboutBrand: "Brand",
   },
   brandPage: {
@@ -2601,6 +2612,8 @@ export const en: {
     since: "Since {year}",
     viewLocation: "View & book",
     worksAt: "at {location}",
+    metaTitle: "{name}: locations",
+    metaDescription: "{name} on Zavoia: all its locations in one place.",
   },
   booking: {
     stepServicesTitle: "Choose services",
@@ -3097,7 +3110,7 @@ export const en: {
     close: "Close",
   },
   legal: {
-    hubTitle: "Legal — Terms & Policies",
+    hubTitle: "Terms and policies",
     hubDescription:
       "Zavoia's legal documents: terms of use, customer and business terms, booking, privacy and cookie policies.",
     hubKicker: "Legal",
@@ -3112,6 +3125,7 @@ export const en: {
       "This document is a draft outline under legal review. It describes the structure of the final document and is not yet a binding agreement.",
     onThisPage: "On this page",
     backToLegal: "All terms & policies",
+    breadcrumbLabel: "Breadcrumb",
     lastUpdated: "Last updated",
     readDocument: "Read document",
     statusDraft: "Draft",
@@ -3223,7 +3237,7 @@ export const en: {
     "previewLabel": "Sample website preview",
   },
   webStudio: {
-    "pageTitle": "Web Studio: your own website, connected to Zavoia",
+    "pageTitle": "Web Studio: a website builder for your business",
     "pageDescription": "Create a website with your Zavoia services, prices, team and photos. Explore designs, prepare your draft during the trial and publish with Plus.",
     "hero": {
       "titleLead": "A website that feels",
@@ -3441,9 +3455,9 @@ export const en: {
     },
   },
   forBusiness: {
-    pageTitle: "For business: get found and booked online",
+    pageTitle: "Online booking software for local businesses",
     pageDescription:
-      "List your business on Zavoia and take online bookings from clients nearby. One calendar for your locations and team, email reminders, and no commission on bookings. Try it free for {days}.",
+      "No booking commission. Try it free for {days}. List your business on Zavoia, take online bookings from clients nearby and manage your team in one calendar.",
     hero: {
       titleLead: "Get found.",
       titlePre: "Get ",
@@ -3943,14 +3957,15 @@ export const en: {
   },
   help: {
     pageTitle: "Help centre",
+    metaTitle: "Help with bookings, payments and accounts",
     pageDescription:
       "Answers to the questions people ask us most about booking, paying, and managing appointments on Zavoia.",
     head: {
       kicker: "Help centre",
       title: "What do you need a hand with?",
-      sub: "Plain answers to the things people ask us most — open any question to read it right here, no digging required.",
+      sub: "Find answers about bookings, payments and your Zavoia account.",
     },
-    searchPlaceholder: "Search questions — cancel, deposit, reschedule…",
+    searchPlaceholder: "Search questions — cancel, reschedule, payment…",
     allLabel: "All",
     resultsLabel: "results for",
     noResults: "No questions matched. Try different words.",
@@ -3962,11 +3977,11 @@ export const en: {
         items: [
           {
             q: "How do I book an appointment?",
-            a: "Search, pick a service and a time, and confirm — no payment needed up front.",
+            a: "Choose a service and an available time, then sign in or create a Zavoia account to send your booking. Depending on the business, it is confirmed right away or after the business reviews it.",
           },
           {
             q: "Can I reschedule or cancel?",
-            a: "Yes — free up to the venue's cancellation window, usually 24 hours before your appointment.",
+            a: "If the business allows it, you can reschedule or cancel from your appointment in Zavoia, up to the deadline the business sets. After that, or if the option isn't shown, contact the business directly.",
           },
         ],
       },
@@ -3977,11 +3992,11 @@ export const en: {
         items: [
           {
             q: "When and how do I pay?",
-            a: "You pay the business directly after your visit. Zavoia never charges your card just to book.",
+            a: "You pay the business directly at your visit. Zavoia doesn't take payment for appointments.",
           },
           {
             q: "How do refunds work?",
-            a: "Because you pay the venue directly, refunds are handled by the venue according to their policy.",
+            a: "Because you pay the business directly, refunds are handled by the business under its own policy.",
           },
         ],
       },
@@ -3992,7 +4007,7 @@ export const en: {
         items: [
           {
             q: "Can I manage reminders and notifications?",
-            a: "Yes — choose which reminders and offers you receive from your profile settings.",
+            a: "Yes. In your account, choose whether you receive appointment reminders and marketing messages, and whether they come by push, SMS or email.",
           },
         ],
       },
@@ -4013,8 +4028,8 @@ export const en: {
         label: "Trust & safety",
         items: [
           {
-            q: "What does a verified business mean?",
-            a: "Every business on Zavoia is identity-checked before it can accept appointments.",
+            q: "Are reviews written by real customers?",
+            a: "Yes. Only customers with a completed appointment can leave a review.",
           },
         ],
       },
@@ -4025,7 +4040,7 @@ export const en: {
         items: [
           {
             q: "How do I list my business?",
-            a: "Zavoia for Business gives every team member a public profile, a self-protecting calendar, and reminders that cut no-shows. Start a free trial from the For business page.",
+            a: "Create a business account and start the free trial. Add your location, services and team, publish your page on Zavoia, and switch on online booking when you're ready.",
           },
         ],
       },
@@ -4040,7 +4055,7 @@ export const en: {
     },
     report: {
       title: "Report an issue",
-      sub: "We look into every report, usually within a few hours.",
+      sub: "We look into every report.",
       cta: "Report an issue",
       modal: {
         title: "Report an issue",
@@ -4059,7 +4074,7 @@ export const en: {
           "You've sent a few reports recently. Please wait a while and try again.",
         success: {
           title: "Thanks — we got your report",
-          body: "Our team looks into every report, usually within a few hours. We'll reply to {email}.",
+          body: "Our team looks into every report. We'll reply to {email}.",
           reference: "Reference",
           done: "Done",
         },
@@ -4144,7 +4159,7 @@ export const en: {
       offerFirst: "Create your website.",
       offerSecond: "Take appointments online.",
       businessDescription: "Show your services, prices and team. Manage your appointments and website in one place.",
-      trialDetail: "{days} days free on Standard. No card required.",
+      trialDetail: "{days} days free on Base. No card required.",
       websiteDetail: "Website publishing is included with Plus.",
       how: "See how it works",
       lost: "lost",

@@ -8,7 +8,7 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
-import { DEFAULT_SOCIAL_IMAGE, SITE_URL } from "@/lib/site";
+import { SITE_URL, defaultSocialImage } from "@/lib/site";
 import { HomeContent, type FeedResult } from "@/app/_components/home-content";
 import {
   getBrands,
@@ -96,13 +96,13 @@ export async function generateMetadata({
       alternateLocale: LOCALES.filter((l) => l !== locale).map(
         (l) => OPEN_GRAPH_LOCALES[l],
       ),
-      images: [DEFAULT_SOCIAL_IMAGE],
+      images: [defaultSocialImage(locale)],
     },
     twitter: {
       card: "summary_large_image",
       title: dict.home.title,
       description: dict.home.description,
-      images: [DEFAULT_SOCIAL_IMAGE],
+      images: [defaultSocialImage(locale)],
     },
   };
 }

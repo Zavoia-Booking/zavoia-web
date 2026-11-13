@@ -9,7 +9,7 @@ import { BRAND_ACCENT_CATALOG, FONT_CATALOG } from "@/features/website/component
 import { MarketingFaq } from "@/app/_components/for-business/faq-section";
 import { TeamSeatPrice } from "@/app/_components/for-business/team-seat-price";
 import { registrationHref, SIGN_IN_URL } from "@/app/_components/for-business/links";
-import { caveat } from "@/styles/fonts";
+import { preloadSignatureFont } from "@/app/_components/for-business/signature-font";
 import m from "@/app/_components/for-business/marketing.module.css";
 import { WebStudioHero } from "./web-studio-hero";
 import { ConnectedArt, StoryConnectors } from "./connected-art";
@@ -25,8 +25,9 @@ export function WebStudioContent({ locale, pending = false }: { locale: Locale; 
   const values = { days: String(pricing.trialDays) };
   const demoHref = localeHref(locale, "web-studio", "demo");
   const signupHref = registrationHref(locale);
+  preloadSignatureFont();
   return (
-    <div className={`${styles.page} ${caveat.variable}`} data-web-studio="" data-locale={locale}>
+    <div className={styles.page} data-web-studio="" data-locale={locale}>
       <WebStudioHero locale={locale} hero={t.hero} showcase={t.showcase} industries={dictionaries[locale].industries} exampleNote={dictionaries[locale].marketingExamples.websites} pending={pending} />
 
       <section className={styles.connected} aria-labelledby="connected-title" data-studio-connected="">

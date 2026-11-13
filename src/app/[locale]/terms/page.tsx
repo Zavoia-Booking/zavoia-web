@@ -9,6 +9,7 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
+import { socialMetadata } from "@/lib/site";
 import { Icon, Kicker } from "@/components/ui";
 import {
   LEGAL_AUDIENCE_ORDER,
@@ -42,6 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         "x-default": localeHref(DEFAULT_LOCALE, "terms"),
       },
     },
+    ...socialMetadata(locale, localeHref(locale, "terms"), dict.legal.hubTitle, dict.legal.hubDescription),
   };
 }
 

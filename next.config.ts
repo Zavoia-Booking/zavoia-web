@@ -7,6 +7,16 @@ const nextConfig: NextConfig = {
   experimental: {
     globalNotFound: true,
   },
+  async headers() {
+    return [
+      {
+        // The handwriting font (src/styles/globals.css). public/ files default
+        // to max-age=0; these never change under the same name.
+        source: "/fonts/caveat/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       ...publicImagePatterns,

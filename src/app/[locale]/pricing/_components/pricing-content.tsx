@@ -6,7 +6,7 @@ import { format, formatCount } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { Icon } from "@/components/ui/icon";
 import { formatPrice, getPlanPricing } from "@/lib/marketing/pricing";
-import { caveat } from "@/styles/fonts";
+import { preloadSignatureFont } from "@/app/_components/for-business/signature-font";
 import { PlanCards } from "@/app/_components/for-business/plan-cards";
 import { TeamSeatPrice } from "@/app/_components/for-business/team-seat-price";
 import { MarketingFaq } from "@/app/_components/for-business/faq-section";
@@ -25,9 +25,10 @@ export function PricingContent({ locale }: { locale: Locale }) {
   const days = formatCount(pricing.trialDays, locale, b.counts.days);
   const baseTeamMembers = formatCount(pricing.teamMemberLimits.base, locale, b.counts.teamMembers);
   const values = { days, seat: formatPrice(pricing.teamMember, pricing.currency), baseTeamMembers };
+  preloadSignatureFont();
 
   return (
-    <main className={clsx(caveat.variable, styles.page)} data-pricing-page="">
+    <main className={styles.page} data-pricing-page="">
       <section className={styles.opening} aria-labelledby="pricing-title">
         <div className="zw-container">
           <header className={styles.head}>

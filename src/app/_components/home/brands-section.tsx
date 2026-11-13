@@ -9,9 +9,12 @@ import { BusinessOverlayCard, type BusinessCardData } from "@/components/busines
 // customers save locations and people only). Cards are pre-mapped on the
 // server and, until the dedicated brand page exists, link to each brand's
 // primary location page. Styling mirrors the "Fresh on Zavoia" section.
+// With no brands yet the section is left out, as the website showcase is.
 export function BrandsSection({ cards }: { cards: BusinessCardData[] }) {
   const { locale, dict } = useTranslation();
   const s = dict.homeSections.brands;
+
+  if (cards.length === 0) return null;
 
   return (
     <section className="zw-container" style={{ paddingTop: 60 }}>
@@ -20,27 +23,18 @@ export function BrandsSection({ cards }: { cards: BusinessCardData[] }) {
         action={s.action}
         href={localeHref(locale, "search")}
       />
-      {cards.length === 0 ? (
-        <p
-          className="txt-pretty"
-          style={{ fontSize: 15, color: "var(--c-600)", maxWidth: 460 }}
-        >
-          {s.empty}
-        </p>
-      ) : (
-        <div
+      <div
 
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(min(232px, 100%), 1fr))",
-            gap: 18,
-          }}
-        >
-          {cards.map((b) => (
-            <BusinessOverlayCard key={b.id} b={b} />
-          ))}
-        </div>
-      )}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(min(232px, 100%), 1fr))",
+          gap: 18,
+        }}
+      >
+        {cards.map((b) => (
+          <BusinessOverlayCard key={b.id} b={b} />
+        ))}
+      </div>
     </section>
   );
 }

@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/site";
 
 // Shared node ids: location pages and the homepage describe these same entities.
 const organizationId = `${SITE_URL}/#organization`;
-const websiteId = `${SITE_URL}/#website`;
+export const websiteId = `${SITE_URL}/#website`;
 const merchantId = (businessId: number) => `${SITE_URL}/#business-${businessId}`;
 
 function text(value: unknown): string | undefined {
@@ -15,7 +15,7 @@ function text(value: unknown): string | undefined {
 }
 
 /** Zavoia and its website, exactly as the homepage and location pages describe them. */
-function siteEntities() {
+export function siteEntities() {
   return [
     {
       "@type": "Organization",
@@ -138,8 +138,9 @@ export function professionalStructuredData(
 }
 
 /**
- * The visible post: its headline, summary, publication date and cover. Sanity
- * holds no author or significant-modification date, so neither is claimed.
+ * The visible post: its headline, summary, byline, publication date and cover.
+ * The author is the name in the visible byline; Zavoia stays the publisher.
+ * Sanity holds no significant-modification date, so none is claimed.
  */
 export function blogPostStructuredData(post: {
   locale: Locale;
@@ -148,6 +149,7 @@ export function blogPostStructuredData(post: {
   description?: string;
   datePublished: string;
   image?: string;
+  author: string;
 }) {
   const headline = text(post.headline);
   if (!headline) return null;
@@ -163,6 +165,7 @@ export function blogPostStructuredData(post: {
         "@id": `${pageUrl}#article`,
         headline,
         ...(description && { description }),
+        author: { "@type": "Person", name: post.author, worksFor: { "@id": organizationId } },
         datePublished: post.datePublished,
         ...(image && { image: [image] }),
         inLanguage: post.locale,

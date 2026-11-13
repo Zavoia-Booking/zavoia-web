@@ -6,7 +6,7 @@ import { format, formatCount } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
 import { getPlanPricing } from "@/lib/marketing/pricing";
 import { ClosingArtwork } from "./closing-artwork";
-import { REGISTER_URL, SIGN_IN_URL } from "./links";
+import { registrationHref, SIGN_IN_URL } from "./links";
 import m from "./marketing.module.css";
 import styles from "./closing-section.module.css";
 
@@ -57,7 +57,7 @@ export function MarketingClosing({
           <p className={styles.lead}>{lead}</p>
 
           <div className={styles.actions}>
-            <a className={clsx(m.button, styles.trial)} href={REGISTER_URL}>
+            <a className={clsx(m.button, styles.trial)} href={registrationHref(locale)}>
               <span>{trialLabel}</span>
               <span className={styles.arrowWell} aria-hidden="true"><Icon name="arrowR" size={18} /></span>
             </a>

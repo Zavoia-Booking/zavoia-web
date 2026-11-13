@@ -12,10 +12,17 @@ function compareEntries(a: TaxonomyView, b: TaxonomyView): number {
 }
 
 /**
- * Only advertise city/category pages supported by searchable inventory.
- * The sitemap feed's category metadata shares the public search index. Missing
- * metadata is not evidence of inventory, and a visitor's location or a country
- * fallback must never supply that evidence.
+ * A city × category page is indexed, linked and listed in the sitemap from this
+ * many listings. With one, it would only repeat that business's own page.
+ */
+export const MIN_LISTINGS_TO_INDEX = 2;
+
+/**
+ * Only advertise city/category pages supported by searchable inventory: at
+ * least MIN_LISTINGS_TO_INDEX locations. The sitemap feed's category metadata
+ * shares the public search index. Missing metadata is not evidence of
+ * inventory, and a visitor's location or a country fallback must never supply
+ * that evidence.
  */
 export function getCategoryDiscoveryGroups(
   locations: MarketplaceSitemap["locations"],
@@ -32,7 +39,8 @@ export function getCategoryDiscoveryGroups(
     [city.id, ...Object.values(city.name), ...Object.values(city.slug)]
       .map((alias) => [slugifyRo(alias), city.id] as const),
   ));
-  const eligible = new Map<string, Set<string>>();
+  // City → taxonomy entry → number of locations listing it.
+  const counts = new Map<string, Map<string, number>>();
 
   for (const location of locations) {
     const category = location.category;
@@ -40,7 +48,8 @@ export function getCategoryDiscoveryGroups(
     const cityId = cityByAlias.get(slugifyRo(category.city));
     if (!cityId) continue;
 
-    const entries = eligible.get(cityId) ?? new Set<string>();
+    // A set, so a location counts once per entry.
+    const entries = new Set<string>();
     const industry = category.industryId == null
       ? undefined
       : industryById.get(category.industryId);
@@ -49,15 +58,18 @@ export function getCategoryDiscoveryGroups(
       const tag = tagById.get(tagId);
       if (tag) entries.add(tag);
     }
-    if (entries.size) eligible.set(cityId, entries);
+    if (!entries.size) continue;
+    const cityCounts = counts.get(cityId) ?? new Map<string, number>();
+    for (const id of entries) cityCounts.set(id, (cityCounts.get(id) ?? 0) + 1);
+    counts.set(cityId, cityCounts);
   }
 
   // Configured city order and stable taxonomy identities keep navigation
   // independent of API result order and the locale's translated labels.
   return CITY_ENTRIES.flatMap((city) => {
-    const entries = [...(eligible.get(city.id) ?? [])]
-      .flatMap((id) => {
-        const entry = taxonomyById.get(id);
+    const entries = [...(counts.get(city.id) ?? [])]
+      .flatMap(([id, count]) => {
+        const entry = count >= MIN_LISTINGS_TO_INDEX ? taxonomyById.get(id) : undefined;
         return entry ? [entry] : [];
       })
       .sort(compareEntries);

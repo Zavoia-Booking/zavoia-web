@@ -1,6 +1,8 @@
 export interface BlogMetaProps {
   date: string;
   read: string;
+  /** Byline before the date, on the article page only. */
+  author?: string;
   size?: number;
   color?: string;
   dot?: string;
@@ -10,6 +12,7 @@ export interface BlogMetaProps {
 export function BlogMeta({
   date,
   read,
+  author,
   size = 13.5,
   color = "var(--c-600)",
   dot = "var(--c-400)",
@@ -28,7 +31,16 @@ export function BlogMeta({
         color,
       }}
     >
-      <span style={{ whiteSpace: "nowrap" }}>{date}</span>
+      {author && <span style={{ whiteSpace: "nowrap" }}>{author}</span>}
+      <span style={author ? { display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" } : { whiteSpace: "nowrap" }}>
+        {author && (
+          <span
+            aria-hidden="true"
+            style={{ width: 3, height: 3, flexShrink: 0, borderRadius: "50%", background: dot }}
+          />
+        )}
+        {date}
+      </span>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
         <span
           aria-hidden="true"

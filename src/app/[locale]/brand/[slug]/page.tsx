@@ -1,9 +1,10 @@
 import { dictionaries } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { DEFAULT_SOCIAL_IMAGE, OPEN_GRAPH_LOCALES, SITE_URL } from "@/lib/site";
+import { OPEN_GRAPH_LOCALES, SITE_URL, defaultSocialImage } from "@/lib/site";
 import { ApiError } from "@/lib/api/http";
 import { getBrand } from "@/lib/api/marketplace/public";
 import { BRAND_TAG, brandTag } from "@/lib/cache/tags";
@@ -36,29 +37,39 @@ const BRAND_CACHE = (slug: string) => ({
   tags: [BRAND_TAG, brandTag(slug)],
 });
 
+/**
+ * The brand's one address: its short address when it has one, else its
+ * number. The page answers on both, and the number points here.
+ */
+function brandPath(locale: Locale, brand: Pick<BrandDetailData, "slug" | "businessId">): string {
+  return localeHref(locale, "brand", encodeURIComponent(brand.slug?.trim() || String(brand.businessId)));
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug } = await params;
   if (!isLocale(locale) || !slug) return {};
   try {
     const brand = await getBrand(slug, BRAND_CACHE(slug));
+    const t = dictionaries[locale].brandPage;
 
-    const title = brand.name;
-    const description = brand.description ?? undefined;
+    const title = format(t.metaTitle, { name: brand.name });
+    // Without the owner's own text, say only what the page shows.
+    const description = brand.description?.trim() || format(t.metaDescription, { name: brand.name });
     const image = brand.logo?.trim();
     // A logo suits the compact card; without one, the shared brand artwork.
-    const socialImage = image ? { url: image, alt: title } : DEFAULT_SOCIAL_IMAGE;
+    const socialImage = image ? { url: image, alt: brand.name } : defaultSocialImage(locale);
 
     // One canonical per locale, the pair declared as alternates — see the
     // business detail route for the reasoning.
     const languages = Object.fromEntries(
-      LOCALES.map((l) => [l, localeHref(l, "brand", slug)]),
+      LOCALES.map((l) => [l, brandPath(l, brand)]),
     ) as Record<Locale, string>;
 
     return {
       title,
       description,
       alternates: {
-        canonical: localeHref(locale, "brand", slug),
+        canonical: brandPath(locale, brand),
         languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] },
       },
       openGraph: {
@@ -66,7 +77,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         siteName: "Zavoia",
         title,
         description,
-        url: `${SITE_URL}${localeHref(locale, "brand", slug)}`,
+        url: `${SITE_URL}${brandPath(locale, brand)}`,
         locale: OPEN_GRAPH_LOCALES[locale],
         alternateLocale: LOCALES.filter((language) => language !== locale).map((language) => OPEN_GRAPH_LOCALES[language]),
         images: [socialImage],
@@ -107,7 +118,7 @@ export default async function BrandPage({ params }: Props) {
   }
 
   // The canonical path, exactly as generateMetadata declares it.
-  const jsonLd = brandStructuredData(brand, locale, localeHref(locale, "brand", slug));
+  const jsonLd = brandStructuredData(brand, locale, brandPath(locale, brand));
   return (
     <>
       {jsonLd && (

@@ -7,13 +7,14 @@ import {
 } from "@/i18n/locales";
 import { getPostBySlug, listPostSlugs, listPosts } from "@/sanity/queries";
 import { localeHref } from "@/i18n/routes";
-import { DEFAULT_SOCIAL_IMAGE, OPEN_GRAPH_LOCALES } from "@/lib/site";
+import { OPEN_GRAPH_LOCALES, defaultSocialImage } from "@/lib/site";
 import { urlForImage } from "@/sanity/image";
 import { dictionaries } from "@/i18n/dictionaries";
 import { getPostAlternates, getPostTranslation, selectRelated } from "@/lib/blog";
 import { LocaleRouteAlternates } from "@/i18n/locale-navigation";
 import type { PostListItem } from "@/sanity/types";
 import { BlogPost } from "@/app/_components/blog/blog-post";
+import { notFoundMetadata } from "@/app/_components/not-found/metadata";
 import { toBlogCardVM } from "@/app/_components/blog/vm";
 import type { BlogCardVM } from "@/app/_components/blog/types";
 
@@ -52,7 +53,7 @@ export async function generateMetadata({
   const { locale: localeParam, slug } = await params;
   if (!isLocale(localeParam)) return {};
   const post = await getPostBySlug(localeParam, slug);
-  if (!post) return {};
+  if (!post) return notFoundMetadata(localeParam);
 
   const title =
     post.seo?.title?.[localeParam] || post.title[localeParam] || "";
@@ -71,7 +72,7 @@ export async function generateMetadata({
         url: urlForImage(post.coverImage).width(1200).height(630).url(),
         alt: post.coverImage.alt || post.title[localeParam] || title,
       }
-    : DEFAULT_SOCIAL_IMAGE;
+    : defaultSocialImage(localeParam);
 
   return {
     title,
@@ -85,6 +86,7 @@ export async function generateMetadata({
       description,
       url: canonical,
       type: "article",
+      siteName: "Zavoia",
       locale: OPEN_GRAPH_LOCALES[localeParam],
       // Only languages this post is translated into are alternates.
       alternateLocale: LOCALES.filter((language) => language !== localeParam && languages[language])

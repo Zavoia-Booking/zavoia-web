@@ -10,8 +10,8 @@ import { useTranslation } from "@/i18n/useTranslation";
  * Inline failure notice for a data-backed home band whose server-side fetch
  * failed — as opposed to one that succeeded with zero rows. Without this,
  * a failed band and a genuinely empty one are pixel-identical: both just
- * vanish (CategoryRail/EditorsPick return null; BrandsSection's own "empty"
- * copy is for a real empty result, not an outage) and a backend hiccup on
+ * vanish (CategoryRail/EditorsPick/BrandsSection return null for a real
+ * empty result, not an outage) and a backend hiccup on
  * the highest-traffic page reads as "we have nothing here".
  *
  * `router.refresh()` re-runs the page's server components — including the

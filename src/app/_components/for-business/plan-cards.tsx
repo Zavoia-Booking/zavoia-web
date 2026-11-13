@@ -6,7 +6,7 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { format, formatCount } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { formatPrice, getPlanPricing, type PlanId } from "@/lib/marketing/pricing";
-import { REGISTER_URL, registrationHref, TrialLink } from "./links";
+import { registrationHref, TrialLink } from "./links";
 import { PricingSignupLink } from "./pricing-signup-link";
 import { PlanArtwork } from "./plan-artwork";
 import { TeamSeatPrice } from "./team-seat-price";
@@ -53,11 +53,11 @@ export function PlanCards({
               {id === "plus" ? <span className={styles.arrowWell} aria-hidden="true"><Icon name="arrowR" size={18} /></span> : <Icon name="arrowR" size={16} />}
             </PricingSignupLink>
           ) : id === "plus" ? (
-            <a href={REGISTER_URL} className={actionClass}>
+            <a href={registrationHref(locale)} className={actionClass}>
               <span>{trialCta}</span>
               <span className={styles.arrowWell} aria-hidden="true"><Icon name="arrowR" size={18} /></span>
             </a>
-          ) : <TrialLink label={trialCta} tone="line" arrow className={styles.trial} />}
+          ) : <TrialLink label={trialCta} tone="line" arrow className={styles.trial} locale={locale} />}
           <p className={styles.trialNote}>{t.trialNotes[id]}</p>
         </div>
       );

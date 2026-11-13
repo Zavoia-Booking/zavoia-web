@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import type { Post } from "@/sanity/types";
 import { dictionaries } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
-import { categoryLabelKey, formatReadingTime, readingMinutes } from "@/lib/blog";
+import { BLOG_AUTHOR, categoryLabelKey, formatReadingTime, readingMinutes } from "@/lib/blog";
 import { urlForImage } from "@/sanity/image";
 import { blogPostStructuredData, serializeJsonLd } from "@/lib/seo/page-structured-data";
 import { Img } from "@/components/ui/image";
@@ -67,14 +68,16 @@ export function BlogPost({
         }
       : null;
   const postSlug = post.slug[locale]?.current;
-  const articleJsonLd = postSlug
+  const postPath = postSlug ? localeHref(locale, "blog", postSlug) : undefined;
+  const articleJsonLd = postPath
     ? blogPostStructuredData({
         locale,
-        path: localeHref(locale, "blog", postSlug),
+        path: postPath,
         headline: title,
         description: excerpt,
         datePublished: post.publishedAt,
         image: cover,
+        author: BLOG_AUTHOR,
       })
     : null;
   return (
@@ -109,8 +112,8 @@ export function BlogPost({
                 <h1 className={`txt-balance ${styles.title}`}>{title}</h1>
                 {excerpt && <p className={`txt-pretty ${styles.excerpt}`}>{excerpt}</p>}
                 <div className={styles.metadata}>
-                  <BlogMeta date={dateLabel} read={formatReadingTime(minutes, locale)} />
-                  <ArticleActions title={title} />
+                  <BlogMeta author={format(dict.blog.byline, { author: BLOG_AUTHOR })} date={dateLabel} read={formatReadingTime(minutes, locale)} />
+                  <ArticleActions title={title} path={postPath} />
                 </div>
               </div>
               {cover && <figure className={styles.cover}>

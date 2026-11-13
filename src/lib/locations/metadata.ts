@@ -7,7 +7,7 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import type { ListingDetail } from "@/lib/api/marketplace/types";
 import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { getConfiguredCity } from "@/lib/seo/location-category";
-import { DEFAULT_SOCIAL_IMAGE, OPEN_GRAPH_LOCALES, SITE_URL } from "@/lib/site";
+import { OPEN_GRAPH_LOCALES, SITE_URL, defaultSocialImage } from "@/lib/site";
 import { locationHref, locationIdentity, locationTitle } from "./identity";
 
 /** About this many title characters show in results; the site suffix may be cut. */
@@ -60,7 +60,7 @@ export function locationMetadata(listing: ListingDetail, locale: Locale): Metada
     .find(Boolean);
   const logo = listing.logo?.trim();
   const image = photo || logo;
-  const socialImage = image ? { url: image, alt: title } : DEFAULT_SOCIAL_IMAGE;
+  const socialImage = image ? { url: image, alt: title } : defaultSocialImage(locale);
 
   return {
     title,

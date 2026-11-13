@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { DEFAULT_SOCIAL_IMAGE, OPEN_GRAPH_LOCALES } from "@/lib/site";
+import { socialMetadata } from "@/lib/site";
 
 /** Indexable metadata for a business marketing page, in both languages. */
 export function businessPageMetadata(
@@ -22,21 +22,6 @@ export function businessPageMetadata(
       canonical,
       languages: { ...languages, "x-default": localeHref(DEFAULT_LOCALE, segment) },
     },
-    openGraph: {
-      title,
-      description,
-      url: canonical,
-      type: "website",
-      siteName: "Zavoia",
-      locale: OPEN_GRAPH_LOCALES[locale],
-      alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => OPEN_GRAPH_LOCALES[l]),
-      images: [DEFAULT_SOCIAL_IMAGE],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [DEFAULT_SOCIAL_IMAGE],
-    },
+    ...socialMetadata(locale, canonical, title, description),
   };
 }

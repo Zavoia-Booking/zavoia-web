@@ -90,8 +90,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const homeEntries: MetadataRoute.Sitemap = LOCALES.map((locale) => ({
     url: abs(localeHref(locale)),
-    changeFrequency: "weekly",
-    priority: 1,
     alternates: {
       languages: {
         ...homeLanguages,
@@ -105,8 +103,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
   const industryDirectoryEntries: MetadataRoute.Sitemap = LOCALES.map((locale) => ({
     url: abs(localeHref(locale, "industries")),
-    changeFrequency: "weekly",
-    priority: 0.7,
     alternates: {
       languages: {
         ...industryDirectoryLanguages,
@@ -122,8 +118,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ) as Record<Locale, string>;
     return LOCALES.map((locale) => ({
       url: languages[locale],
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
       alternates: { languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] } },
     }));
   });
@@ -134,8 +128,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const blogIndexEntries: MetadataRoute.Sitemap = LOCALES.map((locale) => ({
     url: abs(localeHref(locale, "blog")),
-    changeFrequency: "weekly",
-    priority: 0.7,
     alternates: {
       languages: {
         ...blogIndexLanguages,
@@ -158,8 +150,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       entries.push({
         url: abs(path),
         lastModified: new Date(post.publishedAt),
-        changeFrequency: "monthly",
-        priority: 0.6,
         alternates: {
           languages: {
             ...languages,
@@ -178,8 +168,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const legalEntries: MetadataRoute.Sitemap = [
     ...LOCALES.map((locale) => ({
       url: abs(localeHref(locale, "terms")),
-      changeFrequency: "monthly" as const,
-      priority: 0.4,
       alternates: {
         languages: {
           ...legalHubLanguages,
@@ -187,15 +175,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     })),
+    // Draft documents are noindex until published, so they stay out of the sitemap.
     ...LOCALES.flatMap((locale) =>
-      LEGAL_DOCUMENTS.map((doc) => {
+      LEGAL_DOCUMENTS.filter((doc) => doc.status === "published").map((doc) => {
         const languages = Object.fromEntries(
           LOCALES.map((l) => [l, abs(localeHref(l, "terms", doc.slug))]),
         ) as Record<Locale, string>;
         return {
           url: abs(localeHref(locale, "terms", doc.slug)),
-          changeFrequency: "monthly" as const,
-          priority: 0.3,
           alternates: {
             languages: {
               ...languages,
@@ -216,8 +203,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const localizedEntries = (
     entries: typeof marketplace.locations,
     toPath: (locale: Locale, slug: string) => string,
-    priority: number,
-    changeFrequency: "daily" | "weekly" | "monthly",
     includeLastModified = true,
   ): MetadataRoute.Sitemap =>
     entries.flatMap((entry) => {
@@ -229,8 +214,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       return LOCALES.map((locale) => ({
         url: abs(toPath(locale, entry.slug)),
         ...(includeLastModified ? { lastModified: new Date(entry.updatedAt) } : {}),
-        changeFrequency,
-        priority,
         alternates: {
           languages: {
             ...languages,
@@ -244,8 +227,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const listingEntries = localizedEntries(
     marketplace.locations,
     (locale, slug) => localeHref(locale, "business", slug),
-    0.9,
-    "weekly",
     // The location row does not establish the last significant change across
     // all of its services, team and brand data. Omit an unproven page timestamp.
     false,
@@ -254,15 +235,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const brandEntries = localizedEntries(
     marketplace.brands,
     (locale, slug) => localeHref(locale, "brand", slug),
-    0.7,
-    "weekly",
   );
 
   const websiteEntries = localizedEntries(
     marketplace.websites,
     (locale, slug) => localeHref(locale, slug),
-    0.8,
-    "weekly",
   );
 
   const professionalEntries: MetadataRoute.Sitemap = (marketplace.professionals ?? []).flatMap(({ uuid }) => {

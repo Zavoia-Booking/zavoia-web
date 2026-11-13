@@ -127,9 +127,10 @@ export type TaxonomyView = {
  * Romanian URL segment for a taxonomy entry, derived from its `nameRo`.
  *
  * The backend stores ONE canonical slug (English) plus a Romanian display name,
- * so the Romanian segment has to be derived. Diacritics are folded the same way
- * admin-api's own slug helper folds them, which is what keeps "Frizerie" and
- * "frizerie" resolving to one URL.
+ * so the Romanian segment has to be derived. Romanian diacritics are folded the
+ * same way admin-api's own slug helper folds them, which is what keeps
+ * "Frizerie" and "frizerie" resolving to one URL. Other Latin letters that NFD
+ * keeps whole (ß, ł, ø…) are folded here too; the API helper drops them.
  *
  * Caveat worth knowing: this makes the RO segment a function of `nameRo`, so
  * editing that column changes a live URL. Renames therefore need a redirect
@@ -144,9 +145,16 @@ export function slugifyRo(value: string): string {
     .replace(/[șş]/gi, "s")
     .replace(/[țţ]/gi, "t")
     .toLowerCase()
+    // Latin letters NFD does not decompose. Without these, a city or service
+    // in another language would lose the letter (Gießen, Łódź, Ærø).
+    .replace(/[ßæœøłđðıþ]/g, (letter) => UNDECOMPOSED_LATIN[letter])
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+const UNDECOMPOSED_LATIN: Readonly<Record<string, string>> = {
+  ß: "ss", æ: "ae", œ: "oe", ø: "o", ł: "l", đ: "d", ð: "d", ı: "i", þ: "th",
+};
 
 function localizedSlug(
   locale: Locale,
@@ -205,6 +213,25 @@ export function taxonomyDisplayName(
   return source
     ? taxonomyLabel(source, locale, entry.kind === "industry" ? labels.industries : labels.industryTags)
     : entry.name;
+}
+
+/** Slug of the catch-all industry. */
+const OTHER_INDUSTRY_SLUG = "other";
+
+/**
+ * The category's name in search titles and descriptions. The catch-all
+ * industry's directory label would make "Other in Bucharest", so it reads
+ * "Other services" there; links and headings keep the directory label.
+ */
+export function categorySearchName(
+  entry: TaxonomyView,
+  industries: Industry[],
+  locale: Locale,
+  labels: Parameters<typeof taxonomyDisplayName>[3] & { category: { otherIndustryName: string } },
+): string {
+  return entry.kind === "industry" && entry.industrySlug === OTHER_INDUSTRY_SLUG
+    ? labels.category.otherIndustryName
+    : taxonomyDisplayName(entry, industries, locale, labels);
 }
 
 /** Industry-level entries for navigation that excludes individual services. */

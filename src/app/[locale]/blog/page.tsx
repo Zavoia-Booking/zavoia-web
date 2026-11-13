@@ -8,7 +8,7 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
-import { DEFAULT_SOCIAL_IMAGE, OPEN_GRAPH_LOCALES } from "@/lib/site";
+import { OPEN_GRAPH_LOCALES, defaultSocialImage } from "@/lib/site";
 import { listPosts } from "@/sanity/queries";
 import { BlogList } from "@/app/_components/blog/blog-list";
 import { toBlogCardVM } from "@/app/_components/blog/vm";
@@ -53,13 +53,13 @@ export async function generateMetadata({
       siteName: "Zavoia",
       locale: OPEN_GRAPH_LOCALES[locale],
       alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => OPEN_GRAPH_LOCALES[l]),
-      images: [DEFAULT_SOCIAL_IMAGE],
+      images: [defaultSocialImage(locale)],
     },
     twitter: {
       card: "summary_large_image",
       title: dict.blog.listTitle,
       description: dict.blog.listDescription,
-      images: [DEFAULT_SOCIAL_IMAGE],
+      images: [defaultSocialImage(locale)],
     },
   };
 }

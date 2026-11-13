@@ -1,8 +1,8 @@
 # Self-hosted font assets
 
-This directory contains unchanged WOFF2 binaries for the 13 Web Studio display families previously requested from Google Fonts at runtime. `manifest.json` records exact Fontsource package versions, tarball URLs and integrity, file SHA-256 checksums, upstream versions, original licence notices, and the preserved CSS Unicode ranges.
+`public/fonts/web-studio/` contains unchanged WOFF2 binaries for the 13 Web Studio display families previously requested from Google Fonts at runtime. Its `manifest.json` records exact Fontsource package versions, tarball URLs and integrity, file SHA-256 checksums, upstream versions, original licence notices, and the preserved CSS Unicode ranges.
 
-Geist and Geist Mono are declared in `src/styles/fonts.ts` through `next/font/google`: Next.js fetches them at build time and serves the generated font files from the app origin. Their exact generated version and filenames depend on the build; this manifest does not present installed Fontsource files as their runtime assets. Their original family licence notices are included under `bundledFamilies`. Caveat is an existing local marketing accent whose repository file checksums are recorded there. These three families’ binaries are not duplicated here. The `index.html` licence index is publicly accessible at `/fonts/web-studio/index.html`.
+Geist and Geist Mono are declared in `src/styles/fonts.ts` through `next/font/google`: Next.js fetches them at build time and serves the generated font files from the app origin. Their exact generated version and filenames depend on the build; this manifest does not present installed Fontsource files as their runtime assets. Their original family licence notices are included under `bundledFamilies`. Caveat is an existing local marketing accent whose repository file checksums are recorded there. These three families’ binaries are not duplicated there. The `index.html` licence index is publicly accessible at `/fonts/web-studio/index.html`.
 
 ## Loading and coverage
 

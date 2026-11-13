@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- Product captures use getImageProps, including images inside the scaled SVG scene. */
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
-import localFont from "next/font/local";
 import { getImageProps } from "next/image";
 import clsx from "clsx";
 import type { Locale } from "@/i18n/locales";
@@ -12,18 +11,8 @@ import { MarketingExampleNote } from "../marketing-example-note";
 import styles from "./editorial-bands.module.css";
 import studioActions from "./studio-actions.module.css";
 
-const caveat = localFont({
-  src: [
-    { path: "../../fonts/caveat-latin-700.woff2", weight: "700", style: "normal" },
-    { path: "../../fonts/caveat-latin-ext-700.woff2", weight: "700", style: "normal" },
-  ],
-  variable: "--font-home-caveat",
-  display: "swap",
-  preload: false,
-});
-
 const assets = "/images/homepage";
-const theme = clsx(styles.theme, caveat.variable);
+const theme = styles.theme;
 
 function Arrow() {
   return (

@@ -37,7 +37,7 @@
 .copy { align-self: center; position: relative; z-index: 2; padding-block: 60px; }
 .app-title { margin: 0; font-size: clamp(38px, 3.55vw, 54px); font-weight: 500; line-height: 1.085; letter-spacing: -.045em; }
 .headline-line { display: block; }
-.signature { display: inline-block; margin-inline: .025em .04em; color: var(--accent); font-family: var(--font-home-caveat), cursive; font-size: 1.25em; font-weight: 700; font-style: normal; line-height: .8; letter-spacing: -.035em; transform: rotate(-4deg); transform-origin: 50% 65%; }
+.signature { display: inline-block; margin-inline: .025em .04em; color: var(--accent); font-family: var(--font-caveat), cursive; font-size: 1.25em; font-weight: 700; font-style: normal; line-height: .8; letter-spacing: -.035em; transform: rotate(-4deg); transform-origin: 50% 65%; }
 .intro { max-width: 37ch; margin: 24px 0 32px; color: var(--body); font-size: 16px; line-height: 1.65; text-wrap: pretty; }
 .store-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .app-device-group { display: grid; min-width: 0; padding-bottom: 24px; }

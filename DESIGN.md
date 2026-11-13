@@ -1568,8 +1568,9 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   sections as links to the business app. For Business keeps its hero focused on
   the trial and pricing; returning-business sign-in remains in the closing band.
 - **Headlines:** the display H1 ends on one handwritten signature word: Caveat
-  700 from `fonts.ts` (`caveat.variable` on the page root, latin-ext for
-  Romanian), 1.2em, `--p-500`, rotated −4°. Closing bands may carry a second.
+  700 (`--font-caveat`, `@font-face` in `globals.css` from `public/fonts/caveat`,
+  latin-ext for Romanian; each business page calls `preloadSignatureFont()`),
+  1.2em, `--p-500`, rotated −4°. Closing bands may carry a second.
   The For Business hero uses a scoped two-line composition on desktop, with a
   smaller Romanian display scale and a deliberate three-line phone fallback.
   Give the signature a full line-height and descender clearance. Keep Next font

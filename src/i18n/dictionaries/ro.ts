@@ -65,7 +65,6 @@ export const ro: Dictionary = {
       kicker: "Descoperă",
       title: "Branduri",
       action: "Vezi toate",
-      empty: "Brandurile vor apărea aici în curând — revino.",
     },
     nearYou: {
       kicker: "Lângă tine",
@@ -156,7 +155,7 @@ export const ro: Dictionary = {
     resultsMany: "{count} domenii",
     noResultsTitle: "Niciun rezultat găsit",
     noResultsBody: "Încearcă un alt cuvânt sau șterge căutarea pentru a explora toate domeniile.",
-    pageTitle: "Explorează toate domeniile",
+    pageTitle: "Categorii de servicii locale",
     pageDescription: "Explorează domenii și servicii pe Zavoia. Găsește afaceri locale și fă-ți următoarea programare.",
     heading: "Toate domeniile",
     intro: "Alege un domeniu sau un serviciu pentru următoarea ta programare.",
@@ -169,7 +168,8 @@ export const ro: Dictionary = {
   category: {
     titleTemplate: "{industry} în {city}",
     descriptionTemplate:
-      "Descoperă {industryLower} în {city}. Vezi afacerile, compară servicii și prețuri și fă o programare pe Zavoia.",
+      "{industry} în {city}: compară afaceri locale, servicii și prețuri, apoi programează-te online pe Zavoia.",
+    otherIndustryName: "Alte servicii",
     heading: "{industry} în {city}",
     intro: "Vezi recenziile și programul de lucru, apoi descoperă serviciile, prețurile și opțiunile de programare.",
     resultsHeading: {
@@ -191,9 +191,9 @@ export const ro: Dictionary = {
     relatedServicesHeading: "Mai multe opțiuni în {city}",
   },
   blog: {
-    listTitle: "Blog — Zavoia",
+    listTitle: "Jurnalul Zavoia — Ghiduri și noutăți",
     listDescription:
-      "Ghiduri, sfaturi și noutăți despre serviciile locale din România.",
+      "Ghiduri pentru programări reușite, strategii pentru afacerile care primesc programări și ce e nou pe Zavoia.",
     listHeading: "Blog",
     listIntro:
       "Ghiduri, sfaturi și noutăți despre serviciile locale din România.",
@@ -203,7 +203,7 @@ export const ro: Dictionary = {
     kicker: "Jurnalul",
     heading: "Însemnări din vecinătate",
     intro:
-      "Ghiduri pentru programări reușite, strategii pentru businessurile care primesc programări și ce e nou pe Zavoia.",
+      "Ghiduri pentru programări reușite, strategii pentru afacerile care primesc programări și ce e nou pe Zavoia.",
     updatedWeekly: "Actualizat săptămânal",
     storiesLabel: "articole",
     latestStory: "Cel mai recent articol",
@@ -213,6 +213,7 @@ export const ro: Dictionary = {
     catBusiness: "Pentru afaceri",
     catProduct: "Noutăți produs",
     breadcrumbJournal: "Jurnal",
+    byline: "De {author} de la Zavoia",
     pageLabel: "Pagina",
     ofLabel: "din",
     prev: "Anterior",
@@ -263,7 +264,7 @@ export const ro: Dictionary = {
     businessSignIn: {
       title: "Zavoia Business",
       description: "Gestionează programările, clienții și echipa.",
-      cta: "Autentificare business",
+      cta: "Autentificare pentru afaceri",
     },
     terms: {
       agreementPrefix: "Sunt de acord cu",
@@ -348,14 +349,14 @@ export const ro: Dictionary = {
       heading: "Folosește contul tău Zavoia",
       emailLabel: "Emailul contului",
       explanation:
-        "Fă programări cu același cont Zavoia pe care îl folosești pentru business.",
+        "Fă programări cu același cont Zavoia pe care îl folosești pentru afacerea ta.",
       nextStep:
         "Solicită un link de confirmare pe email, apoi deschide-l ca să confirmi că ești tu.",
       sendLink: "Trimite linkul de confirmare",
       sending: "Se trimite linkul…",
       sentHeading: "Verifică emailul",
       sentBody:
-        "Dacă această adresă aparține unui cont de business care are nevoie de confirmare, caută linkul în email. Deschide-l ca să confirmi că ești tu și să faci programări.",
+        "Dacă această adresă aparține unui cont de afacere care are nevoie de confirmare, caută linkul în email. Deschide-l ca să confirmi că ești tu și să faci programări.",
       spamHint: "Verifică și folderul Spam.",
       alreadyRequestedHeading: "Există deja un link de confirmare",
       alreadyRequestedBody:
@@ -388,7 +389,7 @@ export const ro: Dictionary = {
       heading: "Activezi accesul în marketplace?",
       greeting: "Salut {name},",
       explanation:
-        "Contul tău Google este deja conectat la un cont de business Zavoia ({email}). Activează accesul în marketplace ca să poți căuta și rezerva servicii cu același cont — fără un cont nou.",
+        "Contul tău Google este deja conectat la un cont de afacere Zavoia ({email}). Activează accesul în marketplace ca să poți căuta și rezerva servicii cu același cont — fără un cont nou.",
       confirm: "Activează accesul în marketplace",
       confirming: "Se activează...",
       cancel: "Înapoi la autentificare",
@@ -444,7 +445,7 @@ export const ro: Dictionary = {
       limitReached: "Ai atins limita de linkuri noi. Încearcă din nou mai târziu.",
       unverifiedTitle: "Verifică-ți emailul",
       unverifiedBody:
-        "Ți-am trimis un link. Confirmă adresa de e-mail pentru a primi actualizări despre programări și mementouri.",
+        "Ți-am trimis un link. Confirmă adresa de e-mail pentru a primi actualizări despre programări și reamintiri.",
     },
     forgotPassword: {
       pageTitle: "Resetează-ți parola — Zavoia",
@@ -553,7 +554,7 @@ export const ro: Dictionary = {
       marketing: "Marketing",
       marketingCaption: "Primește noutăți despre promoții, oferte și funcții noi.",
       reminders: "Memento-uri",
-      remindersCaption: "Primește memento-uri despre programările tale viitoare.",
+      remindersCaption: "Primește reamintiri despre programările tale viitoare.",
       push: "Push",
       sms: "SMS",
       email: "Email",
@@ -641,7 +642,7 @@ export const ro: Dictionary = {
       filters: { label: "Filtrează tichetele", all: "Toate", active: "Active", closed: "Închise", emptyTitle: "Niciun tichet în această listă", emptyBody: "Alege Toate ca să vezi celelalte conversații." },
       report: {
         title: "Raportează o problemă",
-        sub: "Analizăm fiecare raport, de obicei în câteva ore",
+        sub: "Analizăm fiecare raport",
         myTickets: "Tichetele mele",
         openCount: "{count} deschise",
         openCountOne: "1 deschis",
@@ -775,7 +776,7 @@ export const ro: Dictionary = {
     bookNow: "Rezervă acum",
     bookN: "Rezervă {count} servicii",
     bookNOne: "Rezervă {count} serviciu",
-    bookHeading: "Rezervă o programare",
+    bookHeading: "Fă o programare",
     bookRailEmpty:
       "Alege unul sau mai multe servicii din listă — sau începe direct și alege când îți faci programarea.",
     totalLabel: "total",
@@ -785,7 +786,7 @@ export const ro: Dictionary = {
     reviewsCountOne: "{count} recenzie",
     reviewsCountMany: "{count} de recenzii",
     onlineBookingUnavailable:
-      "Acest business nu acceptă programări online — sună-i pentru a rezerva sau pentru disponibilitate",
+      "Această afacere nu acceptă programări online — sună-i pentru a rezerva sau pentru disponibilitate",
     closed: "Închis",
     call: "Sună",
     directions: "Indicații",
@@ -803,7 +804,7 @@ export const ro: Dictionary = {
     notFoundBody:
       "Este posibil să se fi închis sau să se fi mutat. Mulți alți profesioniști de încredere sunt la un click distanță.",
     backToExplore: "Înapoi la Explorare",
-    browseBusinesses: "Răsfoiește businessuri",
+    browseBusinesses: "Răsfoiește afacerile",
     memberStatYears: "{count} ani",
     memberStatYearsOne: "1 an",
     memberStatYearsMany: "{count} de ani",
@@ -843,7 +844,7 @@ export const ro: Dictionary = {
       "Fii primul care se programează și își împărtășește experiența.",
     servicesEmptyTitle: "Încă fără servicii",
     servicesEmptyBody:
-      "Această locație nu și-a publicat încă meniul. Încearcă să o contactezi telefonic.",
+      "Această locație nu și-a publicat încă lista de servicii. Încearcă să o contactezi telefonic.",
     aboutBrand: "Brand",
   },
   brandPage: {
@@ -857,6 +858,8 @@ export const ro: Dictionary = {
     since: "Din {year}",
     viewLocation: "Vezi și rezervă",
     worksAt: "la {location}",
+    metaTitle: "{name}: locații",
+    metaDescription: "{name} pe Zavoia: toate locațiile într-un singur loc.",
   },
   booking: {
     stepServicesTitle: "Alege serviciile",
@@ -920,7 +923,7 @@ export const ro: Dictionary = {
       businessTitle: "Rezervarea online nu este disponibilă",
       businessBody:
         "Acest local nu mai poate fi rezervat online. Este posibil ca listarea lui să se fi schimbat de la ultima ta vizită.",
-      bookingOffTitle: "Acest business rezervă prin telefon",
+      bookingOffTitle: "Această afacere rezervă prin telefon",
       bookingOffBody:
         "A dezactivat momentan rezervarea online — restul informațiilor de aici sunt la zi. Sună locația pentru a rezerva sau pentru disponibilitate.",
       locationTitle: "Locație indisponibilă",
@@ -1056,7 +1059,7 @@ export const ro: Dictionary = {
     where: "Unde?",
     when: "Când?",
     whatSummary: "Toate serviciile",
-    whatPlaceholder: "Toate serviciile și businessurile",
+    whatPlaceholder: "Toate serviciile și afacerile",
     browseByIndustry: "Explorează industriile",
     allInIndustry: "Orice categorie din această industrie",
     seeAllIndustries: "Vezi toate industriile",
@@ -1090,7 +1093,7 @@ export const ro: Dictionary = {
     clearInput: "Șterge",
     prevMonth: "Luna anterioară",
     nextMonth: "Luna următoare",
-    resultsBusinesses: "Businessuri",
+    resultsBusinesses: "Afaceri",
     resultsPlaces: "Locații",
     searching: "Se caută…",
     noResults: "Niciun rezultat",
@@ -1119,7 +1122,7 @@ export const ro: Dictionary = {
     useMyLocation: "Folosește locația mea",
     recenterAria: "Recentrează",
     searchThisArea: "Caută în această zonă",
-    locationModalTitle: "Găsește businessuri lângă tine",
+    locationModalTitle: "Găsește afaceri lângă tine",
     locationModalBody:
       "Permite accesul la locație ca să vezi ce e disponibil în jurul tău — sau caută un oraș.",
     locationModalAllow: "Folosește locația mea",
@@ -1133,7 +1136,7 @@ export const ro: Dictionary = {
     pinListLabel: "Locuri pe hartă",
     browseMore: "Mai multe",
     sheetHandleAria: "Redimensionează panoul cu rezultate. Folosește săgețile sus și jos, Home sau End.",
-    matchingBusinesses: "Businessuri care corespund căutării",
+    matchingBusinesses: "Afaceri care corespund căutării",
     resultsLimited: "Rezultate limitate la {count} din {total} de locații. Restrânge căutarea pentru rezultate mai precise.",
     filters: {
       loadError: "Nu am putut încărca opțiunile disponibile.",
@@ -1181,7 +1184,7 @@ export const ro: Dictionary = {
       "outdoor-seating": "Locuri în aer liber",
       "private-treatment-room": "Cabină privată",
       showers: "Dușuri",
-      lockers: "Vestiare",
+      lockers: "Dulapuri",
     },
     paymentMethods: {
       cash: "Numerar",
@@ -1333,7 +1336,7 @@ export const ro: Dictionary = {
     businessOverview: "Zavoia pentru afaceri",
     webStudio: "Web Studio",
     pricing: "Prețuri",
-    businessSignIn: "Autentificare business",
+    businessSignIn: "Autentificare pentru afaceri",
     helpCentre: "Centru de ajutor",
     myAppointments: "Programările mele",
     cancellation: "Politica de anulare",
@@ -1353,7 +1356,7 @@ export const ro: Dictionary = {
     close: "Închide",
   },
   legal: {
-    hubTitle: "Legal — Termeni și politici",
+    hubTitle: "Termeni și politici",
     hubDescription:
       "Documentele legale Zavoia: termeni de utilizare, termeni pentru clienți și afaceri, politici de programări, confidențialitate și cookie-uri.",
     hubKicker: "Legal",
@@ -1368,6 +1371,7 @@ export const ro: Dictionary = {
       "Acest document este o schiță în curs de revizuire juridică. Descrie structura documentului final și nu constituie încă un acord obligatoriu.",
     onThisPage: "Pe această pagină",
     backToLegal: "Toți termenii și politicile",
+    breadcrumbLabel: "Navigare ierarhică",
     lastUpdated: "Ultima actualizare",
     readDocument: "Citește documentul",
     statusDraft: "Schiță",
@@ -1402,7 +1406,7 @@ export const ro: Dictionary = {
     errorTitle: "Nu am putut încărca notificările",
     errorBody: "Verifică conexiunea și încearcă din nou.",
     emptyTitle: "Ești la zi",
-    emptyBody: "Programările, mementourile și noutățile vor apărea aici.",
+    emptyBody: "Programările, reamintirile și noutățile vor apărea aici.",
   },
   mobileTabs: {
     explore: "Explorează",
@@ -1479,7 +1483,7 @@ export const ro: Dictionary = {
     "previewLabel": "Previzualizarea site-ului demonstrativ",
   },
   webStudio: {
-    "pageTitle": "Web Studio: site-ul tău, conectat la Zavoia",
+    "pageTitle": "Web Studio: creează site-ul afacerii tale",
     "pageDescription": "Creează un site cu serviciile, prețurile, echipa și fotografiile tale din Zavoia. Explorează designurile, pregătește o versiune de lucru și publică site-ul cu Plus.",
     "hero": {
       "titleLead": "Un site care îți",
@@ -1673,7 +1677,7 @@ export const ro: Dictionary = {
           "Calendare, conturi și reguli pentru echipă",
           "Reamintiri pe email și recenzii verificate",
           "Istoricul clienților și ziua ta dintr-o privire",
-          "Ciorne în Web Studio",
+          "Versiuni de lucru în Web Studio",
         ],
       },
       plus: {
@@ -1701,9 +1705,9 @@ export const ro: Dictionary = {
     },
   },
   forBusiness: {
-    pageTitle: "Pentru afaceri: atrage clienți și primește programări online",
+    pageTitle: "Programări online pentru afacerea ta",
     pageDescription:
-      "Listează-ți afacerea pe Zavoia și primește programări online de la clienții din apropiere. Un singur calendar pentru locații și echipă, reamintiri pe email și fără comision la programări. Încearcă gratuit {days}.",
+      "Fără comision la programări. Încearcă gratuit {days}. Listează-ți afacerea pe Zavoia, primește programări online și gestionează echipa într-un singur calendar.",
     hero: {
       titleLead: "Atrage clienți.",
       titlePre: "Primește ",
@@ -2207,14 +2211,15 @@ export const ro: Dictionary = {
   },
   help: {
     pageTitle: "Centru de ajutor",
+    metaTitle: "Ajutor pentru programări, plăți și cont",
     pageDescription:
       "Răspunsuri la întrebările care ni se pun cel mai des despre programări, plăți și folosirea Zavoia.",
     head: {
       kicker: "Centru de ajutor",
       title: "Cu ce te putem ajuta?",
-      sub: "Răspunsuri clare la lucrurile pe care ni le cereți cel mai des — deschide orice întrebare ca să o citești chiar aici, fără să cauți prea mult.",
+      sub: "Găsește răspunsuri despre programări, plăți și contul tău Zavoia.",
     },
-    searchPlaceholder: "Caută întrebări — anulare, avans, reprogramare…",
+    searchPlaceholder: "Caută întrebări — anulare, reprogramare, plată…",
     allLabel: "Toate",
     resultsLabel: "rezultate pentru",
     noResults: "Nicio întrebare nu se potrivește. Încearcă alte cuvinte.",
@@ -2226,11 +2231,11 @@ export const ro: Dictionary = {
         items: [
           {
             q: "Cum fac o programare?",
-            a: "Caută, alege un serviciu și o oră, apoi confirmă — nu este nevoie de nicio plată în avans.",
+            a: "Alege un serviciu și o oră disponibilă, apoi intră în cont sau creează un cont Zavoia ca să trimiți programarea. În funcție de afacere, programarea este confirmată pe loc sau după ce afacerea o verifică.",
           },
           {
             q: "Pot reprograma sau anula?",
-            a: "Da — gratuit, până la intervalul de anulare al locației, de obicei cu 24 de ore înainte de programare.",
+            a: "Dacă afacerea permite, poți reprograma sau anula din programarea ta în Zavoia, până la termenul-limită stabilit de afacere. După acest termen sau dacă opțiunea nu apare, contactează direct afacerea.",
           },
         ],
       },
@@ -2241,11 +2246,11 @@ export const ro: Dictionary = {
         items: [
           {
             q: "Când și cum plătesc?",
-            a: "Plătești direct businessul după vizită. Zavoia nu îți percepe niciodată cardul doar pentru a rezerva.",
+            a: "Plătești direct la afacere, când mergi la programare. Zavoia nu încasează plata pentru programări.",
           },
           {
             q: "Cum funcționează rambursările?",
-            a: "Deoarece plătești direct locația, rambursările sunt gestionate de aceasta, conform politicii proprii.",
+            a: "Pentru că plătești direct la afacere, rambursările sunt gestionate de aceasta, conform politicii proprii.",
           },
         ],
       },
@@ -2255,8 +2260,8 @@ export const ro: Dictionary = {
         label: "Contul tău",
         items: [
           {
-            q: "Pot gestiona mementourile și notificările?",
-            a: "Da — alege ce mementouri și oferte primești din setările profilului tău.",
+            q: "Pot gestiona reamintirile și notificările?",
+            a: "Da. Din contul tău alegi dacă primești reamintiri pentru programări și mesaje de marketing și pe ce cale: push, SMS sau email.",
           },
         ],
       },
@@ -2277,8 +2282,8 @@ export const ro: Dictionary = {
         label: "Încredere și siguranță",
         items: [
           {
-            q: "Ce înseamnă un business verificat?",
-            a: "Fiecare business de pe Zavoia este verificat ca identitate înainte de a putea primi programări.",
+            q: "Recenziile sunt scrise de clienți reali?",
+            a: "Da. Doar clienții care au avut o programare finalizată pot lăsa o recenzie.",
           },
         ],
       },
@@ -2288,8 +2293,8 @@ export const ro: Dictionary = {
         label: "Pentru afaceri",
         items: [
           {
-            q: "Cum îmi listez businessul?",
-            a: "Zavoia pentru afaceri oferă fiecărui membru al echipei un profil public, un calendar care se protejează singur și mementouri care reduc neprezentările. Începe o perioadă de probă gratuită din pagina Pentru afaceri.",
+            q: "Cum îmi listez afacerea?",
+            a: "Creează un cont de afacere și începe perioada de probă gratuită. Adaugă locația, serviciile și echipa, publică pagina pe Zavoia și activează programările online când ești gata.",
           },
         ],
       },
@@ -2298,13 +2303,13 @@ export const ro: Dictionary = {
       title: "Bine de știut",
       items: [
         { label: "Politica de anulare", href: ["terms", "booking-policy"] },
-        { label: "Listează-ți businessul", href: ["for-business"] },
+        { label: "Listează-ți afacerea", href: ["for-business"] },
         { label: "Politica de confidențialitate", href: ["terms", "privacy-policy"] },
       ],
     },
     report: {
       title: "Raportează o problemă",
-      sub: "Analizăm fiecare raport, de obicei în câteva ore.",
+      sub: "Analizăm fiecare raport.",
       cta: "Raportează o problemă",
       modal: {
         title: "Raportează o problemă",
@@ -2323,7 +2328,7 @@ export const ro: Dictionary = {
           "Ai trimis mai multe rapoarte recent. Te rugăm să aștepți puțin și să încerci din nou.",
         success: {
           title: "Mulțumim — am primit raportul tău",
-          body: "Echipa noastră analizează fiecare raport, de obicei în câteva ore. Îți vom răspunde la {email}.",
+          body: "Echipa noastră analizează fiecare raport. Îți vom răspunde la {email}.",
           reference: "Referință",
           done: "Gata",
         },
@@ -2409,7 +2414,7 @@ export const ro: Dictionary = {
       offerFirst: "Creează-ți site-ul.",
       offerSecond: "Primește programări online.",
       businessDescription: "Prezintă-ți serviciile, prețurile și echipa. Gestionează programările și site-ul într-un singur loc.",
-      trialDetail: "{days} zile gratuite pe Standard. Fără card.",
+      trialDetail: "{days} zile gratuite pe Base. Fără card.",
       websiteDetail: "Publicarea site-ului este inclusă în Plus.",
       how: "Cum funcționează",
       lost: "pierdut",

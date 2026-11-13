@@ -1,9 +1,10 @@
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import type { ListingDetail, ListingLocation } from "@/lib/api/marketplace/types";
+import { countryCode } from "@/lib/geo/country-code";
 import { parseWorkingHoursDay, WEEKDAYS } from "@/lib/marketplace/working-hours";
 import { SITE_URL } from "@/lib/site";
-import { locationHref, locationName, locationTitle } from "./identity";
+import { locationHref, locationIdentity, locationName, locationTitle } from "./identity";
 
 const organizationId = `${SITE_URL}/#organization`;
 const websiteId = `${SITE_URL}/#website`;
@@ -35,7 +36,10 @@ function postalAddress(location: ListingLocation) {
   const streetAddress = street ? [number, street].filter(Boolean).join(" ") : text(location.address);
   const addressLocality = text(location.city) || text(components?.city);
   const postalCode = text(components?.postalCode);
-  const addressCountry = text(components?.country);
+  // Stored as typed ("Romania", "România"). Google prefers the two-letter code;
+  // a name no country matches is kept as written.
+  const country = text(components?.country);
+  const addressCountry = countryCode(country) ?? country;
   if (!streetAddress && !addressLocality && !postalCode && !addressCountry) return undefined;
   return {
     "@type": "PostalAddress",
@@ -101,7 +105,10 @@ export function locationStructuredData(
   const merchantId = `${SITE_URL}/#business-${listing.businessId}`;
   const pageId = `${url}#webpage`;
   const breadcrumbId = `${url}#breadcrumb`;
+  // The visible heading, which closes the breadcrumb trail.
   const name = locationName(listing);
+  // The business itself is the brand and the branch, as people search for it.
+  const businessName = locationIdentity(listing);
   const description = text(listing.location.description);
   const merchantName = text(listing.name);
   const merchantDescription = text(listing.description);
@@ -162,7 +169,7 @@ export function locationStructuredData(
       {
         "@type": "LocalBusiness",
         "@id": locationId,
-        name,
+        name: businessName,
         url: canonicalLocationUrl,
         mainEntityOfPage: { "@id": pageId },
         ...(merchantName && { parentOrganization: { "@id": merchantId } }),

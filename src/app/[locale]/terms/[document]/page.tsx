@@ -9,6 +9,8 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
+import { socialMetadata } from "@/lib/site";
+import { notFoundMetadata } from "@/app/_components/not-found/metadata";
 import { Breadcrumb, Icon } from "@/components/ui";
 import {
   LEGAL_DOCUMENTS,
@@ -44,7 +46,7 @@ function Callout({ children, banner }: { children: string; banner?: boolean }) {
   );
 }
 
-function BlockView({ block, locale }: { block: LegalBlock; locale: Locale }) {
+function BlockView({ block, locale, draft }: { block: LegalBlock; locale: Locale; draft: boolean }) {
   if (block.kind === "p") {
     return <p className="zw-legal-p txt-pretty">{block.text[locale]}</p>;
   }
@@ -59,8 +61,8 @@ function BlockView({ block, locale }: { block: LegalBlock; locale: Locale }) {
       </ul>
     );
   }
-  // kind === "note" — unresolved drafting gate, highlighted while in draft
-  return <Callout>{block.text[locale]}</Callout>;
+  // kind === "note" — unresolved drafting gate, shown only while in draft
+  return draft ? <Callout>{block.text[locale]}</Callout> : null;
 }
 
 export async function generateStaticParams() {
@@ -75,7 +77,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, document } = await params;
   if (!isLocale(locale)) return {};
   const doc = getLegalDocument(document);
-  if (!doc) return {};
+  if (!doc) return notFoundMetadata(locale);
 
   const languages = Object.fromEntries(
     LOCALES.map((l) => [l, localeHref(l, "terms", doc.slug)]),
@@ -84,6 +86,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: doc.title[locale],
     description: doc.description[locale],
+    // An unfinished document stays out of the index until it is published.
+    // Omit the key otherwise: an undefined robots would replace the layout's.
+    ...(doc.status === "draft" && { robots: { index: false, follow: true } }),
     alternates: {
       canonical: localeHref(locale, "terms", doc.slug),
       languages: {
@@ -91,6 +96,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         "x-default": localeHref(DEFAULT_LOCALE, "terms", doc.slug),
       },
     },
+    ...socialMetadata(locale, localeHref(locale, "terms", doc.slug), doc.title[locale], doc.description[locale]),
   };
 }
 
@@ -124,6 +130,7 @@ export default async function LegalDocumentPage({ params }: Props) {
           <header>
             <div className="zw-legal-noprint">
               <Breadcrumb
+                ariaLabel={t.breadcrumbLabel}
                 items={[
                   { label: dict.breadcrumbHome, href: localeHref(locale) },
                   { label: t.hubHeading, href: localeHref(locale, "terms") },
@@ -234,7 +241,7 @@ export default async function LegalDocumentPage({ params }: Props) {
                   </h2>
                   {section.body ? (
                     section.body.map((block, j) => (
-                      <BlockView key={j} block={block} locale={locale} />
+                      <BlockView key={j} block={block} locale={locale} draft={doc.status === "draft"} />
                     ))
                   ) : (
                     <p className="zw-legal-p txt-pretty">

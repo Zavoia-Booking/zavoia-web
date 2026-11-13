@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import type { CityView, TaxonomyView } from "@/data/seo";
-import { listCities, listTaxonomy, taxonomyDisplayName } from "@/data/seo";
+import { categorySearchName, listCities, listTaxonomy, taxonomyDisplayName } from "@/data/seo";
 import { dictionaries } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
@@ -9,6 +9,7 @@ import { BusinessCard } from "@/components/business";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { SearchPageContext } from "@/components/search/search-overlay-provider";
 import { SITE_URL } from "@/lib/site";
+import { siteEntities, websiteId } from "@/lib/seo/page-structured-data";
 import { Icon } from "@/components/ui/icon";
 import { locationCardToData } from "@/lib/marketplace/card-mappers";
 import { buildSlugById, industryVisual } from "@/lib/marketplace/industry-visuals";
@@ -69,13 +70,17 @@ export function CategoryContent({
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
+      ...siteEntities(),
       breadcrumb,
       {
         "@type": "CollectionPage",
         "@id": pageUrl,
         url: pageUrl,
         name: format(t.heading, vars),
+        // The meta description, with the same category wording as the title.
+        description: format(t.descriptionTemplate, { ...vars, industry: categorySearchName(entry, industries, locale, dict) }),
         inLanguage: locale,
+        isPartOf: { "@id": websiteId },
         breadcrumb: { "@id": breadcrumb["@id"] },
       },
     ],

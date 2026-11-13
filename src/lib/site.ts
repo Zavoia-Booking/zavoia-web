@@ -1,4 +1,5 @@
-import type { Locale } from "@/i18n/locales";
+import type { Metadata } from "next";
+import { LOCALES, type Locale } from "@/i18n/locales";
 
 // The production host; zavoia.com redirects here.
 const DEFAULT_SITE_URL = "https://www.zavoia.com";
@@ -35,10 +36,49 @@ export const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
   ro: "ro_RO",
 };
 
-/** Shared brand artwork; the image itself uses English text in every locale. */
-export const DEFAULT_SOCIAL_IMAGE = {
-  url: `${SITE_URL}/brand/home-social.png`,
-  width: 1200,
-  height: 630,
-  alt: "Zavoia. Local services. On your schedule.",
+/** Text alternatives for the shared brand artwork, whose own text is English. */
+const DEFAULT_SOCIAL_IMAGE_ALT: Record<Locale, string> = {
+  en: "Zavoia. Local services. On your schedule.",
+  ro: "Zavoia. Servicii locale. Tu alegi când.",
 };
+
+/** Shared brand artwork, described in the page language. */
+export function defaultSocialImage(locale: Locale) {
+  return {
+    url: `${SITE_URL}/brand/home-social.png`,
+    width: 1200,
+    height: 630,
+    alt: DEFAULT_SOCIAL_IMAGE_ALT[locale],
+  };
+}
+
+/**
+ * Open Graph and Twitter tags for an indexable page. Metadata merges
+ * shallowly, so a page that sets `openGraph` must set all of it.
+ */
+export function socialMetadata(
+  locale: Locale,
+  path: string,
+  title: string,
+  description: string,
+): Pick<Metadata, "openGraph" | "twitter"> {
+  const image = defaultSocialImage(locale);
+  return {
+    openGraph: {
+      title,
+      description,
+      url: path,
+      type: "website",
+      siteName: "Zavoia",
+      locale: OPEN_GRAPH_LOCALES[locale],
+      alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => OPEN_GRAPH_LOCALES[l]),
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
+  };
+}

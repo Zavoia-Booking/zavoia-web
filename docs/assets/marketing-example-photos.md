@@ -1,8 +1,10 @@
 # Marketing example photography
 
+The files are in `public/images/marketing/examples/`.
+
 Original AI-generated photographs created on 2026-11-06 with the built-in image-generation tool, without reference images or web-sourced photography. These fictional scenes are used only in Zavoia's authored marketing examples and demo captures; they are not customer uploads or photographs of real listed businesses. They contain no people or intentionally depicted brands.
 
-The originals were visually reviewed, then resized to at most 1400px wide and encoded as WebP. Original PNGs remain in the generator output directory. Existing generated spa scenes are documented in [the spa asset notes](../../web-studio/spa/README.md).
+The originals were visually reviewed, then resized to at most 1400px wide and encoded as WebP. Original PNGs remain in the generator output directory. Existing generated spa scenes are documented in [the spa asset notes](web-studio-spa-photos.md).
 
 This file records provenance, not trademark clearance of the fictional example names.
 

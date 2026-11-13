@@ -14,8 +14,6 @@ export { Skeleton, type SkeletonProps } from "./skeleton";
 export {
   DetailPageSkeleton,
   SearchPageSkeleton,
-  FeedPageSkeleton,
-  ArticlePageSkeleton,
 } from "./page-skeletons";
 export { DatePicker } from "./date-picker";
 export { Spinner, type SpinnerProps } from "./spinner";

@@ -3,7 +3,7 @@ import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { format, formatCount } from "@/i18n/format";
 import { getPlanPricing } from "@/lib/marketing/pricing";
-import { caveat } from "@/styles/fonts";
+import { preloadSignatureFont } from "./signature-font";
 import { TrialLink } from "./links";
 import { ClosingSection } from "./closing-section";
 import { PricingLink } from "./pricing-link";
@@ -31,9 +31,10 @@ export function ForBusinessContent({ locale }: { locale: Locale }) {
   const b = dict.businessMarketing;
   const pricing = getPlanPricing(locale);
   const days = formatCount(pricing.trialDays, locale, b.counts.days);
+  preloadSignatureFont();
 
   return (
-    <div className={caveat.variable}>
+    <div>
       <div className={styles.heroRegion}>
         <section className={styles.hero} data-locale={locale} aria-labelledby="for-business-title">
           <div className="zw-container">
@@ -48,7 +49,7 @@ export function ForBusinessContent({ locale }: { locale: Locale }) {
                   <p className={styles.heroSupport}>{t.hero.support}</p>
                 </div>
                 <div className={clsx(m.ctaRow, styles.heroActions)}>
-                  <TrialLink label={format(t.hero.trialCta, { days })} arrow className={styles.heroTrial} />
+                  <TrialLink label={format(t.hero.trialCta, { days })} arrow className={styles.heroTrial} locale={locale} />
                   <PricingLink className={clsx(m.textLink, styles.heroPricing)}>
                     {t.hero.pricingLink}
                   </PricingLink>

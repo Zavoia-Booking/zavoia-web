@@ -1,5 +1,7 @@
 # Mira Spa example imagery
 
+The files are in `public/images/web-studio/spa/`.
+
 Original AI-generated photographs created on 2026-11-06 with the built-in image-generation tool. No reference photographs or web-sourced images were used. The fictional scenes contain no people, logos or branded packaging. These are source images for the real dashboard's localized Masonry-gallery captures, not photographs of an actual spa or customer business.
 
 The WebP files retain the generated compositions and are resized/encoded for project use. Original generated PNGs remain in the generator's output directory.

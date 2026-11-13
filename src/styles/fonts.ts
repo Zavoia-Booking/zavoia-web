@@ -5,7 +5,6 @@
 // Keep the `variable` names in sync with --font-geist-sans/--font-geist-mono
 // referenced by --font-sans/--font-mono in globals.css.
 import { Geist, Geist_Mono } from "next/font/google";
-import localFont from "next/font/local";
 
 export const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,17 +18,3 @@ export const geistMono = Geist_Mono({
 
 // Apply to <html className={fontVariables}> so root font tokens resolve.
 export const fontVariables = `${geistSans.variable} ${geistMono.variable}`;
-
-// Handwritten accent for the one signature word in the business pages'
-// headlines. Latin-ext carries Romanian diacritics. It is not in
-// fontVariables: a surface applies `caveat.variable` itself, and with preload
-// off no other route fetches the files.
-export const caveat = localFont({
-  src: [
-    { path: "../app/fonts/caveat-latin-700.woff2", weight: "700", style: "normal" },
-    { path: "../app/fonts/caveat-latin-ext-700.woff2", weight: "700", style: "normal" },
-  ],
-  variable: "--font-caveat",
-  display: "swap",
-  preload: false,
-});
