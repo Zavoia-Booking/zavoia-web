@@ -15,7 +15,7 @@ The tracked `patches/next+16.4.1.patch` backports the Next.js maintainers' [deve
 
 `npm ci` and `npm install` apply the patch through `postinstall` and fail if it cannot apply or the Next version no longer matches. Do not skip install scripts for a development checkout. `patch-package` is a regular dependency so the install hook also works with `npm ci --omit=dev`. When upgrading Next, verify the installed release includes the upstream fix, run `npm run test:framework`, then remove the patch, install hook, and patch tool if no other patches remain. Stable 16.4.5 was also inspected on 6 November 2026 and still contained the faulty asynchronous writer.
 
-The app runs at http://localhost:3001. Set `NEXT_PUBLIC_API_URL` in `.env.local` for your API; the default is http://localhost:3000. See `src/lib/env.ts` for optional map, Google OAuth and business-dashboard configuration. `REVALIDATE_SECRET` is server-only and must match the backend's cache-invalidation integration. Never put it in a `NEXT_PUBLIC_` variable.
+The app runs at http://localhost:3001. Set `NEXT_PUBLIC_API_URL` in `.env.local` for your API; the default is http://localhost:3000. See `src/lib/env.ts` for optional map, Google OAuth, Sign in with Apple (`NEXT_PUBLIC_APPLE_SERVICES_ID`, `NEXT_PUBLIC_APPLE_REDIRECT_URI`) and business-dashboard configuration. `REVALIDATE_SECRET` is server-only and must match the backend's cache-invalidation integration. Never put it in a `NEXT_PUBLIC_` variable.
 
 ```bash
 npm run build

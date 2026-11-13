@@ -1,5 +1,6 @@
 import type { Dictionary } from "@/i18n/dictionaries";
 import { backendCode, transportErrorMessage } from "@/lib/api/error-messages";
+import { AppleSignInError } from "@/lib/auth/apple-signin";
 
 type AuthErrorsDict = Dictionary["auth"]["errors"];
 type ErrorsDict = Dictionary["errors"];
@@ -73,7 +74,61 @@ const CODE_TO_KEY: Record<string, keyof AuthErrorsDict> = {
   // 404 from email-change.service.ts — the account behind this session no
   // longer exists, so re-entering the password can never help.
   USER_NOT_FOUND: "userNotFound",
+
+  // ── Create password (Login & security, accounts without one) ──
+  "CUSTOMER_AUTH.E55": "passwordAlreadySet",
+
+  // ── Sign in with Apple ──
+  // Message codes (admin-api src/constants/message-codes.ts, group APPLE).
+  // Most Apple errors also carry a top-level string code, which parseError
+  // prefers; both forms are listed so either one lands on the same copy.
+  "APPLE.E01": "appleUnavailable",
+  "APPLE.E02": "appleFailed",
+  "APPLE.E03": "appleExpired",
+  "APPLE.E04": "appleNotResponding",
+  "APPLE.E05": "appleLinkedElsewhere",
+  "APPLE.E06": "appleOtherAccountLinked",
+  "APPLE.E07": "applePendingInvitation",
+  "APPLE.E08": "appleProofInvalid",
+  "APPLE.E09": "appleStepExpired",
+  "APPLE.E10": "appleAccountExists",
+  "APPLE.E11": "appleUnlinkLastMethod",
+  "APPLE.E12": "appleNotLinked",
+  "APPLE.E13": "appleEmailRequired",
+  "APPLE.E14": "appleNoAccount",
+  "APPLE.E15": "appleLoginRequired",
+  "APPLE.E16": "appleNeedsMarketplaceAccess",
+  "APPLE.E17": "appleNameRequired",
+  "APPLE.E18": "appleAccountUnusable",
+  // String codes (upper-cased by backendCode).
+  APPLE_NOT_CONFIGURED: "appleUnavailable",
+  INVALID_APPLE_TOKEN: "appleFailed",
+  APPLE_REDIRECT_NOT_ALLOWED: "appleFailed",
+  APPLE_EMAIL_UNVERIFIED: "appleFailed",
+  APPLE_SIGNIN_RETRY: "appleFailed",
+  APPLE_CODE_INVALID: "appleExpired",
+  APPLE_UNAVAILABLE: "appleNotResponding",
+  APPLE_LINKED_ELSEWHERE: "appleLinkedElsewhere",
+  APPLE_OTHER_ACCOUNT_LINKED: "appleOtherAccountLinked",
+  PENDING_INVITATION_REQUIRES_ACCEPTANCE: "applePendingInvitation",
+  APPLE_LINK_PROOF_INVALID: "appleProofInvalid",
+  APPLE_STEP_EXPIRED: "appleStepExpired",
+  APPLE_CODE_LIMIT: "appleCodeLimit",
+  ACCOUNT_EXISTS_UNLINKED_APPLE: "appleAccountExists",
+  APPLE_UNLINK_LAST_METHOD: "appleUnlinkLastMethod",
+  APPLE_NOT_LINKED: "appleNotLinked",
+  APPLE_EMAIL_REQUIRED: "appleEmailRequired",
+  APPLE_LOGIN_REQUIRED: "appleLoginRequired",
+  APPLE_PROFILE_REQUIRED: "appleNameRequired",
+  APPLE_ACCOUNT_UNUSABLE: "appleAccountUnusable",
 };
+
+/**
+ * Apple codes whose own message is more precise than the shared transport
+ * copy for their status (429 code limit, 503 Apple unreachable), so they are
+ * resolved before `transportErrorMessage`. Offline/timeout never carry them.
+ */
+const APPLE_BEFORE_TRANSPORT = new Set(["APPLE_CODE_LIMIT", "APPLE_UNAVAILABLE"]);
 
 /**
  * The message to show for a failed auth action.
@@ -97,4 +152,26 @@ export function authErrorMessage(
     if (key) return dict[key];
   }
   return dict.generic;
+}
+
+/**
+ * `authErrorMessage` for the Sign in with Apple flows. Adds the client-side
+ * Apple failures (script blocked, popup error, state mismatch) and lets the
+ * two Apple codes above win over the generic 429/5xx copy. Every other error
+ * goes through `authErrorMessage` unchanged.
+ */
+export function appleErrorMessage(
+  error: unknown,
+  dict: AuthErrorsDict,
+  shared: ErrorsDict,
+): string {
+  if (error instanceof AppleSignInError) {
+    return error.reason === "unavailable" ? dict.appleUnavailable : dict.appleFailed;
+  }
+  const code = backendCode(error);
+  if (code && APPLE_BEFORE_TRANSPORT.has(code)) {
+    const key = CODE_TO_KEY[code];
+    if (key) return dict[key];
+  }
+  return authErrorMessage(error, dict, shared);
 }

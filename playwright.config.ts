@@ -98,6 +98,12 @@ export default defineConfig({
         // unavailable" fallback instead of loading real tiles. The
         // web-studio/OAuth suites override these per-test where needed.
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: '',
+        // Sign in with Apple is ON for this run (test values, match nothing
+        // real): e2e/auth/apple-signin.spec.ts replaces Apple JS with a fake
+        // `window.AppleID` and mocks every /marketplace/auth/apple* call, so
+        // no request ever reaches Apple. Both must be set or the button hides.
+        NEXT_PUBLIC_APPLE_SERVICES_ID: 'com.zavoia.signin.web.e2e',
+        NEXT_PUBLIC_APPLE_REDIRECT_URI: `${APP_URL}/auth/apple/callback`,
         NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: '',
         NEXT_PUBLIC_MAPTILER_API_KEY: '',
         // /business/<slug> and /brand/<slug> are ISR (600s floor) — a spec

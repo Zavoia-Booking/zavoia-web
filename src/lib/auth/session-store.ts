@@ -1,6 +1,13 @@
 "use client";
 
 import {
+  appleAuth as appleAuthApi,
+  appleCompleteProfile as appleCompleteProfileApi,
+  appleConfirmMarketplaceAccess as appleConfirmMarketplaceAccessApi,
+  appleVerifyLink as appleVerifyLinkApi,
+  linkApple as linkAppleApi,
+  setPassword as setPasswordApi,
+  unlinkApple as unlinkAppleApi,
   changeEmail as changeEmailApi,
   completeAccountLink as completeAccountLinkApi,
   confirmMarketplaceAccess as confirmMarketplaceAccessApi,
@@ -26,6 +33,7 @@ import { CSRF_COOKIE_NAME, clearCookie, readCookie } from "@/lib/auth/cookies";
 import { googleOAuthRedirectUri } from "@/lib/auth/google-oauth";
 import { getJwtExpiryMs } from "@/lib/auth/jwt";
 import type {
+  AppleConnectionResponse,
   AuthContextValue,
   AuthResponse,
   AuthUser,
@@ -400,6 +408,31 @@ function createBrowserSession() {
     document.removeEventListener("visibilitychange", onVisible);
   }
 
+  /** Applies a profile patch from a session-keeping account change (Apple
+   *  connect/disconnect, password creation), like unlinkGoogle does. */
+  async function patchUser(
+    request: () => Promise<Partial<AuthUser> | void>,
+  ) {
+    const owner = revision;
+    try {
+      const patch = await request();
+      if (owner === revision && snapshot.user && patch) {
+        profileRevision += 1;
+        profileRequest = null;
+        setUser({ ...snapshot.user, ...patch });
+        channel?.postMessage({ type: "user-updated" });
+      }
+    } catch (error) {
+      if (owner === revision && error instanceof ApiError)
+        update({ error: error.message });
+      throw error;
+    }
+  }
+
+  function appleFields(response: AppleConnectionResponse): Partial<AuthUser> {
+    return { apple: response.apple, signInMethods: response.signInMethods };
+  }
+
   const actions: Omit<AuthContextValue, keyof SessionSnapshot> = {
     login: (dto) => authenticate(() => loginCustomer(dto), "Unable to sign in"),
     register: (dto) =>
@@ -466,6 +499,34 @@ function createBrowserSession() {
         throw error;
       }
     },
+    appleSignIn: (credential, intent, locale) =>
+      authenticate(() => appleAuthApi(credential, intent, locale)),
+    completeAppleProfile: (txId, firstName, lastName, locale) =>
+      authenticate(() =>
+        appleCompleteProfileApi(txId, firstName, lastName, locale),
+      ),
+    verifyAppleLink: (txId, proof, locale) =>
+      authenticate(() => appleVerifyLinkApi(txId, proof, locale)),
+    confirmAppleMarketplaceAccess: (txId, locale) =>
+      authenticate(
+        () => appleConfirmMarketplaceAccessApi(txId, locale),
+        "Unable to enable marketplace access",
+      ),
+    linkApple: (credential) =>
+      patchUser(async () => appleFields(await linkAppleApi(credential))),
+    unlinkApple: (password) =>
+      patchUser(async () => appleFields(await unlinkAppleApi(password))),
+    createPassword: (password) =>
+      patchUser(async () => {
+        await setPasswordApi(password);
+        const methods = snapshot.user?.signInMethods;
+        return {
+          hasPassword: true,
+          ...(methods && !methods.includes("password")
+            ? { signInMethods: ["password" as const, ...methods] }
+            : {}),
+        };
+      }),
     async logout() {
       // Invalidate immediately so late bootstrap/profile responses cannot
       // restore the session while the logout request is pending. Keep its
@@ -572,4 +633,14 @@ export const sessionActions: Omit<AuthContextValue, keyof SessionSnapshot> = {
   linkGoogle: (...args) => activeSession().actions.linkGoogle(...args),
   unlinkGoogle: (...args) => activeSession().actions.unlinkGoogle(...args),
   changeEmail: (...args) => activeSession().actions.changeEmail(...args),
+  appleSignIn: (...args) => activeSession().actions.appleSignIn(...args),
+  completeAppleProfile: (...args) =>
+    activeSession().actions.completeAppleProfile(...args),
+  verifyAppleLink: (...args) =>
+    activeSession().actions.verifyAppleLink(...args),
+  confirmAppleMarketplaceAccess: (...args) =>
+    activeSession().actions.confirmAppleMarketplaceAccess(...args),
+  linkApple: (...args) => activeSession().actions.linkApple(...args),
+  unlinkApple: (...args) => activeSession().actions.unlinkApple(...args),
+  createPassword: (...args) => activeSession().actions.createPassword(...args),
 };

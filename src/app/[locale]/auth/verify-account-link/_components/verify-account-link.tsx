@@ -13,13 +13,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import { validateAccountLink } from "@/lib/api/customer-auth";
-import { authErrorMessage } from "@/lib/api/auth-error-messages";
+import { appleErrorMessage, authErrorMessage } from "@/lib/api/auth-error-messages";
 import { backendCode } from "@/lib/api/error-messages";
 import { defaultPostAuthTarget } from "@/lib/auth/redirects";
 import { useAuth } from "@/lib/auth/useAuth";
 import type { AccountLinkValidation } from "@/lib/auth/types";
 import { GOOGLE_CLIENT_ID } from "@/lib/env";
+import {
+  isAppleSignInConfigured,
+  type AppleWebCredential,
+} from "@/lib/auth/apple-signin";
+import { AppleSignInButton } from "../../_components/apple-signin-button";
+import { appleOutcomeFromError, type AppleOutcome } from "../../_components/apple-outcome";
+import { ApplePanel } from "../../_components/apple-panel";
+import { AuthCard } from "../../_components/auth-card";
 import { AuthField } from "../../_components/auth-field";
+import { AuthShell } from "../../_components/auth-shell";
 import { GoogleSignInButton } from "../../_components/google-signin-button";
 
 // Only explicit token/account rejections prove this link is unusable. An
@@ -64,7 +73,7 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
   const dictionary = useAuthMessages();
   const dict = dictionary.auth;
   const t = dict.verifyLink;
-  const { completeAccountLink } = useAuth();
+  const { completeAccountLink, appleSignIn } = useAuth();
 
   // A missing token is a render-time fact (no async needed), so derive the
   // initial state instead of calling setState in the effect.
@@ -81,6 +90,12 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
   const submitLockRef = useRef(false);
   const validateLockRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+  // Sign in with Apple (popup) for Apple-linked accounts. Its follow-up step
+  // (normally "confirm marketplace access") is shown as a panel on this page.
+  const appleConfigured = isAppleSignInConfigured();
+  const [appleOutcome, setAppleOutcome] = useState<{ id: string; outcome: AppleOutcome } | null>(null);
+  const [appleError, setAppleError] = useState<unknown>(null);
+  const [applePending, setApplePending] = useState(false);
 
   // Validate the token once on mount WITHOUT consuming it, to learn how the
   // user can confirm account ownership. Shared between the initial auto-run
@@ -153,6 +168,13 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
       if (code === "CUSTOMER_AUTH.E38") {
         // Wrong password — keep the form so the user can retry.
         setPasswordError(t.wrongPassword);
+      } else if (code === "APPLE_LOGIN_REQUIRED") {
+        // Apple-only account — only Sign in with Apple can confirm it.
+        setState({
+          kind: "confirm",
+          info: { ...state.info, hasPassword: false, appleLinked: true },
+        });
+        setPassword("");
       } else if (code === "GOOGLE_LOGIN_REQUIRED") {
         // Passwordless (Google-only) account — only Google can confirm it.
         setState({
@@ -174,6 +196,29 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
     }
   }
 
+  // Apple path: the popup returns here. The backend checks the bound Apple
+  // identity; a business account then confirms marketplace access in the
+  // Apple panel. The emailed token stays unused, as on the Google path.
+  async function handleAppleCredential(credential: AppleWebCredential) {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+    setAppleError(null);
+    setActionError(null);
+    setApplePending(true);
+    try {
+      await appleSignIn(credential, "login", locale);
+      if (mountedRef.current) setState({ kind: "success" });
+    } catch (error) {
+      if (!mountedRef.current) return;
+      const outcome = appleOutcomeFromError(error);
+      if (outcome) setAppleOutcome({ id: crypto.randomUUID(), outcome });
+      else setAppleError(error);
+    } finally {
+      submitLockRef.current = false;
+      if (mountedRef.current) setApplePending(false);
+    }
+  }
+
   // Google path: full-page redirect through /auth/callback. The backend
   // checks the bound Google identity; the callback owns any marketplace-access
   // confirmation, collision or failure panels. The emailed token stays unused.
@@ -181,6 +226,31 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
   const loginHref = `${localeHref(locale, "auth")}?mode=login`;
 
   if (state.kind === "checking") return <VerificationLoading />;
+
+  if (appleOutcome && state.kind === "confirm") {
+    return (
+      <AuthShell>
+        <AuthCard
+          mode="login"
+          loginHref={loginHref}
+          registerHref={`${localeHref(locale, "auth")}?mode=register`}
+          tabLoginLabel={dict.tabLogin}
+          tabRegisterLabel={dict.tabRegister}
+          tablistLabel={dict.pageTitle}
+          hideHeader
+          compact
+        >
+          <ApplePanel
+            locale={locale}
+            outcome={appleOutcome.outcome}
+            flowKey={appleOutcome.id}
+            onOutcome={(outcome) => setAppleOutcome({ id: appleOutcome.id, outcome })}
+            onCancel={() => setAppleOutcome(null)}
+          />
+        </AuthCard>
+      </AuthShell>
+    );
+  }
 
   if (state.kind === "success") {
     return (
@@ -224,6 +294,21 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
   }
 
   const { info } = state;
+  const showApple = appleConfigured && info.appleLinked === true;
+  const showGoogleDivider = Boolean(GOOGLE_CLIENT_ID && info.googleLinked);
+  const busy = submitting || applePending;
+  const appleButton = showApple ? (
+    <AppleSignInButton
+      label="continue"
+      disabled={busy}
+      onStart={() => setAppleError(null)}
+      onCredential={(credential) => void handleAppleCredential(credential)}
+      onError={setAppleError}
+    />
+  ) : null;
+  const appleErrorNode = appleError !== null ? (
+    <InlineError>{appleErrorMessage(appleError, dict.errors, dictionary.errors)}</InlineError>
+  ) : null;
   const backLink = (
     <Link href={loginHref} className={styles.back}
       aria-disabled={submitting || undefined} tabIndex={submitting ? -1 : undefined}
@@ -235,7 +320,9 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
 
   return (
     <VerificationLayout title={t.confirmHeading}
-      body={<p>{info.hasPassword ? t.confirmBody : t.googleOnlyBody}</p>}>
+      body={<p>{info.hasPassword
+        ? t.confirmBody
+        : showApple && !info.googleLinked ? t.appleOnlyBody : t.googleOnlyBody}</p>}>
       <div className={styles.identity}>
         <Mail size={20} strokeWidth={1.6} aria-hidden="true" />
         <div className={styles.identityCopy}>
@@ -281,11 +368,22 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
               <GoogleSignInButton intent="login" locale={locale} disabled={submitting} />
             </div>
           )}
+          {showApple && (
+            <div>
+              {!showGoogleDivider && <div className={styles.divider}>{t.orDivider}</div>}
+              {appleButton}
+            </div>
+          )}
+          {appleErrorNode}
           {backLink}
         </form>
       ) : (
         <div className={styles.googleOnly}>
-          <GoogleSignInButton intent="login" locale={locale} />
+          {(info.googleLinked || !showApple) && (
+            <GoogleSignInButton intent="login" locale={locale} />
+          )}
+          {appleButton}
+          {appleErrorNode}
           {backLink}
         </div>
       )}

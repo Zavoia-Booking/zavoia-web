@@ -29,24 +29,32 @@ export type ConfirmAccessContext = {
  * account must be the user's explicit choice, so nothing happens until they
  * click confirm (which completes via POST /google/web/confirm-access and
  * auto-logs-in).
+ *
+ * `provider="apple"`: the same step after Sign in with Apple, completed via
+ * POST /marketplace/auth/apple/confirm-access with Apple-specific copy. The
+ * default (Google) path is unchanged.
  */
 export function ConfirmAccessPanel({
   locale,
   context,
   redirect,
   onCancel,
+  provider = "google",
 }: {
   locale: Locale;
   context: ConfirmAccessContext;
   onCancel: () => void;
   /** Post-auth target carried by the OAuth flow context on /auth/callback. */
   redirect?: string | null;
+  /** Which sign-in minted the tx; picks the confirm endpoint and copy. */
+  provider?: "google" | "apple";
 }) {
   const dictionary = useAuthMessages();
   const dict = dictionary.auth;
   const t = dict.confirmAccess;
   const router = useRouter();
-  const { status, confirmMarketplaceAccess } = useAuth();
+  const { status, confirmMarketplaceAccess, confirmAppleMarketplaceAccess } = useAuth();
+  const isApple = provider === "apple";
 
   const action = useRetainedAuthAction(`confirm-access:${context.txId}`);
   const submitting = action.status === "pending" || action.status === "success";
@@ -66,7 +74,8 @@ export function ConfirmAccessPanel({
 
   function handleConfirm() {
     void action.run(async () => {
-      await confirmMarketplaceAccess(context.txId, locale);
+      if (isApple) await confirmAppleMarketplaceAccess(context.txId, locale);
+      else await confirmMarketplaceAccess(context.txId, locale);
       // Redirect follows the session in the currently mounted locale.
     }).catch(() => {});
   }
@@ -80,14 +89,14 @@ export function ConfirmAccessPanel({
       <h1 className="text-2xl font-semibold tracking-tight">{t.heading}</h1>
       {greeting && <p className="mt-4 text-sm text-zinc-600">{greeting}</p>}
       <p className={`${greeting ? "mt-2" : "mt-4"} text-sm text-zinc-600`}>
-        {t.explanation.replace("{email}", context.email)}
+        {(isApple ? t.appleExplanation : t.explanation).replace("{email}", context.email)}
       </p>
 
       {action.status === "error" && (
         <InlineError
           className="mt-4 rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2"
         >
-          {t.error}
+          {isApple ? t.appleError : t.error}
         </InlineError>
       )}
 

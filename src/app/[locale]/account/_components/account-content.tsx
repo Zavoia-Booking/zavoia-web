@@ -52,6 +52,9 @@ import type {
   UpdateProfileBody,
 } from "@/lib/api/marketplace/types";
 import { SupportSection } from "./support-section";
+import { AppleConnectionRow } from "./apple-connection-row";
+import { CreatePasswordCard } from "./create-password-card";
+import { isAppleSignInConfigured } from "@/lib/auth/apple-signin";
 import styles from "./account-content.module.css";
 import disclosure from "@/components/ui/disclosure-motion.module.css";
 import {
@@ -2322,8 +2325,10 @@ function SecuritySection({
   onDeleted: () => Promise<void>;
 }) {
   const dictionary = useTranslation().dict;
-  const { refreshUser } = useAuth();
+  const { refreshUser, user } = useAuth();
   const authErrors = dictionary.auth.errors;
+  // The Apple row renders when Apple is configured here or already linked.
+  const showAppleRow = isAppleSignInConfigured() || user?.apple?.linked === true;
 
   // Refresh /me once so googleSub / hasPassword reflect the backend. Failures
   // degrade silently — the row falls back to whatever `user` already holds.
@@ -2341,6 +2346,10 @@ function SecuritySection({
       }}
     >
       <div>
+        {user?.hasPassword === false ? (
+          /* No password yet (Google- or Apple-only): offer to create one. */
+          <CreatePasswordCard t={t} open={pwOpen} onOpenChange={setPwOpen} />
+        ) : (
         <Card>
           <button
             type="button"
@@ -2412,12 +2421,14 @@ function SecuritySection({
             </div>
           </FormReveal>
         </Card>
+        )}
       </div>
 
       <div>
         <Card>
           <div style={{ padding: "2px 0" }}>
-            <GoogleConnectionRow t={t} authErrors={authErrors} locale={locale} last />
+            <GoogleConnectionRow t={t} authErrors={authErrors} locale={locale} last={!showAppleRow} />
+            {showAppleRow && <AppleConnectionRow t={t} last />}
           </div>
         </Card>
       </div>

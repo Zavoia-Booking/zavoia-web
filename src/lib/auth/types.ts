@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n/locales";
+import type { AppleWebCredential } from "@/lib/auth/apple-signin";
 
 export type AuthUser = {
   uuid: string;
@@ -30,6 +31,27 @@ export type AuthUser = {
    * login-response user simply hasn't been told.
    */
   emailVerified?: boolean;
+  /**
+   * Sign in with Apple connection. Only GET /marketplace/auth/me (and the
+   * Apple connect/disconnect responses) carry it; `undefined` means "unknown
+   * yet".
+   */
+  apple?: AppleConnection;
+  /** Ways this account can sign in, from /me. `undefined` = unknown yet. */
+  signInMethods?: SignInMethod[];
+};
+
+export type SignInMethod = "password" | "google" | "apple";
+
+/** `user.apple` from GET /marketplace/auth/me. */
+export type AppleConnection = {
+  linked: boolean;
+  /** The email Apple shared (may be a private relay address). */
+  email: string | null;
+  /** True for Apple's "Hide my email" relay addresses. */
+  isPrivateEmail: boolean;
+  /** Apple reported that relay forwarding is turned off for this address. */
+  emailForwardingDisabled: boolean;
 };
 
 /**
@@ -121,6 +143,12 @@ export type AccountLinkNeededDetails = {
   suggestedNext: "enable_marketplace_access" | "confirm_enable_marketplace";
   /** Only on `confirm_enable_marketplace`: tx for the confirm endpoint. */
   txId?: string;
+  /**
+   * Which sign-in produced a `confirm_enable_marketplace` tx. The Apple
+   * endpoint sends `'apple'` (confirm via /apple/confirm-access); Google sends
+   * nothing, so absent means Google.
+   */
+  provider?: "google" | "apple";
   email: string;
   firstName?: string;
   lastName?: string;
@@ -140,6 +168,8 @@ export type AccountLinkValidation = {
   email: string;
   hasPassword: boolean;
   googleLinked: boolean;
+  /** An Apple ID is connected; the page offers "Continue with Apple". */
+  appleLinked?: boolean;
 };
 
 export type SendAccountLinkResponse = {
@@ -208,6 +238,41 @@ export type GoogleUnlinkedDetails = {
  */
 export type ReauthForGoogleLinkResponse = {
   proof: string;
+};
+
+/** Intent passed to POST /marketplace/auth/apple (both behave the same). */
+export type AppleAuthIntent = "login" | "register";
+
+/**
+ * 409 `apple_profile_required`: Apple sent no usable name. The name step
+ * posts `{tx_id, firstName, lastName}` to /marketplace/auth/apple/profile.
+ */
+export type AppleProfileRequiredDetails = {
+  txId: string;
+  email?: string;
+};
+
+/** How an existing account proves it is the caller's before Apple is linked. */
+export type AppleLinkProofKind = "password" | "email_code";
+
+/**
+ * 409 `account_exists_unlinked_apple`: Apple shared an email that already has
+ * a Zavoia account. The account's password (or, without one, a 6-digit code
+ * emailed to it) proves ownership before Apple is linked.
+ */
+export type AppleUnlinkedDetails = {
+  txId: string;
+  email: string;
+  proofs: AppleLinkProofKind[];
+};
+
+export type AppleLinkProof = { password: string } | { code: string };
+
+/** Response of POST /marketplace/auth/link/apple and /unlink/apple. */
+export type AppleConnectionResponse = {
+  message: string;
+  apple: AppleConnection;
+  signInMethods: SignInMethod[];
 };
 
 export type AuthContextValue = {
@@ -302,4 +367,48 @@ export type AuthContextValue = {
     currentEmail: string,
     newEmail: string,
   ) => Promise<ChangeEmailResponse>;
+  /**
+   * Sign in / register with an Apple JS (popup) authorization. On a 200 it
+   * establishes the session exactly like googleSignIn. Re-throws the ApiError
+   * otherwise, so the UI can branch on `apple_profile_required`,
+   * `account_exists_unlinked_apple` or `account_exists_needs_marketplace_access`.
+   */
+  appleSignIn: (
+    credential: AppleWebCredential,
+    intent: AppleAuthIntent,
+    locale?: Locale,
+  ) => Promise<void>;
+  /** The Apple name step: finishes sign-up and establishes the session. */
+  completeAppleProfile: (
+    txId: string,
+    firstName: string,
+    lastName: string,
+    locale?: Locale,
+  ) => Promise<void>;
+  /**
+   * Proves an existing account (password or emailed code), links Apple and
+   * establishes the session. May re-throw the confirm-access 409.
+   */
+  verifyAppleLink: (
+    txId: string,
+    proof: AppleLinkProof,
+    locale?: Locale,
+  ) => Promise<void>;
+  /** Apple twin of confirmMarketplaceAccess (POST /apple/confirm-access). */
+  confirmAppleMarketplaceAccess: (txId: string, locale?: Locale) => Promise<void>;
+  /**
+   * Connect Apple to the signed-in account. Keeps the current session and
+   * reflects the returned `apple` / `signInMethods` into `user`.
+   */
+  linkApple: (credential: AppleWebCredential) => Promise<void>;
+  /**
+   * Disconnect Apple. `password` is required when the account has one.
+   * Keeps the current session and reflects the result into `user`.
+   */
+  unlinkApple: (password?: string) => Promise<void>;
+  /**
+   * Create the first password for an account without one (POST
+   * /marketplace/auth/set-password). Keeps the session; sets `hasPassword`.
+   */
+  createPassword: (password: string) => Promise<void>;
 };

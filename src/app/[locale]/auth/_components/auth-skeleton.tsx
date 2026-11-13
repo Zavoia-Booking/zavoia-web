@@ -5,6 +5,7 @@ import { useAuthMessages } from "./auth-messages";
 import { AuthCard, AuthBusinessSignIn } from "./auth-card";
 import { AuthShell } from "./auth-shell";
 import { GOOGLE_CLIENT_ID } from "@/lib/env";
+import { isAppleSignInConfigured } from "@/lib/auth/apple-signin";
 import { localeHref } from "@/i18n/routes";
 import { useTranslation } from "@/i18n/useTranslation";
 
@@ -91,14 +92,19 @@ export function AuthSkeleton({ variant = "login" }: { variant?: Variant }) {
                 )}
               </div>
             </div>
-            {!forgot && GOOGLE_CLIENT_ID && (
+            {!forgot && (GOOGLE_CLIENT_ID || isAppleSignInConfigured()) && (
               <div aria-hidden="true">
                 <div className="text-center text-sm text-c-600">
                   {t.googleDivider}
                 </div>
-                <div className="mt-3">
+                {GOOGLE_CLIENT_ID && <div className="mt-3">
                   <ControlSkeleton />
-                </div>
+                </div>}
+                {isAppleSignInConfigured() && (
+                  <div className="mt-3">
+                    <ControlSkeleton />
+                  </div>
+                )}
               </div>
             )}
             {variant === "login" && (

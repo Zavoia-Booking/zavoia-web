@@ -12,6 +12,16 @@ export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
 // origins" in Google Cloud Console for GIS to issue ID tokens.
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
+// Sign in with Apple (Apple JS, popup mode). Both must be set, or no Apple UI
+// is rendered (same feature-flag pattern as GOOGLE_CLIENT_ID). The Services ID
+// is the web client id from the Apple developer portal; the redirect URI must
+// be registered there as a Return URL AND listed in the API's
+// APPLE_WEB_REDIRECT_URIS, and must match this deploy's origin exactly.
+//   staging: com.zavoia.signin.web.staging · https://staging.zavoia.com/auth/apple/callback
+//   prod:    com.zavoia.signin.web         · https://www.zavoia.com/auth/apple/callback
+export const APPLE_SERVICES_ID = process.env.NEXT_PUBLIC_APPLE_SERVICES_ID ?? "";
+export const APPLE_REDIRECT_URI = process.env.NEXT_PUBLIC_APPLE_REDIRECT_URI ?? "";
+
 // Zavoia Business dashboard (admin-dashboard app). Overridable so staging
 // deploys can point at staging-app.zavoia.com.
 export const BUSINESS_APP_URL =

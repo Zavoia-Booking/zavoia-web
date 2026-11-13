@@ -53,6 +53,7 @@ export function AuthField({
   describedBy,
   showPasswordLabel = "Show password",
   hidePasswordLabel = "Hide password",
+  inputMode,
 }: {
   id: string;
   type?: string;
@@ -69,6 +70,8 @@ export function AuthField({
   describedBy?: string;
   showPasswordLabel?: string;
   hidePasswordLabel?: string;
+  /** Optional virtual-keyboard hint (e.g. "numeric" for a one-time code). */
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
@@ -104,6 +107,7 @@ export function AuthField({
           onBlur={onBlur}
           onFocus={onFocus}
           autoComplete={autoComplete}
+          inputMode={inputMode}
           disabled={disabled}
           required={required}
           aria-invalid={Boolean(error)}

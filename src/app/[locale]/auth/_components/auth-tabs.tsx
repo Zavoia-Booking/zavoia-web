@@ -1,14 +1,24 @@
 "use client";
 
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLayoutEffect, useState } from "react";
+import { InlineError } from "@/components/ui/inline-error";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
 import { authFlowHref, authRedirectTarget } from "@/lib/auth/redirects";
 import { useRetainedAuthState } from "@/lib/auth/retained-flow";
 import { localeHref, localizedPathname } from "@/i18n/routes";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 import { GOOGLE_CLIENT_ID } from "@/lib/env";
+import { appleErrorMessage } from "@/lib/api/auth-error-messages";
+import {
+  isAppleSignInConfigured,
+  type AppleWebCredential,
+} from "@/lib/auth/apple-signin";
+import { useAuth } from "@/lib/auth/useAuth";
+import { AppleSignInButton } from "./apple-signin-button";
+import { appleOutcomeFromError, type AppleOutcome } from "./apple-outcome";
+import { ApplePanel } from "./apple-panel";
 import { AuthCard, AuthBusinessSignIn } from "./auth-card";
 import { AuthShell } from "./auth-shell";
 import { EnableAccessPanel } from "./enable-access-panel";
@@ -19,6 +29,7 @@ import { ForgotPasswordForm } from "../forgot-password/_components/forgot-passwo
 
 type Mode = "login" | "register";
 type AccessFlow = { id: string; details: AccountLinkNeededDetails };
+type AppleFlow = { id: string; outcome: AppleOutcome };
 
 // Use the same navigation context as the auth links, without a locale prefix.
 function authEntryKey(search: Pick<URLSearchParams, "get">): string {
@@ -45,6 +56,45 @@ export function AuthTabs({ locale }: { locale: Locale }) {
   const entryKey = authEntryKey(searchParams);
   const [linkFlow, setLinkFlow] = useRetainedAuthState<AccessFlow>(entryKey);
   const [submitting, setSubmitting] = useState(false);
+
+  // Sign in with Apple runs in a popup on this page, so its follow-up steps
+  // (name, link proof, confirm access) are panels here, retained like linkFlow.
+  const router = useRouter();
+  const { appleSignIn } = useAuth();
+  const appleConfigured = isAppleSignInConfigured();
+  const [appleFlow, setAppleFlow] = useRetainedAuthState<AppleFlow>(
+    JSON.stringify(["apple-flow", entryKey]),
+  );
+  const [appleError, setAppleError] = useState<unknown>(null);
+
+  useLayoutEffect(() => () => {
+    queueMicrotask(() => {
+      if (appleFlow && !isCurrentEntry(entryKey)) {
+        setAppleFlow((current) => current === appleFlow ? null : current);
+      }
+    });
+  }, [entryKey, appleFlow, setAppleFlow]);
+
+  async function handleAppleCredential(credential: AppleWebCredential) {
+    if (!isCurrentEntry(entryKey)) return;
+    setAppleError(null);
+    setSubmitting(true);
+    try {
+      await appleSignIn(credential, mode, locale);
+      // Success: stay locked while navigating, like the sign-in forms.
+      router.replace(redirect);
+    } catch (error) {
+      setSubmitting(false);
+      const outcome = appleOutcomeFromError(error);
+      if (outcome) {
+        if (isCurrentEntry(entryKey)) {
+          setAppleFlow({ id: crypto.randomUUID(), outcome });
+        }
+        return;
+      }
+      setAppleError(error);
+    }
+  }
 
   useLayoutEffect(() => () => {
     // A locale remount keeps the entry. A committed exit or a different auth
@@ -77,6 +127,7 @@ export function AuthTabs({ locale }: { locale: Locale }) {
     setTermsAccepted(false);
     setTermsError(false);
     setSubmitting(false);
+    setAppleError(null);
   }
 
   // Sub-flow (business-account link) replaces the tabbed forms inside the same
@@ -92,6 +143,15 @@ export function AuthTabs({ locale }: { locale: Locale }) {
         setLinkFlow(null);
         window.history.replaceState(null, "", authFlowHref(locale, "login", searchParams));
       }}
+    />
+  ) : appleFlow ? (
+    <ApplePanel
+      locale={locale}
+      outcome={appleFlow.outcome}
+      flowKey={appleFlow.id}
+      redirect={redirect}
+      onOutcome={(outcome) => setAppleFlow({ id: appleFlow.id, outcome })}
+      onCancel={() => setAppleFlow(null)}
     />
   ) : null;
 
@@ -139,7 +199,7 @@ export function AuthTabs({ locale }: { locale: Locale }) {
               />
             )}
 
-            {GOOGLE_CLIENT_ID && (
+            {(GOOGLE_CLIENT_ID || appleConfigured) && (
               <div>
                 <div
                   className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-[rgba(28,28,26,0.10)]"
@@ -150,7 +210,7 @@ export function AuthTabs({ locale }: { locale: Locale }) {
                   </span>
                 </div>
 
-                <div className="mt-3">
+                {GOOGLE_CLIENT_ID && <div className="mt-3">
                   <GoogleSignInButton
                     intent={mode}
                     locale={locale}
@@ -169,7 +229,37 @@ export function AuthTabs({ locale }: { locale: Locale }) {
                         : undefined
                     }
                   />
-                </div>
+                </div>}
+
+                {appleConfigured && (
+                  <div className="mt-3">
+                    <AppleSignInButton
+                      label={mode === "register" ? "signUp" : "continue"}
+                      disabled={submitting}
+                      onBeforeStart={
+                        mode === "register"
+                          ? () => {
+                              if (!termsAccepted) {
+                                setTermsError(true);
+                                document.getElementById("acceptTerms")?.focus();
+                                return false;
+                              }
+                              return true;
+                            }
+                          : undefined
+                      }
+                      onStart={() => setAppleError(null)}
+                      onCredential={(credential) => void handleAppleCredential(credential)}
+                      onError={setAppleError}
+                    />
+                  </div>
+                )}
+
+                {appleError !== null && (
+                  <InlineError className="mt-3 rounded-[10px] border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2">
+                    {appleErrorMessage(appleError, dict.errors, dictionary.errors)}
+                  </InlineError>
+                )}
               </div>
             )}
 

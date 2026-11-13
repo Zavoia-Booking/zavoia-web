@@ -1,8 +1,15 @@
 import { apiFetch, ApiError } from "@/lib/api/http";
 import type { Locale } from "@/i18n/locales";
+import type { AppleWebCredential } from "@/lib/auth/apple-signin";
 import type {
   AccountLinkNeededDetails,
   AccountLinkValidation,
+  AppleAuthIntent,
+  AppleConnectionResponse,
+  AppleLinkProof,
+  AppleLinkProofKind,
+  AppleProfileRequiredDetails,
+  AppleUnlinkedDetails,
   AuthResponse,
   AuthUser,
   ChangeEmailResponse,
@@ -22,6 +29,8 @@ export { refreshSession } from "@/lib/api/http";
 
 export const ACCOUNT_LINK_NEEDED_CODE = "account_exists_needs_marketplace_access";
 export const GOOGLE_UNLINKED_CODE = "account_exists_unlinked_google";
+export const APPLE_PROFILE_REQUIRED_CODE = "apple_profile_required";
+export const APPLE_UNLINKED_CODE = "account_exists_unlinked_apple";
 
 export async function registerCustomer(
   dto: RegisterDTO,
@@ -374,4 +383,178 @@ export function getGoogleUnlinkedDetails(
   if (typeof txId !== "string" || txId.length === 0) return null;
   const email = data?.details?.email;
   return { txId, email: typeof email === "string" ? email : undefined };
+}
+
+// ========================================================================
+// Sign in with Apple (customer side). New endpoints only; the email and
+// Google calls above are unchanged. Every call that can issue a session
+// returns the same AuthResponse shape as login/Google. `locale` rides as
+// x-locale exactly like the Google web calls.
+// ========================================================================
+
+function localeHeaders(locale?: Locale): HeadersInit | undefined {
+  return locale ? { "x-locale": locale } : undefined;
+}
+
+/**
+ * POST /marketplace/auth/apple with one Apple JS authorization (popup). The
+ * code is single-use, so a retry needs a fresh Apple sign-in. Errors: 409
+ * `apple_profile_required` | `account_exists_unlinked_apple` |
+ * `account_exists_needs_marketplace_access` (provider 'apple'); 403
+ * `pending_invitation_requires_acceptance` | `apple_account_unusable`; 401
+ * `invalid_apple_token`; 503 `apple_unavailable`.
+ */
+export async function appleAuth(
+  credential: AppleWebCredential,
+  intent: AppleAuthIntent,
+  locale?: Locale,
+): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/marketplace/auth/apple", {
+    method: "POST",
+    headers: localeHeaders(locale),
+    body: JSON.stringify({ platform: "web", ...credential, intent }),
+  });
+}
+
+/** The name step after 409 `apple_profile_required`. Issues the session. */
+export async function appleCompleteProfile(
+  txId: string,
+  firstName: string,
+  lastName: string,
+  locale?: Locale,
+): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/marketplace/auth/apple/profile", {
+    method: "POST",
+    headers: localeHeaders(locale),
+    body: JSON.stringify({ tx_id: txId, firstName, lastName }),
+  });
+}
+
+/**
+ * Emails the 6-digit code for an account without a password. At most 3 per
+ * step (429 `apple_code_limit`); 400 `apple_step_expired` when the step is gone.
+ */
+export async function appleSendLinkCode(
+  txId: string,
+  locale?: Locale,
+): Promise<{ message: string; email: string }> {
+  return apiFetch<{ message: string; email: string }>(
+    "/marketplace/auth/apple/link/send-code",
+    {
+      method: "POST",
+      headers: localeHeaders(locale),
+      body: JSON.stringify({ tx_id: txId }),
+    },
+  );
+}
+
+/**
+ * Proves the existing account (password or code), links Apple and continues
+ * like a sign-in: session, or the confirm-access 409. 401
+ * `apple_link_proof_invalid`; five wrong tries end the step (400
+ * `apple_step_expired`).
+ */
+export async function appleVerifyLink(
+  txId: string,
+  proof: AppleLinkProof,
+  locale?: Locale,
+): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/marketplace/auth/apple/link/verify", {
+    method: "POST",
+    headers: localeHeaders(locale),
+    body: JSON.stringify({ tx_id: txId, ...proof }),
+  });
+}
+
+/** Adds marketplace access to an Apple-linked business account. Issues the session. */
+export async function appleConfirmMarketplaceAccess(
+  txId: string,
+  locale?: Locale,
+): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/marketplace/auth/apple/confirm-access", {
+    method: "POST",
+    headers: localeHeaders(locale),
+    body: JSON.stringify({ tx_id: txId }),
+  });
+}
+
+/**
+ * Connects Apple to the signed-in account. Keeps the session. 409
+ * `apple_linked_elsewhere` (that Apple ID belongs to another account) or
+ * `apple_other_account_linked` (this account already has another Apple ID).
+ */
+export async function linkApple(
+  credential: AppleWebCredential,
+): Promise<AppleConnectionResponse> {
+  return apiFetch<AppleConnectionResponse>("/marketplace/auth/link/apple", {
+    method: "POST",
+    body: JSON.stringify({ platform: "web", ...credential }),
+  });
+}
+
+/**
+ * Disconnects Apple. The password is required when the account has one (401
+ * `apple_link_proof_invalid` when wrong); 400 `apple_unlink_last_method` when
+ * Apple is the only way to sign in.
+ */
+export async function unlinkApple(
+  password?: string,
+): Promise<AppleConnectionResponse> {
+  return apiFetch<AppleConnectionResponse>("/marketplace/auth/unlink/apple", {
+    method: "POST",
+    body: JSON.stringify(password ? { password } : {}),
+  });
+}
+
+/**
+ * Creates the first password for an account without one (Google- or
+ * Apple-only). Keeps the session. 400 CUSTOMER_AUTH.E55 when a password
+ * already exists.
+ */
+export async function setPassword(
+  password: string,
+): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>("/marketplace/auth/set-password", {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  });
+}
+
+/** Detects 409 `apple_profile_required` and extracts its tx (the name step). */
+export function getAppleProfileRequiredDetails(
+  error: unknown,
+): AppleProfileRequiredDetails | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.status !== 409) return null;
+  if (error.code !== APPLE_PROFILE_REQUIRED_CODE) return null;
+  const data = error.data as {
+    details?: { tx_id?: unknown; email?: unknown };
+  } | null;
+  const txId = data?.details?.tx_id;
+  if (typeof txId !== "string" || txId.length === 0) return null;
+  const email = data?.details?.email;
+  return { txId, email: typeof email === "string" ? email : undefined };
+}
+
+/** Detects 409 `account_exists_unlinked_apple` and extracts tx, email and proofs. */
+export function getAppleUnlinkedDetails(
+  error: unknown,
+): AppleUnlinkedDetails | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.status !== 409) return null;
+  if (error.code !== APPLE_UNLINKED_CODE) return null;
+  const data = error.data as {
+    details?: { tx_id?: unknown; email?: unknown; proofs?: unknown };
+  } | null;
+  const txId = data?.details?.tx_id;
+  const email = data?.details?.email;
+  if (typeof txId !== "string" || txId.length === 0) return null;
+  if (typeof email !== "string") return null;
+  const rawProofs: unknown = data?.details?.proofs;
+  const raw: unknown[] = Array.isArray(rawProofs) ? rawProofs : [];
+  const proofs = raw.filter(
+    (proof): proof is AppleLinkProofKind =>
+      proof === "password" || proof === "email_code",
+  );
+  return { txId, email, proofs: proofs.length > 0 ? proofs : ["email_code"] };
 }

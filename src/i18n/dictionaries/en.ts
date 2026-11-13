@@ -231,6 +231,10 @@ export const en: {
     haveAccountPrompt: string;
     goToLogin: string;
     googleDivider: string;
+    appleButton: {
+      continue: string;
+      signUp: string;
+    };
     businessSignIn: {
       title: string;
       description: string;
@@ -285,6 +289,26 @@ export const en: {
       googleLinkVerifyAgain: string;
       googleEmailUnverified: string;
       googleAccountLinkedElsewhere: string;
+      appleUnavailable: string;
+      appleFailed: string;
+      appleExpired: string;
+      appleNotResponding: string;
+      appleLinkedElsewhere: string;
+      appleOtherAccountLinked: string;
+      applePendingInvitation: string;
+      appleProofInvalid: string;
+      appleStepExpired: string;
+      appleAccountExists: string;
+      appleUnlinkLastMethod: string;
+      appleNotLinked: string;
+      appleEmailRequired: string;
+      appleNoAccount: string;
+      appleLoginRequired: string;
+      appleNeedsMarketplaceAccess: string;
+      appleNameRequired: string;
+      appleAccountUnusable: string;
+      appleCodeLimit: string;
+      passwordAlreadySet: string;
       linkCheckFailedHeading: string;
       linkCheckFailedBody: string;
     };
@@ -340,6 +364,34 @@ export const en: {
       backToSignIn: string;
       backToAccount: string;
     };
+    appleProfile: {
+      heading: string;
+      explanation: string;
+      submit: string;
+      submitting: string;
+      cancel: string;
+    };
+    appleLink: {
+      heading: string;
+      passwordExplanation: string;
+      codeExplanation: string;
+      sendCode: string;
+      sendingCode: string;
+      codeSent: string;
+      resendCode: string;
+      codeLabel: string;
+      codeInvalid: string;
+      submit: string;
+      submitting: string;
+      startAgain: string;
+      cancel: string;
+    };
+    appleCallback: {
+      pageTitle: string;
+      heading: string;
+      body: string;
+      continueCta: string;
+    };
     confirmAccess: {
       heading: string;
       greeting: string;
@@ -348,6 +400,8 @@ export const en: {
       confirming: string;
       cancel: string;
       error: string;
+      appleExplanation: string;
+      appleError: string;
     };
     verifyLink: {
       pageTitle: string;
@@ -357,6 +411,7 @@ export const en: {
       accountLabel: string;
       confirmBody: string;
       googleOnlyBody: string;
+      appleOnlyBody: string;
       passwordLabel: string;
       passwordRequired: string;
       wrongPassword: string;
@@ -525,6 +580,32 @@ export const en: {
       cancel: string;
       connectedToast: string;
       disconnectedToast: string;
+    };
+    appleConnection: {
+      title: string;
+      connected: string;
+      notConnected: string;
+      connectCaption: string;
+      connectedCaption: string;
+      relayNote: string;
+      disconnect: string;
+      passwordPrompt: string;
+      passwordLabel: string;
+      confirmPrompt: string;
+      confirmDisconnect: string;
+      cancel: string;
+      connectedToast: string;
+      disconnectedToast: string;
+      lastMethod: string;
+    };
+    createPassword: {
+      title: string;
+      caption: string;
+      action: string;
+      new: string;
+      confirm: string;
+      submit: string;
+      createdToast: string;
     };
     changeEmail: {
       title: string;
@@ -2024,6 +2105,10 @@ export const en: {
     haveAccountPrompt: "Already have an account?",
     goToLogin: "Sign in",
     googleDivider: "or",
+    appleButton: {
+      continue: "Continue with Apple",
+      signUp: "Sign up with Apple",
+    },
     businessSignIn: {
       title: "Zavoia Business",
       description: "Manage your appointments, clients and team.",
@@ -2052,7 +2137,7 @@ export const en: {
       generic: "Something went wrong. Please try again.",
       invalidCredentials: "Incorrect email or password.",
       googleAccountHint:
-        'Signed up with Google? Use "Google" below.',
+        "Signed up with Google or Apple? Continue with it below, or choose \"Forgot password?\" to create a password.",
       emailInvalid: "Enter a valid email address.",
       emailRequired: "Email is required.",
       passwordRequired: "Password is required.",
@@ -2086,6 +2171,26 @@ export const en: {
         "Your Google account's email isn't verified. Verify it with Google, or create an account with your email and a password.",
       googleAccountLinkedElsewhere:
         "This Google account is already connected to another Zavoia account. Sign in to that account, or use a different Google account.",
+      appleUnavailable: "Sign in with Apple isn't available right now. Please try again later.",
+      appleFailed: "Apple sign-in failed. Please try again.",
+      appleExpired: "This Apple sign-in has expired. Please try again.",
+      appleNotResponding: "Apple isn't responding. Please try again in a moment.",
+      appleLinkedElsewhere: "This Apple ID is already connected to another Zavoia account. Sign in to that account, or use a different Apple ID.",
+      appleOtherAccountLinked: "A different Apple ID is already connected to this account.",
+      applePendingInvitation: "Finish accepting your team invitation first, then you can use Apple.",
+      appleProofInvalid: "That password or code isn't right.",
+      appleStepExpired: "This step has expired. Sign in with Apple again.",
+      appleAccountExists: "This email already has a Zavoia account. Confirm it's yours to connect Apple.",
+      appleUnlinkLastMethod: "Create a password before disconnecting Apple, so you can still sign in.",
+      appleNotLinked: "Apple isn't connected to this account.",
+      appleEmailRequired: "Apple didn't share an email address. Remove Zavoia in your Apple ID settings, then try again.",
+      appleNoAccount: "No Zavoia account uses this Apple ID yet. Register first.",
+      appleLoginRequired: "This account signs in with Apple. Continue with Apple.",
+      appleNeedsMarketplaceAccess: "Confirm to enable marketplace access for your business account.",
+      appleNameRequired: "Enter your first and last name to finish creating your account.",
+      appleAccountUnusable: "This account can't be used here.",
+      appleCodeLimit: "You've requested the maximum number of codes. Use the latest code we sent, or sign in with Apple again.",
+      passwordAlreadySet: "This account already has a password. Use Change password instead.",
       linkCheckFailedHeading: "We couldn't check this link",
       linkCheckFailedBody:
         "That's a problem on our side, not with your link — it may still be perfectly good. Please try again.",
@@ -2149,6 +2254,34 @@ export const en: {
       backToSignIn: "Back to sign in",
       backToAccount: "Back to account settings",
     },
+    appleProfile: {
+      heading: "Finish creating your account",
+      explanation: "Apple didn't share your name. Enter it to finish creating your Zavoia account.",
+      submit: "Create account",
+      submitting: "Creating account...",
+      cancel: "Back to sign in",
+    },
+    appleLink: {
+      heading: "Connect Apple to your account",
+      passwordExplanation: "An account with {email} already exists. Enter its password to connect Sign in with Apple to it.",
+      codeExplanation: "An account with {email} already exists. We'll email a 6-digit code to that address to confirm it's yours.",
+      sendCode: "Send code",
+      sendingCode: "Sending code...",
+      codeSent: "We sent a 6-digit code to {email}. It's valid for 10 minutes.",
+      resendCode: "Send a new code",
+      codeLabel: "6-digit code",
+      codeInvalid: "Enter the 6-digit code from the email.",
+      submit: "Connect Apple",
+      submitting: "Connecting...",
+      startAgain: "Start again",
+      cancel: "Back to sign in",
+    },
+    appleCallback: {
+      pageTitle: "Sign in with Apple — Zavoia",
+      heading: "You can close this window",
+      body: "Sign in with Apple continues in the Zavoia window where you started.",
+      continueCta: "Go to Zavoia",
+    },
     confirmAccess: {
       heading: "Enable marketplace access?",
       greeting: "Hi {name},",
@@ -2159,6 +2292,8 @@ export const en: {
       cancel: "Back to sign in",
       error:
         "We couldn't enable marketplace access — the confirmation may have expired. Please sign in with Google again.",
+      appleExplanation: "Your Apple ID is already connected to a Zavoia business account ({email}). Enable marketplace access to also browse and book services with this account — no new account needed.",
+      appleError: "We couldn't enable marketplace access — the confirmation may have expired. Please sign in with Apple again.",
     },
     verifyLink: {
       pageTitle: "Enable marketplace access — Zavoia",
@@ -2170,6 +2305,8 @@ export const en: {
         "Enter your account password to enable marketplace access.",
       googleOnlyBody:
         "This account uses Google sign-in. Continue with Google to enable marketplace access.",
+      appleOnlyBody:
+        "This account uses Sign in with Apple. Continue with Apple to enable marketplace access.",
       passwordLabel: "Password",
       passwordRequired: "Please enter your password.",
       wrongPassword: "Incorrect password. Please try again.",
@@ -2348,6 +2485,32 @@ export const en: {
       cancel: "Cancel",
       connectedToast: "Google connected",
       disconnectedToast: "Google disconnected",
+    },
+    appleConnection: {
+      title: "Apple",
+      connected: "Connected",
+      notConnected: "Not connected",
+      connectCaption: "Connect your Apple ID for faster sign-in.",
+      connectedCaption: "You can sign in with Apple.",
+      relayNote: "You chose to hide your email with Apple. Zavoia emails reach you through Apple's relay address {email}.",
+      disconnect: "Disconnect",
+      passwordPrompt: "Enter your password to disconnect Apple.",
+      passwordLabel: "Password",
+      confirmPrompt: "Disconnect Apple from your account? You can connect it again at any time.",
+      confirmDisconnect: "Disconnect",
+      cancel: "Cancel",
+      connectedToast: "Apple connected",
+      disconnectedToast: "Apple disconnected",
+      lastMethod: "Apple is the only way you sign in right now. Create a password first, then you can disconnect Apple.",
+    },
+    createPassword: {
+      title: "Create password",
+      caption: "Your account doesn't have a password yet. Create one to also sign in with your email.",
+      action: "Create",
+      new: "New password",
+      confirm: "Confirm password",
+      submit: "Create password",
+      createdToast: "Password created",
     },
     changeEmail: {
       title: "Email address",

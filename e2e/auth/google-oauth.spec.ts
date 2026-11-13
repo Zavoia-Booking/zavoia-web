@@ -152,7 +152,9 @@ test.describe('Account page Google connection row', () => {
     await page.getByRole('button', { name: 'Login & security' }).click()
 
     await expect(page.getByText('Google', { exact: true })).toBeVisible()
-    await expect(page.getByText('Not connected', { exact: true })).toBeVisible()
+    // .first(): with Sign in with Apple configured for this suite, the Apple
+    // row below Google carries its own "Not connected" badge.
+    await expect(page.getByText('Not connected', { exact: true }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Google', exact: true })).toBeHidden()
   })
 })

@@ -44,6 +44,7 @@
 .form { display: flex; min-inline-size: 0; flex-direction: column; gap: 20px; }
 .form :global(.zv-auth-input) { height: 52px; font-size: 16px; }
 .form :global(.auth-google-button), .googleOnly :global(.auth-google-button) { height: 52px; }
+.form :global(.auth-apple-button), .googleOnly :global(.auth-apple-button) { height: 52px; }
 .submit { inline-size: 100%; min-block-size: 54px; }
 .back { display: flex; min-block-size: 44px; align-items: center; justify-content: center; gap: 8px; padding: 8px; color: var(--c-600); font-size: 14px; font-weight: 500; line-height: 20px; text-align: center; text-decoration: none; }
 .back > svg { flex-shrink: 0; }
