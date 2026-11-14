@@ -40,8 +40,15 @@ const ANDROID_APPS: { package: string; fingerprints: string[] }[] = [
       "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C",
     ],
   },
-  // TODO: add com.zavoia.marketplaceapp once its production keystore exists
-  // (first EAS production build) and the Play App Signing key fingerprint.
+  {
+    package: "com.zavoia.marketplaceapp",
+    fingerprints: [
+      // Play App Signing key — what Play Store installs are signed with
+      "4A:28:AB:C5:1B:B9:F7:D5:98:E0:B8:F6:B1:87:C3:37:E6:1B:65:50:05:42:53:45:05:C7:47:EF:6B:80:A5:3B",
+      // EAS-managed production keystore (Play upload key) — builds installed outside Play
+      "17:81:66:BE:EF:D8:37:A5:89:C5:E5:C4:85:89:10:C5:BB:FA:75:BC:B1:5B:60:A8:67:9A:2B:54:E7:56:5D:B2",
+    ],
+  },
 ];
 
 export const ANDROID_ASSET_LINKS = ANDROID_APPS.map((app) => ({
