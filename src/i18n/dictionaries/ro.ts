@@ -507,6 +507,8 @@ export const ro: Dictionary = {
         "Acest cont folosește autentificarea cu Google. Continuă cu Google pentru a activa accesul în marketplace.",
       appleOnlyBody:
         "Acest cont folosește autentificarea cu Apple. Continuă cu Apple pentru a activa accesul în marketplace.",
+      wrongAppleId:
+        "Acest ID Apple nu este conectat la contul tău Zavoia. Continuă cu ID-ul Apple cu care te autentifici în Zavoia.",
       passwordLabel: "Parolă",
       passwordRequired: "Te rugăm să introduci parola.",
       wrongPassword: "Parolă incorectă. Încearcă din nou.",

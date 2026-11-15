@@ -307,8 +307,14 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
       onError={setAppleError}
     />
   ) : null;
+  // No account for this Apple ID: the person picked another Apple ID than the
+  // one on this account (the Apple button shows only when one is linked).
   const appleErrorNode = appleError !== null ? (
-    <InlineError>{appleErrorMessage(appleError, dict.errors, dictionary.errors)}</InlineError>
+    <InlineError>
+      {backendCode(appleError) === "ACCOUNT_NOT_FOUND"
+        ? t.wrongAppleId
+        : appleErrorMessage(appleError, dict.errors, dictionary.errors)}
+    </InlineError>
   ) : null;
   const backLink = (
     <Link href={loginHref} className={styles.back}

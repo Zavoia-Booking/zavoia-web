@@ -1,4 +1,5 @@
 import { APPLE_REDIRECT_URI, APPLE_SERVICES_ID } from "@/lib/env";
+import { decodeJwt } from "@/lib/auth/jwt";
 
 /**
  * Sign in with Apple on the web, popup mode (docs/sign-in-with-apple-plan.md
@@ -163,6 +164,30 @@ function cleanName(value: unknown): string | undefined {
   return trimmed && trimmed.length <= MAX_NAME_LENGTH ? trimmed : undefined;
 }
 
+// Apple sends the name only on the first authorization, and its docs say to
+// store it as soon as it arrives. Keep it in this tab's memory only (never in
+// browser storage), for ten minutes and the same Apple ID, so a sign-up right
+// after a refused sign-in still creates the account with that name.
+const NAME_MEMORY_MS = 10 * 60_000;
+let rememberedName: { sub: string; firstName?: string; lastName?: string; until: number } | null = null;
+
+function withRememberedName(
+  identityToken: string,
+  firstName: string | undefined,
+  lastName: string | undefined,
+): { firstName?: string; lastName?: string } {
+  const sub = decodeJwt<{ sub?: unknown }>(identityToken)?.sub;
+  if (typeof sub !== "string") return { firstName, lastName };
+  if (firstName || lastName) {
+    rememberedName = { sub, firstName, lastName, until: Date.now() + NAME_MEMORY_MS };
+    return { firstName, lastName };
+  }
+  const memo = rememberedName;
+  return memo && memo.sub === sub && memo.until > Date.now()
+    ? { firstName: memo.firstName, lastName: memo.lastName }
+    : { firstName, lastName };
+}
+
 /**
  * Opens Apple's popup. MUST be called synchronously from a click handler with
  * an attempt from `prepareAppleAttempt()`. Resolves to the credential, or to
@@ -205,8 +230,11 @@ export function startAppleSignIn(
         identityToken: authorization.id_token,
         nonce: attempt.rawNonce,
         redirectUri: APPLE_REDIRECT_URI,
-        firstName: cleanName(response.user?.name?.firstName),
-        lastName: cleanName(response.user?.name?.lastName),
+        ...withRememberedName(
+          authorization.id_token,
+          cleanName(response.user?.name?.firstName),
+          cleanName(response.user?.name?.lastName),
+        ),
       };
     },
     (error: unknown) => {

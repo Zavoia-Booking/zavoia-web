@@ -34,10 +34,19 @@ type AppleInit = {
 
 type AppleUser = { email?: string; name?: { firstName?: string; lastName?: string } }
 
-async function installFakeApple(page: Page, user: AppleUser | null = null): Promise<void> {
+/**
+ * `user` is what the popup returns; pass a list for one entry per sign-in (Apple
+ * sends the user object only on the first authorization). Pass `appleIdToken(sub)`
+ * as `idToken` when the page must read the Apple ID from the token.
+ */
+async function installFakeApple(
+  page: Page,
+  user: AppleUser | null | Array<AppleUser | null> = null,
+  idToken = 'e2e.apple.identity-token',
+): Promise<void> {
   // Belt and braces: the real script must never be needed.
   await page.route('https://appleid.cdn-apple.com/**', (route) => route.abort())
-  await page.addInitScript((appleUser) => {
+  await page.addInitScript(({ appleUsers, token }) => {
     const w = window as unknown as Record<string, unknown>
     w.__appleSignIns = 0
     w.AppleID = {
@@ -46,12 +55,14 @@ async function installFakeApple(page: Page, user: AppleUser | null = null): Prom
           w.__appleConfig = config
         },
         signIn() {
-          w.__appleSignIns = (w.__appleSignIns as number) + 1
+          const index = w.__appleSignIns as number
+          w.__appleSignIns = index + 1
           const config = w.__appleConfig as { state: string }
+          const appleUser = appleUsers[Math.min(index, appleUsers.length - 1)]
           return Promise.resolve({
             authorization: {
               code: 'e2e-apple-authorization-code',
-              id_token: 'e2e.apple.identity-token',
+              id_token: token,
               state: config.state,
             },
             ...(appleUser ? { user: appleUser } : {}),
@@ -59,7 +70,12 @@ async function installFakeApple(page: Page, user: AppleUser | null = null): Prom
         },
       },
     }
-  }, user)
+  }, { appleUsers: Array.isArray(user) ? user : [user], token: idToken })
+}
+
+/** An identity token the page can read the Apple ID (`sub`) from, as from Apple. */
+function appleIdToken(sub: string): string {
+  return ['e30', Buffer.from(JSON.stringify({ sub })).toString('base64url'), 'e2e-signature'].join('.')
 }
 
 function appleInit(page: Page): Promise<AppleInit> {
@@ -299,6 +315,7 @@ test.describe('Sign in with Apple — /auth (mocked Apple JS + API)', () => {
 
     await expect(page.getByRole('heading', { name: 'Enable marketplace access?' })).toBeVisible()
     await expect(page.getByText(/Your Apple ID is already connected to a Zavoia business account \(owner@zavoia-test\.dev\)/)).toBeVisible()
+    await page.locator('#acceptTerms').check()
     await page.getByRole('button', { name: 'Enable marketplace access', exact: true }).click()
 
     await expect(page).toHaveURL(/\/help$/, { timeout: 15_000 })
@@ -319,6 +336,48 @@ test.describe('Sign in with Apple — /auth (mocked Apple JS + API)', () => {
 
     await expect(page.getByText('Finish accepting your team invitation first, then you can use Apple.')).toBeVisible()
     await expect(auth.loginSubmit).toBeVisible()
+  })
+
+  test('APPLE-11 sign-in with a new Apple ID goes to sign-up; the name Apple sent the first time is used for the account', async ({ page }) => {
+    // Apple sends the name only on the first authorization: none the second time.
+    await installFakeApple(
+      page,
+      [{ name: { firstName: 'Ana', lastName: 'Pop' }, email: STUB_USER.email }, null],
+      appleIdToken('001234.e2e-new-person.0001'),
+    )
+    await mockMe(page)
+    const bodies = await mockPost(page, '/marketplace/auth/apple', (body) =>
+      body.intent === 'register'
+        ? { status: 200, body: sessionBody(true) }
+        : {
+            status: 404,
+            body: {
+              statusCode: 404,
+              message: ['APPLE.E14'],
+              code: 'account_not_found',
+              details: { suggestedNext: 'register', email: STUB_USER.email },
+            },
+          },
+    )
+
+    const auth = new AuthPage(page)
+    await auth.gotoLogin('/help')
+    await page.getByRole('button', { name: 'Continue with Apple', exact: true }).click()
+
+    // Signing in never creates the account: sign-up, with the notice and the return target kept.
+    await expect(page.getByText("There's no Zavoia account for this Apple ID yet. Tick the box below to create one.")).toBeVisible()
+    await expect(page).toHaveURL(/mode=register/)
+    await expect(page).toHaveURL(/redirect=%2Fhelp/)
+
+    await auth.acceptTerms.check()
+    await page.getByRole('button', { name: 'Sign up with Apple', exact: true }).click()
+
+    await expect(page).toHaveURL(/\/help$/, { timeout: 15_000 })
+    expect(await appleSignIns(page)).toBe(2)
+    expect(bodies.map((body) => [body.intent, body.firstName, body.lastName])).toEqual([
+      ['login', 'Ana', 'Pop'],
+      ['register', 'Ana', 'Pop'],
+    ])
   })
 })
 
@@ -349,9 +408,29 @@ test.describe('Sign in with Apple — /auth/verify-account-link', () => {
     await expect(page.getByRole('heading', { name: 'Enable marketplace access?' })).toBeVisible()
     expect(signInBodies[0]).toMatchObject({ platform: 'web', intent: 'login' })
 
+    await page.locator('#acceptTerms').check()
     await page.getByRole('button', { name: 'Enable marketplace access', exact: true }).click()
     await expect(page).not.toHaveURL(/verify-account-link/, { timeout: 15_000 })
     expect(confirmBodies).toEqual([{ tx_id: 'e2e-link-access-tx' }])
+  })
+
+  test('APPLE-12 an Apple ID other than the one on this account gets its own message, not the generic error', async ({ page }) => {
+    await installFakeApple(page)
+    await page.route(
+      (url) => url.pathname.endsWith('/marketplace/auth/verify-account-link/validate'),
+      (route) => json(route, 200, { email: 'apple-owner@zavoia-test.dev', hasPassword: false, googleLinked: false, appleLinked: true }),
+    )
+    const signInBodies = await mockPost(page, '/marketplace/auth/apple', () => ({
+      status: 404,
+      body: { statusCode: 404, message: ['APPLE.E14'], code: 'account_not_found', details: { suggestedNext: 'register' } },
+    }))
+
+    await new AuthPage(page).gotoVerifyAccountLink('e2e-unused-token')
+    await page.getByRole('button', { name: 'Continue with Apple', exact: true }).click()
+
+    await expect(page.getByText("This Apple ID isn't connected to your Zavoia account. Continue with the Apple ID you use to sign in to Zavoia.")).toBeVisible()
+    await expect(page.getByText('Something went wrong. Please try again.')).toHaveCount(0)
+    expect(signInBodies).toHaveLength(1)
   })
 })
 

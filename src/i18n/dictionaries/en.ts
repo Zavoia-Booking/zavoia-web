@@ -433,6 +433,7 @@ export const en: {
       confirmBody: string;
       googleOnlyBody: string;
       appleOnlyBody: string;
+      wrongAppleId: string;
       passwordLabel: string;
       passwordRequired: string;
       wrongPassword: string;
@@ -2386,6 +2387,8 @@ export const en: {
         "This account uses Google sign-in. Continue with Google to enable marketplace access.",
       appleOnlyBody:
         "This account uses Sign in with Apple. Continue with Apple to enable marketplace access.",
+      wrongAppleId:
+        "This Apple ID isn't connected to your Zavoia account. Continue with the Apple ID you use to sign in to Zavoia.",
       passwordLabel: "Password",
       passwordRequired: "Please enter your password.",
       wrongPassword: "Incorrect password. Please try again.",
