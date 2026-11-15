@@ -1,0 +1,16 @@
+/* Help and article answers share one reading/disclosure treatment. */
+.item[open] > .question { padding-bottom: 12px; }
+.item[open] > .question h3 { color: var(--c-900); }
+.item[open] > .question > span { color: var(--c-600); }
+.item .answer { width: 90%; max-width: none; padding-right: 0; }
+.answer p { white-space: pre-line; }
+.question:focus-visible { border-radius: 4px; outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .item[open] > .question:hover h3,
+  .item[open] > .question:hover > span { color: var(--p-600); }
+}
+.item[open] > .question:focus-visible h3,
+.item[open] > .question:focus-visible > span { color: var(--p-600); }
+@media (max-width: 600px) {
+  .item .answer { width: 100%; }
+}

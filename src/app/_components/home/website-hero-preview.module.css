@@ -6,8 +6,8 @@
   border-radius: 22px;
   pointer-events: none;
   user-select: none;
-  /* Keep the scaled preview's rounded edge free of a pale background halo. */
-  background: transparent;
+  /* Opaque dark backing keeps the band out of previews without a pale edge halo. */
+  background: var(--c-ink);
 }
 
 .viewport {

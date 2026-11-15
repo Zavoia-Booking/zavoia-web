@@ -22,7 +22,7 @@
 .example[data-format="phone"] .story { max-width: 310px; margin-inline: auto; }
 .story p { margin: 0; color: var(--c-700); font-size: 16px; line-height: 1.65; text-wrap: pretty; }
 .previewLink { position: absolute; z-index: 2; inset: 0; border-radius: inherit; cursor: pointer; }
-.previewLink:focus-visible { outline: 2px solid var(--p-500); outline-offset: 6px; }
+.previewLink:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 6px; }
 .autoScreens { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: start; gap: 0 24px; width: min(100%, 1060px); margin-inline: auto; }
 .autoScene { min-width: 0; }
 .autoScene[data-auto-scene="hero"] { grid-column: 3 / 11; grid-row: 1; width: 88%; justify-self: center; --preview-angle: -1deg; }

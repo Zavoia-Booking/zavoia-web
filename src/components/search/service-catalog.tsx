@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { InlineError } from "@/components/ui/inline-error";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DrawerHandle } from "@/components/ui/drawer-handle";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getIndustries } from "@/lib/api/marketplace/public";
 import type { Industry, IndustryTag } from "@/lib/api/marketplace/types";
@@ -27,14 +28,29 @@ interface ServiceCatalogProps {
 export function ServiceCatalog({ open, initialIndustries, initialIndustry, returnFocusRef, onClose, onSelect }: ServiceCatalogProps) {
   const { dict } = useTranslation();
   const contentRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState<"pointer" | "keyboard">("pointer");
+  const [entryInput, setEntryInput] = useState<"pointer" | "keyboard">("pointer");
   return (
     <Dialog.Root open={open} onOpenChange={next => { if (!next) onClose(); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className={styles.overlay} />
+        <Dialog.Overlay ref={overlayRef} className={styles.overlay} data-input={input} data-entry={entryInput}
+          onPointerDownCapture={() => setInput("pointer")} />
         <Dialog.Content
           ref={contentRef}
           className={styles.dialog}
+          data-input={input}
+          data-entry={entryInput}
+          inert={!open}
+          onPointerDownCapture={() => setInput("pointer")}
+          onPointerDownOutside={() => setInput("pointer")}
+          onKeyDown={() => setInput("keyboard")}
+          onEscapeKeyDown={() => setInput("keyboard")}
           onOpenAutoFocus={event => {
+            if (returnFocusRef.current?.matches(":focus-visible")) {
+              setInput("keyboard");
+              setEntryInput("keyboard");
+            }
             event.preventDefault();
             const active = contentRef.current?.querySelector<HTMLButtonElement>('[data-catalog-industry][aria-pressed="true"]:not(:disabled)');
             (active ?? contentRef.current)?.focus({ preventScroll: true });
@@ -53,9 +69,11 @@ export function ServiceCatalog({ open, initialIndustries, initialIndustry, retur
             });
           }}
         >
+          <DrawerHandle contentRef={contentRef} overlayRef={overlayRef} onClose={onClose} label={dict.serviceCatalog.close} />
           <header className={styles.header}>
             <Dialog.Title className={styles.title}>{dict.serviceCatalog.title}</Dialog.Title>
-            <Dialog.Close className={`${styles.close} tap`} aria-label={dict.serviceCatalog.close}>
+            <Dialog.Close className={`${styles.close} tap`} aria-label={dict.serviceCatalog.close}
+              onClick={event => setInput(event.detail === 0 ? "keyboard" : "pointer")}>
               <Icon name="x" size={20} />
             </Dialog.Close>
             <Dialog.Description className="sr-only">{dict.serviceCatalog.description}</Dialog.Description>

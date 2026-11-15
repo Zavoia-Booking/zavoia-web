@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Avatar, Button, Icon, Skeleton, Spinner, Stars, useToast, type ToastHandle } from "@/components/ui";
 import { format, formatCount } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
@@ -13,6 +13,7 @@ import { professionalHref } from "@/lib/professionals/urls";
 import { ProfessionalReviewsEmptyArt } from "./professional-reviews-empty-art";
 import { TeamMemberProfileModal } from "./team-member-profile-modal";
 import styles from "./location-reviews.module.css";
+import { localeHref } from "@/i18n/routes";
 
 type Sort = "recent" | "high" | "low";
 type RequestKind = "sort" | "more";
@@ -92,6 +93,53 @@ function ReviewFeed({ listing, locale, openMember }: { listing: ListingDetail; l
   const requestRevision = useRef(0);
   const loadToast = useRef<ToastHandle | null>(null);
   const active = useRef(true);
+  const sortControl = useRef<HTMLDivElement>(null);
+  const reviewList = useRef<HTMLDivElement>(null);
+  const reviewMotion = useRef<Animation | null>(null);
+  const animateSort = useRef(false);
+  const [indicator, setIndicator] = useState<{ left: number; right: number; animate: boolean } | null>(null);
+
+  useLayoutEffect(() => {
+    const control = sortControl.current;
+    const animate = animateSort.current && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    animateSort.current = false;
+    const measure = (move: boolean) => {
+      const selected = control?.querySelector<HTMLButtonElement>('[aria-pressed="true"]');
+      // Tabs are initially hidden; keep the button's own ink fill until visible.
+      if (!control?.clientWidth || !selected?.offsetWidth) return;
+      const left = selected.offsetLeft;
+      const right = control.clientWidth - left - selected.offsetWidth;
+      setIndicator(previous => previous?.left === left && previous.right === right
+        ? previous : { left, right, animate: !!previous && move });
+    };
+    measure(animate);
+    // Unequal labels, translated copy and the mobile layout all change the pill.
+    const observer = new ResizeObserver(() => measure(false));
+    if (control) {
+      observer.observe(control);
+      for (const button of control.querySelectorAll("button")) observer.observe(button);
+    }
+    reviewMotion.current?.cancel();
+    reviewMotion.current = null;
+    if (animate && reviews.length > 0 && reviewList.current) {
+      // Match Team's short rise/fade; the old order stays readable while fetching.
+      reviewMotion.current = reviewList.current.animate([
+        { opacity: .5, transform: "translateY(4px)" },
+        { opacity: 1, transform: "none" },
+      ], { duration: 180, easing: "cubic-bezier(.2, .7, .3, 1)" });
+    }
+    return () => observer.disconnect();
+  }, [reviews, sort]);
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const settle = () => { if (preference.matches) reviewMotion.current?.cancel(); };
+    preference.addEventListener("change", settle);
+    return () => {
+      preference.removeEventListener("change", settle);
+      reviewMotion.current?.cancel();
+    };
+  }, []);
 
   useEffect(() => {
     active.current = true;
@@ -124,9 +172,10 @@ function ReviewFeed({ listing, locale, openMember }: { listing: ListingDetail; l
     loadToast.current = null;
   }
 
-  async function fetchReviews(nextSort: Sort, kind: RequestKind) {
+  async function fetchReviews(nextSort: Sort, kind: RequestKind, animate = false) {
     if (!active.current) return;
     request.current?.abort();
+    reviewMotion.current?.cancel();
     dismissLoadToast();
     const revision = ++requestRevision.current;
     const controller = new AbortController();
@@ -140,6 +189,7 @@ function ReviewFeed({ listing, locale, openMember }: { listing: ListingDetail; l
         ...SORT_PARAMS[nextSort],
       }, { signal: controller.signal });
       if (controller.signal.aborted) return;
+      animateSort.current = kind === "sort" && animate && reviews.length > 0;
       setReviews((previous) => {
         if (kind === "sort") return result.data;
         // Offset feeds can overlap after a new review arrives between requests.
@@ -238,8 +288,22 @@ function ReviewFeed({ listing, locale, openMember }: { listing: ListingDetail; l
       {/* Laid out like the Team toolbar: a note on the left, the switch on the right. */}
       <div className={styles.toolbar}>
         {/* Reviews are only accepted for completed appointments. */}
-        <p className={styles.verified}><Icon name="shield" size={16} color="var(--s-success-600)" />{copy.reviewsVerified}</p>
-        <div className={styles.sorts} role="group" aria-label={copy.sortReviews}>
+        <p className={styles.verified}>
+          <Icon name="shield" size={16} color="var(--s-success-600)" />
+          {copy.reviewsVerified}
+          {/* How reviews are verified: the reviews section of the Content Policy. */}
+          <a
+            href={`${localeHref(locale, "terms", "content-policy")}#review-verification`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.verifiedInfo}
+            aria-label={copy.reviewsHowVerified}
+          >
+            <Icon name="info" size={16} />
+          </a>
+        </p>
+        <div ref={sortControl} className={styles.sorts} role="group" aria-label={copy.sortReviews} data-indicator={indicator ? "" : undefined} data-instant={!indicator?.animate || undefined}>
+          {indicator && <span aria-hidden="true" className={styles.sortIndicator} style={{ clipPath: `inset(0 ${indicator.right}px 0 ${indicator.left}px round 999px)` }} />}
           {sorts.map((option) => {
             const loading = pending?.kind === "sort" && pending.sort === option.key;
             return (
@@ -249,9 +313,9 @@ function ReviewFeed({ listing, locale, openMember }: { listing: ListingDetail; l
                 className={styles.sortOption}
                 aria-pressed={sort === option.key}
                 aria-busy={loading || undefined}
-                onClick={() => {
+                onClick={event => {
                   if (loading) return;
-                  if (option.key !== sort || pending || failure) void fetchReviews(option.key, "sort");
+                  if (option.key !== sort || pending || failure) void fetchReviews(option.key, "sort", event.detail > 0);
                 }}
               >
                 {/* Hidden, not removed, so the switch keeps its size and name while loading. */}
@@ -266,7 +330,7 @@ function ReviewFeed({ listing, locale, openMember }: { listing: ListingDetail; l
       <p className={styles.srOnly} role="status" aria-live="polite">
         {pending ? copy.reviewsUpdating : updated ? copy.reviewsUpdated : ""}
       </p>
-      <div className={styles.reviews} aria-busy={pending != null} data-refreshing={pending?.kind === "sort" || undefined}>
+      <div ref={reviewList} className={styles.reviews} aria-busy={pending != null} data-refreshing={pending?.kind === "sort" || undefined}>
         {visits.map((visit) => {
           const [first] = visit.reviews;
           const name = [first.customer?.firstName, first.customer?.lastName].filter(Boolean).join(" ").trim();

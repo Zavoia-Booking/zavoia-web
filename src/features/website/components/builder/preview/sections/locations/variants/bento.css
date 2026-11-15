@@ -385,7 +385,7 @@
 }
 
 .mc-locations[data-locations="cards"] .mc-locb-btn:focus-visible {
-  outline: 2px solid var(--mc-accent);
+  outline: 2px solid var(--mc-focus, var(--mc-fg));
   outline-offset: 3px;
 }
 

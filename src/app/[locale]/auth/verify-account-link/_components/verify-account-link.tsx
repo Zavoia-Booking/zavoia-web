@@ -84,6 +84,7 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<unknown>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const startedRef = useRef(false);
   const mountedRef = useRef(true);
@@ -141,7 +142,7 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!token || state.kind !== "confirm" || submitLockRef.current || submitting) return;
+    if (!token || state.kind !== "confirm" || !termsAccepted || submitLockRef.current || submitting) return;
     setActionError(null);
     if (!password) {
       setPasswordError(t.passwordRequired);
@@ -351,12 +352,51 @@ function AccountLinkConfirmation({ locale, token }: { locale: Locale; token: str
             showPasswordLabel={dict.fields.showPassword}
             hidePasswordLabel={dict.fields.hidePassword}
           />
+          {/* The password confirm adds the customer role here. The Google
+              button below is not gated: the callback's confirm panel shows
+              the same box before the role is added. */}
+          <div className="flex items-start gap-2.5">
+            <input
+              id="acceptTerms"
+              name="acceptTerms"
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              disabled={submitting}
+              required
+              className="mt-0.5 size-4 shrink-0 cursor-pointer accent-[var(--p-500)] disabled:cursor-not-allowed"
+            />
+            <label
+              htmlFor="acceptTerms"
+              className="cursor-pointer text-sm text-c-600 select-none"
+            >
+              {dict.terms.agreementPrefix}{" "}
+              <a
+                href={localeHref(locale, "terms", "customer-terms")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                {dict.terms.customerTermsLink}
+              </a>
+              . {dict.terms.privacyPrefix}{" "}
+              <a
+                href={localeHref(locale, "terms", "privacy-policy")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                {dict.terms.privacyNoticeLink}
+              </a>
+              .
+            </label>
+          </div>
           {actionError !== null && (
             <InlineError id="account-link-error">
               {authErrorMessage(actionError, dict.errors, dictionary.errors)}
             </InlineError>
           )}
-          <Button type="submit" size="lg" loading={submitting} className={styles.submit}
+          <Button type="submit" size="lg" loading={submitting} disabled={!termsAccepted} className={styles.submit}
             style={{ whiteSpace: "normal", lineHeight: 1.4 }}>
             {t.confirm}
           </Button>

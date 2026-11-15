@@ -52,6 +52,8 @@ export function AuthTabs({ locale }: { locale: Locale }) {
   const mode: Mode = searchParams.get("mode") === "register" ? "register" : "login";
   const isForgotPassword = mode === "login" && searchParams.get("forgot") === "1";
   const view = isForgotPassword ? "forgot-password" : mode;
+  // Set by /auth/callback when Google sign-in found no account for the email.
+  const googleNoAccount = mode === "register" && searchParams.get("notice") === "google-no-account";
 
   const entryKey = authEntryKey(searchParams);
   const [linkFlow, setLinkFlow] = useRetainedAuthState<AccessFlow>(entryKey);
@@ -184,6 +186,12 @@ export function AuthTabs({ locale }: { locale: Locale }) {
                 onSubmittingChange={setSubmitting}
               />
             ) : (
+              <>
+              {googleNoAccount && (
+                <div role="status" className="rounded-[10px] bg-shade p-4 text-sm text-c-700">
+                  {dict.googleNoAccount}
+                </div>
+              )}
               <RegisterForm
                 locale={locale}
                 onAccountLinkNeeded={handleAccountLinkNeeded}
@@ -197,6 +205,7 @@ export function AuthTabs({ locale }: { locale: Locale }) {
                 }}
                 onTermsInvalid={() => setTermsError(true)}
               />
+              </>
             )}
 
             {(GOOGLE_CLIENT_ID || appleConfigured) && (
@@ -261,34 +270,6 @@ export function AuthTabs({ locale }: { locale: Locale }) {
                   </InlineError>
                 )}
               </div>
-            )}
-
-            {mode === "login" && (
-              /* New Google users are auto-registered by the backend even on
-                 login intent, so the login tab carries the passive consent
-                 notice (register has the explicit checkbox instead) —
-                 mirroring the admin-dashboard AuthLayout footer. */
-              <p className="text-center text-xs leading-relaxed text-c-600">
-                {dict.terms.continueNotice}{" "}
-                <a
-                  href={localeHref(locale, "terms", "customer-terms")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-4 hover:text-primary"
-                >
-                  {dict.terms.termsLink}
-                </a>{" "}
-                {dict.terms.and}{" "}
-                <a
-                  href={localeHref(locale, "terms", "privacy-policy")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-4 hover:text-primary"
-                >
-                  {dict.terms.privacyLink}
-                </a>
-                .
-              </p>
             )}
 
             {mode === "login" && (

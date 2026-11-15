@@ -42,7 +42,7 @@ export function RecentlyViewedCard({
         className={`${styles.card} ${styles.link}`}
       >
         <div className={styles.media}>
-          <Img src={b.image} alt={b.name} sizes="(max-width: 471px) calc(100vw - 32px), (max-width: 719px) 50vw, (max-width: 1255px) 33vw, 224px" style={{ width: "100%", height: "100%" }} />
+          <Img src={b.image} alt={b.name} sizes="(max-width: 320px) 248px, (max-width: 404px) calc(86vw - 27.52px), (max-width: 640px) 320px, (max-width: 719px) 50vw, (max-width: 1255px) 33vw, 224px" style={{ width: "100%", height: "100%" }} />
         </div>
         <div className={styles.body}>
           <div className={styles.name}>{b.name}</div>

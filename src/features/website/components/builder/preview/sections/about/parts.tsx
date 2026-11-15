@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import type { AboutMedia } from "./types";
 import type { AboutStat } from "./util";
+import { useResponsivePublicImage } from "../../shared/useResponsivePublicImage";
 import {
   useAboutCounter,
   useAboutParallax,
@@ -54,6 +55,7 @@ export function AboutImage({
   const [settledSrc, setSettledSrc] = useState<string | null>(null);
   useAboutParallax(ref);
   const mediaSettled = media !== null && settledSrc === media.src;
+  const image = useResponsivePublicImage(media?.src, "auto, (max-width: 760px) 100vw, 700px");
 
   return (
     <div ref={ref} className={`mc-about-media${className ? ` ${className}` : ""}`}>
@@ -61,14 +63,25 @@ export function AboutImage({
         {media ? (
           <img
             key={media.src}
-            src={media.src}
+            {...image.props}
             alt={media.alt}
-            loading="eager"
+            loading="lazy"
             fetchPriority="low"
             decoding="async"
             data-loaded={mediaSettled ? "true" : "false"}
-            onLoad={() => setSettledSrc(media.src)}
-            onError={() => setSettledSrc(media.src)}
+            ref={(node) => {
+              image.props.ref(node);
+              if (node && !node.complete) node.setAttribute("data-fade-pending", "true");
+            }}
+            onLoad={(event) => {
+              event.currentTarget.removeAttribute("data-fade-pending");
+              setSettledSrc(media.src);
+            }}
+            onError={(event) => {
+              if (image.retryOriginal()) return;
+              event.currentTarget.removeAttribute("data-fade-pending");
+              setSettledSrc(media.src);
+            }}
           />
         ) : (
           <span className="mc-about-media-placeholder" aria-hidden="true" />

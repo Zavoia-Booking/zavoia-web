@@ -24,12 +24,14 @@
 import Link from "next/link";
 import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, CatDot, Icon, Img, Rating } from "@/components/ui";
+import { Avatar, Icon, Img, Rating } from "@/components/ui";
+import { IndustryExplore } from "@/components/business/industry-explore";
 import {
   TeamMemberProfileModal,
   type TeamMemberSeed,
 } from "@/app/[locale]/business/_components/team-member-profile-modal";
-import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
+import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
+import { industryVisual, knownIndustrySlugOf } from "@/lib/marketplace/industry-visuals";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
@@ -51,6 +53,24 @@ function locationHref(locale: Locale, l: { slug: string | null; id: number }) {
   return localeHref(locale, "business", String(l.slug ?? l.id));
 }
 
+/** Match the location grid's 300px minimum, 18px gaps and shared gutters. */
+function locationImageSizes(count: number): string {
+  if (count <= 1) {
+    return "(max-width: 600px) calc(100vw - 32px), (max-width: 680px) calc(100vw - 40px), 640px";
+  }
+  const columns = Math.min(count, 4);
+  return [
+    "(max-width: 600px) calc(100vw - 32px)",
+    "(max-width: 657px) calc(100vw - 40px)",
+    "(max-width: 920px) calc((100vw - 58px) / 2)",
+    ...[[991, 2], [1309, 3], [1456, 4]].map(([width, capacity]) => {
+      const visibleColumns = Math.min(columns, capacity);
+      return `(max-width: ${width}px) calc((100vw - ${56 + 18 * (visibleColumns - 1)}px) / ${visibleColumns})`;
+    }),
+    `${(1400 - 18 * (columns - 1)) / columns}px`,
+  ].join(", ");
+}
+
 export function BrandDetail({ brand, locale }: Props) {
   const { dict } = useTranslation();
   const router = useRouter();
@@ -67,9 +87,13 @@ export function BrandDetail({ brand, locale }: Props) {
     }
   };
 
-  const cat = toCat(brand.industry);
+  const industrySlug = knownIndustrySlugOf(brand.industry);
+  const visual = industryVisual(industrySlug);
   const industryLabel = brand.industry
-    ? taxonomyLabel(brand.industry, locale)
+    ? taxonomyLabel({ ...brand.industry, slug: industrySlug }, locale, dict.industries)
+    : null;
+  const industryExploreHref = industrySlug
+    ? `${localeHref(locale, "search")}?${new URLSearchParams({ industry: industrySlug })}`
     : null;
   // One city when every location shares it, else the country as the umbrella.
   const cities = [
@@ -79,6 +103,7 @@ export function BrandDetail({ brand, locale }: Props) {
 
   const aboutText = brand.description;
   const multiLocation = brand.locations.length > 1;
+  const imageSizes = locationImageSizes(brand.locations.length);
 
   // Team member profile opens in place (favorites-flow modal: unscoped profile
   // + booking-context venues, so multi-location members get the venue picker).
@@ -166,10 +191,10 @@ export function BrandDetail({ brand, locale }: Props) {
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 5,
+                    gap: 6,
                   }}
                 >
-                  <CatDot cat={cat} size={8} />
+                  <Icon name={visual.icon} color={visual.accent} size={18} />
                   {industryLabel}
                 </span>
               ),
@@ -240,8 +265,8 @@ export function BrandDetail({ brand, locale }: Props) {
               gap: 18,
             }}
           >
-            {brand.locations.map((l) => (
-              <LocationCard key={l.id} l={l} locale={locale} cta={t.viewLocation} />
+            {brand.locations.map((l, index) => (
+              <LocationCard key={l.id} l={l} locale={locale} cta={t.viewLocation} imageSizes={imageSizes} first={index === 0} />
             ))}
           </div>
         </section>
@@ -307,12 +332,12 @@ export function BrandDetail({ brand, locale }: Props) {
         />
       )}
 
-      {/* About — story and proof close the page */}
+      {/* About */}
       {aboutText && (
         <section
           style={{
             marginTop: "clamp(38px, 5.5vw, 60px)",
-            marginBottom: "clamp(50px, 7vw, 90px)",
+            marginBottom: industryExploreHref ? 0 : "clamp(50px, 7vw, 90px)",
           }}
         >
           <h2
@@ -343,6 +368,18 @@ export function BrandDetail({ brand, locale }: Props) {
           )}
         </section>
       )}
+      {industryExploreHref && industryLabel && (
+        <div style={{ marginTop: "clamp(32px, 4vw, 48px)", marginBottom: 24 }}>
+          <IndustryExplore
+            href={industryExploreHref}
+            industry={industryLabel}
+            visual={visual}
+            lead={dict.locationPage.discoverLead}
+            action={dict.locationPage.discoverAction}
+            bottomDivider={false}
+          />
+        </div>
+      )}
     </main>
   );
 }
@@ -355,10 +392,14 @@ function LocationCard({
   l,
   locale,
   cta,
+  imageSizes,
+  first,
 }: {
   l: BrandLocation;
   locale: Locale;
   cta: string;
+  imageSizes: string;
+  first: boolean;
 }) {
   return (
     <Link
@@ -376,11 +417,14 @@ function LocationCard({
     >
       <div
         className="zw-zoom-wrap"
-        style={{ aspectRatio: "16 / 9", overflow: "hidden" }}
+        style={{ position: "relative", aspectRatio: "16 / 9", overflow: "hidden" }}
       >
         <Img
           src={l.featuredImage ?? undefined}
           alt={l.name}
+          sizes={imageSizes}
+          loading={first ? "eager" : "lazy"}
+          fetchPriority={first ? "high" : "auto"}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </div>
@@ -492,6 +536,7 @@ function TeamMemberCard({
         name={m.displayName ?? ""}
         size={72}
         ring
+        loading="lazy"
       />
       <div
         style={{

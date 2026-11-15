@@ -12,7 +12,8 @@ export const bookingPolicy: LegalDocument = {
     en: "How bookings, confirmations, cancellations, rescheduling and no-shows work on Zavoia.",
     ro: "Cum funcționează programările, confirmările, anulările, reprogramările și neprezentările pe Zavoia.",
   },
-  status: "draft",
+  status: "published",
+  effectiveDate: "2026-11-14",
   sections: [
     {
       id: "how-booking-works",
@@ -26,15 +27,8 @@ export const bookingPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "You choose a venue, one or more services (optionally a specific professional), and an available time. Before submitting, the summary screen lets you check and correct your selection. After you submit, the booking reserves the slot in the business's calendar; “confirmed” means the business accepted the slot. Your bookings screen always shows the current status of each booking.",
-            ro: "Alegeți o unitate, unul sau mai multe servicii (opțional un anumit profesionist) și un interval disponibil. Înainte de trimitere, ecranul de sumar vă permite să verificați și să corectați selecția. După trimitere, programarea rezervă intervalul în calendarul afacerii; „confirmat” înseamnă că afacerea a acceptat intervalul. Ecranul programărilor arată întotdeauna starea curentă a fiecărei programări.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "IMPL (re-verified 11 Nov 2026): notification promises stay out of this section until these gaps close. Working now: marketplace bookings that are confirmed automatically send a confirmation; the website notification inbox is built; the app registers for push on launch (in the repo — check it is in the released build). Still missing: pending bookings get no “request received” message; bookings the business creates as confirmed in the dashboard get only a reminder, no immediate confirmation; bulk status changes and appointment edits send the customer nothing (only the single cancel action does); the channel chosen when cancelling (notificationMethods) is ignored, and email is always sent for confirmations, cancellations and reschedules whatever the customer's email setting; inbox entries are written only through the push channel. Copy (decisions doc §2.4.B): the website button now reads “Confirm appointment”, the app's “Book”, and confirmed bookings still show “You're booked” — decide whether that meets the request/reserve wording.",
-            ro: "IMPL (re-verificat 11 nov. 2026): promisiunile de notificare rămân în afara acestei secțiuni până se închid lacunele. Funcționează acum: programările din marketplace confirmate automat trimit o confirmare; inbox-ul de notificări de pe site este construit; aplicația se înregistrează pentru push la pornire (în cod — verificați că este în versiunea publicată). Lipsesc încă: programările în așteptare nu primesc mesajul „cerere primită”; programările create de afacere ca fiind confirmate în panou primesc doar un memento, fără confirmare imediată; schimbările de status în masă și editările programărilor nu trimit nimic clientului (doar acțiunea individuală de anulare o face); canalul ales la anulare (notificationMethods) este ignorat, iar emailul este trimis mereu pentru confirmări, anulări și reprogramări, indiferent de setarea de email a clientului; intrările din inbox sunt scrise doar prin canalul push. Texte (documentul de decizii §2.4.B): butonul de pe site este acum „Confirmă programarea”, cel din aplicație „Rezervă”, iar programările confirmate afișează încă „Ești programat” — decideți dacă acest lucru respectă formularea de cerere/rezervare.",
+            en: "You choose a venue, one or more services, a professional (or any available professional) and an available time. Before submitting, you can check and correct your selection. After you submit, the booking reserves the slot in the business's calendar. Some businesses confirm bookings automatically; others review each request first, and until they do, your booking shows as pending. Your bookings screen always shows the current status of each booking.",
+            ro: "Alegeți o unitate, unul sau mai multe servicii, un profesionist (sau orice profesionist disponibil) și un interval disponibil. Înainte de trimitere, puteți verifica și corecta selecția. După trimitere, programarea rezervă intervalul în calendarul afacerii. Unele afaceri confirmă programările automat; altele verifică fiecare cerere, iar până atunci programarea apare ca fiind în așteptare. Ecranul programărilor arată întotdeauna starea curentă a fiecărei programări.",
           },
         },
         {
@@ -58,15 +52,8 @@ export const bookingPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "Each business sets a minimum notice period for cancelling and (where different) for rescheduling — for example 24 hours before the appointment. The applicable periods are shown before you book. The notice period is a self-service availability rule: it controls when you can cancel or reschedule online, it reflects the business's current settings, and it never creates any payment obligation for you.",
-            ro: "Fiecare afacere stabilește un termen minim de preaviz pentru anulare și (unde diferă) pentru reprogramare — de exemplu 24 de ore înainte de programare. Termenele aplicabile sunt afișate înainte de rezervare. Termenul de preaviz este o regulă de disponibilitate a auto-servirii: controlează când puteți anula sau reprograma online, reflectă setările curente ale afacerii și nu creează niciodată vreo obligație de plată pentru dumneavoastră.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "Verified 1 Aug 2026: the policy shown at booking is NOT snapshotted — the API applies the business's current settings to existing appointments (appointments.service.ts; decisions doc §2.4.D). The wording above uses the decisions doc's honest fallback ('current self-service availability rule'). Once per-booking policy snapshotting ships (blueprint §0.2 [IMPL]), upgrade this section and customer-terms to the version-recorded + grandfathering wording.",
-            ro: "Verificat 1 aug. 2026: politica afișată la rezervare NU este înregistrată per programare — API-ul aplică setările curente ale afacerii programărilor existente (appointments.service.ts; documentul de decizii §2.4.D). Formularea de mai sus folosește varianta onestă din documentul de decizii („regulă curentă de disponibilitate a auto-servirii”). Când înregistrarea politicii per programare va fi implementată (blueprint §0.2 [IMPL]), actualizați această secțiune și termenii pentru clienți la formularea cu versiune înregistrată + protejarea programărilor existente.",
+            en: "Each business decides whether you can cancel or reschedule online and sets a minimum notice period for each — for example 24 hours before the appointment. Its rules are shown before you book. The notice period is a self-service availability rule: it controls when you can cancel or reschedule online, it follows the business's settings at the time you cancel or reschedule, and it never creates any payment obligation for you.",
+            ro: "Fiecare afacere decide dacă puteți anula sau reprograma online și stabilește un termen minim de preaviz pentru fiecare — de exemplu 24 de ore înainte de programare. Regulile ei sunt afișate înainte de rezervare. Termenul de preaviz este o regulă privind anularea și reprogramarea online: controlează când puteți anula sau reprograma online, urmează setările afacerii din momentul în care anulați sau reprogramați și nu creează niciodată vreo obligație de plată pentru dumneavoastră.",
           },
         },
       ],
@@ -79,24 +66,24 @@ export const bookingPolicy: LegalDocument = {
         ro: "Anularea și reprogramarea",
       },
       summary: {
-        en: "Free through the app outside the notice period.",
-        ro: "Gratuit din aplicație, în afara termenului de preaviz.",
+        en: "Free online up to the notice deadline.",
+        ro: "Gratuit online, până la termenul de preaviz.",
       },
       body: [
         {
           kind: "list",
           items: {
             en: [
-              "Outside the notice period, you can cancel or reschedule from your bookings screen, free of charge.",
-              "Inside the notice period, online cancellation and rescheduling are no longer available — contact the venue directly; whether it can still accommodate you is its decision.",
+              "Up to the notice deadline, you can cancel or reschedule from your bookings screen, free of charge.",
+              "After the notice deadline, or if the business doesn't allow online changes, contact the venue directly; whether it can still accommodate you is its decision.",
               "Rescheduling depends on available slots and follows the same availability rules as a new booking.",
-              "The business can also cancel or propose changes (for example if a professional becomes unavailable) — check your bookings screen for the current status.",
+              "The business can also move or cancel your booking (for example if a professional becomes unavailable) — check your bookings screen for the current status.",
             ],
             ro: [
-              "În afara termenului de preaviz, puteți anula sau reprograma din ecranul programărilor, gratuit.",
-              "În interiorul termenului de preaviz, anularea și reprogramarea online nu mai sunt disponibile — contactați direct unitatea; dacă vă mai poate acomoda este decizia acesteia.",
+              "Până la termenul de preaviz, puteți anula sau reprograma din ecranul programărilor, gratuit.",
+              "După termenul de preaviz, sau dacă afacerea nu permite modificări online, contactați direct unitatea; dacă vă mai poate primi este decizia acesteia.",
               "Reprogramarea depinde de intervalele disponibile și urmează aceleași reguli de disponibilitate ca o programare nouă.",
-              "Afacerea poate, la rândul ei, anula sau propune modificări (de exemplu dacă un profesionist devine indisponibil) — verificați ecranul programărilor pentru starea curentă.",
+              "Afacerea vă poate, la rândul ei, muta sau anula programarea (de exemplu dacă un profesionist devine indisponibil) — verificați ecranul programărilor pentru starea curentă.",
             ],
           },
         },
@@ -106,15 +93,15 @@ export const bookingPolicy: LegalDocument = {
       id: "no-shows",
       title: { en: "No-shows", ro: "Neprezentări" },
       summary: {
-        en: "No fees through Zavoia; repeated no-shows have consequences.",
-        ro: "Fără taxe prin Zavoia; neprezentările repetate au consecințe.",
+        en: "No no-show fees; repeated no-shows have consequences.",
+        ro: "Fără taxe de neprezentare; neprezentările repetate au consecințe.",
       },
       body: [
         {
           kind: "p",
           text: {
-            en: "If you miss an appointment, Zavoia does not charge you anything — there are no no-show fees on the platform. However, missed appointments cost businesses real time, so repeated no-shows can lead to restrictions on your ability to book through Zavoia, and a business may decline your future bookings.",
-            ro: "Dacă ratați o programare, Zavoia nu vă percepe nimic — nu există taxe de neprezentare pe platformă. Totuși, programările ratate costă afacerile timp real, așa că neprezentările repetate pot duce la restricții asupra posibilității de a face programări prin Zavoia, iar o afacere poate refuza programările dumneavoastră viitoare.",
+            en: "If you miss an appointment booked through Zavoia, neither Zavoia nor the business may charge you a no-show fee. However, missed appointments cost businesses real time, so repeated no-shows can lead to restrictions on your ability to book through Zavoia, and a business may cancel your future bookings with it.",
+            ro: "Dacă ratați o programare făcută prin Zavoia, nici Zavoia, nici afacerea nu vă pot percepe o taxă de neprezentare. Totuși, programările ratate înseamnă timp pierdut pentru afaceri, așa că neprezentările repetate pot duce la restricții asupra posibilității de a face programări prin Zavoia, iar o afacere vă poate anula programările viitoare la ea.",
           },
         },
       ],
@@ -134,15 +121,8 @@ export const bookingPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "Because a booking on Zavoia reserves a time slot without creating a payment obligation through the platform, you lose nothing by cancelling per this policy. Where a service contract with a business qualifies as a distance contract, the legal withdrawal regime for services on specific dates may apply between you and the business.",
-            ro: "Deoarece o programare pe Zavoia rezervă un interval orar fără a crea o obligație de plată prin platformă, nu pierdeți nimic anulând conform acestei politici. Când un contract de servicii cu o afacere se califică drept contract la distanță, regimul legal de retragere pentru servicii la date specifice se poate aplica între dumneavoastră și afacere.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "COUNSEL GATE (blueprint B3 fallback / D3): the final text of this section depends on the booking classification. If the flow is classified as contract-forming, this section must implement the OUG 34/2014 information set, per-venue-type art. 16 exemption mapping and the art. 11¹ withdrawal function. Do not publish before that decision.",
-            ro: "GATE JURIDIC (blueprint B3 varianta de rezervă / D3): textul final al acestei secțiuni depinde de clasificarea programării. Dacă fluxul este clasificat ca formator de contract, secțiunea trebuie să implementeze setul de informații OUG 34/2014, maparea excepțiilor art. 16 pe tipuri de unități și funcția de retragere art. 11¹. Nu publicați înainte de această decizie.",
+            en: "Because a booking on Zavoia reserves a time slot without creating a payment obligation, you lose nothing by cancelling as described in this policy. Where a service contract with a business qualifies as a distance contract, the statutory rules on the right of withdrawal apply between you and the business.",
+            ro: "Deoarece o programare pe Zavoia rezervă un interval orar fără a crea o obligație de plată, nu pierdeți nimic anulând conform acestei politici. Când un contract de servicii cu o afacere se califică drept contract la distanță, regulile legale privind dreptul de retragere se aplică între dumneavoastră și afacere.",
           },
         },
       ],

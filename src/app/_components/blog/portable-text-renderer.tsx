@@ -1,16 +1,19 @@
 import {
   PortableText,
+  type PortableTextBlockComponent,
   type PortableTextComponents,
 } from "@portabletext/react";
 import type { PortableTextBlock } from "@portabletext/types";
 import { urlForImage } from "@/sanity/image";
-import { Img } from "@/components/ui/image";
+import { BLOG_IMAGE_SIZES } from "@/lib/blog/images";
+import { BlogImage } from "./blog-image";
 import styles from "./blog-prose.module.css";
 
 export interface PortableTextRendererProps {
   blocks: PortableTextBlock[];
   // Match the article's precomputed ids, including repeated heading text.
   headingIds: Map<string, string>;
+  imageSizes?: string;
 }
 
 const HEADING_SCROLL_MARGIN = "calc(var(--nav-h) + 28px)";
@@ -18,7 +21,7 @@ const HEADING_SCROLL_MARGIN = "calc(var(--nav-h) + 28px)";
 // Sanity includes the source size in its asset URL and emits a rect parameter
 // for an authored crop. Use that exact crop to reserve space without imposing
 // a landscape frame on portraits, diagrams or screenshots.
-function imageDimensions(src: string | undefined) {
+export function imageDimensions(src: string | undefined) {
   if (!src) return undefined;
   const url = new URL(src);
   const dimensions = url.pathname.match(/-(\d+)x(\d+)\.[^/.]+$/);
@@ -33,30 +36,31 @@ function imageDimensions(src: string | undefined) {
   return { width, height };
 }
 
-function buildComponents(headingIds: Map<string, string>): PortableTextComponents {
+function buildComponents(headingIds: Map<string, string>, imageSizes: string): PortableTextComponents {
+  const heading = (Tag: "h2" | "h3" | "h4" | "h5" | "h6"): PortableTextBlockComponent =>
+    function ArticleHeading({ value, children }) {
+      return (
+        <Tag
+          id={headingIds.get(value._key ?? "")}
+          className="txt-balance"
+          tabIndex={-1}
+          style={{ scrollMarginTop: HEADING_SCROLL_MARGIN }}
+        >
+          {children}
+        </Tag>
+      );
+    };
+
   return {
     block: {
       normal: ({ children }) => <p className="txt-pretty">{children}</p>,
-      h2: ({ value, children }) => (
-        <h2
-          id={headingIds.get((value as { _key?: string })._key ?? "")}
-          className="txt-balance"
-          tabIndex={-1}
-          style={{ scrollMarginTop: HEADING_SCROLL_MARGIN }}
-        >
-          {children}
-        </h2>
-      ),
-      h3: ({ value, children }) => (
-        <h3
-          id={headingIds.get((value as { _key?: string })._key ?? "")}
-          className="txt-balance"
-          tabIndex={-1}
-          style={{ scrollMarginTop: HEADING_SCROLL_MARGIN }}
-        >
-          {children}
-        </h3>
-      ),
+      // Older authored H1s become sections beneath the article's own H1.
+      h1: heading("h2"),
+      h2: heading("h2"),
+      h3: heading("h3"),
+      h4: heading("h4"),
+      h5: heading("h5"),
+      h6: heading("h6"),
       blockquote: ({ children }) => (
         <blockquote className="txt-pretty">{children}</blockquote>
       ),
@@ -100,11 +104,11 @@ function buildComponents(headingIds: Map<string, string>): PortableTextComponent
               className={styles.imageFrame}
               style={dimensions ? { aspectRatio: `${dimensions.width} / ${dimensions.height}` } : undefined}
             >
-              <Img
-                src={src}
-                alt={value?.alt || ""}
-                width={dimensions?.width}
-                height={dimensions?.height}
+              <BlogImage
+                image={value}
+                alt={value?.decorative ? "" : value?.alt?.trim() || ""}
+                sizes={imageSizes}
+                maxWidth={2200}
                 style={{
                   width: "100%",
                   height: dimensions ? "100%" : "auto",
@@ -123,10 +127,11 @@ function buildComponents(headingIds: Map<string, string>): PortableTextComponent
 export function PortableTextRenderer({
   blocks,
   headingIds,
+  imageSizes = BLOG_IMAGE_SIZES.body,
 }: PortableTextRendererProps) {
   return (
     <div className={styles.prose}>
-      <PortableText value={blocks} components={buildComponents(headingIds)} />
+      <PortableText value={blocks} components={buildComponents(headingIds, imageSizes)} />
     </div>
   );
 }

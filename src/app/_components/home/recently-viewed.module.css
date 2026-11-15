@@ -43,7 +43,7 @@
 }
 
 .link:focus-visible {
-  outline: 2px solid var(--p-500);
+  outline: 2px solid var(--focus-ring-color, var(--c-700));
   outline-offset: 4px;
   border-radius: var(--card-r, 18px);
 }
@@ -119,6 +119,22 @@
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: clamp(248px, 86%, 320px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    padding-top: 6px;
+  }
+
+  .grid > * { scroll-snap-align: start; }
+  .link:focus-visible { outline-offset: -3px; }
+
 }
 
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {

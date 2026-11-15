@@ -98,7 +98,7 @@ export function Footer({ locale, showWordmark = true }: {
             <button type="button" className={styles.link} onClick={openSettings}>
               {t.cookieSettings}
             </button>
-            <a href="https://anpc.ro/" title={t.consumerProtection} className={styles.link}>
+            <a href="https://www.anpc.ro/" title={t.consumerProtection} className={styles.link}>
               {t.consumerProtection}
             </a>
           </div>

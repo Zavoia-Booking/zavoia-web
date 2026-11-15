@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: dict.legal.hubTitle,
     description: dict.legal.hubDescription,
+    robots: { index: false, follow: true },
     alternates: {
       canonical: localeHref(locale, "terms"),
       languages: {
@@ -111,9 +112,6 @@ export default async function LegalHubPage({ params }: Props) {
                 <h2 className="zw-legal-grouphead">
                   <span className="zw-legal-grouplbl">{label}</span>
                   <span className="zw-legal-grouprule" aria-hidden="true" />
-                  <span className="zw-legal-groupn" aria-hidden="true">
-                    {String(docs.length).padStart(2, "0")}
-                  </span>
                 </h2>
                 <div className="zw-legal-rows">
                   {docs.map((doc) => (

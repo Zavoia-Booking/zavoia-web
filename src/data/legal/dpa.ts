@@ -9,10 +9,11 @@ export const dpa: LegalDocument = {
   },
   shortTitle: { en: "DPA", ro: "DPA" },
   description: {
-    en: "The GDPR data processing terms between Zavoia (as processor) and businesses (as controllers) for client records the business manages on the platform.",
-    ro: "Termenii GDPR de prelucrare a datelor între Zavoia (persoană împuternicită) și afaceri (operatori) pentru evidențele de clienți gestionate de afacere pe platformă.",
+    en: "The GDPR data processing terms between Zavoia (as processor) and businesses (as controllers) for the client records and team schedules a business manages on the platform.",
+    ro: "Termenii GDPR de prelucrare a datelor între Zavoia (persoană împuternicită) și afaceri (operatori) pentru evidențele de clienți și programul echipei gestionate de afacere pe platformă.",
   },
-  status: "draft",
+  status: "published",
+  effectiveDate: "2026-11-15",
   sections: [
     {
       id: "scope-roles",
@@ -26,8 +27,8 @@ export const dpa: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "This addendum forms part of the Business Terms and applies where Zavoia processes personal data on your behalf: the client records, appointment details, notes and related content you enter or manage in your workspace. For those activities, you are the controller and Zavoia the processor under GDPR art. 28.",
-            ro: "Acest acord face parte din Termenii pentru afaceri și se aplică acolo unde Zavoia prelucrează date personale în numele dumneavoastră: evidențele de clienți, detaliile programărilor, notele și conținutul aferent pe care le introduceți sau gestionați în spațiul de lucru. Pentru aceste activități, dumneavoastră sunteți operatorul, iar Zavoia persoana împuternicită conform art. 28 GDPR.",
+            en: "This addendum forms part of the Business Terms and applies where Zavoia processes personal data on your behalf: the client records, appointment details, notes, team schedules and related content you enter or manage in your workspace. For those activities, you are the controller and Zavoia the processor under GDPR art. 28.",
+            ro: "Acest acord face parte din Termenii pentru afaceri și se aplică acolo unde Zavoia prelucrează date personale în numele dumneavoastră: evidențele de clienți, detaliile programărilor, notele, programul echipei și conținutul aferent pe care le introduceți sau gestionați în spațiul de lucru. Pentru aceste activități, dumneavoastră sunteți operatorul, iar Zavoia persoana împuternicită conform art. 28 GDPR.",
           },
         },
         {
@@ -52,21 +53,21 @@ export const dpa: LegalDocument = {
           kind: "list",
           items: {
             en: [
-              "Subject matter: hosting and processing of your workspace's client and appointment data on the Zavoia platform.",
-              "Duration: the term of the Business Terms, plus the post-termination window in the Return and deletion section.",
+              "Subject matter: hosting and processing of your workspace's client, appointment and team schedule data on the Zavoia platform.",
+              "Duration: from when you create your business in Zavoia until its workspace data is deleted (see Return and deletion).",
               "Nature and purpose: storage, display, organization, scheduling, notification-sending and related operations needed to provide the service.",
-              "Data categories: client identification and contact data, appointment details (services, times, professional, price), notes you record, communication history. Special-category data may be revealed by appointment context at health-related venues — see Special categories.",
-              "Data subjects: your clients and prospective clients.",
-              "Instructions: we process only on your documented instructions, which consist of the service's functionality and your configuration; we inform you if an instruction appears to infringe the law.",
+              "Data categories: clients' names and contact details; appointment details (services, times, location, professional, price, status, cancellation reason); notes you record; records of the notifications sent to clients; team members' location and service assignments and their time off. Some of this can be special-category data — see Special categories.",
+              "Data subjects: your clients and prospective clients, and your team members.",
+              "Instructions: we process only on your documented instructions, which consist of the service's functionality and your configuration, including for transfers outside the EEA, unless EU or Romanian law requires us to do otherwise; in that case we tell you first, unless that law forbids it. We inform you if an instruction appears to infringe the law.",
               "Confidentiality: persons authorized to process are bound by confidentiality obligations.",
             ],
             ro: [
-              "Obiectul: găzduirea și prelucrarea datelor de clienți și programări ale spațiului dumneavoastră de lucru pe platforma Zavoia.",
-              "Durata: durata Termenilor pentru afaceri, plus fereastra post-încetare din secțiunea Returnarea și ștergerea datelor.",
+              "Obiectul: găzduirea și prelucrarea datelor de clienți și programări și a programului echipei din spațiul dumneavoastră de lucru, pe platforma Zavoia.",
+              "Durata: de la crearea afacerii dumneavoastră în Zavoia până la ștergerea datelor spațiului ei de lucru (vezi Returnarea și ștergerea datelor).",
               "Natura și scopul: stocare, afișare, organizare, programare, trimiterea notificărilor și operațiunile conexe necesare furnizării serviciului.",
-              "Categoriile de date: date de identificare și contact ale clienților, detaliile programărilor (servicii, ore, profesionist, preț), notele înregistrate, istoricul comunicărilor. Date din categorii speciale pot fi relevate de contextul programării la unități din domeniul sănătății — vezi Categorii speciale.",
-              "Persoanele vizate: clienții și potențialii dumneavoastră clienți.",
-              "Instrucțiuni: prelucrăm doar pe baza instrucțiunilor dumneavoastră documentate, constând în funcționalitatea serviciului și configurarea dumneavoastră; vă informăm dacă o instrucțiune pare să încalce legea.",
+              "Categoriile de date: numele și datele de contact ale clienților; detaliile programărilor (servicii, ore, locație, profesionist, preț, status, motivul anulării); notele înregistrate; evidența notificărilor trimise clienților; repartizarea membrilor echipei pe locații și servicii și perioadele lor de absență. O parte dintre acestea pot fi date din categorii speciale — vezi Categorii speciale.",
+              "Persoanele vizate: clienții și potențialii dumneavoastră clienți, precum și membrii echipei dumneavoastră.",
+              "Instrucțiuni: prelucrăm doar pe baza instrucțiunilor dumneavoastră documentate, constând în funcționalitatea serviciului și configurarea dumneavoastră, inclusiv în privința transferurilor în afara SEE, cu excepția cazului în care dreptul UE sau dreptul român ne obligă să procedăm altfel; în acest caz vă informăm în prealabil, dacă legea respectivă nu interzice acest lucru. Vă informăm dacă o instrucțiune pare să încalce legea.",
               "Confidențialitate: persoanele autorizate să prelucreze sunt ținute de obligații de confidențialitate.",
             ],
           },
@@ -81,22 +82,15 @@ export const dpa: LegalDocument = {
         ro: "Categorii speciale de date",
       },
       summary: {
-        en: "Health-adjacent appointment data is in scope, with safeguards.",
-        ro: "Datele de programare cu caracter medical sunt incluse, cu garanții.",
+        en: "Health data can be in your workspace; how it is handled.",
+        ro: "Datele privind sănătatea pot exista în spațiul de lucru; cum sunt tratate.",
       },
       body: [
         {
           kind: "p",
           text: {
-            en: "Appointment data at medical, dental, psychology, physiotherapy or laboratory venues can reveal health information. Unlike templates that simply exclude special-category data, this addendum acknowledges it: such data is processed with access limited to authorized workspace roles and platform operations, and with the retention and notification safeguards described in the security annex. You are responsible for your own legal basis as controller for any health data you record about clients.",
-            ro: "Datele de programare la unități medicale, stomatologice, de psihologie, fizioterapie sau laboratoare pot revela informații despre sănătate. Spre deosebire de șabloanele care pur și simplu exclud datele din categorii speciale, acest acord le recunoaște: aceste date sunt prelucrate cu acces limitat la rolurile autorizate din spațiul de lucru și la operațiunile platformei, și cu garanțiile de păstrare și notificare descrise în anexa de securitate. Sunteți responsabil de propriul temei legal, ca operator, pentru orice date de sănătate pe care le înregistrați despre clienți.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "GATE D7: the concrete safeguards (access scoping, retention, notification content) come out of the pending art. 9 assessment. This section cannot be finalised before it.",
-            ro: "GATE D7: garanțiile concrete (limitarea accesului, păstrarea, conținutul notificărilor) rezultă din evaluarea art. 9 în curs. Această secțiune nu poate fi finalizată înainte de aceasta.",
+            en: "Your workspace can contain special categories of data (GDPR art. 9): an appointment at a medical, dental, psychology, physiotherapy or laboratory practice can reveal a client's health, notes can contain health details, and a team member's time off can be recorded as sick leave. This data gets the same security measures as the rest of your workspace (see Security measures). Emails to your clients show your business, the service and the location; SMS and app notifications to your clients show your business and the appointment date and time, not the service — plus your reason if you cancel and give one, so keep health details out of cancellation reasons. Email reminders are on by default and SMS reminders are off by default; you can change both, or turn reminders off, in your booking settings. As controller, you decide what you record, and you need your own legal basis for health data.",
+            ro: "Spațiul dumneavoastră de lucru poate conține date din categorii speciale (art. 9 GDPR): o programare la un cabinet medical, stomatologic, de psihologie, de fizioterapie sau la un laborator poate dezvălui informații despre sănătatea unui client, notele pot conține detalii despre sănătate, iar absența unui membru al echipei poate fi înregistrată ca concediu medical. Aceste date beneficiază de aceleași măsuri de securitate ca restul spațiului de lucru (vezi Măsuri de securitate). Emailurile către clienții dumneavoastră indică afacerea, serviciul și locația; SMS-urile și notificările din aplicație trimise clienților indică afacerea și data și ora programării, nu și serviciul — precum și motivul, dacă anulați și îl precizați, așa că nu includeți detalii despre sănătate în motivul anulării. Mementourile prin email sunt activate implicit, iar cele prin SMS sunt dezactivate implicit; le puteți modifica pe amândouă sau puteți dezactiva mementourile în setările de programare. Ca operator, decideți ce înregistrați și aveți nevoie de propriul temei legal pentru datele privind sănătatea.",
           },
         },
       ],
@@ -123,27 +117,20 @@ export const dpa: LegalDocument = {
               "Encryption in transit: the website, the dashboard, the apps and our API communicate only over HTTPS (TLS), with HSTS on the web; the connection between our API and the database is encrypted with TLS.",
               "Hosting: our API runs on Google Cloud Run, the database on Supabase, media files on Cloudflare R2, and the website and dashboard on Vercel.",
               "Sign-in and sessions: passwords are stored only as bcrypt hashes; web sessions use cookies that scripts cannot read, together with protection against cross-site request forgery.",
-              "Access control: every request to our API is authenticated and checked against the user's role (owner, team member or customer); a business's data is reachable only by the users that business has added.",
+              "Access control: a business's workspace can be opened only through the signed-in session of its owner or of a team member it has added; sessions are checked on every request and expire, and removing a team member ends their sessions. Authorized Zavoia staff can also access workspace data through our internal admin tool, to operate and support the service.",
               "Data separation: all businesses share one database; each business's records are kept apart by business-scoped queries in our application, not by separate databases.",
               "Logging: requests to our API are logged together with the user and the business they concern.",
-              "Personnel: only Zavoia staff who need it have access to production systems, and they are bound by confidentiality.",
+              "Personnel: only Zavoia staff who need it have access to production systems and the admin tool, and they are bound by confidentiality.",
             ],
             ro: [
               "Criptare în tranzit: site-ul, panoul, aplicațiile și API-ul nostru comunică doar prin HTTPS (TLS), cu HSTS pe web; conexiunea dintre API-ul nostru și baza de date este criptată cu TLS.",
               "Găzduire: API-ul nostru rulează pe Google Cloud Run, baza de date pe Supabase, fișierele media pe Cloudflare R2, iar site-ul și panoul pe Vercel.",
               "Autentificare și sesiuni: parolele sunt stocate doar ca hash-uri bcrypt; sesiunile web folosesc cookie-uri inaccesibile scripturilor, împreună cu protecție împotriva falsificării cererilor (CSRF).",
-              "Controlul accesului: fiecare cerere către API-ul nostru este autentificată și verificată în funcție de rolul utilizatorului (proprietar, membru al echipei sau client); datele unei afaceri sunt accesibile doar utilizatorilor adăugați de acea afacere.",
+              "Controlul accesului: spațiul de lucru al unei afaceri poate fi deschis doar printr-o sesiune autentificată a proprietarului ei sau a unui membru al echipei adăugat de aceasta; sesiunile sunt verificate la fiecare cerere și expiră, iar eliminarea unui membru al echipei îi încheie sesiunile. Personalul autorizat Zavoia poate accesa, de asemenea, datele spațiului de lucru prin instrumentul nostru intern de administrare, pentru operarea și asistența serviciului.",
               "Separarea datelor: toate afacerile folosesc o singură bază de date; evidențele fiecărei afaceri sunt separate prin interogări limitate la afacere în aplicația noastră, nu prin baze de date separate.",
               "Jurnalizare: cererile către API-ul nostru sunt jurnalizate împreună cu utilizatorul și afacerea la care se referă.",
-              "Personal: doar personalul Zavoia care are nevoie are acces la sistemele de producție și este obligat la confidențialitate.",
+              "Personal: doar personalul Zavoia care are nevoie are acces la sistemele de producție și la instrumentul de administrare și este obligat la confidențialitate.",
             ],
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "Annex written 11 Nov 2026 from the code (data-source.ts, roles.guard.ts, upload.service.ts, auth, request logging). Deliberately NOT claimed, because they are not true today: certificate verification on the database connection (TLS runs with rejectUnauthorized:false — data-source.ts, app.module.ts); database-level tenant isolation (the API connects as the postgres user, so row-level security does not apply); an audit trail of who viewed client records; backups and encryption at rest (true at the vendors only if confirmed in their documentation and plan); end-to-end encryption; certifications. Before publication: confirm the staff confidentiality undertakings exist in writing, and check that every endpoint touching client data declares roles — roles.guard.ts lets a request through when an endpoint declares none.",
-            ro: "Anexă redactată pe 11 nov. 2026 pe baza codului (data-source.ts, roles.guard.ts, upload.service.ts, autentificare, jurnalizarea cererilor). NU sunt pretinse în mod deliberat, pentru că nu sunt adevărate astăzi: verificarea certificatului la conexiunea cu baza de date (TLS rulează cu rejectUnauthorized:false — data-source.ts, app.module.ts); izolarea între afaceri la nivelul bazei de date (API-ul se conectează ca utilizator postgres, deci securitatea la nivel de rând nu se aplică); un jurnal de audit al celor care au vizualizat evidențele clienților; copiile de rezervă și criptarea datelor stocate (adevărate la furnizori doar dacă sunt confirmate în documentația și planul lor); criptarea end-to-end; certificările. Înainte de publicare: confirmați că angajamentele de confidențialitate ale personalului există în scris și verificați ca fiecare endpoint care atinge datele clienților să declare roluri — roles.guard.ts permite trecerea unei cereri când endpoint-ul nu declară niciunul.",
           },
         },
       ],
@@ -160,15 +147,31 @@ export const dpa: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "You authorize the sub-processors on our published vendor list [link], each engaged for a defined purpose under a contract imposing data-protection obligations equivalent to this addendum. We notify you at least 30 days before adding or replacing a sub-processor; if you have reasonable data-protection grounds to object and we cannot offer an alternative, you may terminate the affected service.",
-            ro: "Autorizați subîmputerniciții de pe lista noastră publicată de furnizori [link], fiecare angajat pentru un scop definit, printr-un contract care impune obligații de protecția datelor echivalente acestui acord. Vă notificăm cu cel puțin 30 de zile înainte de adăugarea sau înlocuirea unui subîmputernicit; dacă aveți motive rezonabile de protecția datelor pentru a obiecta și nu putem oferi o alternativă, puteți înceta serviciul afectat.",
+            en: "You authorize the sub-processors listed below. Each is bound by a written contract with the data-protection terms GDPR art. 28 requires, and we remain responsible to you for their performance. We notify you at least 30 days before adding or replacing a sub-processor; if you have reasonable data-protection grounds to object and we cannot offer an alternative, you may terminate the affected service.",
+            ro: "Autorizați subîmputerniciții enumerați mai jos. Fiecare este ținut de un contract scris cu clauzele de protecție a datelor cerute de art. 28 GDPR, iar noi răspundem față de dumneavoastră pentru modul în care își îndeplinesc obligațiile. Vă notificăm cu cel puțin 30 de zile înainte de adăugarea sau înlocuirea unui subîmputernicit; dacă aveți motive rezonabile legate de protecția datelor pentru a obiecta și nu putem oferi o alternativă, puteți înceta serviciul afectat.",
           },
         },
         {
-          kind: "note",
-          text: {
-            en: "Blueprint A10: vendors are not automatically sub-processors — classify each (Stripe and Oblio serve Zavoia's own billing = not sub-processors of your client data; hosting/email/SMS/push vendors that touch client records likely are). Publish the classified list before this addendum goes live.",
-            ro: "Blueprint A10: furnizorii nu sunt automat subîmputerniciți — clasificați fiecare (Stripe și Oblio servesc facturarea proprie Zavoia = nu sunt subîmputerniciți ai datelor clienților dumneavoastră; furnizorii de găzduire/email/SMS/push care ating evidențele de clienți probabil sunt). Publicați lista clasificată înainte ca acest acord să intre în vigoare.",
+          kind: "list",
+          items: {
+            en: [
+              "Google Cloud (Cloud Run, Cloud Tasks): runs our API, which processes all workspace data, and schedules notifications.",
+              "Supabase: our database, where workspace data is stored.",
+              "Cloudflare: network protection and delivery; traffic to our API passes through it.",
+              "Amazon Web Services (SES): sends emails to your clients.",
+              "Twilio: sends SMS to your clients, if you turn SMS on.",
+              "Expo: sends app notifications to clients who use the Zavoia app.",
+              "Google Firebase Cloud Messaging: sends appointment notifications to you and your team in the Zavoia Admin app.",
+            ],
+            ro: [
+              "Google Cloud (Cloud Run, Cloud Tasks): rulează API-ul nostru, care prelucrează toate datele spațiului de lucru, și programează trimiterea notificărilor.",
+              "Supabase: baza noastră de date, în care sunt stocate datele spațiului de lucru.",
+              "Cloudflare: protecția și livrarea traficului; traficul către API-ul nostru trece prin rețeaua sa.",
+              "Amazon Web Services (SES): trimite emailurile către clienții dumneavoastră.",
+              "Twilio: trimite SMS-urile către clienții dumneavoastră, dacă activați SMS-urile.",
+              "Expo: trimite notificările din aplicație clienților care folosesc aplicația Zavoia.",
+              "Google Firebase Cloud Messaging: trimite notificările despre programări către dumneavoastră și echipa dumneavoastră în aplicația Zavoia Admin.",
+            ],
           },
         },
       ],
@@ -194,8 +197,8 @@ export const dpa: LegalDocument = {
             ],
             ro: [
               "Vă notificăm fără întârzieri nejustificate după ce luăm cunoștință de o încălcare a securității datelor care vă afectează datele, cu informațiile necesare pentru propriile obligații de notificare.",
-              "Vă asistăm, ținând cont de natura prelucrării, în răspunsul la cererile persoanelor vizate — în principal prin instrumentele produsului — și în obligațiile dumneavoastră de securitate, notificare a încălcărilor și evaluare de impact (art. 32–36).",
-              "Cererile persoanelor vizate care ajung la Zavoia dar privesc evidențele dumneavoastră vă sunt transmise fără întârzieri nejustificate.",
+              "Vă asistăm, ținând cont de natura prelucrării, în răspunsul la cererile persoanelor vizate — în principal prin instrumentele produsului — și în respectarea obligațiilor dumneavoastră de securitate, de notificare a încălcărilor și de evaluare a impactului (art. 32–36).",
+              "Cererile persoanelor vizate care ajung la Zavoia, dar privesc evidențele dumneavoastră vă sunt transmise fără întârzieri nejustificate.",
             ],
           },
         },
@@ -215,8 +218,8 @@ export const dpa: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "Where processing involves transfers outside the EEA, they rely on an adequacy decision, the EU–US Data Privacy Framework for certified recipients, or the 2021 EU Standard Contractual Clauses (Commission Decision 2021/914), which we also impose on sub-processors. The transfer mechanism per vendor is stated in the published vendor list.",
-            ro: "Când prelucrarea implică transferuri în afara SEE, acestea se bazează pe o decizie de adecvare, pe cadrul EU–US Data Privacy Framework pentru destinatarii certificați sau pe Clauzele Contractuale Standard UE 2021 (Decizia 2021/914), pe care le impunem și subîmputerniciților. Mecanismul de transfer pentru fiecare furnizor este indicat în lista publicată de furnizori.",
+            en: "Some sub-processors process data outside the EEA, for example in the United States. Those transfers rely on an adequacy decision (including the EU–US Data Privacy Framework for certified recipients), binding corporate rules or the 2021 EU Standard Contractual Clauses (Commission Decision 2021/914), as set out in each sub-processor's data-protection terms.",
+            ro: "Unii subîmputerniciți prelucrează date în afara SEE, de exemplu în Statele Unite. Aceste transferuri se bazează pe o decizie de adecvare (inclusiv cadrul UE-SUA privind confidențialitatea datelor, pentru destinatarii certificați), pe reguli corporatiste obligatorii sau pe clauzele contractuale standard ale UE din 2021 (Decizia 2021/914), conform clauzelor de protecție a datelor ale fiecărui subîmputernicit.",
           },
         },
       ],
@@ -243,22 +246,15 @@ export const dpa: LegalDocument = {
       blueprintRef: "A10 / P2B art. 9",
       title: { en: "Return and deletion", ro: "Returnarea și ștergerea datelor" },
       summary: {
-        en: "Export window at contract end, then deletion.",
-        ro: "Fereastră de export la încetare, apoi ștergere.",
+        en: "Read-only access after the end; deletion with your account.",
+        ro: "Acces de citire după încetare; ștergere odată cu contul.",
       },
       body: [
         {
           kind: "p",
           text: {
-            en: "At the end of the Business Terms, your workspace data remains available to you in read-only form. [A defined export window and subsequent deletion/anonymization schedule are to be established — see note.] Statutory retention obligations survive in any case. This mirrors the data-access commitments in the Provider Terms.",
-            ro: "La încetarea Termenilor pentru afaceri, datele spațiului de lucru vă rămân disponibile în mod de citire. [O fereastră definită de export și un calendar ulterior de ștergere/anonimizare urmează a fi stabilite — vezi nota.] Obligațiile legale de păstrare rămân valabile în orice caz. Aceasta reflectă angajamentele de acces la date din Termenii pentru furnizori.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "IMPL (verified 1 Aug 2026): lapse behaviour is indefinite read-only retention with no automated deletion; the only export is the individual customer-history PDF. Before finalising: build bulk export, decide the retention window, and implement the deletion/anonymization schedule — do not promise capabilities the product lacks. Align GDPR art. 28(3)(g) (deletion/return at end of services) with what is actually built.",
-            ro: "IMPL (verificat 1 aug. 2026): comportamentul la expirare este păstrare în mod de citire pe durată nedeterminată, fără ștergere automată; singurul export este PDF-ul cu istoricul individual al unui client. Înainte de finalizare: construiți exportul în masă, decideți fereastra de păstrare și implementați calendarul de ștergere/anonimizare — nu promiteți capabilități pe care produsul nu le are. Aliniați art. 28(3)(g) GDPR (ștergerea/returnarea la finalul serviciilor) cu ce este efectiv construit.",
+            en: "When your subscription lapses or this agreement ends, your workspace data stays stored and available to you read-only until you delete your account. You can download each client's history as a PDF; there is no bulk export. Deleting your account deletes your business and all its workspace data from our database (see Deleting your account); copies in our database provider's backups are removed as those backups expire. Records the law requires us to keep about your business, such as tax-reporting records, are kept for the period the law sets.",
+            ro: "Când abonamentul expiră sau acest acord încetează, datele spațiului de lucru rămân stocate și disponibile pentru dumneavoastră în regim de citire până când vă ștergeți contul. Puteți descărca istoricul fiecărui client ca PDF; nu există export în masă. Ștergerea contului șterge afacerea și toate datele spațiului ei de lucru din baza noastră de date (vezi Ștergerea contului); datele din copiile de siguranță ale furnizorului bazei de date sunt eliminate pe măsură ce aceste copii expiră. Evidențele pe care legea ne obligă să le păstrăm despre afacerea dumneavoastră, cum ar fi cele pentru raportarea fiscală, sunt păstrate pe durata prevăzută de lege.",
           },
         },
       ],

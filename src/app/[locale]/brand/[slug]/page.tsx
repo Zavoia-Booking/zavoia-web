@@ -5,14 +5,11 @@ import { notFound } from "next/navigation";
 import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import { OPEN_GRAPH_LOCALES, SITE_URL, defaultSocialImage } from "@/lib/site";
-import { ApiError } from "@/lib/api/http";
-import { getBrand } from "@/lib/api/marketplace/public";
-import { BRAND_TAG, brandTag } from "@/lib/cache/tags";
 import type { BrandDetail as BrandDetailData } from "@/lib/api/marketplace/types";
 import { BrandDetail } from "../_components/brand-detail";
-import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
 import { notFoundMetadata } from "@/app/_components/not-found/metadata";
 import { brandStructuredData, serializeJsonLd } from "@/lib/seo/page-structured-data";
+import { getBrandPageData } from "./server";
 
 // ISR, same shape as the business detail route. The param is a businessSlug
 // (vanity URL) or a numeric business id — non-enumerable, so nothing is
@@ -32,11 +29,6 @@ type Props = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
-const BRAND_CACHE = (slug: string) => ({
-  revalidate: 600,
-  tags: [BRAND_TAG, brandTag(slug)],
-});
-
 /**
  * The brand's one address: its short address when it has one, else its
  * number. The page answers on both, and the number points here.
@@ -49,12 +41,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug } = await params;
   if (!isLocale(locale) || !slug) return {};
   try {
-    const brand = await getBrand(slug, BRAND_CACHE(slug));
+    const brand = await getBrandPageData(slug);
+    if (!brand) return notFoundMetadata(locale);
     const t = dictionaries[locale].brandPage;
 
-    const title = format(t.metaTitle, { name: brand.name });
-    // Without the owner's own text, say only what the page shows.
-    const description = brand.description?.trim() || format(t.metaDescription, { name: brand.name });
+    const title = format(brand.locations.length > 0 ? t.metaTitle : t.metaTitleProfile, { name: brand.name });
+    // Describe this profile's purpose, using the same location condition as its body.
+    const description = format(
+      brand.locations.length > 0 ? t.metaDescription : t.metaDescriptionProfile,
+      { name: brand.name },
+    );
     const image = brand.logo?.trim();
     // A logo suits the compact card; without one, the shared brand artwork.
     const socialImage = image ? { url: image, alt: brand.name } : defaultSocialImage(locale);
@@ -89,11 +85,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         images: [socialImage],
       },
     };
-  } catch (error) {
-    // Dead slug → the not-found state below, which needs an explicit noindex.
-    if (error instanceof ApiError && error.status === 404) {
-      return notFoundMetadata(locale);
-    }
+  } catch {
+    // The availability guard propagates operational failures to recovery.
     return {};
   }
 }
@@ -103,19 +96,8 @@ export default async function BrandPage({ params }: Props) {
   if (!isLocale(locale)) notFound();
   if (!slug) notFound();
 
-  // Cached render: an upstream 404 is the real "no such brand" answer and is
-  // cached as the not-found state (noindexed via generateMetadata); every other
-  // failure is rethrown so an outage is never cached as "not found". Same split
-  // as the business detail route.
-  let brand: BrandDetailData;
-  try {
-    brand = await getBrand(slug, BRAND_CACHE(slug));
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
-      return <NotFoundPage dictionary={dictionaries[locale]} locale={locale} pathname={localeHref(locale, "brand", slug)} />;
-    }
-    throw error;
-  }
+  const brand = await getBrandPageData(slug);
+  if (!brand) notFound();
 
   // The canonical path, exactly as generateMetadata declares it.
   const jsonLd = brandStructuredData(brand, locale, brandPath(locale, brand));

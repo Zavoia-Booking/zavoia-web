@@ -34,9 +34,7 @@
 
 .mc-about-word-clip > [data-about-word] {
   display: inline-block;
-  opacity: 0;
-  transform: translate3d(0, 118%, 0);
-  will-change: transform, opacity;
+  opacity: 1;
 }
 
 .mc-about-media {
@@ -62,8 +60,12 @@
 }
 
 .mc-about-media img {
-  opacity: 0;
+  opacity: 1;
   transition: opacity 360ms var(--ease-out-strong);
+}
+
+.mc-about-media img[data-fade-pending] {
+  opacity: 0;
 }
 
 .mc-about-media img[data-loaded="true"] {
@@ -77,12 +79,17 @@
 }
 
 [data-about-reveal] {
-  opacity: 0;
-  transform: translate3d(0, 18px, 0);
+  opacity: 1;
   transition:
     opacity 680ms var(--ease-out-strong),
     transform 680ms var(--ease-out-strong);
   transition-delay: var(--about-delay, 0ms);
+}
+
+/* Only a live observer may hold an offscreen entrance at its starting frame. */
+[data-about-reveal][data-about-motion]:not([data-in="true"]) {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
 }
 
 [data-about-reveal][data-in="true"] {
@@ -104,7 +111,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .mc-about-word-clip > [data-about-word],
-  [data-about-reveal] {
+  [data-about-reveal],
+  [data-about-reveal][data-about-motion]:not([data-in="true"]) {
     opacity: 1;
     transform: none;
     transition: none;

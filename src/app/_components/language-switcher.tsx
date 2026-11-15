@@ -9,7 +9,7 @@ import { LanguageDisclosure } from "./language-disclosure";
 
 /** Use the selected locale context, or explicit labels on standalone 404s. */
 export function LanguageSwitcher({
-  currentLocale, pathname, label, placement, compact, alternates, messages,
+  currentLocale, pathname, label, placement, compact, triggerClassName, alternates, messages,
 }: {
   currentLocale: Locale;
   messages?: Pick<Dictionary, "language" | "localeNames">;
@@ -17,6 +17,7 @@ export function LanguageSwitcher({
   label?: string;
   placement?: "above" | "below";
   compact?: "responsive";
+  triggerClassName?: string;
   alternates?: LocaleAlternates | "same-path";
 }) {
   const context = useContext(I18nContext);
@@ -29,9 +30,11 @@ export function LanguageSwitcher({
       label={label ?? dict.language.label}
       loadingLabel={dict.language.loading}
       unavailableLabel={dict.language.unavailable}
+      closeLabel={dict.language.close}
       options={LOCALES.map((locale) => ({ locale, label: dict.localeNames[locale] }))}
       placement={placement}
       compact={compact}
+      triggerClassName={triggerClassName}
       alternates={alternates}
     />
   );

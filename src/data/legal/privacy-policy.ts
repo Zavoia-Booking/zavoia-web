@@ -9,7 +9,8 @@ export const privacyPolicy: LegalDocument = {
     en: "How Zavoia processes personal data — as platform operator and as processor for businesses — including bookings, accounts, marketing and your GDPR rights.",
     ro: "Cum prelucrează Zavoia datele personale — ca operator al platformei și ca persoană împuternicită pentru afaceri — inclusiv programări, conturi, marketing și drepturile dumneavoastră GDPR.",
   },
-  status: "draft",
+  status: "published",
+  effectiveDate: "2026-11-15",
   sections: [
     {
       id: "controller-contact",
@@ -26,15 +27,8 @@ export const privacyPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "TNT VENTURES SRL (CUI 48718430), identified on the Company Information page, operates the Zavoia platform and is the data controller for the processing described in this notice, except where this notice says a business on the platform is the controller. For privacy matters, contact us at support@zavoia.com.",
+            en: "TNT VENTURES SRL (fiscal code 48718430), identified on the Company Information page, operates the Zavoia platform and is the data controller for the processing described in this notice, except where this notice says a business on the platform is the controller. For privacy matters, contact us at support@zavoia.com.",
             ro: "TNT VENTURES SRL (CUI 48718430), identificată pe pagina Informații despre companie, operează platforma Zavoia și este operatorul de date pentru prelucrările descrise în această politică, cu excepția cazurilor în care această politică arată că o afacere de pe platformă este operatorul. Pentru aspecte de confidențialitate, contactați-ne la support@zavoia.com.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "GATES (updated 11 Nov 2026): entity confirmed as TNT VENTURES SRL, CUI 48718430, privacy contact support@zavoia.com; the remaining company details (Trade Register number, registered office) go on the Company Information page. Still open: DPO designation — bookings at health-related venues may amount to large-scale processing of art. 9 data, which would make a DPO mandatory (GDPR art. 37), and processing CNPs for DAC7 on legitimate interest (rather than a legal obligation) would also require one (Legea 190/2018 art. 4) — counsel question.",
-            ro: "GATE-uri (actualizat 11 nov. 2026): entitatea confirmată este TNT VENTURES SRL, CUI 48718430, iar contactul pentru confidențialitate este support@zavoia.com; restul datelor societății (numărul de înregistrare la Registrul Comerțului, sediul social) se completează pe pagina Informații despre companie. Rămâne deschis: desemnarea unui DPO — programările la unități din domeniul sănătății pot constitui prelucrare pe scară largă de date art. 9, ceea ce ar face DPO-ul obligatoriu (art. 37 GDPR), iar prelucrarea CNP-urilor pentru DAC7 pe temei de interes legitim (și nu de obligație legală) ar impune, de asemenea, un DPO (Legea 190/2018 art. 4) — întrebare pentru avocați.",
           },
         },
       ],
@@ -56,13 +50,13 @@ export const privacyPolicy: LegalDocument = {
           items: {
             en: [
               "Zavoia as independent controller: your account and identity, marketplace bookings, reviews, favourites, notifications, security, support conversations, and operating and improving the platform.",
-              "Zavoia as processor (on behalf of a business): client records and appointment details a business enters or manages in its own workspace — for that data, the business is the controller and this processing is governed by our Data Processing Addendum with the business. Requests about such records are routed to the business.",
-              "When you book through the marketplace, your booking details become part of the business's client records too — from that point the business is an independent controller of its copy, under its own privacy practices.",
+              "Zavoia as processor (on behalf of a business): the client records, appointment details and team schedules a business enters or manages in its own workspace — for that data, the business is the controller and this processing is governed by our Data Processing Addendum with the business. Requests about such records are routed to the business.",
+              "When you book through the marketplace, your booking details also appear in the business's client records, and the business uses them as a controller in its own right, under its own privacy practices, to provide your appointment. They stay there while you have your Zavoia account; if you delete it, they are removed from the business's records too, except records the business created itself.",
             ],
             ro: [
               "Zavoia ca operator independent: contul și identitatea dumneavoastră, programările din marketplace, recenziile, favoritele, notificările, securitatea, conversațiile de asistență și operarea și îmbunătățirea platformei.",
-              "Zavoia ca persoană împuternicită (în numele unei afaceri): evidențele de clienți și detaliile programărilor pe care o afacere le introduce sau gestionează în propriul spațiu de lucru — pentru aceste date, afacerea este operatorul, iar prelucrarea este guvernată de Acordul nostru de prelucrare a datelor cu afacerea. Cererile privind aceste evidențe sunt direcționate către afacere.",
-              "Când faceți o programare prin marketplace, detaliile programării devin și parte din evidențele de clienți ale afacerii — din acel moment, afacerea este operator independent al copiei sale, conform propriilor practici de confidențialitate.",
+              "Zavoia ca persoană împuternicită (în numele unei afaceri): evidențele de clienți, detaliile programărilor și programul echipei pe care o afacere le introduce sau gestionează în propriul spațiu de lucru — pentru aceste date, afacerea este operatorul, iar prelucrarea este guvernată de Acordul nostru de prelucrare a datelor cu afacerea. Cererile privind aceste evidențe sunt direcționate către afacere.",
+              "Când faceți o programare prin marketplace, detaliile programării apar și în evidențele de clienți ale afacerii, iar afacerea le folosește ca operator în nume propriu, conform propriilor practici de confidențialitate, pentru a vă presta serviciul. Ele rămân acolo cât timp aveți cont Zavoia; dacă îl ștergeți, sunt eliminate și din evidențele afacerii, cu excepția celor create chiar de afacere.",
             ],
           },
         },
@@ -80,18 +74,18 @@ export const privacyPolicy: LegalDocument = {
           kind: "list",
           items: {
             en: [
-              "Visitors: technical data (IP address, device and browser information), pages visited, and approximate location if you use location-based search.",
-              "Customer accounts: name, email, phone number, profile photo, date of birth and address if you provide them; sign-in method (email or Google); your bookings, favourites, reviews and notification preferences.",
+              "Visitors: technical data (IP address, device and browser information), pages visited, and location: precise if you allow it in your browser or the app, otherwise approximate, estimated from your IP address.",
+              "Customer accounts: name, email, phone number, profile photo, date of birth and address if you provide them; sign-in method (email or Google); your bookings, favourites, reviews, notification preferences, the devices registered for push notifications, and your support requests. Your name, email address and a password (or signing in with Google) are needed to create an account; everything else is optional. Reviews you write are public, with your first name, last-name initial and profile photo, as the Content Policy describes.",
               "Bookings: the venue, services, professional, time, price snapshot at booking, and status history.",
               "Guest support: the contact details and content you submit when you contact support without an account.",
-              "Business users: workspace, role, and the professional profile information the business or the professional publishes.",
+              "Business users: workspace, role, and the professional profile information the business or the professional publishes; for business owners, also subscription and billing details, and the identification details needed for EU platform tax reporting (DAC7) — see Purposes and legal bases.",
             ],
             ro: [
-              "Vizitatori: date tehnice (adresa IP, informații despre dispozitiv și browser), paginile vizitate și locația aproximativă dacă folosiți căutarea pe bază de locație.",
-              "Conturi de client: nume, email, număr de telefon, fotografie de profil, data nașterii și adresa dacă le furnizați; metoda de autentificare (email sau Google); programările, favoritele, recenziile și preferințele de notificare.",
+              "Vizitatori: date tehnice (adresa IP, informații despre dispozitiv și browser), paginile vizitate și locația: precisă dacă o permiteți în browser sau în aplicație, altfel aproximativă, estimată după adresa IP.",
+              "Conturi de client: nume, email, număr de telefon, fotografie de profil, data nașterii și adresa dacă le furnizați; metoda de autentificare (email sau Google); programările, favoritele, recenziile, preferințele de notificare, dispozitivele înregistrate pentru notificări push și solicitările de asistență. Numele, adresa de email și o parolă (sau autentificarea cu Google) sunt necesare pentru crearea contului; restul este opțional. Recenziile pe care le scrieți sunt publice și afișează prenumele, inițiala numelui de familie și fotografia de profil, după cum descrie Politica de conținut.",
               "Programări: unitatea, serviciile, profesionistul, ora, prețul înregistrat la momentul programării și istoricul stărilor.",
               "Asistență pentru vizitatori: datele de contact și conținutul trimis când contactați asistența fără cont.",
-              "Utilizatori business: spațiul de lucru, rolul și informațiile de profil profesional publicate de afacere sau de profesionist.",
+              "Utilizatori din partea afacerilor: spațiul de lucru, rolul și informațiile de profil profesional publicate de afacere sau de profesionist; pentru proprietarii de afaceri, și datele de abonament și facturare, precum și datele de identificare necesare raportării fiscale a platformelor în UE (DAC7) — vezi Scopuri și temeiuri legale.",
             ],
           },
         },
@@ -110,31 +104,28 @@ export const privacyPolicy: LegalDocument = {
           items: {
             en: [
               "Running your account and the platform features you ask for — including passing your booking request to the business and keeping your booking history — performance of our contract with you, i.e. the Marketplace Customer Terms (GDPR art. 6(1)(b)). That agreement is about your use of Zavoia; it is not the service contract you agree directly with the business.",
+              "Business accounts, subscriptions and invoicing — performance of our contract with the business, i.e. the Business Terms (art. 6(1)(b)).",
               "Transactional messages (booking confirmations, changes, reminders) — performance of our contract with you (the Marketplace Customer Terms).",
+              "Showing businesses near you — legitimate interest (art. 6(1)(f)) in showing relevant results; we use your precise location only if you allow it, and otherwise estimate it from your IP address.",
               "Security, fraud prevention and abuse protection — legitimate interest (art. 6(1)(f)).",
               "Support and complaint handling — performance of our contract with you / legitimate interest.",
               "Legal obligations — compliance (art. 6(1)(c)), for example accounting and fiscal records.",
               "Marketing — only with your consent, per channel (art. 6(1)(a)); see the Marketing section.",
-              "Website analytics (Google Analytics, on www.zavoia.com only) — only with your consent (art. 6(1)(a)), given and withdrawn in the cookie banner; see the Cookie & Storage Notice.",
-              "EU platform tax reporting (DAC7) — for businesses that complete bookings through Zavoia, we record the business's identification details (name, CUI or, for individuals, CNP, VAT and registration numbers, date of birth, address and contact details) and the list prices of completed bookings — [legal basis to be confirmed by the tax memo: legal obligation (art. 6(1)(c)) if Zavoia is a reporting platform operator]. These records are kept after account deletion for the period required by tax law.",
+              "Website analytics (Google Analytics, on www.zavoia.com only) — only with your consent (art. 6(1)(a)), given and withdrawn in the cookie banner; see the Cookie & Storage Policy.",
+              "EU platform tax reporting (DAC7) — for businesses that complete bookings through Zavoia, we record the business's identification details (name, fiscal code or, for private individuals, personal numeric code, VAT and registration numbers, date of birth, address and contact details) and the list prices of completed bookings — legal obligation (art. 6(1)(c)) under Council Directive (EU) 2021/514 (DAC7), applied in Romania through the Fiscal Procedure Code. These records are kept after account deletion for the period required by tax law.",
             ],
             ro: [
               "Funcționarea contului și a funcțiilor platformei pe care le solicitați — inclusiv transmiterea cererii de programare către afacere și păstrarea istoricului programărilor — executarea contractului nostru cu dumneavoastră, respectiv Termenii pentru clienți (art. 6(1)(b) GDPR). Acel acord privește utilizarea Zavoia; nu este contractul de servicii pe care îl încheiați direct cu afacerea.",
-              "Mesaje tranzacționale (confirmări de programare, modificări, memento-uri) — executarea contractului nostru cu dumneavoastră (Termenii pentru clienți).",
+              "Conturile de afacere, abonamentele și facturarea — executarea contractului nostru cu afacerea, respectiv Termenii pentru afaceri (art. 6(1)(b)).",
+              "Mesaje tranzacționale (confirmări de programare, modificări, mementouri) — executarea contractului nostru cu dumneavoastră (Termenii pentru clienți).",
+              "Afișarea afacerilor din apropiere — interes legitim (art. 6(1)(f)) de a afișa rezultate relevante; folosim locația precisă doar dacă o permiteți, altfel o estimăm după adresa IP.",
               "Securitate, prevenirea fraudei și protecția împotriva abuzurilor — interes legitim (art. 6(1)(f)).",
               "Asistență și soluționarea reclamațiilor — executarea contractului nostru cu dumneavoastră / interes legitim.",
               "Obligații legale — conformare (art. 6(1)(c)), de exemplu evidențe contabile și fiscale.",
               "Marketing — doar cu consimțământul dumneavoastră, pe fiecare canal (art. 6(1)(a)); vezi secțiunea Marketing.",
               "Analiza site-ului (Google Analytics, doar pe www.zavoia.com) — doar cu consimțământul dumneavoastră (art. 6(1)(a)), acordat și retras din bannerul de cookie-uri; vezi Politica de cookie-uri și stocare.",
-              "Raportarea fiscală a platformelor în UE (DAC7) — pentru afacerile care au programări finalizate prin Zavoia, înregistrăm datele de identificare ale afacerii (denumire, CUI sau, pentru persoane fizice, CNP, cod de TVA și număr de înregistrare, data nașterii, adresa și datele de contact) și prețurile de listă ale programărilor finalizate — [temei legal de confirmat prin memo-ul fiscal: obligație legală (art. 6(1)(c)) dacă Zavoia este operator de platformă cu obligație de raportare]. Aceste evidențe sunt păstrate după ștergerea contului, pe perioada impusă de legislația fiscală.",
+              "Raportarea fiscală a platformelor în UE (DAC7) — pentru afacerile care au programări finalizate prin Zavoia, înregistrăm datele de identificare ale afacerii (denumire, CUI sau, pentru persoanele fizice neautorizate, CNP, cod de TVA și număr de înregistrare, data nașterii, adresa și datele de contact) și prețurile de listă ale programărilor finalizate — obligație legală (art. 6(1)(c)) conform Directivei (UE) 2021/514 a Consiliului (DAC7), aplicată în România prin Codul de procedură fiscală. Aceste evidențe sunt păstrate după ștergerea contului, pe perioada impusă de legislația fiscală.",
             ],
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "GATE D5 (blueprint B2): the account's classification and any personalisation legal basis still need the purpose-by-purpose data map. The analytics item now states the real setup (GA4 on the website only, consent-gated). GATE D12 (re-verified 11 Nov 2026): the DAC7 item was added because the processing already runs whatever the tax memo concludes — since 6 Aug 2026 the API records every completed marketplace booking (one row per service) and a yearly seller snapshot, including CNP and date of birth when the owner provides them, and keeps both after account deletion (dac7.service.ts). The memo must settle the bracketed basis. If Zavoia is not a reporting platform operator, counsel must confirm another basis or stop collecting — Legea 190/2018 art. 4 restricts CNP processing on legitimate interest. Also add the DAC7 data to “The data we process” and the tax-law period to the retention section.",
-            ro: "GATE D5 (blueprint B2): clasificarea contului și orice temei pentru personalizare necesită în continuare harta scopurilor de prelucrare. Punctul despre analiză descrie acum configurația reală (GA4 doar pe site, condiționat de consimțământ). GATE D12 (re-verificat 11 nov. 2026): punctul DAC7 a fost adăugat pentru că prelucrarea are deja loc, indiferent de concluzia memo-ului fiscal — din 6 aug. 2026, API-ul înregistrează fiecare programare finalizată din marketplace (un rând per serviciu) și un instantaneu anual al vânzătorului, inclusiv CNP și data nașterii când proprietarul le furnizează, și le păstrează pe ambele după ștergerea contului (dac7.service.ts). Memo-ul trebuie să stabilească temeiul dintre paranteze. Dacă Zavoia nu este operator de platformă cu obligație de raportare, avocații trebuie să confirme alt temei sau colectarea trebuie oprită — Legea 190/2018 art. 4 restricționează prelucrarea CNP pe temei de interes legitim. Adăugați de asemenea datele DAC7 în „Datele pe care le prelucrăm” și termenul fiscal în secțiunea de păstrare.",
           },
         },
       ],
@@ -154,15 +145,8 @@ export const privacyPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "A booking at certain venues — for example medical, dental, psychology, physiotherapy or laboratory practices — can by itself suggest information about your health. We treat such booking data with heightened protection: access is limited to what is needed to operate your booking, and notification and email content is being reviewed under our health-data assessment so the venue type is not needlessly exposed.",
-            ro: "O programare la anumite unități — de exemplu cabinete medicale, stomatologice, de psihologie, fizioterapie sau laboratoare — poate sugera, prin ea însăși, informații despre sănătatea dumneavoastră. Tratăm aceste date de programare cu protecție sporită: accesul este limitat la ce este necesar pentru operarea programării, iar conținutul notificărilor și al emailurilor este în curs de revizuire în cadrul evaluării noastre privind datele de sănătate, pentru ca tipul unității să nu fie expus inutil.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "GATE D7 (blueprint — the largest special-category exposure): the dedicated art. 9 assessment (legal basis, staff access scoping, retention, deletion, notification content) is not yet done. This section's final text depends on it; do not publish before the assessment concludes.",
-            ro: "GATE D7 (blueprint — cea mai mare expunere la categorii speciale): evaluarea dedicată art. 9 (temei legal, limitarea accesului personalului, păstrare, ștergere, conținutul notificărilor) nu este încă realizată. Textul final al acestei secțiuni depinde de ea; nu publicați înainte de finalizarea evaluării.",
+            en: "A booking at a venue in the Health & Medical category — for example a dental or medical clinic, a laboratory, or a physiotherapy or psychology practice — can reveal information about your health. We process such bookings only with your explicit consent (GDPR art. 9(2)(a)), which you give by ticking the box before you confirm, and we record when you gave it. If you book for a minor in your care, you give this consent on their behalf, as their parent or legal guardian. If the business enters an appointment for you itself, for example when you book by phone, there is no tick box: we handle that appointment for the business, under its own legal basis, and we don't ask you to review it. We use this data only for the booking itself: arranging the appointment, showing it in your bookings, reminders, and the review request after a completed visit. Emails about the appointment show the business, the service and the location; SMS and app notifications show only the business and the date and time, plus the reason if the business cancels and gives one. You can withdraw your consent at any time by cancelling the booking or writing to support@zavoia.com; this doesn't affect processing that happened before.",
+            ro: "O programare la o unitate din categoria Sănătate & Medical — de exemplu un cabinet stomatologic sau medical, un laborator ori un cabinet de fizioterapie sau psihologie — poate dezvălui informații despre sănătatea dumneavoastră. Prelucrăm astfel de programări doar cu consimțământul dumneavoastră explicit (art. 9(2)(a) GDPR), pe care îl dați bifând caseta înainte de confirmare, iar noi înregistrăm momentul în care l-ați dat. Dacă faceți programarea pentru un minor aflat în grija dumneavoastră, dați acest consimțământ în numele lui, în calitate de părinte sau tutore legal. Dacă afacerea introduce ea însăși o programare pentru dumneavoastră, de exemplu când vă programați telefonic, nu există casetă de bifat: gestionăm acea programare în numele afacerii, pe temeiul ei legal, și nu vă cerem o recenzie pentru ea. Folosim aceste date doar pentru programarea în sine: organizarea ei, afișarea în programările dumneavoastră, mementouri și solicitarea de evaluare după o vizită finalizată. Emailurile despre programare indică afacerea, serviciul și locația; SMS-urile și notificările din aplicație indică doar afacerea, data și ora, precum și motivul anulării, dacă afacerea îl precizează. Vă puteți retrage consimțământul oricând, anulând programarea sau scriind la support@zavoia.com; retragerea nu afectează prelucrarea efectuată înainte.",
           },
         },
       ],
@@ -179,15 +163,8 @@ export const privacyPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "We send marketing messages only if you opted in, separately for each channel (email, SMS, push). You can withdraw consent at any time from your notification settings or the unsubscribe link in each message. Transactional messages — booking confirmations, changes and cancellations — are part of the service and are not affected by marketing preferences.",
-            ro: "Trimitem mesaje de marketing doar dacă v-ați exprimat acordul, separat pentru fiecare canal (email, SMS, push). Puteți retrage consimțământul oricând din setările de notificări sau din linkul de dezabonare din fiecare mesaj. Mesajele tranzacționale — confirmări, modificări și anulări de programări — fac parte din serviciu și nu sunt afectate de preferințele de marketing.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "IMPL + GATE D15: marketing preference defaults are currently stored as true in the product and must be flipped, and already-stored rows need a re-consent/migration strategy before any marketing sender is built. This text describes the compliant target state.",
-            ro: "IMPL + GATE D15: valorile implicite ale preferințelor de marketing sunt în prezent true în produs și trebuie inversate, iar înregistrările existente necesită o strategie de re-consimțământ/migrare înainte de a construi orice sistem de trimitere. Acest text descrie starea țintă conformă.",
+            en: "We don't send marketing messages. If we start, we will ask for your consent first, separately for each channel (email, SMS, push), and you will be able to withdraw it from any message. Service messages — booking confirmations, changes, cancellations and reminders, and the request to review a completed appointment — are part of the service and are not marketing.",
+            ro: "Nu trimitem mesaje de marketing. Dacă vom începe, vă vom cere mai întâi consimțământul, separat pentru fiecare canal (email, SMS, push), și îl veți putea retrage din orice mesaj. Mesajele de serviciu — confirmările, modificările, anulările și mementourile programărilor, precum și solicitarea de a evalua o programare finalizată — fac parte din serviciu și nu sunt marketing.",
           },
         },
       ],
@@ -207,8 +184,8 @@ export const privacyPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "Depending on the search, results are ordered by how closely a business name matches what you typed, by distance from you, or by rating and how recently the business joined; when nothing matches, labelled recommendations are shown instead. Homepage sections use their own orderings — random, by distance, rotating daily, or by rating. The homepage section “Made with Web Studio” shows only businesses whose plan includes a published website (currently Plus); apart from that section, payment has no influence on ranking. The full description is in the Marketplace Provider Terms. We do not make decisions with legal or similarly significant effects about you by purely automated means.",
-            ro: "În funcție de căutare, rezultatele sunt ordonate după cât de bine se potrivește numele unei afaceri cu ce ați tastat, după distanța față de dumneavoastră sau după rating și cât de recent s-a înscris afacerea; când nimic nu corespunde, sunt afișate în schimb recomandări etichetate. Secțiunile paginii principale folosesc propriile ordonări — aleatorie, după distanță, cu rotire zilnică sau după rating. Secțiunea „Site-uri create cu Web Studio” de pe pagina principală afișează doar afacerile al căror plan include un site publicat (în prezent Plus); în afara acestei secțiuni, plata nu influențează ierarhizarea. Descrierea completă se află în Termenii pentru furnizorii din marketplace. Nu luăm decizii cu efecte juridice sau similar semnificative despre dumneavoastră prin mijloace exclusiv automate.",
+            en: "How search results and homepage sections are ordered is explained in the Marketplace Customer Terms, under “How results are ordered”. Some orderings use your location — precise if you allow it, otherwise estimated from your IP address — to show businesses near you. Apart from the “Made with Web Studio” section on the website's homepage, payment has no influence on ranking. We do not make decisions with legal or similarly significant effects about you by purely automated means.",
+            ro: "Modul în care sunt ordonate rezultatele căutării și secțiunile paginii principale este explicat în Termenii pentru clienți, la „Cum sunt ordonate rezultatele”. Unele ordonări folosesc locația dumneavoastră — precisă dacă o permiteți, altfel estimată după adresa IP — pentru a vă arăta afaceri din apropiere. În afara secțiunii „Site-uri create cu Web Studio” de pe pagina principală a site-ului, plata nu influențează ierarhizarea. Nu luăm decizii bazate exclusiv pe prelucrarea automată care produc efecte juridice asupra dumneavoastră sau vă afectează în mod similar într-o măsură semnificativă.",
           },
         },
       ],
@@ -225,36 +202,29 @@ export const privacyPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "When you book, the business receives your booking details (name, contact, services, time) to perform the appointment. Beyond that, we share data only with the service providers that run the platform, each engaged for a defined purpose:",
-            ro: "Când faceți o programare, afacerea primește detaliile programării (nume, contact, servicii, ora) pentru a presta serviciul. Dincolo de aceasta, partajăm date doar cu furnizorii de servicii care susțin platforma, fiecare pentru un scop definit:",
+            en: "When you book, the business receives your booking details (name, contact, services, time) to perform the appointment. Beyond that, we share data only with the recipients below, each for a defined purpose:",
+            ro: "Când faceți o programare, afacerea primește detaliile programării (nume, contact, servicii, ora) pentru a presta serviciul. Dincolo de aceasta, partajăm date doar cu destinatarii de mai jos, fiecare pentru un scop definit:",
           },
         },
         {
           kind: "list",
           items: {
             en: [
-              "Hosting and infrastructure: Google Cloud Run (our API), Supabase (our database), Vercel (the website and the business dashboard), Cloudflare (network, content delivery and R2 media storage).",
+              "Hosting and infrastructure: Google Cloud Run (our API), Supabase (our database), Vercel (the website and the business dashboard), Cloudflare (network protection and content delivery — traffic to our API passes through it — and R2 media storage).",
               "Email delivery: Amazon Web Services (SES, with SNS for delivery and bounce notifications). SMS delivery: Twilio. Push notifications: Google Firebase Cloud Messaging (Zavoia Admin app), Expo (Zavoia app). App updates: Expo EAS Update.",
               "Task scheduling: Google Cloud Tasks. Sign-in with Google: Google OAuth.",
-              "Maps: Mapbox (map tiles and map usage data). Place search and address lookup: MapTiler (the place names you type and the coordinates looked up). Approximate location from your IP address: ipwho.is — used only to centre the map on your city when you have not granted precise location. Fonts on business websites and in the Web Studio: Google Fonts (your browser loads them from Google's servers). Website analytics, only with your consent: Google Analytics. Marketing-site content: Sanity.",
+              "Maps: Mapbox (map tiles and map usage data). Place search and address lookup: MapTiler (the place names you type and the coordinates looked up). Approximate location from your IP address: ipwho.is — when precise location is not available, the home page and search use it automatically to estimate your city and show businesses near you. Website analytics, only with your consent: Google Analytics. Marketing-site content: Sanity.",
               "For business customers only — subscription payments: Stripe; invoicing: Oblio.",
               "Professional advisers, authorities where the law requires it, and — in a corporate transaction — prospective acquirers under confidentiality.",
             ],
             ro: [
-              "Găzduire și infrastructură: Google Cloud Run (API-ul nostru), Supabase (baza noastră de date), Vercel (site-ul și panoul pentru afaceri), Cloudflare (rețea, livrarea conținutului și stocarea media R2).",
+              "Găzduire și infrastructură: Google Cloud Run (API-ul nostru), Supabase (baza noastră de date), Vercel (site-ul și panoul pentru afaceri), Cloudflare (protecția rețelei și livrarea conținutului — traficul către API-ul nostru trece prin rețeaua sa — și stocarea media R2).",
               "Trimiterea emailurilor: Amazon Web Services (SES, cu SNS pentru notificările de livrare și de respingere). Trimiterea SMS-urilor: Twilio. Notificări push: Google Firebase Cloud Messaging (aplicația Zavoia Admin), Expo (aplicația Zavoia). Actualizările aplicației: Expo EAS Update.",
               "Programarea sarcinilor: Google Cloud Tasks. Autentificare cu Google: Google OAuth.",
-              "Hărți: Mapbox (dalele hărții și datele de utilizare a hărții). Căutarea locurilor și a adreselor: MapTiler (numele de locuri pe care le tastați și coordonatele căutate). Locație aproximativă după adresa IP: ipwho.is — folosită doar pentru a centra harta pe orașul dumneavoastră când nu ați acordat acces la locația precisă. Fonturi pe site-urile afacerilor și în Web Studio: Google Fonts (browserul le încarcă de pe serverele Google). Analiza site-ului, doar cu consimțământul dumneavoastră: Google Analytics. Conținutul site-ului de marketing: Sanity.",
-              "Doar pentru clienții business — plăți de abonament: Stripe; facturare: Oblio.",
+              "Hărți: Mapbox (dalele hărții și datele de utilizare a hărții). Căutarea locurilor și a adreselor: MapTiler (numele de locuri pe care le tastați și coordonatele căutate). Locație aproximativă după adresa IP: ipwho.is — când locația precisă nu este disponibilă, prima pagină și căutarea îl folosesc automat pentru a estima orașul dumneavoastră și a vă arăta afaceri din apropiere. Analiza site-ului, doar cu consimțământul dumneavoastră: Google Analytics. Conținutul site-ului de marketing: Sanity.",
+              "Doar pentru afaceri — plăți de abonament: Stripe; facturare: Oblio.",
               "Consultanți profesioniști, autorități unde legea o cere și — într-o tranzacție corporativă — potențiali cumpărători, sub confidențialitate.",
             ],
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "Vendor list re-verified against the code on 11 Nov 2026: added Cloud Run, Supabase, Vercel, Google Analytics, Google Fonts, Expo EAS Update and AWS SNS; “AWS” as storage was wrong (media is on Cloudflare R2; AWS is used only for SES, SNS and STS credentials). Still open per blueprint A10: classify each vendor's role (processor vs independent controller) per service before publishing — vendors are not automatically sub-processors. SendGrid and amqplib are installed in admin-api but never used; keep them off this list, or remove them.",
-            ro: "Lista furnizorilor re-verificată în cod pe 11 nov. 2026: au fost adăugați Cloud Run, Supabase, Vercel, Google Analytics, Google Fonts, Expo EAS Update și AWS SNS; „AWS” pentru stocare era greșit (fișierele media sunt pe Cloudflare R2; AWS este folosit doar pentru SES, SNS și credențiale STS). Rămâne deschis, conform blueprint A10: clasificați rolul fiecărui furnizor (persoană împuternicită vs operator independent) pentru fiecare serviciu înainte de publicare — furnizorii nu sunt automat subîmputerniciți. SendGrid și amqplib sunt instalate în admin-api, dar nu sunt folosite niciodată; nu le adăugați pe listă sau eliminați-le.",
           },
         },
       ],
@@ -270,8 +240,8 @@ export const privacyPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "Some of our vendors process data outside the European Economic Area (for example in the United States). Where that happens, transfers rely on an adequacy decision, the EU–US Data Privacy Framework for certified providers, or the 2021 EU Standard Contractual Clauses, with supplementary measures where needed. You can request details of the safeguard applying to a specific vendor.",
-            ro: "Unii dintre furnizorii noștri prelucrează date în afara Spațiului Economic European (de exemplu în Statele Unite). În aceste cazuri, transferurile se bazează pe o decizie de adecvare, pe cadrul EU–US Data Privacy Framework pentru furnizorii certificați sau pe Clauzele Contractuale Standard UE din 2021, cu măsuri suplimentare unde este necesar. Puteți solicita detalii despre garanția aplicabilă unui anumit furnizor.",
+            en: "Some of our vendors process data outside the European Economic Area (for example in the United States). Where that happens, transfers rely on an adequacy decision, the EU–US Data Privacy Framework for certified providers, binding corporate rules, or the 2021 EU Standard Contractual Clauses, with supplementary measures where needed. You can request details of the safeguard applying to a specific vendor.",
+            ro: "Unii dintre furnizorii noștri prelucrează date în afara Spațiului Economic European (de exemplu în Statele Unite). În aceste cazuri, transferurile se bazează pe o decizie de adecvare, pe cadrul UE-SUA privind confidențialitatea datelor (EU–US Data Privacy Framework) pentru furnizorii certificați, pe reguli corporatiste obligatorii sau pe clauzele contractuale standard ale UE din 2021, cu măsuri suplimentare unde este necesar. Puteți solicita detalii despre garanția aplicabilă unui anumit furnizor.",
           },
         },
       ],
@@ -287,15 +257,8 @@ export const privacyPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "We keep personal data only as long as needed for the purpose it was collected for, then delete or anonymize it. Indicatively: account data for the life of the account; booking records [period — align with the 3-year general limitation period and fiscal obligations]; support conversations [period]; security logs [period]. When you delete your account, your profile is removed; [what happens to reviews and booking history — decision pending].",
-            ro: "Păstrăm datele personale doar cât este necesar scopului pentru care au fost colectate, apoi le ștergem sau le anonimizăm. Orientativ: datele contului pe durata contului; evidențele programărilor [perioadă — de aliniat cu termenul general de prescripție de 3 ani și obligațiile fiscale]; conversațiile de asistență [perioadă]; jurnalele de securitate [perioadă]. Când vă ștergeți contul, profilul este eliminat; [ce se întâmplă cu recenziile și istoricul programărilor — decizie în curs].",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "The concrete retention schedule (per category) and the review-persistence-after-deletion policy are business decisions not yet made — complete before publication. Note (11 Nov 2026): account deletion today hard-deletes a customer's bookings and reviews, and the published account-deletion page says so — the decision here must match that, or the code and that page must change.",
-            ro: "Calendarul concret de păstrare (pe categorii) și politica privind păstrarea recenziilor după ștergerea contului sunt decizii de business încă neluate — de finalizat înainte de publicare. Notă (11 nov. 2026): ștergerea contului elimină astăzi definitiv programările și recenziile clientului, iar pagina publicată despre ștergerea contului spune acest lucru — decizia de aici trebuie să corespundă, altfel trebuie schimbate codul și acea pagină.",
+            en: "We keep personal data only as long as we need it for the purpose it was collected for. Your account data — including your bookings, favourites and reviews — is kept for as long as you have your account and is deleted straight away when you delete it, as described on the Deleting your account page. After that we keep only: invoices and payment records for subscriptions, for the period required by accounting and tax law; DAC7 records, for the period required by tax law; support requests you sent as a customer, for as long as we need them to handle the request and any later dispute about it; and database backups, for a short period until they are overwritten. A business's support requests are deleted together with the business. Technical and security logs are kept for a limited period by our hosting providers.",
+            ro: "Păstrăm datele personale doar cât avem nevoie de ele pentru scopul în care au fost colectate. Datele contului — inclusiv programările, favoritele și recenziile — sunt păstrate cât timp aveți contul și sunt șterse imediat când îl ștergeți, așa cum este descris pe pagina Ștergerea contului. După aceea păstrăm doar: facturile și evidențele plăților pentru abonamente, pe perioada impusă de legislația contabilă și fiscală; evidențele DAC7, pe perioada impusă de legislația fiscală; solicitările de asistență trimise ca client, cât avem nevoie de ele pentru a rezolva solicitarea și orice dispută ulterioară legată de ea; și copiile de siguranță ale bazei de date, pentru o scurtă perioadă, până când sunt suprascrise. Solicitările de asistență ale unei afaceri sunt șterse odată cu afacerea. Jurnalele tehnice și de securitate sunt păstrate o perioadă limitată de furnizorii noștri de găzduire.",
           },
         },
       ],
@@ -324,14 +287,14 @@ export const privacyPolicy: LegalDocument = {
         ro: "Plângeri și autoritatea de supraveghere",
       },
       summary: {
-        en: "Internal complaints and ANSPDCP.",
+        en: "Internal complaints and the supervisory authority (ANSPDCP).",
         ro: "Plângeri interne și ANSPDCP.",
       },
       body: [
         {
           kind: "p",
           text: {
-            en: "If you believe we handled your data incorrectly, contact us first and we will investigate and respond. You also have the right to lodge a complaint with the Romanian supervisory authority: Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP), B-dul G-ral Gheorghe Magheru 28-30, Bucharest — dataprotection.ro.",
+            en: "If you believe we handled your data incorrectly, contact us first and we will investigate and respond. You also have the right to lodge a complaint with the Romanian supervisory authority: the National Supervisory Authority for Personal Data Processing (ANSPDCP), B-dul G-ral Gheorghe Magheru 28-30, Bucharest — dataprotection.ro.",
             ro: "Dacă apreciați că v-am prelucrat datele incorect, contactați-ne mai întâi și vom investiga și răspunde. Aveți de asemenea dreptul de a depune o plângere la autoritatea de supraveghere din România: Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP), B-dul G-ral Gheorghe Magheru 28-30, București — dataprotection.ro.",
           },
         },

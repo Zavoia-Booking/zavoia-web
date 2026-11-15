@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { DEFAULT_LOCALE, LOCALES } from "@/i18n/locales";
 import { CSRF_COOKIE_NAME } from "@/lib/auth/cookies";
 import { PATHNAME_HEADER } from "@/lib/pathname-header";
+import { blogRedirect } from "@/lib/blog/redirects";
 
 const PREFIXED = LOCALES.filter((l) => l !== DEFAULT_LOCALE);
 
@@ -30,6 +31,11 @@ export function proxy(request: NextRequest) {
   // dotted URLs (for example /ro/a/b/c/missing.html) get a localized global 404.
   if (/\.[^/]+$/.test(pathname)) {
     return NextResponse.next(withPathname(request));
+  }
+
+  const archiveRedirect = blogRedirect(pathname, request.nextUrl.searchParams);
+  if (archiveRedirect) {
+    return NextResponse.redirect(new URL(archiveRedirect, request.url), 308);
   }
 
   // The API accepts padded numeric IDs. Give them one URL before Next caches

@@ -176,7 +176,7 @@
 .salLink:focus-visible,
 .link:focus-visible,
 .trigger:focus-visible {
-  outline: 2px solid var(--p-500);
+  outline: 2px solid var(--focus-ring-color, var(--c-700));
   outline-offset: 4px;
   border-radius: 2px;
 }
@@ -328,12 +328,18 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 16px 12px;
     padding-block: 24px 0;
+    text-align: center;
   }
 
   .legal {
     grid-column: 1 / -1;
     grid-row: 1;
+    justify-content: center;
     gap: 8px 24px;
+  }
+
+  .legal .link {
+    text-align: center;
   }
 
   .rights {
@@ -345,13 +351,19 @@
   .salLink {
     grid-column: 1;
     grid-row: 2;
-    justify-self: start;
+    justify-self: center;
   }
 }
 
 @media (max-width: 600px) {
   .footer {
     padding-block: 64px max(20px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 900px) {
+  :global(body:has([data-section="hub"])) .footer {
+    padding-top: 24px;
   }
 }
 

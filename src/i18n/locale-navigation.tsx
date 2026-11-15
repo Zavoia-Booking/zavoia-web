@@ -77,9 +77,11 @@ export function LocaleNavigationProvider({ children }: { children: ReactNode }) 
  * boundary. Until hydration registers them, consumers receive undefined rather
  * than links invented from an untranslated slug. An empty map is resolved.
  */
-export function LocaleRouteAlternates({ pathname, alternates, currentLocale, label, localeNames }: {
+export function LocaleRouteAlternates({ pathname, alternates, noscriptAlternates = alternates, currentLocale, label, localeNames }: {
   pathname: string;
   alternates: LocaleAlternates;
+  /** Full server-resolved URLs when a page query must survive without JS. */
+  noscriptAlternates?: LocaleAlternates;
   currentLocale: Locale;
   label: string;
   localeNames: Record<Locale, string>;
@@ -87,7 +89,7 @@ export function LocaleRouteAlternates({ pathname, alternates, currentLocale, lab
   const register = useContext(LocaleNavigationContext)?.register;
   useEffect(() => register?.(pathname, alternates), [register, pathname, alternates]);
   const available = LOCALES.flatMap((locale) => {
-    const href = alternates[locale];
+    const href = noscriptAlternates[locale];
     return href ? [{ locale, href }] : [];
   });
 

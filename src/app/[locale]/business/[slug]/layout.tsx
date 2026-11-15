@@ -24,8 +24,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-/** Resolve availability outside this segment's loading boundary so a missing
- * location can return HTTP 404 before a successful response starts streaming.
+/** Resolve availability before rendering the page so a missing location can
+ * return HTTP 404 before a successful response starts streaming.
  * The page and metadata reuse this lookup; no extra API request is introduced.
  */
 export default async function LocationLayout({ children, params }: Props) {

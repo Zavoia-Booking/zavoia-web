@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InlineError } from "@/components/ui/inline-error";
+import { DrawerHandle } from "@/components/ui/drawer-handle";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import type { LocationCard, VenueTagDictionaries } from "@/lib/api/marketplace/types";
@@ -53,16 +54,17 @@ export interface FiltersPanelProps {
 }
 
 /**
- * The body is a separate component mounted only while the panel is open, so
- * "reset the draft on each open" is a fresh `useState` initializer rather than
- * a setState-in-effect: opening the panel IS the remount.
+ * Keep the shell through its exit animation. Every opening starts a fresh
+ * draft session, including an interrupted close/reopen.
  */
 export function FiltersPanel({ open, ...rest }: FiltersPanelProps) {
-  if (!open) return null;
-  return <FiltersPanelBody {...rest} />;
+  const [session, setSession] = useState({ open, version: 0 });
+  if (open !== session.open) setSession({ open, version: session.version + (open ? 1 : 0) });
+  return <FiltersPanelBody key={session.version} open={open} {...rest} />;
 }
 
 function FiltersPanelBody({
+  open,
   onClose,
   filters,
   onApply,
@@ -73,7 +75,7 @@ function FiltersPanelBody({
   dictionariesFailed,
   dictionariesLoaded,
   onRetryDictionaries,
-}: Omit<FiltersPanelProps, "open">) {
+}: FiltersPanelProps) {
   const { dict } = useTranslation();
   const t = dict.search.filters;
   const tagLabels = dict.venueTags;
@@ -85,6 +87,10 @@ function FiltersPanelBody({
     TAG_GROUPS.some((g) => filters[g.key].length > 0),
   );
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState<"pointer" | "keyboard">("pointer");
+  const [entryInput, setEntryInput] = useState<"pointer" | "keyboard">("pointer");
   const featuresId = useId();
   const featuresToggleRef = useRef<HTMLButtonElement>(null);
 
@@ -117,55 +123,44 @@ function FiltersPanelBody({
   };
 
   return (
-    <DialogPrimitive.Root open onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+    <DialogPrimitive.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 300,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-        background: "rgba(28,28,26,0.45)",
-        cursor: "pointer",
-        backdropFilter: "blur(2px)",
-      }}
+      ref={overlayRef}
+      className={styles.overlay}
+      data-input={input}
+      data-entry={entryInput}
+      onPointerDownCapture={() => setInput("pointer")}
     >
       <DialogPrimitive.Content
+        ref={contentRef}
+        data-input={input}
+        data-entry={entryInput}
+        inert={!open}
         aria-describedby={undefined}
-        onOpenAutoFocus={() => {
+        onKeyDown={() => setInput("keyboard")}
+        onEscapeKeyDown={() => setInput("keyboard")}
+        onPointerDownOutside={() => setInput("pointer")}
+        onOpenAutoFocus={event => {
           returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          if (returnFocusRef.current?.matches(":focus-visible")) {
+            setInput("keyboard");
+            setEntryInput("keyboard");
+          }
+          if (window.matchMedia("(max-width: 920px)").matches) {
+            event.preventDefault();
+            contentRef.current?.focus({ preventScroll: true });
+          }
         }}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus({ preventScroll: true });
         }}
-        className="zv-fade"
-        style={{
-          width: "min(520px, 100%)",
-          cursor: "default",
-          maxHeight: "min(86dvh, 760px)",
-          background: "var(--c-canvas)",
-          borderRadius: 24,
-          boxShadow: "var(--sh-xl)",
-          border: "1px solid rgba(28,28,26,0.07)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          outline: "none",
-        }}
+        className={`zv-fade ${styles.dialog}`}
       >
+        <DrawerHandle contentRef={contentRef} overlayRef={overlayRef} onClose={onClose} label={t.close} />
         {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "14px 20px 6px",
-          }}
-        >
+        <div className={styles.header} data-filter-header>
           <DialogPrimitive.Title asChild>
           <h2
             style={{
@@ -182,7 +177,7 @@ function FiltersPanelBody({
           <button
             type="button"
             className="tap"
-            onClick={onClose}
+            onClick={event => { setInput(event.detail === 0 ? "keyboard" : "pointer"); onClose(); }}
             aria-label={t.close}
             style={{
               width: 44,
@@ -202,7 +197,7 @@ function FiltersPanelBody({
 
         {/* Body */}
         <div className={styles.bodyWrap}>
-        <div className={styles.body}>
+        <div className={styles.body} data-filter-body>
           <GroupLabel>{t.sortBy}</GroupLabel>
           <ChipWrap>
             {SORT_KEYS.map((key) => (
@@ -348,6 +343,7 @@ function FiltersPanelBody({
         {/* Footer */}
         <div
           className={styles.footer}
+          data-filter-footer
           style={{
             display: "flex",
             alignItems: "center",

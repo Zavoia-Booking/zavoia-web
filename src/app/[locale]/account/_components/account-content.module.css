@@ -72,7 +72,7 @@ button.stat { border-radius: 10px; cursor: pointer; }
   min-height: max(680px, calc(100svh - var(--nav-h) - 140px));
 }
 .mobilePage { width: 100%; padding-top: 32px; padding-bottom: 24px; }
-.mobileWorkspace { max-width: 560px; min-height: calc(100svh - var(--nav-h) - 56px); margin-inline: auto; }
+.mobileWorkspace { max-width: 560px; min-height: 0; margin-inline: auto; }
 .mobileWorkspace[data-section]:not([data-section="hub"]) { min-height: max(820px, calc(100svh - var(--nav-h) - 56px)); }
 
 @media (hover: hover) and (pointer: fine) {

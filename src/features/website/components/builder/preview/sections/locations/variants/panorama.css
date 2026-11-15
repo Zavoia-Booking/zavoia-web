@@ -19,7 +19,7 @@
 }
 
 .mc-locations[data-locations="panorama"] .mc-locp-view:focus-visible {
-  outline: 2px solid var(--mc-accent);
+  outline: 2px solid var(--mc-focus, var(--mc-fg));
   outline-offset: 3px;
 }
 
@@ -280,7 +280,7 @@
 }
 
 .mc-locations[data-locations="panorama"] .mc-locp-arr:focus-visible {
-  outline: 2px solid var(--mc-accent);
+  outline: 2px solid var(--mc-focus, var(--mc-fg));
   outline-offset: 3px;
 }
 

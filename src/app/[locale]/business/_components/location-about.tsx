@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Avatar, Icon, Img, Rating, Skeleton, type IconName } from "@/components/ui";
+import { IndustryExplore } from "@/components/business/industry-explore";
 import { tagIcon } from "@/features/marketplace/utils/tagIcons";
 import { format, formatCount } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
@@ -331,20 +332,13 @@ export function LocationAbout({
         </section>
 
         {discover && (
-          <Link href={discover.href} prefetch={false} className={styles.discover}>
-            <span className={styles.discoverText}>
-              {/* The header's category, glyph and name together, as the headline. */}
-              <span className={styles.discoverTitle}>
-                <Icon name={discover.visual.icon} color={discover.visual.accent} size={26} />
-                <span>{discover.industry}</span>
-              </span>
-              <span className={styles.discoverLead}>{t.discoverLead}</span>
-            </span>
-            <span className={styles.discoverAction}>
-              {t.discoverAction}
-              <Icon name="arrowR" size={13} />
-            </span>
-          </Link>
+          <IndustryExplore
+            href={discover.href}
+            industry={discover.industry}
+            visual={discover.visual}
+            lead={t.discoverLead}
+            action={t.discoverAction}
+          />
         )}
       </div>
 

@@ -1,4 +1,4 @@
-import { Fragment, useId, useRef } from "react";
+import { Fragment, useId, useRef, useSyncExternalStore } from "react";
 import type { FaqConfig, SectionEntry } from "../../../../../types";
 import { localized } from "../../shared/util";
 import { Placeholder } from "../../shared/primitives";
@@ -7,6 +7,7 @@ import { useFaqMotion } from "./motion";
 import { Accordion } from "./variants/Accordion";
 import { Grid } from "./variants/Grid";
 import { Index } from "./variants/Index";
+import { NativeFaq } from "./parts/NativeFaq";
 import type { FaqVariantProps } from "./types";
 import "./base.css";
 
@@ -16,6 +17,10 @@ const VARIANTS: Record<string, React.FC<FaqVariantProps>> = {
   accordion: Accordion,
   index: Index,
 };
+
+const subscribeHydration = () => () => {};
+const browserHydrated = () => true;
+const serverHydrated = () => false;
 
 export function Faq({ entry, data, t }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
   const items = data.faq.filter((f) => localized(f.q, data.locale).trim());
@@ -29,7 +34,8 @@ export function Faq({ entry, data, t }: { entry: SectionEntry; data: PreviewData
   const View = VARIANTS[variant];
   const showHeading = variant !== "index" && config.headingHidden?.[data.locale] !== true;
   const indexLabel = t("businessPage.builder.preview.faqFrequentlyAsked");
-  useFaqMotion(rootRef, titleRef, `${variant}:${data.locale}:${showHeading}:${heading}:${items.length}`);
+  const enhanced = useSyncExternalStore(subscribeHydration, browserHydrated, serverHydrated);
+  useFaqMotion(rootRef, titleRef, `${variant}:${data.locale}:${showHeading}:${heading}:${items.length}:${enhanced}`);
 
   return (
     <section
@@ -59,7 +65,9 @@ export function Faq({ entry, data, t }: { entry: SectionEntry; data: PreviewData
         {items.length === 0 ? (
           <Placeholder>{t("businessPage.builder.preview.faqEmpty")}</Placeholder>
         ) : (
-          <View items={items} locale={data.locale} email={data.email} t={t} />
+          enhanced || variant === "grid"
+            ? <View items={items} locale={data.locale} email={data.email} t={t} />
+            : <NativeFaq items={items} locale={data.locale} />
         )}
       </div>
     </section>

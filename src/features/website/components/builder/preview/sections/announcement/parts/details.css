@@ -11,6 +11,7 @@
 }
 
 .mc-anno-details-panel {
+  --mc-focus: var(--mc-fg);
   position: absolute;
   z-index: 111;
   top: var(--mc-anno-overlay-center, 50%);
@@ -72,7 +73,7 @@
 }
 .mc-anno-details-close:active { transform: scale(.95); }
 .mc-anno-details-close:focus-visible {
-  outline: 2px solid var(--mc-accent);
+  outline: 2px solid var(--mc-focus, var(--mc-fg));
   outline-offset: 3px;
 }
 
@@ -151,7 +152,7 @@
 .mc-anno-details-action:hover { filter: brightness(.94); }
 .mc-anno-details-action:active { transform: scale(.98); }
 .mc-anno-details-action:focus-visible {
-  outline: 2px solid var(--mc-accent);
+  outline: 2px solid var(--mc-focus, var(--mc-fg));
   outline-offset: 3px;
 }
 .mc-anno-details-action .mc-anno-arrow { width: 15px; height: 15px; }

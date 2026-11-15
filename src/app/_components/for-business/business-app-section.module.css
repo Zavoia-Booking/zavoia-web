@@ -29,7 +29,7 @@
 .storeLabel strong { font-size: 16px; font-weight: 550; line-height: 1.25; letter-spacing: -.025em; white-space: nowrap; }
 .link { display: inline-flex; align-items: center; gap: 14px; min-height: 44px; color: var(--c-canvas); font-size: 15px; font-weight: 500; line-height: 1.4; text-decoration: none; }
 .link > span { text-decoration: underline; text-decoration-thickness: 1px; text-decoration-color: oklch(90% .01 75 / .45); text-underline-offset: 5px; }
-.link:focus-visible { outline: 2px solid var(--p-400); outline-offset: 5px; border-radius: 3px; }
+.link:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 5px; border-radius: 3px; }
 
 .showcase {
   grid-area: showcase;

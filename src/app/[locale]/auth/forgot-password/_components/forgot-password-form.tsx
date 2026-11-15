@@ -13,6 +13,7 @@ import { AuthCard } from "../../_components/auth-card";
 import { AuthField } from "../../_components/auth-field";
 import { AuthShell } from "../../_components/auth-shell";
 import { InlineError } from "@/components/ui/inline-error";
+import { isValidEmail } from "@/lib/validation";
 
 type Errors = Partial<Record<"email", string>>;
 
@@ -70,7 +71,7 @@ export function ForgotPasswordForm({
     const next: Errors = {};
     const value = email.trim();
     if (!value) next.email = dict.errors.emailRequired;
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+    else if (!isValidEmail(value))
       next.email = dict.errors.emailInvalid;
     return next;
   }

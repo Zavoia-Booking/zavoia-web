@@ -21,6 +21,7 @@ const POST_LIST_FIELDS = `
 
 const POST_DETAIL_FIELDS = `
   _id,
+  author,
   title,
   slug,
   category,
@@ -28,7 +29,9 @@ const POST_DETAIL_FIELDS = `
   body,
   coverImage,
   faq,
+  usefulLinks,
   publishedAt,
+  modifiedAt,
   seo
 `;
 
@@ -38,7 +41,7 @@ export async function listPosts(): Promise<PostListItem[]> {
     `*[${PUBLISHED_POST}]
       | order(publishedAt desc) { ${POST_LIST_FIELDS} }`,
     {},
-    { next: { tags: ["post"] } },
+    { next: { revalidate: 3600, tags: ["post"] } },
   );
 }
 
@@ -69,11 +72,11 @@ export async function listPostSlugs(locale: Locale): Promise<string[]> {
 }
 
 export async function listPostsForSitemap(): Promise<
-  Array<Pick<Post, "_id" | "title" | "slug" | "publishedAt">>
+  Array<Pick<Post, "_id" | "title" | "slug" | "publishedAt" | "modifiedAt" | "category">>
 > {
   if (!isSanityConfigured) return [];
   return client.fetch(
-    `*[${PUBLISHED_POST}] { _id, title, slug, publishedAt }`,
+    `*[${PUBLISHED_POST}] { _id, title, slug, publishedAt, modifiedAt, category }`,
     {},
     { next: { tags: ["post"] } },
   );

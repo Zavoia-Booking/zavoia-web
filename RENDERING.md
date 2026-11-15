@@ -24,8 +24,8 @@ boundary · `n/a` = nothing suspends on the server.
 | ----------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------- | ------------- | ------------- |
 | `/[locale]`                   | `force-dynamic`, `dynamicParams=false`          | `getIndustries`, `getLatestListings`, `getBrands` — parallel, passed down unawaited | `ƒ`           | in-page ×4    |
 | `/[locale]/search`            | `force-dynamic`, `dynamicParams=false`          | `getIndustries` + `searchListings` (parallel)                                       | `ƒ`           | `loading.tsx` |
-| `/[locale]/business/[slug]`   | `revalidate = 600`, `generateStaticParams → []` | `getListing`, tagged `business` + `business:<slug>`                                 | `●` (ISR)¹    | `loading.tsx` |
-| `/[locale]/brand/[slug]`      | `revalidate = 600`, `generateStaticParams → []` | `getBrand`, tagged `brand` + `brand:<slug>`                                         | `●` (ISR)¹    | `loading.tsx` |
+| `/[locale]/business/[slug]`   | `revalidate = 600`, `generateStaticParams → []` | `getListing`, tagged `business` + `business:<slug>`                                 | `●` (ISR)¹    | query-only in-page |
+| `/[locale]/brand/[slug]`      | `revalidate = 600`, `generateStaticParams → []` | `getBrand`, tagged `brand` + `brand:<slug>`                                         | `●` (ISR)¹    | none          |
 | `/[locale]/[city]`            | `revalidate = 600`, `generateStaticParams → []` | `getPublicWebsite`, tagged `website` + `website:<slug>` — metadata **and** page      | `●` (ISR)¹    | none²         |
 | `/[locale]/[city]/[industry]` | `dynamicParams=true`                            | none — `findCity`/`findIndustry` are local lookups                                  | `●` 126 paths | n/a           |
 
@@ -35,11 +35,10 @@ renders and caches it, every later request is served from that cache. The empty
 `generateStaticParams` is **required** — without it Next treats the route as
 purely on-demand and never creates the cache entry at all.
 
-² `/[city]` deliberately has no `loading.tsx`. It is the wildcard that catches
-every unknown one-segment URL, and with nothing streamed the render completes
-before headers go out — which is what lets `notFound()` answer a real 404 there
-(see _404s_ below). The streamed shell buys little on a cached route: only the
-first visitor to a slug ever waits on the backend.
+² `/[city]` deliberately has no `loading.tsx`. The first render waits for the
+website lookup; later requests can use ISR. A missing website returns 404 and
+`noindex`, with localized metadata on its scoped fallback (see _404s_ below).
+Router-level unmatched paths use the separate global fallback.
 
 ### Listing cache invalidation
 
@@ -152,13 +151,17 @@ supporting pieces exist:
 - **No blanket `noindex`.** `/business/<slug>`, `/brand/<slug>` and the
   microsite are indexable when they resolve. A page that does NOT resolve sets
   `robots: { index: false, follow: false }` from `generateMetadata` explicitly —
-  it has to be explicit, because these routes answer their own misses in-page
-  (see _404s_) and nothing throws `notFound()` to inject one.
+  brand and website routes answer their misses in-page (see _404s_), while the
+  location layout calls `notFound()` before rendering a missing location.
 - **Canonical + `hreflang`.** Each locale is canonical for its own URL and the
   two are declared as alternates, so `/business/x` and `/ro/business/x` are one
   page in two languages, not duplicates competing for one canonical.
 - **OpenGraph** title/description/url plus the listing's featured image (brand:
   hero or logo; microsite: logo).
+- **Brand descriptions** identify the localized location-directory page when
+  locations render, or the profile when they do not. Standard, Open Graph and
+  Twitter descriptions share this page-specific wording; merchant-authored
+  visible copy remains as written.
 - **Sitemap.** `GET /marketplace/public/sitemap` (admin-api) returns the three
   URL families — public locations, brand pages, published websites — each gated
   by exactly the visibility rules the pages enforce, so the sitemap can never
@@ -166,44 +169,54 @@ supporting pieces exist:
   blog URLs, caches for 600s, and carries all three coarse tags: a publish
   flushes the sitemap along with the pages.
 
-The one deliberate gap: an unknown slug still answers **200 + noindex** rather
-than a hard 404 on `/business` and `/brand`, because those routes stream (their
-`loading.tsx` sends headers before the data resolves). Google excludes them
-either way; Search Console will call them soft 404s. Removing `loading.tsx`
-there would fix the status at the cost of the skeleton on client-side
-navigation — the same trade `/[city]` takes in the other direction.
+The legal directory (`/terms`) and every legal or policy document use
+`noindex,follow` in both locales and are excluded from the sitemap regardless
+of publication status. Their routes remain crawlable; publishing a document
+does not make it indexable.
+
+Location and brand pages no longer have full-page `loading.tsx` boundaries.
+Their main content and structured data render before the footer, rather than
+inside a hidden streamed replacement after it. The location's query/deep-link
+resolver keeps its existing small Suspense boundary with a null fallback.
+Uncached navigation waits for page data instead of showing the full-page
+skeleton. Existing ISR lifetimes and cache invalidation tags are preserved.
+
+Published microsites also emit native JSON-LD before the renderer: the shared
+Zavoia entities, the merchant Organization (using the same business ID as its
+brand/location graphs), and a localized WebPage. The merchant's URL is its
+published website in the default locale: website publication does not require
+a public marketplace brand page. Only visible About copy and
+footer contacts contribute optional facts. This projection does not carry the
+stable public location UUIDs, so it does not invent separate LocalBusiness IDs.
+About/Gallery content and photos have visible CSS defaults; JavaScript opts
+offscreen entrances into their starting states after setup. FAQ disclosures
+include every answer in server HTML and work natively without JavaScript, then
+enhance to the configured variant. The desktop Index retains inactive answers
+in hidden tab panels after hydration. Existing website ISR and tags are unchanged.
 
 ## 404s
 
-Three faces, chosen by what the URL was asking for:
+The missing-page response depends on the route:
 
 | URL                          | Shows                                          | Status |
 | ---------------------------- | ---------------------------------------------- | ------ |
-| `/<free-slug>`               | **claim page** — "this page could be yours",   | 200    |
-|                              | the free address, trial CTA (`ClaimPage`)      | + noindex |
-| `/business/<x>`, `/brand/<x>`| listing not-found (`BusinessNotFound`)         | 200 + noindex |
-| anything else unmatched      | generic 404 (`src/app/not-found.tsx`)          | 404    |
+| `/<missing-website-slug>`     | shared unavailable-page boundary             | 404 + noindex |
+| `/business/<x>`              | shared unavailable-page boundary             | 404 + noindex |
+| `/brand/<x>`                 | shared unavailable-page boundary             | 404 + noindex |
+| anything else unmatched      | localized document (`src/app/global-not-found.tsx`) | 404 |
 
-Two Next constraints shaped this, both **measured on 16.2.4**, not assumed:
+The location and brand layouts resolve existence before rendering, sharing the
+same cached lookup with metadata and the page. Missing or removed records call
+`notFound()` and keep localized metadata at the layout level. Other upstream
+errors propagate to recovery instead of being treated as missing records.
+The website page calls `notFound()` during its existing pre-stream lookup and
+keeps localized metadata on `[city]/not-found.tsx`. A website guard is not placed
+in `[city]/layout.tsx`, because that segment also owns valid city/category routes.
 
-1. **Segment-level `not-found.tsx` is never reached.** The root layout is itself
-   a dynamic segment (`app/[locale]/layout.tsx`) — the case the Next docs flag
-   as making a composed 404 harder. A `not-found.tsx` in `[city]`, in
-   `business/[slug]`, or in `[locale]` is dead: every `notFound()` in the tree
-   lands on the root `app/not-found.tsx`.
-2. **Inside that root boundary, client components are silently dropped** (the
-   server half renders, the client half vanishes and the document falls back to
-   Next's bare error shell), and any dynamic API — `headers()`, `cookies()` —
-   throws _"Page changed from static to dynamic at runtime"_ when the miss
-   happens inside a cached route. So the root 404 is plain server markup with
-   plain anchors, and it cannot know the request's locale: it speaks the default.
-
-That is why the two cases that matter answer **in-page** instead of through the
-boundary: rendering from the page keeps the real design system, the right
-locale, and the slug. The cost is the 200 status, and the explicit `noindex`
-above is what pays for it. `/[city]` still returns a real 404 for anything the
-router can't place at all (`/x/y/z`), and `/[city]/[industry]` — which has no
-claim story — keeps its hard 404 through `notFound()`.
+The global fallback returns a complete localized document. Matched-route 404
+presentation remains subject to the documented Next 16.4.1 SSR limitation;
+see README's _Missing pages and caching_. Removing the full-page loading
+boundaries does not change the fallback components or claim a framework fix.
 
 ## Account & booking (authenticated)
 
@@ -247,15 +260,44 @@ All six already wrap their client form in `<Suspense>` (they read
 
 | Route                   | Segment config                         | Server data                                              | Build | Boundary      |
 | ----------------------- | -------------------------------------- | -------------------------------------------------------- | ----- | ------------- |
-| `/[locale]/blog`        | `revalidate = 3600`                       | `listPosts()`, tagged `post`                             | `●` en/ro | none          |
+| `/[locale]/blog`        | query-dependent rendering; `revalidate = 3600` | `listPosts()`, explicitly cached for 3600s, tagged `post` | `ƒ` | none          |
+| `/[locale]/blog/{category}` | six fixed localized leaves; query-dependent rendering; `revalidate = 3600` | shared archive renderer and cached `listPosts()` | `ƒ` | none |
 | `/[locale]/blog/[slug]` | `revalidate = 3600`, `dynamicParams=true` | `getPostBySlug`, tagged `post` + `post:<slug>`           | `●` per post | none          |
 
-Both were `revalidate = 0` — opted out of caching entirely, which left the
-existing `/api/revalidate` Sanity webhook with nothing to invalidate. They now
-carry an hour floor, and the queries were already tagged (`post`,
-`post:<slug>`), so a publish in Sanity is live within seconds and the hour is
-only the backstop. Posts prerender at build; one created later renders on first
-request and caches from then on.
+Journal images use Next-generated responsive image props with a Sanity loader,
+so the Sanity CDN delivers correctly sized crops without another optimization
+proxy. Article queries include optional author and significant-update fields;
+only a valid past update after publication reaches visible dates, Open Graph,
+BlogPosting and sitemap lastmod. Sanity sitemap errors fail regeneration rather
+than replace the last successful blog inventory with an empty list.
+
+The index and fixed category pages use `blog-archive.tsx` to server-render their
+selected articles and metadata. Categories have English paths `guides`,
+`for-business`, `product-news`, and Romanian paths `ghiduri`, `pentru-afaceri`,
+`noutati-produs`. The proxy returns HTTP 308 for legacy `?category=` URLs,
+cross-language category aliases and explicit page-one variants, preserving
+pagination and attribution. Article slugs reserve the six category names.
+Archive HTML renders per request; the shared `listPosts()` CMS response is
+explicitly cached for one hour with the `post` tag, so the existing
+`/api/revalidate` Sanity webhook still refreshes it. Category and pagination
+navigation use ordinary links. Each valid archive page has its own canonical;
+populated categories are indexable, while known empty categories retain
+`noindex,follow` and stay out of the sitemap. Malformed or out-of-range page
+numbers return 404. Metadata language alternates include only indexable locales
+with that archive page; language controls use exact category destinations and
+omit unavailable pages. The hydrated control receives path-only destinations;
+the no-JavaScript language links receive complete URLs so archive pagination
+survives a language change.
+
+Individual posts retain their one-hour ISR interval and `post` / `post:<slug>`
+tags. Posts prerender at build; one created later renders on first request and
+caches from then on. Webhook revalidation uses stale-while-revalidate semantics;
+the hour is a fallback for missed invalidations, rather than an exact update
+deadline.
+
+An authored article SEO title is the complete title and bypasses the layout's
+brand suffix. When omitted, the article title receives the standard `| Zavoia`
+suffix. Open Graph and Twitter use that same resolved title.
 
 ## Marketing & static
 
@@ -391,14 +433,16 @@ into the route.
 
 ### The 404 trade-off
 
-Streamed responses return HTTP **200**: headers go out before the data resolves,
-so the status can no longer change. `/business/[slug]` and `/brand/[slug]` keep
-their `loading.tsx`, so a missing record answers 200 with an explicit `noindex`
-(see _SEO_ and _404s_ above) — excluded from the index, logged by Search Console
-as a soft 404. `/[city]` takes the opposite trade: no `loading.tsx`, so the
-router's own misses there are hard 404s, and the claim page is the deliberate
-200. Moving the existence check into `src/proxy.ts` is still the only way to get
-a hard 404 *and* a streamed shell on the listing routes.
+Starting a stream fixes its HTTP status, so a later `notFound()` can only add
+`noindex` to a response that already began with 200. Location and brand routes
+now omit their full-page loading boundaries. Their layouts check existence
+before rendering and return real 404s with localized metadata. The wildcard
+`/[city]` likewise has no full-page loading boundary and calls `notFound()` during
+its initial website lookup, with localized metadata on its scoped fallback.
+These response choices are independent of the small query-only boundary inside
+a resolved location page. The documented matched-fallback SSR limitation still
+applies to the unavailable-page presentation; correct status and metadata do
+not imply that the framework renders its full fallback body before hydration.
 
 ---
 

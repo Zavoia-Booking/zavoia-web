@@ -19,7 +19,8 @@ import styles from "./tag-rail.module.css";
 
 /**
  * The map's browse rail — a short teaser of suggested tags floating over the
- * map, plus a "More" chip that opens the full catalog.
+ * map, plus a "More" chip that opens the full catalog. Mobile uses the app's
+ * horizontally scrollable row of five suggestions followed by More.
  *
  * Browse suggestions become a removable selection once a service, industry or
  * text search is applied. The selection sits alone in the center of the row.
@@ -40,6 +41,8 @@ export interface TagRailProps {
    */
   hidden?: boolean;
 }
+
+const MOBILE_TEASER_COUNT = 5;
 
 export function TagRail({
   industries,
@@ -123,6 +126,7 @@ export function TagRail({
     const row = rowRef.current;
     const measurement = measurementRef.current;
     if (!row || !measurement) return;
+    const mobile = window.matchMedia("(max-width: 920px)");
     const measure = () => {
       const style = getComputedStyle(row);
       const available = row.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
@@ -131,8 +135,8 @@ export function TagRail({
       // Reserve More first, then expose a prefix of the same shuffled order.
       // Measuring localized labels also handles zoom and late-loading fonts.
       let used = widths[widths.length - 1] ?? 0;
-      let count = 0;
-      for (const width of widths.slice(0, -1)) {
+      let count = mobile.matches ? Math.min(MOBILE_TEASER_COUNT, chips.length) : 0;
+      for (const width of mobile.matches ? [] : widths.slice(0, -1)) {
         if (used + gap + width > available) break;
         used += gap + width;
         count += 1;
@@ -148,7 +152,8 @@ export function TagRail({
     const observer = new ResizeObserver(measure);
     observer.observe(row);
     observer.observe(measurement);
-    return () => observer.disconnect();
+    mobile.addEventListener("change", measure);
+    return () => { observer.disconnect(); mobile.removeEventListener("change", measure); };
   }, [chips, t.browseMore]);
 
   if (!hasRail) return null;
@@ -166,17 +171,24 @@ export function TagRail({
     >
       <div
         ref={rowRef}
-        className={`${styles.layer} ${styles.suggestions}`}
+        className={`${styles.layer} ${styles.suggestions} zw-noscrollbar`}
         data-active={!activeSelection}
         aria-hidden={!!activeSelection}
         inert={!!activeSelection}
+        onFocusCapture={event => {
+          if (!window.matchMedia("(max-width: 920px)").matches || !(event.target instanceof HTMLElement)) return;
+          const frame = event.currentTarget.getBoundingClientRect();
+          const item = event.target.getBoundingClientRect();
+          if (item.left < frame.left + 12) event.currentTarget.scrollBy({ left: item.left - frame.left - 12, behavior: "instant" });
+          else if (item.right > frame.right - 12) event.currentTarget.scrollBy({ left: item.right - frame.right + 12, behavior: "instant" });
+        }}
       >
         {chips.slice(0, visibleCount).map(({ industry, tag, slug, label }) => {
           return (
             <button
               key={`${industry.id}-${tag.id}`}
               type="button"
-              className="tap"
+              className={`tap ${styles.chipButton}`}
               onClick={() => {
                 selectFocusRef.current = true;
                 onPick(industry, tag.id);
@@ -188,7 +200,7 @@ export function TagRail({
             </button>
           );
         })}
-        <button ref={moreRef} type="button" className="tap" aria-haspopup="dialog" onClick={onMore} style={chipStyle}>
+        <button ref={moreRef} type="button" className={`tap ${styles.chipButton}`} aria-haspopup="dialog" onClick={onMore} style={chipStyle}>
           <Icon name="grid" size={14} color="var(--c-600)" />
           {t.browseMore}
         </button>

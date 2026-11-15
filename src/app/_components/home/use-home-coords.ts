@@ -7,6 +7,7 @@ import {
   reverseGeocode,
   type BrowserCoords,
 } from "@/lib/geocoding";
+import { withHomeDeadline } from "./request-deadline";
 
 export interface HomeLocation {
   coords: BrowserCoords | null;
@@ -35,13 +36,7 @@ const snapshot = () => state;
 const serverSnapshot = () => INITIAL;
 
 async function withTimeout<T>(request: (signal: AbortSignal) => Promise<T>): Promise<T> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
-  try {
-    return await request(controller.signal);
-  } finally {
-    clearTimeout(timer);
-  }
+  return withHomeDeadline(request, { timeoutMs: 8000 });
 }
 
 /**
@@ -53,9 +48,11 @@ async function withTimeout<T>(request: (signal: AbortSignal) => Promise<T>): Pro
  */
 async function resolve(): Promise<void> {
   try {
-    const coords = await getBrowserLocation({
+    // A native geolocation timeout does not guarantee the browser invokes a
+    // callback (for example, while a permission prompt remains unanswered).
+    const coords = await withTimeout(() => getBrowserLocation({
       timeout: 8000, maximumAge: 5 * 60_000,
-    }).catch(() => null);
+    })).catch(() => null);
     if (coords) {
       publish({ coords, city: null, countryCode: null, resolving: false });
       const match = await withTimeout((signal) => reverseGeocode(coords.lat, coords.lng, signal));

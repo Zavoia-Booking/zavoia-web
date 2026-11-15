@@ -21,10 +21,17 @@
 
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; padding-bottom: 20px; }
 .verified { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0; color: var(--c-600); font-size: 13px; line-height: 1.5; }
+/* Icon link to how reviews are verified; the visible mark stays small, the hit area is 44px. */
+.verifiedInfo { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 999px; color: var(--c-600); }
+.verifiedInfo::after { content: ""; position: absolute; inset: -12px; }
+.verifiedInfo:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 2px; }
 /* The Team tab's view switch, with words. */
-.sorts { display: inline-flex; max-width: 100%; padding: 3px; border: 1px solid var(--c-300); border-radius: var(--r-full); background: var(--c-50); }
-.sortOption { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 0; min-height: 40px; padding: 0 16px; border: 0; border-radius: var(--r-full); background: transparent; color: var(--c-600); font-family: inherit; font-size: 13.5px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em; text-align: center; white-space: nowrap; cursor: pointer; transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out); }
+.sorts { position: relative; isolation: isolate; display: inline-flex; max-width: 100%; padding: 3px; border: 1px solid var(--c-300); border-radius: var(--r-full); background: var(--c-50); }
+.sortIndicator { position: absolute; z-index: -1; inset: 3px 0; background: var(--c-ink); pointer-events: none; transition: clip-path 220ms var(--ease-out); }
+.sortOption { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 0; min-height: 40px; padding: 0 16px; border: 0; border-radius: var(--r-full); background: transparent; color: var(--c-600); font-family: inherit; font-size: 13.5px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em; text-align: center; white-space: nowrap; cursor: pointer; transition: background-color 160ms var(--ease-soft), color 160ms var(--ease-soft); }
 .sortOption[aria-pressed="true"] { background: var(--c-ink); color: var(--c-50); }
+.sorts[data-indicator] .sortOption[aria-pressed="true"] { background: transparent; }
+.sorts[data-instant] .sortIndicator, .sorts[data-instant] .sortOption { transition: none; }
 .sortOption:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 2px; }
 .sortSpinner { position: absolute; inset: 0; display: grid; place-items: center; }
 
@@ -64,6 +71,7 @@
   .sortOption:not([aria-pressed="true"]):hover { background: var(--c-100); color: var(--c-900); }
   .subjectLink:hover { color: var(--c-900); }
   .subjectLink:hover .subjectName, .commentToggle:hover { text-decoration-color: var(--c-600); }
+  .verifiedInfo:hover { color: var(--c-ink); }
 }
 
 /* Wide enough for two review columns; the summary's halves sit over them. */
@@ -87,5 +95,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reviews, .sortOption { transition: none; }
+  .reviews, .sortOption, .sortIndicator { transition: none; }
 }

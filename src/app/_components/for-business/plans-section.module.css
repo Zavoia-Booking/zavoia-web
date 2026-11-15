@@ -24,6 +24,7 @@
   filter: drop-shadow(0 2px 2px oklch(15% .004 70 / .025)) drop-shadow(0 10px 14px oklch(15% .004 70 / .045));
 }
 .ticket[data-plan="plus"] {
+  --focus-ring-color: var(--c-canvas);
   --plan-accent: var(--p-400);
   --plan-check: oklch(74% .13 158);
   --plan-ink: oklch(97.5% .01 82);

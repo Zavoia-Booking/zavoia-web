@@ -1,43 +1,19 @@
-import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import type { BrandDetail, TeamMemberBookingBusiness, TeamMemberProfile } from "@/lib/api/marketplace/types";
 import { webUrl } from "@/lib/locations/structured-data";
 import { professionalHref } from "@/lib/professionals/urls";
+import { professionalLanguageLabels } from "@/lib/professionals/languages";
 import { SITE_URL } from "@/lib/site";
+import { organizationId, siteEntities, websiteId } from "@/lib/seo/site-identity";
+import { merchantId, webPageId, webPageNode, type FaqItem } from "./entities";
 
-// Shared node ids: location pages and the homepage describe these same entities.
-const organizationId = `${SITE_URL}/#organization`;
-export const websiteId = `${SITE_URL}/#website`;
-const merchantId = (businessId: number) => `${SITE_URL}/#business-${businessId}`;
+export { siteEntities, websiteId } from "@/lib/seo/site-identity";
+export { serializeJsonLd } from "./json-ld";
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" ? value.trim() || undefined : undefined;
-}
-
-/** Zavoia and its website, exactly as the homepage and location pages describe them. */
-export function siteEntities() {
-  return [
-    {
-      "@type": "Organization",
-      "@id": organizationId,
-      name: "Zavoia",
-      url: `${SITE_URL}/`,
-      logo: `${SITE_URL}/brand/wordmark-cropped.png`,
-    },
-    {
-      "@type": "WebSite",
-      "@id": websiteId,
-      name: "Zavoia",
-      url: `${SITE_URL}/`,
-      inLanguage: [...LOCALES],
-      publisher: { "@id": organizationId },
-    },
-  ];
-}
-
-/** Safe inside a native application/ld+json script, including merchant- and editor-supplied text. */
-export function serializeJsonLd(value: unknown): string {
-  return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
 /**
@@ -73,6 +49,7 @@ export function brandStructuredData(brand: BrandDetail, locale: Locale, pagePath
         isPartOf: { "@id": websiteId },
         publisher: { "@id": organizationId },
         about: { "@id": merchantId(brand.businessId) },
+        mainEntity: { "@id": merchantId(brand.businessId) },
       },
     ],
   };
@@ -98,6 +75,8 @@ export function professionalStructuredData(
   const jobTitle = text(profile.about?.professionalTitle);
   const description = text(profile.about?.aboutMe);
   const image = webUrl(profile.profileImage, true);
+  const languages = professionalLanguageLabels(profile.about?.languages ?? [], dictionaries[locale].venueTags.languages)
+    .map(value => value.trim()).filter(Boolean);
   const links = profile.about?.socialLinks ?? {};
   const sameAs = [...new Set(PROFILE_LINK_KEYS.flatMap((key) => {
     const value = text(links[key]);
@@ -120,6 +99,7 @@ export function professionalStructuredData(
         ...(jobTitle && { jobTitle }),
         ...(description && { description }),
         ...(image && { image }),
+        ...(languages.length > 0 && { knowsLanguage: languages }),
         ...(sameAs.length > 0 && { sameAs }),
         ...(worksFor.length > 0 && { worksFor }),
       },
@@ -140,7 +120,7 @@ export function professionalStructuredData(
 /**
  * The visible post: its headline, summary, byline, publication date and cover.
  * The author is the name in the visible byline; Zavoia stays the publisher.
- * Sanity holds no significant-modification date, so none is claimed.
+ * An optional significant-modification date is supplied only after validation.
  */
 export function blogPostStructuredData(post: {
   locale: Locale;
@@ -148,32 +128,63 @@ export function blogPostStructuredData(post: {
   headline: string;
   description?: string;
   datePublished: string;
-  image?: string;
-  author: string;
+  dateModified?: string;
+  image?: string | string[];
+  author: string | { name: string; url?: string };
+  faqItems?: readonly FaqItem[];
+  breadcrumbs?: ReturnType<typeof blogBreadcrumbStructuredData>;
 }) {
   const headline = text(post.headline);
   if (!headline) return null;
   const pageUrl = `${SITE_URL}${post.path}`;
   const description = text(post.description);
-  const image = webUrl(post.image);
+  const images = (Array.isArray(post.image) ? post.image : [post.image])
+    .map((image) => webUrl(image)).filter((image): image is string => Boolean(image));
+  const author = typeof post.author === "string" ? { name: post.author } : post.author;
   return {
     "@context": "https://schema.org",
     "@graph": [
       ...siteEntities(),
+      webPageNode({
+        locale: post.locale, path: post.path, name: headline, description,
+        mainEntityId: `${pageUrl}#article`, faqItems: post.faqItems,
+        breadcrumbId: post.breadcrumbs?.["@id"],
+      }),
       {
         "@type": "BlogPosting",
         "@id": `${pageUrl}#article`,
         headline,
         ...(description && { description }),
-        author: { "@type": "Person", name: post.author, worksFor: { "@id": organizationId } },
+        author: {
+          "@type": "Person",
+          name: author.name,
+          ...(author.url && { url: author.url }),
+        },
         datePublished: post.datePublished,
-        ...(image && { image: [image] }),
+        ...(post.dateModified && { dateModified: post.dateModified }),
+        ...(images.length > 0 && { image: [...new Set(images)] }),
         inLanguage: post.locale,
         url: pageUrl,
-        mainEntityOfPage: pageUrl,
+        mainEntityOfPage: { "@id": webPageId(post.path) },
         isPartOf: { "@id": websiteId },
         publisher: { "@id": organizationId },
       },
+      ...(post.breadcrumbs ? [post.breadcrumbs] : []),
     ],
+  };
+}
+
+/** A graph node for the Journal/category/title relationships visible on the page. */
+export function blogBreadcrumbStructuredData(items: { name: string; path: string }[]) {
+  if (items.length < 2) return null;
+  return {
+    "@type": "BreadcrumbList",
+    "@id": `${SITE_URL}${items[items.length - 1].path}#breadcrumb`,
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: `${SITE_URL}${item.path}`,
+    })),
   };
 }

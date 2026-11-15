@@ -52,7 +52,10 @@ export function useAboutReveal<T extends HTMLElement>(rootRef: RefObject<T | nul
     const elements = Array.from(root.querySelectorAll<HTMLElement>("[data-about-reveal]"));
     if (!elements.length) return;
     if (reduced || typeof IntersectionObserver === "undefined") {
-      elements.forEach((element) => element.setAttribute("data-in", "true"));
+      elements.forEach((element) => {
+        element.removeAttribute("data-about-motion");
+        element.setAttribute("data-in", "true");
+      });
       return;
     }
     const scroller = findScrollParent(root);
@@ -68,10 +71,17 @@ export function useAboutReveal<T extends HTMLElement>(rootRef: RefObject<T | nul
     );
     const vp = viewport(scroller);
     elements.forEach((element) => {
-      if (element.getBoundingClientRect().bottom <= vp.top) element.setAttribute("data-in", "true");
-      else observer.observe(element);
+      if (element.getBoundingClientRect().top < vp.top + vp.height * 0.94) {
+        element.setAttribute("data-in", "true");
+      } else {
+        element.setAttribute("data-about-motion", "true");
+        observer.observe(element);
+      }
     });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      elements.forEach((element) => element.removeAttribute("data-about-motion"));
+    };
   });
 }
 
@@ -192,7 +202,7 @@ export function useAboutParallax(ref: RefObject<HTMLElement | null>, speed = 0.0
 
 export function useAboutCounter(value: number, decimals: number, delayMs: number, raw = false) {
   const reduced = useReducedMotion();
-  const [shown, setShown] = useState(raw || reduced ? value : 0);
+  const [shown, setShown] = useState(value);
   const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -215,6 +225,7 @@ export function useAboutCounter(value: number, decimals: number, delayMs: number
     const start = () => {
       if (started) return;
       started = true;
+      setShown(0);
       delay = window.setTimeout(() => { frame = requestAnimationFrame(run); }, delayMs);
     };
     if (typeof IntersectionObserver === "undefined") {

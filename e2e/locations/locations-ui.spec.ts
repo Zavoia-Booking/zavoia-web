@@ -227,17 +227,17 @@ test.describe('location SEO', () => {
         for (const property of ['og:description', 'twitter:description']) {
           await expect(head.locator(`meta[property="${property}"], meta[name="${property}"]`)).toHaveAttribute('content', seoDescription);
         }
-        const canonical = `https://zavoia.com${prefix}/business/${listing.slug}`;
+        const canonical = `https://www.zavoia.com${prefix}/business/${listing.slug}`;
         await expect(head.locator('link[rel="canonical"]')).toHaveAttribute('href', canonical);
         await expect(head.locator('meta[property="og:url"]')).toHaveAttribute('content', canonical);
         for (const [language, languagePrefix] of [['en', ''], ['ro', '/ro'], ['x-default', '']] as const) {
           await expect(head.locator(`link[rel="alternate"][hreflang="${language}"]`))
-            .toHaveAttribute('href', `https://zavoia.com${languagePrefix}/business/${listing.slug}`);
+            .toHaveAttribute('href', `https://www.zavoia.com${languagePrefix}/business/${listing.slug}`);
         }
         await expect(head.locator('meta[property="og:site_name"]')).toHaveAttribute('content', 'Zavoia');
         await expect(head.locator('meta[property="og:locale"]')).toHaveAttribute('content', locale === 'ro' ? 'ro_RO' : 'en_US');
         await expect(head.locator('meta[property="og:locale:alternate"]')).toHaveAttribute('content', locale === 'ro' ? 'en_US' : 'ro_RO');
-        await expect(head.locator('meta[property="og:image"]')).toHaveAttribute('content', `https://zavoia.com${listing.featuredImage}`);
+        await expect(head.locator('meta[property="og:image"]')).toHaveAttribute('content', `https://www.zavoia.com${listing.featuredImage}`);
         await expect(head.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', seoTitle);
 
         const about = await locationPanel(page, locale === 'ro' ? 'Despre' : 'About');
@@ -285,11 +285,13 @@ test.describe('location SEO', () => {
         await expect(head.locator('meta[name="description"]')).toHaveAttribute('content', description);
         await expect(head.locator('meta[property="og:description"]')).toHaveAttribute('content', description);
         await expect(head.locator('meta[name="twitter:description"]')).toHaveAttribute('content', description);
-        const image = 'https://zavoia.com/brand/home-social.png';
+        const image = 'https://www.zavoia.com/brand/home-social.png';
         await expect(head.locator('meta[property="og:image"]')).toHaveAttribute('content', image);
         await expect(head.locator('meta[property="og:image:width"]')).toHaveAttribute('content', '1200');
         await expect(head.locator('meta[property="og:image:height"]')).toHaveAttribute('content', '630');
-        await expect(head.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', 'Zavoia. Local services. On your schedule.');
+        await expect(head.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', locale === 'ro'
+          ? 'Zavoia. Servicii locale. Tu alegi când.'
+          : 'Zavoia. Local services. On your schedule.');
         await expect(head.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
         await expect(head.locator('meta[name="twitter:image"]')).toHaveAttribute('content', image);
       } finally {
@@ -334,7 +336,7 @@ test.describe('location SEO', () => {
         await configure(request, listing);
         await page.goto(`${baseURL}/business/${listing.slug}`);
         const head = page.locator('head');
-        const image = `https://zavoia.com/__professionals-fixtures__/${source === 'gallery' ? 'venue' : 'brand'}.svg`;
+        const image = `https://www.zavoia.com/__professionals-fixtures__/${source === 'gallery' ? 'venue' : 'brand'}.svg`;
         await expect(head.locator('meta[property="og:image"]')).toHaveAttribute('content', image);
         await expect(head.locator('meta[name="twitter:image"]')).toHaveAttribute('content', image);
         await expect(head.locator('meta[name="twitter:card"]')).toHaveAttribute('content', source === 'gallery' ? 'summary_large_image' : 'summary');

@@ -16,6 +16,8 @@ import { otherIndustryLast } from "@/lib/marketplace/industry-order";
 import { industryVisual } from "@/lib/marketplace/industry-visuals";
 import { getCategoryDiscoveryGroups } from "@/lib/seo/category-discovery";
 import { getOptionalSitemapFeed } from "@/lib/seo/sitemap-feed.server";
+import { serializeJsonLd } from "@/lib/seo/json-ld";
+import { websiteId } from "@/lib/seo/site-identity";
 import { OPEN_GRAPH_LOCALES, SITE_URL, defaultSocialImage } from "@/lib/site";
 import { IndustryBrowser } from "./industry-browser";
 import styles from "./page.module.css";
@@ -151,6 +153,7 @@ export default async function IndustriesPage({ params }: Props) {
         name: t.heading,
         description: t.pageDescription,
         inLanguage: locale,
+        isPartOf: { "@id": websiteId },
         breadcrumb: { "@id": breadcrumb["@id"] },
       },
     ],
@@ -161,7 +164,7 @@ export default async function IndustriesPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          __html: serializeJsonLd(jsonLd),
         }}
       />
       <Breadcrumb

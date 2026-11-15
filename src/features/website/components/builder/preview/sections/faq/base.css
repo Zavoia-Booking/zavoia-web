@@ -46,9 +46,10 @@
 }
 
 .mc-faq-section button:focus-visible,
+.mc-faq-section summary:focus-visible,
 .mc-faq-section a:focus-visible,
 .mc-faq-section [role="tabpanel"]:focus-visible {
-  outline: 2px solid var(--mc-accent);
+  outline: 2px solid var(--mc-focus, var(--mc-fg));
   outline-offset: 3px;
 }
 

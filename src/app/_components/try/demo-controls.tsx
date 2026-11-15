@@ -3,10 +3,13 @@
 import { useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { Check, ChevronDown, LockKeyhole, Shuffle, UnlockKeyhole } from "lucide-react";
+import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
+import { localeHref } from "@/i18n/routes";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Icon } from "@/components/ui/icon";
+import { useConsent } from "@/lib/consent/ConsentProvider";
 import { INDUSTRY_VISUALS, type IndustrySlug } from "@/lib/marketplace/industry-visuals";
 import { TRIAL_DAYS } from "@/lib/marketing/pricing";
 import { REQUIRED_TYPES, SECTION_META, SECTION_TYPES } from "@/features/website/components/builder/sectionCatalog";
@@ -88,6 +91,7 @@ function InlineChoices({ open, animated, children }: { open: boolean; animated: 
 export function DemoControls({ locale, look, example, businessName, hidden, locks, section, visibleSection, signupHref, onExample, onSection, onVariant, onVisibility, onFont, onColour, onLock, onShuffle }: DemoControlsProps) {
   const { dict } = useTranslation();
   const t = dict.tryStudio;
+  const { openSettings } = useConsent();
   const websiteT = useMemo(() => createWebsiteT(locale), [locale]);
   const id = useId();
   const [chooser, setChooser] = useState<"example" | "font" | null>(null);
@@ -247,6 +251,11 @@ export function DemoControls({ locale, look, example, businessName, hidden, lock
         <p>{t.demoDisclosure}</p>
         <p>{t.stylesNote}</p>
       </aside>
+      <p className={styles.demoLegal}>
+        <Link href={localeHref(locale, "terms", "privacy-policy")}>{dict.footer.privacy}</Link>
+        <Link href={localeHref(locale, "terms")}>{dict.footer.terms}</Link>
+        <button type="button" onClick={openSettings}>{dict.footer.cookieSettings}</button>
+      </p>
     </div>
 
     <div className={styles.footer}>

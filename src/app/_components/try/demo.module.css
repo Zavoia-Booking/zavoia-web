@@ -28,7 +28,7 @@
   transform-origin: top left;
 }
 .stage::-webkit-scrollbar { display: none; width: 0; height: 0; }
-.stage:focus-visible { outline: 2px solid var(--p-500); outline-offset: -2px; }
+.stage:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: -2px; }
 .preview { position: relative; width: 100%; min-height: 100%; }
 .launcher, .floatingPanel {
   --panel-top: max(16px, env(safe-area-inset-top));

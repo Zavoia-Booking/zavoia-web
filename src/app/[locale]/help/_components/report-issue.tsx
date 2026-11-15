@@ -1,127 +1,102 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { Close as DialogClose } from "@radix-ui/react-dialog";
+import { ActionModal } from "@/app/[locale]/appointments/_components/actions/action-modal";
 import { Button, Icon } from "@/components/ui";
 import { InlineError } from "@/components/ui/inline-error";
 import { TextareaField } from "@/components/ui/textarea-field";
+import { useToast, type ToastHandle } from "@/components/ui/toast";
 import { type Dictionary } from "@/i18n/dictionaries";
-import { format } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
 import { useTranslation } from "@/i18n/useTranslation";
 import { createGuestTicket } from "@/lib/api/marketplace/support";
 import { ApiError } from "@/lib/api/http";
 import type { CreateTicketContext } from "@/lib/api/marketplace/types";
+import { isValidEmail } from "@/lib/validation";
 import {
   getPlainTextApiError,
   plainTextErrorMessage,
   SUPPORT_MESSAGE_MAX_LENGTH,
   validatePlainText,
 } from "@/lib/validation/free-text";
+import styles from "./report-issue.module.css";
 
 type ReportDict = Dictionary["help"]["report"];
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // The guest API receives the title and body together as one message.
 const GUEST_MESSAGE_MAX_LENGTH = 10000;
 
-const fieldStyle: React.CSSProperties = {
-  width: "100%",
-  border: "1px solid rgba(28,28,26,0.18)",
-  borderRadius: 12,
-  padding: "10px 12px",
-  fontSize: 14.5,
-  color: "var(--c-900)",
-  fontFamily: "inherit",
-  outline: "none",
-  background: "#fff",
-  boxSizing: "border-box",
-};
+function isDismissalTarget(target: EventTarget | null): boolean {
+  return target instanceof Element &&
+    target.closest("[data-action-modal-close], [data-report-dismiss]") !== null;
+}
 
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 13,
-  fontWeight: 600,
-  color: "var(--c-800)",
-  marginBottom: 6,
-};
-
-const footerButtonStyle: React.CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-  minHeight: 46,
-  padding: "11px 14px",
-  whiteSpace: "normal",
-};
-
-// "Report an issue" — Help Centre aside card + guest report modal. Works
-// signed out: the report goes to the PUBLIC guest ticket endpoint with the
-// visitor's email as the only return channel (confirmation + replies arrive
-// by email; there is no in-app thread for guests).
-export function ReportIssue({ t, locale, context, triggerLabel, className }: { t: ReportDict; locale: Locale; context?: CreateTicketContext; triggerLabel?: string; className?: string }) {
+/** Guest reporting for the help centre and contextual listing reports. */
+export function ReportIssue({ t, locale, context, triggerLabel, className }: {
+  t: ReportDict;
+  locale: Locale;
+  context?: CreateTicketContext;
+  triggerLabel?: string;
+  className?: string;
+}) {
   const { dict } = useTranslation();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
-  const [sent, setSent] = useState<{ email: string; reference: string } | null>(
-    null,
-  );
+  const [sent, setSent] = useState<{ email: string } | null>(null);
   const [title, setTitle] = useState(context?.label ?? "");
+  const [titleTouched, setTitleTouched] = useState(false);
   const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [messageError, setMessageError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const successRef = useRef<HTMLDivElement>(null);
+  const formId = useId();
   const titleErrorId = useId();
+  const emailErrorId = useId();
+  const successDescriptionId = useId();
   const inFlight = useRef(false);
   const closing = useRef(false);
-  // A context label can be longer than the title input's typing limit. It is
-  // still valid in the API's combined message, so retain it without truncation.
-  const titleIssue = validatePlainText(title, { maxLength: GUEST_MESSAGE_MAX_LENGTH });
-  const titleError = plainTextErrorMessage(titleIssue, dict.textarea, GUEST_MESSAGE_MAX_LENGTH, locale);
+  const notification = useRef<ToastHandle | null>(null);
 
-  // Escape closes + body scroll lock while the dialog is up (same recipe as
-  // the search overlay — inline fixed backdrop, no portal).
-  useEffect(() => {
-    if (!open) return;
-    const previousFocus = document.activeElement;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !inFlight.current) {
-        closing.current = true;
-        setOpen(false);
-      }
-      if (e.key !== "Tab") return;
-      const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]') ?? []).filter(element => element.getClientRects().length > 0);
-      const first = controls[0];
-      const last = controls.at(-1);
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
-    };
-    window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    titleRef.current?.focus();
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
-    };
-  }, [open]);
+  useEffect(() => () => notification.current?.dismiss(), []);
+  useEffect(() => { if (sent) successRef.current?.focus({ preventScroll: true }); }, [sent]);
 
-  const canSubmit =
-    !submitting &&
-    title.trim().length > 0 &&
-    EMAIL_RE.test(email.trim()) &&
+  // Context labels can exceed the title's typing limit, but remain valid in
+  // the API's combined message. Preserve that existing context verbatim.
+  const titleIssue = validatePlainText(title, { required: true, maxLength: GUEST_MESSAGE_MAX_LENGTH });
+  const titleError = titleIssue === "required"
+    ? titleTouched ? t.modal.titleRequired : null
+    : plainTextErrorMessage(titleIssue, dict.textarea, GUEST_MESSAGE_MAX_LENGTH, locale);
+  const emailValid = isValidEmail(email);
+  const emailError = emailTouched && !emailValid
+    ? email.trim() ? dict.auth.errors.emailInvalid : dict.auth.errors.emailRequired
+    : null;
+  const canSubmit = !submitting && title.trim().length > 0 && emailValid &&
     validatePlainText(message, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH }) === null &&
     titleIssue === null;
 
+  const clearFeedback = () => {
+    notification.current?.dismiss();
+    notification.current = null;
+    setMessageError(null);
+  };
+
   const submit = async () => {
     if (inFlight.current || closing.current) return;
+    setTitleTouched(true);
+    setEmailTouched(true);
     const messageIssue = validatePlainText(message, {
       required: true,
       maxLength: SUPPORT_MESSAGE_MAX_LENGTH,
     });
-    if (titleIssue || messageIssue) {
+    if (titleIssue || messageIssue || !emailValid) {
       if (titleIssue) titleRef.current?.focus();
+      else if (!emailValid) emailRef.current?.focus();
       else messageRef.current?.focus();
       return;
     }
@@ -132,36 +107,40 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
       maxLength: GUEST_MESSAGE_MAX_LENGTH,
     });
     if (payloadIssue) {
-      setError(plainTextErrorMessage(payloadIssue, dict.textarea, GUEST_MESSAGE_MAX_LENGTH, locale));
+      setMessageError(plainTextErrorMessage(payloadIssue, dict.textarea, GUEST_MESSAGE_MAX_LENGTH, locale));
+      messageRef.current?.focus();
       return;
     }
     inFlight.current = true;
     setSubmitting(true);
-    setError(null);
+    clearFeedback();
     const cleanEmail = email.trim().toLowerCase();
     try {
-      // The backend has no title column — the title travels as the first line
-      // of the message, which is also what the CRM shows as the preview.
-      const receipt = await createGuestTicket({
+      // The API has no title column: the CRM previews its first message line.
+      await createGuestTicket({
         email: cleanEmail,
         locale,
         category: "bug",
         ...(context ? { context } : {}),
         message: fullMessage,
       });
-      setSent({ email: cleanEmail, reference: receipt.uuid });
+      setSent({ email: cleanEmail });
       setTitle(context?.label ?? "");
+      setTitleTouched(false);
       setEmail("");
+      setEmailTouched(false);
       setMessage("");
     } catch (err) {
       const validationIssue = getPlainTextApiError(err);
-      setError(
-        validationIssue
-          ? plainTextErrorMessage(validationIssue, dict.textarea, GUEST_MESSAGE_MAX_LENGTH, locale)
-          : err instanceof ApiError && err.status === 429
-          ? t.modal.errorRateLimit
-          : t.modal.error,
-      );
+      if (validationIssue) {
+        setMessageError(plainTextErrorMessage(validationIssue, dict.textarea, GUEST_MESSAGE_MAX_LENGTH, locale));
+        messageRef.current?.focus();
+      } else {
+        notification.current = toast(
+          err instanceof ApiError && err.status === 429 ? t.modal.errorRateLimit : t.modal.error,
+          "warn", undefined, "error",
+        );
+      }
     } finally {
       inFlight.current = false;
       setSubmitting(false);
@@ -171,242 +150,119 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: { t
   const close = () => {
     if (inFlight.current) return;
     closing.current = true;
+    clearFeedback();
     setOpen(false);
-    setError(null);
     setSent(null);
   };
 
   const show = () => {
     closing.current = false;
+    setTitleTouched(false);
+    setEmailTouched(false);
+    clearFeedback();
     setOpen(true);
   };
 
   return (
-    <div className={triggerLabel ? undefined : "zw-help-card"}>
-      {triggerLabel ? <button type="button" className={className} onClick={show}>{triggerLabel}<Icon name="arrowUR" size={13} /></button> : <>
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 600,
-          letterSpacing: "-0.02em",
-          color: "var(--c-900)",
-        }}
-      >
-        {t.title}
-      </div>
-      <div style={{ marginTop: 6 }}>
-        <span style={{ fontSize: 12.5, color: "var(--c-600)" }}>{t.sub}</span>
-      </div>
-      <Button
-        kind="primary"
-        size="md"
-        onClick={show}
-        style={{ width: "100%", marginTop: 16, justifyContent: "center" }}
-      >
-        {t.cta}
-      </Button>
-      </>}
+    <div className={triggerLabel ? undefined : styles.support}>
+      {triggerLabel ? (
+        <button type="button" className={className} onClick={show}>
+          {triggerLabel}<Icon name="arrowUR" size={13} />
+        </button>
+      ) : (
+        <>
+          <h2 className={styles.supportTitle}>{t.title}</h2>
+          <p className={styles.supportCopy}>{t.sub}</p>
+          <Button kind="primary" onClick={show} className={styles.supportButton}>
+            {t.cta}<Icon name="arrowR" size={17} />
+          </Button>
+        </>
+      )}
 
       {open && (
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-busy={submitting || undefined}
-          aria-labelledby="zw-report-issue-title"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 500,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-            background: "rgba(28,28,26,0.42)",
-            cursor: submitting ? "default" : "pointer",
-          }}
-          onClick={close}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="zv-fade"
-            style={{
-              background: "#fff",
-              cursor: "default",
-              borderRadius: 18,
-              boxShadow: "var(--sh-lg)",
-              padding: "24px 24px 20px",
-              maxWidth: 480,
-              width: "100%",
-              maxHeight: "88vh",
-              overflowY: "auto",
-            }}
-          >
+        <ActionModal
+          title={sent ? t.modal.success.title : t.modal.title}
+          subtitle={sent ? undefined : t.modal.intro}
+          width={sent ? 520 : 620}
+          className={styles.modal}
+          initialFocusRef={titleRef}
+          dismissible={!submitting}
+          onClosing={() => { closing.current = true; clearFeedback(); }}
+          onClose={close}
+          footer={<div className={styles.actions}>
             {sent ? (
-              <div style={{ textAlign: "center", padding: "8px 4px 4px" }}>
-                <span
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "50%",
-                    background: "var(--p-600)",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Icon name="check" size={22} color="#fff" />
-                </span>
-                <h2
-                  id="zw-report-issue-title"
-                  style={{
-                    margin: "16px 0 0",
-                    fontSize: 20,
-                    fontWeight: 600,
-                    letterSpacing: "-0.02em",
-                    color: "var(--c-900)",
-                  }}
-                >
-                  {t.modal.success.title}
-                </h2>
-                <p
-                  className="txt-pretty"
-                  style={{
-                    margin: "10px 0 0",
-                    fontSize: 14.5,
-                    lineHeight: 1.55,
-                    color: "var(--c-600)",
-                  }}
-                >
-                  {format(t.modal.success.body, { email: sent.email })}
-                </p>
-                <div
-                  style={{
-                    marginTop: 14,
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11.5,
-                    color: "var(--c-500)",
-                    wordBreak: "break-all",
-                  }}
-                >
-                  {t.modal.success.reference}: {sent.reference}
-                </div>
-                <div style={{ marginTop: 20 }}>
-                  <Button kind="primary" size="md" onClick={close}>
-                    {t.modal.success.done}
-                  </Button>
-                </div>
-              </div>
+              <DialogClose asChild>
+                <Button kind="primary" className={styles.actionButton}>
+                  {t.modal.success.done}
+                </Button>
+              </DialogClose>
             ) : (
               <>
-                <h2
-                  id="zw-report-issue-title"
-                  style={{
-                    margin: 0,
-                    fontSize: 20,
-                    fontWeight: 600,
-                    letterSpacing: "-0.02em",
-                    color: "var(--c-900)",
-                  }}
-                >
-                  {t.modal.title}
-                </h2>
-                <p
-                  className="txt-pretty"
-                  style={{
-                    margin: "8px 0 18px",
-                    fontSize: 13.5,
-                    lineHeight: 1.5,
-                    color: "var(--c-600)",
-                  }}
-                >
-                  {t.modal.intro}
-                </p>
-
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ display: "block" }}>
-                    <span style={labelStyle}>{t.modal.titleLabel}</span>
-                    <input
-                      ref={titleRef}
-                      value={title}
-                      onChange={(e) => { setTitle(e.target.value); setError(null); }}
-                      placeholder={t.modal.titlePlaceholder}
-                      maxLength={200}
-                      disabled={submitting}
-                      aria-invalid={Boolean(titleError) || undefined}
-                      aria-describedby={titleError ? titleErrorId : undefined}
-                      style={fieldStyle}
-                    />
-                  </label>
-                  {titleError && (
-                    <InlineError id={titleErrorId} style={{ marginTop: 4 }}>
-                      {titleError}
-                    </InlineError>
-                  )}
-                </div>
-
-                <label style={{ display: "block", marginBottom: 14 }}>
-                  <span style={labelStyle}>{t.modal.emailLabel}</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setError(null); }}
-                    placeholder={t.modal.emailPlaceholder}
-                    maxLength={254}
-                    disabled={submitting}
-                    autoComplete="email"
-                    inputMode="email"
-                    style={fieldStyle}
-                  />
-                </label>
-
-                <div style={{ marginBottom: 18 }}>
-                  <TextareaField
-                    ref={messageRef}
-                    label={t.modal.messageLabel}
-                    value={message}
-                    onChange={(e) => { setMessage(e.target.value); setError(null); }}
-                    placeholder={t.modal.messagePlaceholder}
-                    rows={5}
-                    maxLength={SUPPORT_MESSAGE_MAX_LENGTH}
-                    required
-                    disabled={submitting}
-                  />
-                </div>
-
-                {error && (
-                  <InlineError style={{ margin: "0 0 14px" }}>
-                    {error}
-                  </InlineError>
-                )}
-
-                <div
-                  style={{ display: "flex", gap: 10, alignItems: "stretch" }}
-                >
-                  <Button
-                    kind="secondary"
-                    size="md"
-                    onClick={close}
-                    disabled={submitting}
-                    style={footerButtonStyle}
-                  >
+                <DialogClose asChild>
+                  <Button kind="secondary" disabled={submitting} className={styles.actionButton} data-report-dismiss="">
                     {t.modal.cancel}
                   </Button>
-                  <Button
-                    kind="primary"
-                    size="md"
-                    onClick={submit}
-                    disabled={!canSubmit}
-                    loading={submitting}
-                    style={footerButtonStyle}
-                  >
-                    {t.modal.submit}
-                  </Button>
-                </div>
+                </DialogClose>
+                <Button kind="accent" type="submit" form={formId} disabled={!canSubmit} loading={submitting}
+                  className={styles.actionButton} style={{ border: 0 }}>
+                  {t.modal.submit}
+                </Button>
               </>
             )}
-          </div>
-        </div>
+          </div>}
+        >
+          {sent ? (
+            <div ref={successRef} className={styles.success} tabIndex={-1} role="group"
+              aria-label={t.modal.success.title} aria-describedby={successDescriptionId}>
+              <span className={styles.successIcon} aria-hidden="true"><Icon name="check" size={24} /></span>
+              <div className={styles.successCopy} id={successDescriptionId}>
+                <p>{t.modal.success.body}</p>
+                <p className={styles.successEmail}>{sent.email}</p>
+              </div>
+            </div>
+          ) : (
+            <form id={formId} className={styles.form} noValidate aria-busy={submitting || undefined}
+              onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+              <div>
+                <label className={styles.label}>
+                  <span>{t.modal.titleLabel}</span>
+                  <input ref={titleRef} value={title}
+                    name="title" required
+                    onChange={(event) => { setTitle(event.target.value); clearFeedback(); }}
+                    onBlur={(event) => {
+                      if (!closing.current && !isDismissalTarget(event.relatedTarget)) setTitleTouched(true);
+                    }}
+                    placeholder={t.modal.titlePlaceholder} maxLength={200} disabled={submitting}
+                    aria-invalid={Boolean(titleError) || undefined}
+                    aria-describedby={titleError ? titleErrorId : undefined}
+                    className={styles.input} />
+                </label>
+                {titleError && <InlineError id={titleErrorId} className={styles.fieldError}>{titleError}</InlineError>}
+              </div>
+              <div>
+                <label className={styles.label}>
+                  <span>{t.modal.emailLabel}</span>
+                  <input ref={emailRef} type="email" value={email}
+                    name="email" required
+                    onChange={(event) => { setEmail(event.target.value); clearFeedback(); }}
+                    onBlur={(event) => {
+                      if (!closing.current && !isDismissalTarget(event.relatedTarget)) setEmailTouched(true);
+                    }}
+                    placeholder={t.modal.emailPlaceholder} maxLength={254} disabled={submitting}
+                    autoComplete="email" inputMode="email" className={styles.input}
+                    aria-invalid={Boolean(emailError) || undefined}
+                    aria-describedby={emailError ? emailErrorId : undefined} />
+                </label>
+                {emailError && <InlineError id={emailErrorId} className={styles.fieldError}>{emailError}</InlineError>}
+              </div>
+              <TextareaField ref={messageRef} label={t.modal.messageLabel} value={message}
+                name="message"
+                onChange={(event) => { setMessage(event.target.value); clearFeedback(); }}
+                placeholder={t.modal.messagePlaceholder} rows={5} maxLength={SUPPORT_MESSAGE_MAX_LENGTH}
+                error={messageError} required disabled={submitting} />
+            </form>
+          )}
+        </ActionModal>
       )}
     </div>
   );

@@ -112,7 +112,7 @@ Zavoia's marketplace reads like an editorial magazine laid on warm paper. The
 canvas is a warm off-white (`--c-canvas`), the entire neutral text ramp is a
 warm gray built in OKLCH at hue 70, and every hard surface is either white
 card stock or near-black ink (`--c-ink`). Terracotta is the single brand
-accent — it marks ratings, active states, focus rings, and the "book" action,
+accent — it marks ratings, active states, input-focus feedback, and the "book" action,
 and it stays rare enough that ink does most of the talking. Photography does
 the selling: business cards are photo-forward (full-bleed images with gradient
 scrims, or white cards with 16:10 photo headers), and the chrome around them
@@ -145,7 +145,7 @@ A warm two-pole palette — paper to ink — with terracotta as the lone voice o
 brand and a small status quartet that whispers through 6px dots.
 
 ### Primary
-- **Terracotta** (`--p-500`, {colors.terracotta}): the brand accent. Star icons, focus rings (`:focus-visible` 2px outline), reading-progress fills, active TOC markers, the "accent" button (the book action), radar/pulse rings, hero underline draws.
+- **Terracotta** (`--p-500`, {colors.terracotta}): the brand accent. Star icons, input-focus feedback, reading-progress fills, active TOC markers, the "accent" button (the book action), radar/pulse rings, hero underline draws.
 - **Terracotta Deep** (`--p-600`, {colors.terracotta-deep}): drop caps, kicker default color, hover-darkened accent.
 - **Terracotta Text** (`--p-700`, {colors.terracotta-text}): terracotta used *as text* on the canvas (inline links, hover color on question titles, "full link" affordances) — dark enough to pass contrast at small sizes.
 - **Terracotta Tint** (`--p-100`, {colors.terracotta-tint}): focus glow halo (`box-shadow: 0 0 0 4px`), soft washes. Column highlights use `color-mix(in oklch, var(--p-500) 7–12%, transparent)`.
@@ -177,7 +177,7 @@ against its actual background, including gradients; body text must meet 4.5:1.
 
 **The One Voice Rule.** Terracotta is the only brand accent and it stays
 scarce. Structure and state are carried by ink; terracotta marks *the* action
-or *the* live thing on a screen — stars, book, focus, progress.
+or *the* live thing on a screen — stars, book, input focus, progress.
 
 **The Dot-Not-Wash Rule.** Status and category color arrive as a 6px dot next
 to neutral text, never as a tinted background behind content (warning callouts
@@ -217,13 +217,17 @@ A single centered container with **1400px of usable content** (`--content-max`),
 applied via `.zw-container`. Its border-box maximum adds the two `28px` gutters
 (`max-width: calc(var(--content-max) + 2 * var(--gutter))`). The gutter
 compresses responsively (20px ≤920px, 16px ≤600px) and the sticky opaque nav is
-`68px` tall (`--nav-h`, 60px ≤920px); sticky elements offset against
+`68px` tall (`--nav-h`, 56px ≤920px); sticky elements offset against
 `calc(var(--nav-h) + N)`.
+
+At 920px and below, hide native scrollbar tracks on the document and nested
+scrolling panes. Keep native touch, wheel and keyboard scrolling enabled;
+this presentation rule must never use overflow locking to hide a scrollbar.
 
 The dominant breakpoint is **920px** — two-column page grids (`[data-biz-cols]`,
 feature/hero grids) collapse to one column, `.zw-only-desktop` /
 `.zw-only-mobile` swap, and detail pages trade the sticky right booking rail
-for a fixed frosted bottom bar. Other observed breakpoints are local: 1552px
+for a fixed booking action bar at the viewport bottom. Other observed breakpoints are local: 1552px
 (share rail appears only when true margin exists), 1080/540px (footer grid
 4→2→1), 1024px (post/legal TOC rails drop), 980/640px (masonry and carousel
 column counts), 880px (split spotlight stacks).
@@ -231,10 +235,35 @@ column counts), 880px (split spotlight stacks).
 Horizontal rhythm on the home page comes from contained rails, not the page:
 `.zw-carousel-rail` scrolls 3-up cards (2-up ≤980px, 86%-wide ≤640px) with
 snap-proximity and hidden scrollbars; the split-spotlight rail scrolls within
-the same 1400px content boundary. Offer grids are explicit 3→2→1 so a third
-card never orphans. Reading surfaces (Journal posts, legal) drop to a narrower
-measured column (58ch–760px) with a 196px sticky TOC rail — "legal reading
-wants a centred column, not the full shop window."
+the same 1400px content boundary. Up to 640px, the homepage's In your city and
+Brands feeds share a native swipe rail with a visible next-card preview. Their
+photo cards are 248–320px wide and 280–320px tall, with two-line primary names,
+single-line business names and their existing metadata and actions. Keep their
+desktop grids, feed ordering and View all destinations. Brand cards have no save
+action. Show more is a desktop action for In your city and Nearby; mobile uses
+View all to continue browsing.
+Loading skeletons use the same track and card geometry; retain horizontal
+position during pagination and locale navigation. Offer grids are explicit 3→2→1 so a third
+card never orphans. Recently viewed uses native horizontal scrolling up to 640px,
+preserving its existing card design and image ratio. Mobile cards use the same
+248–320px widths as the other discovery rails, with a next-card preview. Loading
+placeholders share that same layout. Up to 640px, the consumer app band uses the
+shared page gutter once, matching the discovery sections' content width without
+additional inner horizontal padding. Center its heading, description and store
+badges on mobile. Center its preview note and map attribution beneath the phones
+on mobile; align that note and attribution to the right on desktop.
+The homepage Web Studio interlude places its copy, larger paired previews and
+one action row in that mobile reading order. Reuse the shared page gutters and
+show the primary action as “Web Studio” on phones so both links fit in one row.
+Legal pages fill the shared 1400px content area. Document prose uses the available
+width beside a 240px sticky contents rail; below 1024px,
+the rail becomes an inline disclosure and the article fills the container. This
+disclosure starts expanded and reuses the shared native disclosure motion, including
+immediate keyboard and reduced-motion changes. On phones up to 600px, center the
+print button on its own row beneath the document metadata.
+Legal section headings and contents links have no decorative numbering or totals.
+Document rows use plain icons aligned with the title, without icon backgrounds
+in either the resting or hover state.
 
 Section entrance is choreographed once per page: `.zw-rise` sections rise 18px
 and fade over 0.7s, staggered by `data-d` (0.10/0.22/0.34s); grid children
@@ -263,8 +292,8 @@ Layered but quiet. Surfaces rest on hairlines and *small* ambient shadows
 reserved as a **response** — hover-lift raises a card 3px and swaps in
 `--sh-lg`, buttons lift 1px with their own hover shadow, the pricing receipt
 floats to `--sh-xl`. Depth is also conveyed materially: frosted overlays
-(`.zv-frost` — 82% white + 20px blur + saturate(180%) for mobile tabs and
-booking bars; 92% white + 10px blur for pills floating on photos) and gradient
+(`.zv-frost` provides 82% white + 20px blur + saturate(180%);
+photo pills use 92% white + 10px blur) and gradient
 scrims on photography (top-down 30% black for control legibility, bottom-up to
 88% black under overlay-card text).
 
@@ -323,7 +352,7 @@ carries `.tap` (scale 0.97 + slight fade on press); buttons add `.zw-btn`
 - **Secondary:** white fill, `--c-900` text, `rgba(28,28,26,0.14)` hairline border.
 - **Ghost:** transparent, `--c-800` text, no visible border.
 - **Hover / Press:** translateY(−1px) + hover shadow + brightness(1.05); press scales to 0.975 and drops the shadow. Disabled = 45% opacity, no lift.
-- **Focus:** global `:focus-visible` — 2px terracotta outline, 2px offset.
+- **Focus:** use a visible neutral `:focus-visible` outline for buttons, button-style links and navigation controls. The global default is 2px `--c-700` with a 2px offset; scoped controls may retain their existing offset. Dark surfaces set `--focus-ring-color` to `--c-canvas`. Do not use terracotta for action focus rings or remove keyboard focus indicators. Input fields retain their existing focus treatment. Generated websites use a neutral foreground appropriate to each light/dark section.
 
 ### Chips
 - **Style:** white pill, hairline border (12% ink), 13.5px/600, optional leading 14px icon; `whiteSpace: nowrap`.
@@ -364,19 +393,25 @@ zero result; a failed request must offer recovery instead of claiming either.
 - **Focus:** container `:focus-within` — border warms to `--p-400`, glow `0 0 0 4px var(--p-100)`. Range sliders: 6px `--c-200` track, 26px ink circular thumb.
 - **Switch:** 46×28px pill, `--c-300` off / ink on, white knob springs 18px (`--ease-spring`).
 - **Error feedback:** use `PageError` when a failure prevents the page from being used, including initial loading, session-verification and render failures. Reuse its centered illustration, heading and description; choose actions from the actual failure. Retry transient failures, offer navigation out, and never offer Retry for a confirmed missing appointment. Keep successful data visible after background or action failures and announce those through the shared error toast. Repeated automatic failures in one outage must not queue duplicate notifications; explicit retries must report their result. Clear stale notifications after recovery or leaving the page. Appointment dialogs provide room for the shared toast below their controls, inside the keyboard focus scope, so feedback never covers an action or dismisses the form when clicked. Keep field validation inline rather than replacing it with a toast.
+- **Homepage discovery failures:** keep the hero, search, navigation and editorial content usable. Omit an optional band after an initial failure, with no leftover skeleton, empty section spacing or individual error row. Preserve the distinction between an unavailable feed and a successful empty result. If primary place discovery fails and there are no usable discovery cards, show one contained recovery state for the discovery area with a shared Retry action; never replace the whole homepage or stack one warning per feed. Preserve already loaded cards during refresh, pagination and explicit retries. Report background and action failures through the shared error toast, deduplicated across the affected homepage feeds for the same outage; report a failed explicit retry again, and clear stale feedback after recovery or leaving home. Initial optional-band failures do not create toast notifications. Coordinate homepage retries as one shared attempt: repeated clicks and focus events must not start overlapping requests. Bound the complete retry and location-resolution operations, as well as server feed requests, so skeletons and action spinners always settle. After consecutive failed explicit retries, disable Retry for 15 seconds, then 30 seconds, then 60 seconds, capped at 60 seconds; show the localized remaining wait and reset the failure streak after recovery. A failed-retry toast reports the result without offering another immediate retry action. Preserve existing server cache hints and log only sanitized endpoint/failure metadata.
 - **Inline errors:** use the shared `InlineError` component for field validation and field-specific API rejections. It uses a 14px `AlertCircle`, 12px/16px error text (`--s-error-text`), centered icon alignment and a 6px gap. Sign-in credential fields use its explicit `showIcon={false}` option to match the admin sign-in treatment. Field messages sit below the input with a 4px top margin; preserve their IDs and input associations. Render messages only when present so they grow the surrounding content; do not reserve an empty error row. Loading labels, status badges, toasts and full-page/structured failure states have their own presentations.
+- **Email validation:** reuse `isValidEmail` from `src/lib/validation.ts` in authentication, account editing and guest support. Keep required/invalid messages localized and untouched required fields silent.
 - **Textareas:** use `TextareaField` for every multiline plain-text field. Disable manual resizing, keep a fixed height with internal vertical scrolling, and show the localized character counter even at zero. Use a single 1px ink border on focus without another outline or ring. Require a visible associated label, a field-specific length cap, and `aria-describedby`/`aria-invalid` associations for errors. Reject HTML tags, script/iframe fragments, executable URI schemes, inline event assignments and unsupported control characters through `validatePlainText`, mirrored in API DTO validation. Preserve ordinary punctuation, diacritics, tabs and line breaks; never silently strip input. Show content/length errors immediately and missing required text after blur or a submit attempt. Revalidate at submission boundaries, retain drafts after failed requests, and use translated `InlineError` messages without an empty reserved error row.
 
 ### Navigation
-- **Top bar:** sticky, `--nav-h` (68px), with an opaque `--c-canvas` background and a subtle bottom hairline. The background stays solid before and after scrolling, on desktop and mobile. Text links (`.zw-navlink`) are 14px/600 at `--c-600`; hover and active simply darken to `--c-900` — color alone carries the state, no underline or pill.
-- **Header search:** a 52px segmented pill at viewport widths of 1200px and above, with a viewport-based width of 400–480px that stays consistent across English, Romanian and active query values. Three equal fields use 10px mono labels, 14px values, visible focus rings and ellipsis for long selections. The terracotta search action is 44px square. At 601–1199px, a compact labelled control (180–220px) opens the same search flow; phones up to 600px use a 44px search icon. On home, the control appears after the hero search scrolls away, with a short 180ms rise/fade when reduced motion is off. Field hover uses a faint inset highlight, without changing the outer shadow or showing native tooltips. Press feedback stays subtle; widths never animate. Styles live in `site-header.module.css`.
-- **Language navigation:** reuse `LanguageSwitcher` in the header, beside the account controls. Show the current language name on desktop and its existing 44px globe trigger up to 920px. The menu opens below the trigger and preserves the existing route, query, hash and translated destinations. Search uses this same header control; the standalone 404 uses its own header. The footer's trailing slot holds the existing 250 × 50px ANPC/SAL badge, on a separate row on narrow screens.
-- **Tabs** (detail pages): quiet text above a hairline rail, with an ink indicator between tabs. Tab panels enter with `.zv-tab-in` (6px rise + fade, 0.32s). The Journal uses category filter buttons with `aria-pressed`, a 220ms ink underline and readable counts; it does not present them as tab panels.
+- **Top bar:** sticky at the viewport top with no top gap, `--nav-h` (68px on desktop, 56px up to 920px), with an opaque `--c-canvas` background and a subtle bottom hairline. Preserve 44px mobile action targets. The background stays solid before and after scrolling, on desktop and mobile. Text links (`.zw-navlink`) are 14px/600 at `--c-600`; hover and active simply darken to `--c-900` — color alone carries the state, no underline or pill.
+- **Header search:** a 52px segmented pill at viewport widths of 1200px and above, with a viewport-based width of 400–480px that stays consistent across English, Romanian and active query values. Three equal fields use 10px mono labels, 14px values, visible focus rings and ellipsis for long selections. The terracotta search action is 44px square. At 921–1199px, a compact labelled control (180–220px) opens the same search flow; up to 920px the mobile header uses a 44px search icon beside the menu toggle. On home, desktop and mobile header search stay hidden until scrolling past 440px, after the hero search scrolls away; other routes always show header search. Desktop retains its short 180ms rise/fade when reduced motion is off. Field hover uses a faint inset highlight, without changing the outer shadow or showing native tooltips. Press feedback stays subtle; widths never animate. Styles live in `site-header.module.css`.
+- **Mobile navigation:** up to 920px, the header contains the wordmark, search icon when applicable and an icon-only menu toggle with an accessible name. Reuse Web Studio's Underlay composition with a full-viewport paper menu: shift both the page and site header fully left by 100% of the viewport width, leaving no exposed page strip when open. Give the menu its own opaque 56px header with the wordmark linking to the localized homepage and a close icon above a separate scrolling body. Reuse `zw-noscrollbar` to hide the body's scrollbar while retaining scrolling. Start the body with the account identity/sign-in row, followed by Search linking to the map, then Appointments, Saved and Profile & settings for signed-in visitors; omit the separate Explore row. Use compact left-aligned 16px destination rows, shared icon columns, at least 44px targets and subtle rules between groups. Reuse the desktop account inventory for the remaining groups: Journal and Help; For business, Web Studio and Pricing; Privacy, Terms and Cookie settings; language; then Sign out or Sign in. Preserve optimistic session visibility without activating private links before verification, and retain session-error retry. Re-selecting Search on the map closes the menu without resetting its query, results or camera. Opening takes 360ms and closing 180ms, reversing from the current position during interruptions. The original header, wordmark and search return with the page, without separate fades. Keyboard and reduced-motion changes are immediate. Trap focus, make the page inert, lock background scrolling, support outside dismissal and Escape, and return focus to the menu toggle when dismissed. An open language drawer handles the first Escape. Remove page and header transforms completely after closing so fixed action bars retain viewport positioning.
+- **Mobile bottom clearance:** there is no fixed bottom navigation. Pages and the Explore map use the viewport below the header. Booking actions sit at the viewport bottom with safe-area padding; appointment-detail actions stay in the page. Only pages with a fixed action bar retain footer clearance. Cookie consent sits 16px above the bottom safe area.
+- **Language navigation:** reuse `LanguageSwitcher` beside the desktop account controls and in the mobile Underlay. Desktop keeps its current-language trigger and popover. Up to 920px, show the current language in an aligned menu row and open a modal bottom drawer with a heading, close action, full-width language choices and safe-area padding. Trap focus within the drawer, dismiss it before the Underlay on Escape and restore focus to its language trigger. Preserve the existing route, query, hash, translated destinations and unavailable/pending states. Search shares this navigation; the standalone 404 uses its own header. The footer's trailing slot holds the existing 250 × 50px ANPC/SAL badge, on a separate row on narrow screens.
+- **Tabs** (detail pages): quiet text above a hairline rail, with an ink indicator between tabs. Tab panels enter with `.zv-tab-in` (6px rise + fade, 0.32s). Journal categories are separate pages and use the destination links described below, without a tab indicator or filter counts.
 - **Pagination:** 42px mono pill buttons; active = ink; hover = shade + stronger hairline.
-- **Service catalog:** homepage industry tiles, See all industries and the map's More action share `ServiceCatalogProvider`. Use a wide desktop dialog with a fixed industry sidebar and grouped service rows; up to 760px it becomes a full-height sheet with horizontal industry filters. Select exactly one industry or All industries; selecting the active industry again keeps it selected. Keep option positions and typography stable, and reset on each opening. The active option uses a neutral gray fill, a thin neutral outline, dark text and its canonical colored icon, with a neutral trailing chevron on desktop. Industry focus rings also stay neutral; do not use terracotta for catalog selection styling. Choosing a service applies immediately, preserving the map's place, date and refinements. Keep the homepage's real search and `/industries` links for direct navigation. Reuse loaded taxonomy; retain keyboard focus in view, restore opener focus on dismissal, and use the shared loading/error components for recovery.
-- **Search overlay industry browser:** keep the search overlay's What/Where/When flow distinct from the catalogue's immediate application. Use an 860px desktop dialog with fixed heading/footer and non-shrinking 54px step headers; only the active step's content scrolls vertically. Its What field stays sticky with a visible container focus indicator, and the committed What summary stays visible even while open. Show all saved recent searches (up to six, newest first) above Explore industries, with no expand/collapse control; keep history visible and usable while taxonomy loads or fails. Put “All industries” / “Toate industriile” first beneath that heading as a full-width 54px selectable row, with a grid icon, neutral outline and a trailing circle/check selection indicator. Never place it above history or style it as a small pill. The active What/Where/When header has no click handler, hover or press animation; expose its expanded/unavailable state with aria-disabled and skip it in tab order while retaining programmatic focus on step advancement. Only collapsed step headers are interactive, and none of the headers scale on press. Industries form one vertical list of disclosures with canonical colored icons, 15px labels and 52px triggers. Open one industry inline beneath its trigger, keeping history and other industries mounted; show a whole-industry action followed by category choices in two columns above 760px and one column below. Include industries without tags. Use the shared disclosure rhythm (280ms expand/collapse, 220ms enter/140ms exit, rotating chevron), keep transitions interruptible, and make closed content inert and hidden from assistive technology. Keyboard and reduced-motion changes stay immediate. Do not replace the overview with a separate view, render every category at once, add a sidebar/horizontal industry rail or introduce nested scrolling. Expansion does not commit a filter: checkmarks/pressed state indicate query selection only. All clears only What's industry/tag filters and collapses the list, preserving location/date. Selecting a whole industry sets its canonical slug and clears tags; selecting a tag sets its canonical industry/tag; both advance to Where. Preserve selected-tag clearing, Escape/focus restoration, live business/location suggestions and the expanded industry while typing or resizing. Prefer a requested opening industry while keeping Other last; infer the opening industry from tag-only queries and honor explicit All entry. Category entry points focus the matching disclosure without raising the mobile keyboard. Use neutral selection styling, at least 48px category targets and matching row skeletons. Clear all resets browsing; the separate recent-history Clear action removes the saved searches.
+- **Service catalog:** homepage industry tiles, See all industries and the map's More action share `ServiceCatalogProvider`. At 921px and above, retain the wide centered dialog with a fixed industry sidebar and grouped service rows. Up to 920px, use a full-width bottom drawer with at least 24px top clearance respecting the top safe area, top-only rounded corners and bottom safe-area padding. Place the shared `DrawerHandle` first, above the fixed title and horizontal industry filters; only the services body scrolls vertically, using native scrolling. Normal pointer opening takes 240ms and close-button dismissal takes 180ms. Handle dismissal and snap-back use the shared 320ms release motion, fading only the backdrop background color so the paper remains opaque. Keyboard and reduced-motion opening and closing stay immediate. Select exactly one industry or All industries; selecting the active industry again keeps it selected. Keep option positions and typography stable, and reset on each opening. The active option uses a neutral gray fill, a thin neutral outline, dark text and its canonical colored icon, with a neutral trailing chevron on desktop. Industry focus rings also stay neutral; do not use terracotta for catalog selection styling. Choosing a service applies immediately, preserving the map's place, date and refinements. Keep the homepage's real search and `/industries` links for direct navigation. Reuse loaded taxonomy; retain keyboard focus in view, restore opener focus on dismissal, and use the shared loading/error components for recovery.
+- **Search overlay industry browser:** keep the search overlay's What/Where/When flow distinct from the catalogue's immediate application. Keep an 860px centered desktop dialog. Up to 920px, use a full-width bottom drawer with no side or bottom margin, at least 24px top clearance respecting the top safe area, and 24px top-only rounded corners. Keep the heading/footer fixed and the 54px step headers non-shrinking in both layouts; only the active step's content scrolls vertically. Pad the mobile footer for the bottom safe area. Search and Language bottom drawers share a visible top handle with downward drag-to-close confined to its dedicated target; keep content natively scrollable and preserve step-header controls, close buttons, Escape and nested-dialog focus restoration. Normal pointer opening takes 240ms and close-button dismissal takes 180ms with the shared ease-out. Handle dismissal and snap-back use the same 320ms `cubic-bezier(.2, .7, .3, 1)` release motion as map-result snaps, defined in `src/components/ui/sheet-motion.ts`. During handle dismissal, fade only the backdrop background color so the paper stays opaque, including Search's content nested inside its overlay. Keyboard input and reduced motion keep opening and closing immediate. On mobile, opening Search focuses the drawer shell without raising the software keyboard; focus an input only after the visitor deliberately selects it, while preserving desktop autofocus. Its What field stays sticky with a visible container focus indicator, and the committed What summary stays visible even while open. Show all saved recent searches (up to six, newest first) above Explore industries, with no expand/collapse control; keep history visible and usable while taxonomy loads or fails. Put “All industries” / “Toate industriile” first beneath that heading as a full-width 54px selectable row, with a grid icon, neutral outline and a trailing circle/check selection indicator. Never place it above history or style it as a small pill. The active What/Where/When header has no click handler, hover or press animation; expose its expanded/unavailable state with aria-disabled and skip it in tab order while retaining programmatic focus on step advancement. Only collapsed step headers are interactive, and none of the headers scale on press. Industries form one vertical list of disclosures with canonical colored icons, 15px labels and 52px triggers. Open one industry inline beneath its trigger, keeping history and other industries mounted; show a whole-industry action followed by category choices in two columns above 760px and one column below. Include industries without tags. Use the shared disclosure rhythm (280ms expand/collapse, 220ms enter/140ms exit, rotating chevron), keep transitions interruptible, and make closed content inert and hidden from assistive technology. Keyboard and reduced-motion changes stay immediate. Do not replace the overview with a separate view, render every category at once, add a sidebar/horizontal industry rail or introduce nested scrolling. Expansion does not commit a filter: checkmarks/pressed state indicate query selection only. All clears only What's industry/tag filters and collapses the list, preserving location/date. Selecting a whole industry sets its canonical slug and clears tags; selecting a tag sets its canonical industry/tag; both advance to Where. Preserve selected-tag clearing, Escape/focus restoration, live business/location suggestions and the expanded industry while typing or resizing. Prefer a requested opening industry while keeping Other last; infer the opening industry from tag-only queries and honor explicit All entry. Category entry points focus the matching disclosure without raising the mobile keyboard. Use neutral selection styling, at least 48px category targets and matching row skeletons. Clear all resets browsing; the separate recent-history Clear action removes the saved searches.
 - **Search overlay calendar:** the When content fills the active section’s available height. Let the calendar grow above its non-shrinking presets, sharing extra height across six equal week rows. Desktop rows may contract to 28px to fit shorter viewports; phone rows retain a 40px minimum. Use 15px dates, 16px month text and 44px month-navigation/preset controls, with a 10px gap above the presets. Only use the existing section scroller when the viewport cannot accommodate these minimums; never add a nested calendar scrollbar or hide overflowing controls. Keep localized month/day labels, past-date disabling and query behavior unchanged.
-- **Explore service rail:** an active industry, service or text query appears as one centered, clearable pill; hide suggestions and More until it is cleared. Pointer changes use a short rise/fade with the shared ease-out curve; keyboard and reduced-motion changes stay immediate. Inactive layers are inert and hidden from assistive technology. Move focus to the selected pill after choosing, and back to More after clearing; keep the 44px clear target and its focus ring within the rail.
+- **Map filters:** at 921px and above, retain the centered dialog. Up to 920px, use a full-width bottom drawer with at least 24px top clearance respecting the top safe area, 24px top-only rounded corners and bottom safe-area padding. Put the shared `DrawerHandle` first; keep the title and Reset/Show places footer fixed while only the filter body scrolls vertically with native scrolling. Normal pointer opening takes 240ms and close-button dismissal takes 180ms. Handle dismissal and snap-back use the shared 320ms release motion; fade only the backdrop background color so the paper stays opaque. Keyboard and reduced-motion opening and closing stay immediate. Keep draft choices private until Show places applies them. Closing without applying discards the draft on reopening; Reset retains its existing behavior of applying the default filters and closing. Preserve Escape, close-button dismissal and opener-focus restoration.
+- **Explore service rail:** show the daily service suggestions followed by More. On desktop, fit a prefix of suggestions while keeping More visible. Up to 920px, show up to five day-shuffled suggestions in one horizontally scrollable row with More at the end; hide the scrollbar, retain native touch scrolling and prevent page overflow. More opens the shared catalog. An active industry, service or text query appears as one centered, clearable pill; hide the idle browse controls until it is cleared. Pointer changes use a short rise/fade with the shared ease-out curve; keyboard and reduced-motion changes stay immediate. Inactive layers are inert and hidden from assistive technology. Move focus to the selected pill after choosing, and back to More after clearing; keep the 44px clear target and its focus ring within the rail. The expanded mobile results sheet hides the rail and makes it inert.
+- **Mobile Explore camera:** up to 920px, match `marketplace-app/config/map-config.ts` and its search screen: use zoom 11 for discovery and automatic GPS/IP location, 12 for a picked place, 13 for explicit My location, and 14 for a focused venue. Respect explicit URL zoom values. Retain this framing on mobile arrival; avoid fitting all results into the map strip exposed above the middle results sheet. Later explicit filter refinements may reveal matching places. Preserve the current desktop camera behavior.
 
 ### StatusPill
 6px status dot + 600-weight label in the status color (`--s-success-600` open /
@@ -385,29 +420,189 @@ The whole pill is one 12.5px inline-flex span.
 
 ### Journal
 
-Keep the editorial listing, featured article and responsive card grid. Omit
-repeated eyebrows, freshness badges and unsupported publishing-cadence claims.
-Show category once per card and keep localized date/reading time visible on
-every device. Card hover changes the border and nudges its arrow; no spotlight,
-image badges or replayed entrance animation. Category and page live in the URL
-through native history, preserving refresh, Back and unrelated parameters while
-the complete default index stays server-rendered and cached.
+Keep the editorial listing, featured article and responsive story grid at the
+shared 1400px usable width. The index opening pairs its heading and introduction
+on desktop. Carry the shared warm gradient and paper grain across the entire
+archive page, including articles, pagination and the category directory. Ease
+both decorative layers into the footer's canvas over the final 240–360px; keep
+the content and divider layers outside that mask. Present the feature as an open
+image-and-copy spread with a 64px gap, an 8px image radius and the article cover's
+soft shadow. Scale its headline using the article's title-length thresholds.
+Place the remaining stories directly on the page, with 3:2 photographs, fine
+column-gap dividers, natural text flow and a hairline above each metadata row.
+Use consistent 1px warm-ink rules: 24% opacity for section and column dividers,
+17% for metadata. These must remain visible against the textured background.
+Keep the shared neutral keyboard outline; hover underlines the title and nudges
+its arrow. Use three columns above 980px, two down to 640px and a single column
+with horizontal story separators on phones. Stack the masthead and featured
+spread at 760px. Give empty categories a modest 280px minimum height.
+Omit repeated eyebrows, freshness badges, boxed story panels and unsupported
+publishing-cadence claims. Show category once per story with a consistent
+terracotta dot and keep localized date/reading time visible on every device.
+No spotlight, image badges or replayed entrance animation. On the Journal index,
+present the three categories as an open illustrated directory after the articles
+and pagination. Use Guides / Ghiduri, Business advice / Sfaturi pentru afaceri
+and Zavoia updates / Noutăți Zavoia consistently in category links and article
+tags. Guides cover choosing services, preparing for visits and managing existing
+bookings. Keep introductions concise and concrete; use Read article / Citește
+articolul, All articles / Toate articolele and Read next / Citește și for article
+navigation. Each complete destination links its native paper-and-ink artwork,
+heading, short localized description and trailing arrow. Use three columns with
+fine dividers on desktop; below 760px use separated rows with text on the left
+and artwork on the right. Omit the directory's bottom rule and keep its closing
+spacing compact. Keep the folded guide/compass, planner/shopfront and
+newsletter/megaphone scenes in the same warm paper, ink and terracotta palette
+as Help and article resources. Avoid boxes, counts, an All articles item and a
+sliding tab indicator. Category pages pair their heading and introduction with
+the selected category's artwork in the header, beneath Back to the Journal. Place
+only the other two categories in an illustrated directory after the articles
+and pagination; omit the top category navigation. Keep neutral keyboard focus
+and 44px targets.
+During navigation, replace only the arrow with the shared Spinner, keeping the
+link label visible and the icon footprint fixed. Each fixed category has its own translated path,
+heading, introduction and SEO metadata. Populated hubs and valid pagination
+pages are indexable and self-canonical; empty hubs retain `noindex,follow` and
+stay out of the sitemap. Legacy category-query URLs permanently redirect to
+the category paths. Category and page support refresh and Back, while each
+requested listing stays server-rendered and its shared CMS data stays cached.
 
-Article headings, covers and prose share the site's left content edge; do not
-center the reading column independently. Prose uses 17px type, 18px on desktop,
-in a column up to 720px. For three or more headings, use a nearby 220px contents
-column with a 64px gap. At 1024px and below, replace the sidebar with an inline
-contents disclosure. Short articles keep the same left alignment without a
-sidebar. Covers cap at 1004px wide and 320px tall on desktop, with a 16:10 frame
-on phones; inline figures preserve their authored proportions. Use ordinary bullets,
-true numbered lists and visible FAQ answers. Do not add automatic drop caps,
-noninteractive tags or a second related-article banner.
+Deliver Journal photographs through the shared BlogImage wrapper: Next generates
+responsive candidates and Sanity performs crop/hotspot-aware transformations
+directly, capped at the available source resolution. Supply sizes for each
+editorial placement and preserve the existing image feedback and reserved
+aspect ratios. Keep lead images eager with high fetch priority; lazy-load
+supporting images. Use localized cover descriptions from Sanity, retaining legacy
+text until an editor replaces it. Decorative images have empty alternative text;
+informative body images have a description in their body's language and may
+include a visible caption.
+
+Reserve H1 for the article title; normalize older H1 body blocks to H2 and keep
+their table-of-contents anchors aligned. Category and article breadcrumb markup
+describes the visible Journal/category/title relationships. An optional confirmed
+author and public profile URL must agree across byline and metadata; posts without
+these fields retain Carmen's existing byline. A valid Last significant update
+date appears beside publication metadata and feeds article/preview markup and
+sitemap lastmod. Do not manufacture an update date from CMS save time or page
+regeneration. Keep article-specific Q&As useful in their own right; FAQ markup
+does not promise a Google FAQ rich result.
+
+All article sections use the shared 1400px usable content width, with standard
+page gutters outside it. Do not add narrower inner section caps or extra
+horizontal padding. The opening is a paired spread:
+headline and introduction on the left, photograph on the right, with a 64px gap.
+Group category, date and reading time above the headline, with accessible metadata
+labels. Keep the author/share row at the lower edge of the introduction. Scale
+short headlines more prominently and longer headlines more modestly so authored
+text and photography stay in proportion. The opening has a 440px minimum height;
+longer text can increase it naturally. Center the photograph in its frame or honor
+the authored hotspot. Use a soft, layered warm-ink shadow around the cover.
+At 760px and below, stack the opening and use a 4:3 photo.
+The reading section uses the full shared 1400px usable width, without an inner
+width cap or additional horizontal padding. Prose fills the available left column
+beside a narrow 240px sticky contents rail on the right, separated by a 64px gap.
+Contents use a quiet hairline track, a small
+terracotta marker and stronger text for the current section, with indented
+subsections. Cap the rail at the available viewport height and allow scrolling
+for longer contents lists. Use 17px body type, 18px on desktop. Without contents,
+the prose fills the reading section. The full-width hero reuses For Business's warm radial gradient and
+paper-grain asset at .11 opacity, with a 220–280px masked fade into the reading
+surface. Its background follows the opening's actual height on every viewport.
+Inline figures retain authored proportions. Authored quotes use regular-weight
+italic text with visible quotation marks, localized for English and Romanian,
+between two fine horizontal rules. Preserve any authored bold emphasis inside
+the quote. Style all six Sanity heading levels with distinct sizes and spacing;
+keep the existing H2/H3 article contents and anchor behavior.
+Use ordinary bullets and true numbered lists. Show contents for two or more
+destinations, including Q&As and useful links. At 1024px and below, use an inline
+contents disclosure and a full-width single reading column. Do not add automatic
+drop caps, noninteractive tags or a second related-article banner.
+
+Author Q&As and useful links for each article in Sanity. A broad 56px section
+heading and a 150px paper-guide illustration introduce the Q&As. Use Caveat only
+in that static heading. Q&As and useful links span the same full section width.
+Render both Help and article answers through the same shared `QARow` component:
+question above answer, expanded initially and individually collapsible, with
+shared disclosure motion and keyboard feedback. Reuse Help's ink question titles,
+neutral minus icon and 90% answer width, increasing to 100% on phones. Useful links
+use a vertical list on the left and a bespoke folded-map and paper-resource
+illustration on the right, spanning the full section width. Match the existing
+paper artwork's ink outlines, layered sheets, soft contact shadows and restrained
+terracotta details. Place the heading above the list; make each complete row
+clickable, with a larger label, a quiet circular arrow and one bottom hairline.
+Let labels wrap naturally. On phones, stack the list before the artwork. Do not
+repeat a section-top rule immediately after the final Q&A separator.
+Preserve each language's exact URL,
+including translated article slugs. Omit unpopulated sections rather than adding
+generic answers or resources. Visible answers and FAQ structured data must match.
 
 Sharing lives beside article metadata on all devices. Confirm a copied link only
 after clipboard success and use the shared error toast on failure. Keep one
 reading-progress hairline, measured through the article rather than the footer
-or related posts. Skeletons reuse the listing/article layout classes and shared
+or related posts, and hide it when the article fits within the viewport. Related
+stories form a 12-column magazine spread: the lead spans six columns and two
+supporting stories span three each. Use 3:2, square and 4:3 image proportions with
+natural text and metadata flow, without forcing their footers onto one line.
+Place fine warm-neutral dividers in the column gaps and above each story's
+metadata row. Stretch the column dividers through the grid row while keeping
+story links natural-height. On tablets, separate the full-width lead with a
+horizontal rule and retain a vertical rule between the supporting pair. On
+phones, use horizontal separators between stories. Keep the existing widths and
+avoid additional inner padding.
+Keep one link per story, an authored excerpt when present, category and localized
+metadata. On tablets the first story spans the grid; on phones it leads two compact
+rows. Avoid boxed cards or invented featured labels. Skeletons reuse the listing/article layout classes and shared
 Skeleton component. Global header and footer styles remain independent.
+
+### Help centre
+
+Keep the seventeen general bilingual Q&As in six topics, including business
+website creation and the Base/Plus plan distinction. Reuse the established
+business FAQ layout and disclosure classes from `faq-section.module.css`, with
+the shared `zw-container` width and gutters. Keep the entire left column sticky
+on desktop, containing a left-aligned display title, Caveat signature word, lead
+and report section. Search and grouped questions occupy the wider right column.
+Put the search field at 60% of the right column's width, with the paper-guide
+artwork to its right in the same row. On phones, allow a wider field beside a
+small illustration. At the shared 920px breakpoint, stack the sidebar above the
+search/questions and keep keyboard order consistent with the visible layout.
+Use the shared warm-paper surface and static grain at the opening. No centered
+standalone hero, separate category column, eyebrow or topic-filter pills.
+Search reuses the marketplace search field's muted surface, radius and inset
+focus outline. Topic headings sit directly above their lists, at 30px on desktop
+and 26px on phones. The shared business FAQ supplies question sizes, hairlines,
+plus/minus controls and answers. All seventeen answers start expanded in server
+HTML and remain individually collapsible. Keep question titles in ink for this
+reading layout; use terracotta on hover and keyboard focus, with immediate
+keyboard and reduced-motion changes. Use a shorter title-to-answer gap and clear
+separation between topics.
+Help answers use 90% of their question column, overriding the shared FAQ's 64ch
+cap and right padding; use the full column width on phones.
+Search works across topics, accepts Romanian
+diacritics and multiple keywords, and opens matching answers; clearing returns
+focus to the search field. No matches offers Clear search.
+Reserve a modest 240px minimum height for the results area, shared by matching
+answers and the empty state, so short or empty searches do not collapse the
+content and pull Useful links upward.
+Keep the page's single
+Report an issue button in the left support section. End the page with a Useful
+links section in two flat columns on desktop and one on phones. Its six
+destinations are password reset, account-deletion details, Zavoia for business,
+the localized Guides archive, Web Studio and Pricing. Keep guides in this section,
+not in the left sidebar. Answers contain plain text. Avoid duplicate destinations
+and report buttons.
+Guest reporting
+reuses the shared ActionModal with fixed
+header/actions, visible field focus, inline validation and owned request-error
+toasts that preserve drafts.
+The report form focuses its title field on opening. Reset title/email interaction
+feedback on each opening while retaining drafts, and ignore dismissal-driven
+blur. Reuse `isValidEmail`, `validatePlainText`, `InlineError` and `TextareaField`;
+required title/email errors appear after interaction or submission. Keep the close
+button's keyboard focus outline neutral rather than terracotta.
+After submission, use a compact confirmation with a short localized title,
+leading check mark, next-step sentence and the reply email on its own line.
+Omit receipt/reference identifiers. Focus the confirmation group, then let Tab
+reach the Close action; keep keyboard action outlines neutral.
 
 ### Account and support
 
@@ -418,6 +613,11 @@ available content-column width for every account section. Keep narrower limits
 on individual form fields and conversation text, not on the section shell.
 Reserve a 680px minimum desktop content height (growing with the viewport) and
 an 820px minimum mobile drill-in height; longer content expands naturally.
+Let the mobile account hub fit its content, including while it loads, without a
+viewport-based minimum height. Use one divider above logout, supplied by the
+settings list's bottom rule, with a compact gap before the action. Match logout's
+horizontal inset, icon width and label gap to the settings rows above.
+Use a 24px footer lead-in after this mobile hub, including its loading layout.
 Keep the outer workspace mounted while section contents change, and avoid
 fading the entire mobile section from invisible on every navigation.
 Avoid floating profile cards, nested ticket cards and duplicate ticket previews.
@@ -504,10 +704,10 @@ shows "Sign in to save" with a Sign in action, and an unverifiable session shows
 the heart as unavailable rather than "not saved".
 
 Saved uses the account-page title scale also used by Appointments: a 36px/600 title
-with no kicker above it and a mono "N saved" summary that hides at zero. Counted ink-active filter
+with no kicker or separate count summary. Show counts in the ink-active filter
 pills (the Appointments filter grammar) offer All plus only the types you have;
 a selected type that empties stays visible so the choice can be changed. Saved
-sets both a step larger than Appointments: a 13px summary, and 46px pills with
+sets its filters a step larger than Appointments: 46px pills with
 15px labels and 12.5px counts. The All
 view is one list, newest saved first. Use supplied public slugs, with the
 existing numeric route fallback. There is no Refresh button: the list
@@ -546,7 +746,7 @@ neighborhood buildings, the "Nothing saved yet" H1, guidance, and a compact
 52px ink Explore places pill. The separate Saved header is hidden in this state.
 The artwork is up to 440px wide and scales to fit phones; the title is 26–32px/600,
 and the copy and action remain centered at every width. The composition centers
-within the viewport below the site header and above the mobile tabs. The artwork
+within the viewport below the site header. The artwork
 follows the marketplace app's homepage streetscape: rounded 1.4–1.7px strokes,
 stone outlines, paper and mist fills, and terracotta reserved for the collection.
 It uses web color tokens and is decorative, with no extra screen-reader
@@ -637,7 +837,8 @@ date and prominent time range stay together beneath it. The recorded status sits
 at the summary's top right in the list's dashed, slightly rotated mono stamp,
 with relative-day text beneath it. Keep confirmed and completed labels visible;
 only an in-progress confirmed visit gets the live dot. On narrow phones the title
-uses the row beneath the stamp so they never overlap. Match the list's date
+sits beside the date pill, beneath a compact metadata row with the status at the
+top right and relative-day text on the left so long titles and stamps never overlap. Match the list's date
 colors without deriving a new appointment status.
 Venue and professional identity rows sit side by side where space permits,
 with independently rounded photography and avatars. Separate the two sections
@@ -665,8 +866,8 @@ the same composition and shared loading primitives.
 
 On mobile detail, stack identity rows and show venue and booked services before the management panel.
 A Manage appointment shortcut near the summary focuses that panel. Keep the
-primary View map or Book again action in the existing bottom bar, with an
-opaque canvas background so scrolling content cannot compete with its labels. Eligible
+primary View map or Book again action inside that panel, in normal page flow;
+do not add a fixed footer or reserve space for one. Eligible
 completed visits instead use Leave a review as the primary action and Book again
 as secondary, on both desktop and mobile. The review action uses the primary
 terracotta (`--p-500`) with no border and white-palette text and star (`--c-50`). Reuse the existing combined review
@@ -835,6 +1036,11 @@ use a 40px short name. Use the professional page's
 fine outer frame, inset content and faded dividers to connect header and catalog.
 Confine warm material to the overview and keep the shared 1400px container.
 Brand pages retain their own identity-led layout and location cards.
+Use the same canonical industry icon and localized label in the brand identity.
+Close the brand content with the shared `IndustryExplore` row, a subtle top
+divider and the existing industry-filtered search link. Keep its destination
+independent of city because a brand may span several cities. Location About
+reuses this row with both dividers; the brand ending uses only the top divider.
 
 The location gallery is an asymmetric photo collage with a tall central image,
 offset supporting photographs and a dedicated See all tile. A diffuse warm
@@ -1023,13 +1229,20 @@ short and softly faded rather than applying the page-scale inset to them.
 Keep decorative layers behind the content and outside pointer interaction.
 The save, share and back controls provide hover and ink keyboard-focus feedback;
 pending controls remain inactive, and reduced motion removes lifts and pops.
-Retain document scrolling and the sticky booking bar above the mobile tabs.
+Retain document scrolling and the sticky booking bar at the viewport bottom,
+with padding for the bottom safe area.
 
 The booking dialog uses the same 540px width, 24px title, warm body, 44px header
 controls and borderless terracotta action as the appointment dialogs. Keep its
-height stable at 780px, capped by the viewport, with a scrolling body between the
-fixed header and actions. Phones use a 12px inset and stacked actions. Hide the
-dialog's native scrollbar tracks while preserving body and state-screen scrolling.
+height stable at 780px on desktop, capped by the viewport, with a scrolling body
+between the fixed header and actions. At up to 920px, use the shared full-width
+bottom drawer with at least 24px top clearance respecting the safe area, rounded
+top corners and the shared drag handle. Match the other drawers' 240ms entrance,
+180ms close and 320ms drag release; keyboard and reduced-motion dismissal remain
+immediate. Keep the booking session mounted through its exit before discarding
+it, while preserving the separate sign-in detour. Phones retain stacked actions
+and bottom safe-area padding. Hide the dialog's native scrollbar tracks while
+preserving body and state-screen scrolling. Initial focus stays on the shell.
 For bookings started from a professional profile,
 omit per-service professional cards once that professional is pinned and selected.
 Keep their assignment and pricing intact, restore choices after explicit unpin
@@ -1062,7 +1275,10 @@ Use the Studio motion vocabulary: a transform-based thumbnail expansion at
 motion on navigation/unmount and clean up clones. Reduced motion removes the
 animations and direct drag effects. Respect safe areas and keep controls clear
 of the image on phones. Reuse `Img` and `Skeleton` for image loading/fallback;
-no visible loading text. Radix owns modal isolation; a parent profile is inert
+no visible loading text. Keep the loaded page photo visible while requesting a
+responsive fullscreen image, and retain it if the larger request fails. Apply
+the same recovery to thumbnails; morphs reuse the loaded image's `currentSrc`.
+Radix owns modal isolation; a parent profile is inert
 while the viewer is open and its custom keyboard handlers are suspended. Return
 focus without scrolling after the parent becomes active again. Studio-specific
 thumbnail geometry, source synchronization and theme stay in its adapter.
@@ -1075,15 +1291,16 @@ with 22px text line-height and 24px corners so multiline messages stay readable.
 The close control has an 18px glyph, a 32px visual circle and a 44px hit target.
 Keep action controls reachable and text wrapping inside the available width.
 The fixed host uses the available width up to 460px. On phones, place it below
-the header so it clears the bottom navigation and sticky appointment actions.
+the header so it clears sticky booking actions.
 Holds 4000ms (6000ms with an action), then exits with a soft drop.
 
 ### Web Studio — specimen catalogue
 
 The homepage website showcase uses published brand websites, one card per business.
 Keep its optional band absent until the feed confirms at least one website. A
-successful empty result renders nothing, including no section spacing or skeleton;
-request failures retain the existing retry notice. Once websites are known, render
+successful empty result or initial request failure renders nothing, including no
+section spacing, skeleton or individual retry notice. Follow the shared homepage
+discovery recovery rule above. Once websites are known, render
 the actual card count, captions, intro and carousel controls immediately. Only the
 preview assets use a skeleton, inside the same fixed frame as the rendered website.
 Reuse the shared shimmer with dark neutral tokens scoped to this preview placeholder.
@@ -1101,6 +1318,21 @@ Use the existing industry dictionary fallback for missing translations. The capt
 stays visible while preview assets load. Its compact footprint keeps long names and
 absent industries from changing the card height; keep the full name in its title
 and accessible link label.
+Below 880px, order this showcase as intro, full-content-width preview, full-width
+pager and progress track, then both Web Studio actions in one row. Place the pager
+arrows on the left and the counter on the right. Keep one set of links in reading
+and keyboard order, and size labels to fit English and Romanian on narrow phones.
+When the preview rail has no overflow, remove the mobile pager/progress footprint.
+Keep every preview card and caption fully opaque on desktop and mobile. Distinguish
+the active card through scale and position, without fading neighbouring cards.
+Soften clipped carousel edges with narrow gradient masks that blend into the actual
+backdrop. Show each only while more cards remain beyond that edge; hide both when
+the rail fits. Keep the fades narrower on mobile and retain normal card interactions.
+Support direct mouse and pen dragging with a grab cursor and a small horizontal
+movement threshold before capture. Cancel the current pager tween on press, keep
+touch panning native, and suppress link navigation only after a drag. Ordinary,
+modified and keyboard link activation remain available.
+Open the published website from each showcase card in a new tab on all devices.
 
 ### Web Studio marketing and design demo
 
@@ -1563,7 +1795,7 @@ Character: the shop window seen from behind the counter. The same warm paper,
 ink and one terracotta, written for an owner deciding whether to list. Shared
 pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
 
-- **Site chrome:** these pages keep the marketplace header, phone tab bar and
+- **Site chrome:** these pages keep the marketplace header, mobile Underlay menu and
   footer like every other page. Business signup lives in the page's conversion
   sections as links to the business app. For Business keeps its hero focused on
   the trial and pricing; returning-business sign-in remains in the closing band.
@@ -1842,7 +2074,7 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   optional SMS/style purchases separate. Do not infer production Stripe prices
   from development seeds. On narrow phones, pair each extra's artwork with its
   title and let the body use the full width beneath. Pricing uses the standard
-  site header, marketplace search and mobile tabs, matching the other pages.
+  site header, marketplace search and mobile Underlay menu, matching the other pages.
   Retain in-page plan anchors, keyboard focus and reduced-motion scrolling.
   Carry the active language
   explicitly into web registration, where the dashboard validates the choice
@@ -1948,7 +2180,7 @@ reduce` via a global clamp.
 - **Do** put every user-facing string in both dictionaries (`src/i18n/dictionaries/en.ts` and `ro.ts`); the `Dictionary` type enforces key parity — English first, then mirror in Romanian.
 - **Do** keep secondary text at `var(--c-600)` or darker on the canvas (the c-600 Floor Rule); reserve `--c-500`/`--c-400` for decoration and verify large meaningful text meets 3:1 against its background.
 - **Do** join meta segments with `--c-400` "·" separators, interleaving only the segments that exist (use the `joinDot` pattern), and keep each separator fused in a `nowrap` span with the item that follows it.
-- **Do** use ink for structure and state (active chips/tabs/pagination invert to ink + white) and terracotta only for the accent action, ratings, focus, and live signals.
+- **Do** use ink for structure and state (active chips/tabs/pagination invert to ink + white), neutral action focus outlines, and terracotta for the accent action, ratings, input focus and live signals.
 - **Do** give every card `var(--card-r, 18px)`, `.zw-hover-lift`, and a `.zw-zoom-wrap` around its image so hover = 3px rise + sh-lg + 1.045× zoom, together.
 - **Do** set `tabular-nums` on every mutable number and use Geist Mono (≤13px, 600, wide-tracked uppercase) for kickers, indices, and counts.
 - **Do** use non-enumerable slugs for detail routes (`/business/<locationSlug>`, `/brand/<businessSlug>`, numeric-id fallback) — never sequential IDs in URLs.
@@ -1958,5 +2190,5 @@ reduce` via a global clamp.
 - **Don't** use `--c-500` for body-size secondary text — it fails the 4.5:1 contrast floor on the canvas.
 - **Don't** back the page with white or tint content surfaces with status color; the page is `--c-canvas`, cards are white, and status arrives as a 6px dot.
 - **Don't** introduce a second accent, gray-hex borders (hairlines are ink-alpha), pure-black shadows (shadow color is `rgba(28,28,26,…)`), or a dark mode.
-- **Don't** hide native page scrollbars, orphan a dot separator at a line end, or let a card grid orphan a lone third card (use the explicit 3→2→1 grid).
+- **Don't** hide native page scrollbars on desktop, orphan a dot separator at a line end, or let a card grid orphan a lone third card (use the explicit 3→2→1 grid).
 - **Don't** exceed the one authored motion grammar — no parallax, no continuous ambient animation beyond the sanctioned pulses (live dots, radar rings), nothing that ignores `prefers-reduced-motion`.

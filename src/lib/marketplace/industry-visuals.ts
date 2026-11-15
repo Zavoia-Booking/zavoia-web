@@ -108,12 +108,16 @@ const NAME_TO_SLUG: Record<string, IndustrySlug> = {
   "dental": "health-medical",
 };
 
-/** Registry key for a slug: aliases resolved, unknown/missing → `other`. */
-export function resolveIndustrySlug(slug?: string | null): IndustrySlug {
-  if (!slug) return "other";
+function knownIndustrySlug(slug?: string | null): IndustrySlug | undefined {
+  if (!slug) return undefined;
   const aliased = LEGACY_SLUG_ALIASES[slug];
   if (aliased) return aliased;
-  return SLUG_SET.has(slug) ? (slug as IndustrySlug) : "other";
+  return SLUG_SET.has(slug) ? (slug as IndustrySlug) : undefined;
+}
+
+/** Registry key for a slug: aliases resolved, unknown/missing → `other`. */
+export function resolveIndustrySlug(slug?: string | null): IndustrySlug {
+  return knownIndustrySlug(slug) ?? "other";
 }
 
 /**
@@ -127,16 +131,23 @@ export function industrySlugOf(
   industry?: { id?: number; name?: string | null; slug?: string | null } | null,
   slugById?: ReadonlyMap<number, string>,
 ): IndustrySlug {
-  if (!industry) return "other";
-  if (industry.slug) return resolveIndustrySlug(industry.slug);
+  return knownIndustrySlugOf(industry, slugById) ?? "other";
+}
+
+/** Exact registry match for navigation; unknown industries have no destination. */
+export function knownIndustrySlugOf(
+  industry?: { id?: number; name?: string | null; slug?: string | null } | null,
+  slugById?: ReadonlyMap<number, string>,
+): IndustrySlug | undefined {
+  if (!industry) return undefined;
+  if (industry.slug) return knownIndustrySlug(industry.slug);
   if (industry.id != null && slugById) {
     const byId = slugById.get(industry.id);
-    if (byId) return resolveIndustrySlug(byId);
+    if (byId) return knownIndustrySlug(byId);
   }
-  const byName = industry.name
+  return industry.name
     ? NAME_TO_SLUG[industry.name.trim().toLowerCase()]
     : undefined;
-  return byName ?? "other";
 }
 
 export function industryVisual(slug?: string | null): IndustryVisual {

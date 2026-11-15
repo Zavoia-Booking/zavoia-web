@@ -1,13 +1,13 @@
-import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/locales";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import type { ListingDetail, ListingLocation } from "@/lib/api/marketplace/types";
 import { countryCode } from "@/lib/geo/country-code";
 import { parseWorkingHoursDay, WEEKDAYS } from "@/lib/marketplace/working-hours";
+import { organizationId, siteEntities, websiteId } from "@/lib/seo/site-identity";
 import { SITE_URL } from "@/lib/site";
+import { merchantId as merchantEntityId } from "@/lib/seo/entities";
+import { serializeJsonLd } from "@/lib/seo/json-ld";
 import { locationHref, locationIdentity, locationName, locationTitle } from "./identity";
-
-const organizationId = `${SITE_URL}/#organization`;
-const websiteId = `${SITE_URL}/#website`;
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" ? value.trim() || undefined : undefined;
@@ -102,7 +102,7 @@ export function locationStructuredData(
   const url = `${SITE_URL}${locationHref(locale, listing)}`;
   const canonicalLocationUrl = `${SITE_URL}${locationHref(DEFAULT_LOCALE, listing)}`;
   const locationId = `${SITE_URL}/#location-${encodeURIComponent(text(listing.location.uuid) || String(listing.locationId))}`;
-  const merchantId = `${SITE_URL}/#business-${listing.businessId}`;
+  const merchantId = merchantEntityId(listing.businessId);
   const pageId = `${url}#webpage`;
   const breadcrumbId = `${url}#breadcrumb`;
   // The visible heading, which closes the breadcrumb trail.
@@ -140,21 +140,7 @@ export function locationStructuredData(
   return {
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": "Organization",
-        "@id": organizationId,
-        name: "Zavoia",
-        url: `${SITE_URL}/`,
-        logo: `${SITE_URL}/brand/wordmark-cropped.png`,
-      },
-      {
-        "@type": "WebSite",
-        "@id": websiteId,
-        name: "Zavoia",
-        url: `${SITE_URL}/`,
-        inLanguage: [...LOCALES],
-        publisher: { "@id": organizationId },
-      },
+      ...siteEntities(),
       ...(merchantName ? [{
         "@type": "Organization",
         "@id": merchantId,
@@ -200,5 +186,5 @@ export function locationStructuredData(
 
 /** Safe inside a native application/ld+json script, including merchant-supplied text. */
 export function serializeLocationStructuredData(listing: ListingDetail, locale: Locale, context: LocationPageContext = {}): string {
-  return JSON.stringify(locationStructuredData(listing, locale, context)).replace(/</g, "\\u003c");
+  return serializeJsonLd(locationStructuredData(listing, locale, context));
 }

@@ -29,9 +29,12 @@ function useStackedIndex() {
 }
 
 function AnswerFade({ changeKey, children }: { changeKey: string; children: React.ReactNode }) {
-  const [shown, setShown] = useState(false);
+  const [shown, setShown] = useState(true);
+  const previousKey = useRef(changeKey);
 
   useEffect(() => {
+    if (previousKey.current === changeKey) return;
+    previousKey.current = changeKey;
     setShown(false);
     const timeout = window.setTimeout(() => setShown(true), 20);
     return () => window.clearTimeout(timeout);
@@ -71,11 +74,9 @@ export function Index({ items, locale, email, t }: FaqVariantProps) {
   const id = useId();
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeIndex = selected >= 0 && selected < items.length ? selected : 0;
-  const activeAnswer = localized(items[activeIndex].a, locale);
   const frequentlyAsked = t("businessPage.builder.preview.faqFrequentlyAsked");
   const inShort = t("businessPage.builder.preview.faqInShort");
   const bookVisit = t("businessPage.builder.preview.faqBookVisit");
-  const panelId = `${id}-answer-panel`;
 
   useEffect(() => {
     setSelected((current) =>
@@ -165,7 +166,7 @@ export function Index({ items, locale, email, t }: FaqVariantProps) {
                     className="mc-fqx-row"
                     data-on={isActive ? "1" : "0"}
                     aria-selected={isActive}
-                    aria-controls={panelId}
+                    aria-controls={`${id}-answer-panel-${index}`}
                     tabIndex={isActive ? 0 : -1}
                     onClick={() => setSelected(index)}
                     onKeyDown={(event) => handleTabKeyDown(event, index)}
@@ -181,17 +182,21 @@ export function Index({ items, locale, email, t }: FaqVariantProps) {
           </div>
           <aside className="mc-fqx-aside">
             <span className="mc-fqx-eyebrow">{inShort}</span>
-            <div
-              id={panelId}
-              className="mc-fqx-answer-wrap"
-              role="tabpanel"
-              aria-labelledby={`${id}-tab-${activeIndex}`}
-              tabIndex={0}
-            >
-              <AnswerFade changeKey={`${activeIndex}:${locale}:${activeAnswer}`}>
-                <p className="mc-fqx-answer">{activeAnswer}</p>
-              </AnswerFade>
-            </div>
+            {items.map((item, index) => (
+              <div
+                key={index}
+                id={`${id}-answer-panel-${index}`}
+                className="mc-fqx-answer-wrap"
+                role="tabpanel"
+                aria-labelledby={`${id}-tab-${index}`}
+                tabIndex={0}
+                hidden={activeIndex !== index}
+              >
+                <AnswerFade changeKey={`${activeIndex === index}:${locale}:${localized(item.a, locale)}`}>
+                  <p className="mc-fqx-answer">{localized(item.a, locale)}</p>
+                </AnswerFade>
+              </div>
+            ))}
             <IndexContact email={email} label={bookVisit} />
           </aside>
         </div>

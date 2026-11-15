@@ -32,3 +32,11 @@
   min-width: 0;
   min-height: 0;
 }
+
+/* Focus belongs to the local surface, independently of a merchant's brand hue.
+   Inverse sections override --mc-focus; paper sections use their neutral ink. */
+.mc-root { --mc-focus: var(--mc-fg); }
+.mc-root :is(a, button, summary, [role="button"]):focus-visible {
+  outline-color: var(--mc-focus, var(--mc-fg));
+  transition: none;
+}

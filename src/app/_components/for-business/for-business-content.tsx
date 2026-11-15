@@ -3,6 +3,7 @@ import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { format, formatCount } from "@/i18n/format";
 import { getPlanPricing } from "@/lib/marketing/pricing";
+import type { MarketingFaqItem } from "@/lib/marketing/page-content";
 import { preloadSignatureFont } from "./signature-font";
 import { TrialLink } from "./links";
 import { ClosingSection } from "./closing-section";
@@ -25,7 +26,7 @@ import styles from "./for-business.module.css";
  * questions and the trial. Server-rendered, with small client leaves for the
  * street and pricing link.
  */
-export function ForBusinessContent({ locale }: { locale: Locale }) {
+export function ForBusinessContent({ locale, faqItems }: { locale: Locale; faqItems: readonly MarketingFaqItem[] }) {
   const dict = dictionaries[locale];
   const t = dict.forBusiness;
   const b = dict.businessMarketing;
@@ -79,7 +80,7 @@ export function ForBusinessContent({ locale }: { locale: Locale }) {
 
       <PlansSection locale={locale} />
 
-      <FaqSection locale={locale} />
+      <FaqSection locale={locale} items={faqItems} />
 
       <ClosingSection locale={locale} />
     </div>

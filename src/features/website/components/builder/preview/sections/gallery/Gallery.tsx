@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { ImageOff } from "lucide-react";
 import type { GalleryConfig, SectionEntry } from "../../../../../types";
 import { useInView } from "../../shared/hooks";
+import { findScrollParent } from "../../shared/util";
 import { Placeholder } from "../../shared/primitives";
 import type { PreviewData, T } from "../../shared/types";
 import { Bento } from "./variants/Bento";
@@ -39,7 +40,7 @@ export function Gallery({
   const images: GalleryImage[] = resolveGalleryImages(config, data.locations).map((image) => ({
     id: image.id,
     src: image.src,
-    alt: image.alt,
+    alt: image.alt || data.businessName,
   }));
   const variant = Object.hasOwn(VARIANTS, entry.variant) ? entry.variant : "bento";
   const View = VARIANTS[variant];
@@ -47,6 +48,18 @@ export function Gallery({
   const headingWords = heading.split(/\s+/).filter(Boolean);
   const rootRef = useRef<HTMLElement>(null);
   const revealed = useInView(rootRef, { threshold: 0.08, once: true });
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || revealed) return;
+    const scroller = findScrollParent(root);
+    const viewportBottom = scroller?.getBoundingClientRect().bottom ?? window.innerHeight;
+    // Do not hide content already visible when hydration or observer setup completes.
+    if (root.getBoundingClientRect().top < viewportBottom) return;
+    root.setAttribute("data-gallery-motion", "true");
+    return () => root.removeAttribute("data-gallery-motion");
+  }, []);
+
   const [lightboxImageId, setLightboxImageId] = useState<string | null>(null);
   const openLightboxIndex = lightboxImageId
     ? images.findIndex((image) => image.id === lightboxImageId)

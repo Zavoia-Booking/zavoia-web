@@ -17,6 +17,10 @@
 /** admin-api: `@MinLength(8)` when creating or replacing a password. */
 export const PASSWORD_MIN_LENGTH = 8;
 
+/** Shared email format check used by sign-in, account edits and guest support. */
+export const isValidEmail = (value: string): boolean =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
 /**
  * admin-api `PASSWORD_REGEX` (validation.ts:21), plus the length check the
  * DTOs apply alongside it. Any non-alphanumeric counts as the special

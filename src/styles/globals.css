@@ -38,7 +38,6 @@
    root font tokens resolve before their values are inherited.
    ───────────────────────────────────────────── */
 :root {
-  --mobile-tabs-h: calc(66px + env(safe-area-inset-bottom));
   /* Type */
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -189,7 +188,7 @@
 
 /* ── Responsive token overrides (verbatim, web.css:493,508) ── */
 @media (max-width: 920px) {
-  :root { --gutter: 20px; --nav-h: 60px; }
+  :root { --gutter: 20px; --nav-h: 56px; }
 }
 @media (max-width: 600px) {
   :root { --gutter: 16px; }
@@ -445,9 +444,12 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 }
 .zv-ring-pulse { animation: zv-ring-pulse 1.6s ease-out 3; }
 
-/* Focus ring */
+/* Neutral keyboard focus for actions; dark surfaces override the color token. */
 :focus { outline: none; }
-:focus-visible { outline: 2px solid var(--p-500); outline-offset: 2px; border-radius: 6px; }
+:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 2px; border-radius: 6px; }
+/* Native fields keep their existing field-focus color. Component field rules
+   (including neutral textareas and auth halos) still take precedence. */
+:where(input:not([type="button"], [type="submit"], [type="reset"]), select, textarea):focus-visible { outline-color: var(--p-500); }
 
 /* Scroll-reveal — sections rise + fade on first viewport entry. */
 @media (prefers-reduced-motion: no-preference) {
@@ -496,6 +498,22 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 /* Panels / carousels — hidden scrollbar, still scrollable */
 .zw-noscrollbar { scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch; }
 .zw-noscrollbar::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* Mobile documents and nested panes hide their bars, while native scrolling stays enabled.
+   This surface rule also overrides components that request thin desktop scrollbars. */
+@media (max-width: 920px) {
+  :root,
+  :root * {
+    scrollbar-width: none !important;
+  }
+
+  :root::-webkit-scrollbar,
+  :root *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
 
 /* Fade-in (popovers) */
 @keyframes zv-fade { from { opacity: 0; } to { opacity: 1; } }
@@ -671,7 +689,7 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
    user-dot pulse (ported additively from docs/web.css)
    ───────────────────────────────────────────── */
 
-/* Vertical results and panels use the browser's native scrollbar. */
+/* Vertical results and panels scroll natively; mobile hides only their bars. */
 .zw-scroll-y { overflow-y: auto; }
 
 /* "Updating…" count pulse while results refetch */
@@ -812,111 +830,16 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
   .zw-mgrid[data-cols="2"], .zw-mgrid[data-cols="3"], .zw-mgrid[data-cols="4"] { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* ── Help centre — editorial Q&A + sticky "Good to know" sidebar ── */
-.zw-help-search {
-  margin-top: clamp(22px, 2.6vw, 30px); display: flex; align-items: center; gap: 10px;
-  background: #fff; border: 1px solid rgba(28,28,26,0.12); border-radius: 14px;
-  padding: 6px 6px 6px 16px; box-shadow: var(--sh-sm); max-width: 600px;
-  transition: border-color .18s var(--ease-soft), box-shadow .18s var(--ease-out);
-}
-.zw-help-search:focus-within { border-color: var(--p-400); box-shadow: 0 0 0 4px var(--p-100); }
-
-.zw-help-grid {
-  display: grid; grid-template-columns: minmax(0, 1fr) 336px;
-  column-gap: clamp(32px, 4vw, 60px); align-items: start;
-  margin-top: clamp(28px, 3.4vw, 44px);
-}
-.zw-help-main { min-width: 0; }
-.zw-help-aside { position: sticky; top: calc(var(--nav-h) + 24px); display: flex; flex-direction: column; gap: 16px; }
-@media (max-width: 920px) {
-  .zw-help-grid { grid-template-columns: 1fr; row-gap: 26px; }
-  .zw-help-aside { position: static; order: -1; }
-}
-
-.zw-help-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.zw-help-chip {
-  font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; letter-spacing: 0.01em;
-  padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(28,28,26,0.12);
-  background: #fff; color: var(--c-700); cursor: pointer; white-space: nowrap;
-  transition: background-color .18s var(--ease-soft), border-color .18s var(--ease-soft),
-              color .18s var(--ease-soft), transform .15s var(--ease-out);
-}
-.zw-help-chip:hover { border-color: rgba(28,28,26,0.26); background: var(--c-shade); }
-.zw-help-chip:active { transform: scale(0.96); }
-.zw-help-chip[data-on="1"] { background: var(--c-ink); border-color: var(--c-ink); color: #fff; }
-
-.zw-help-grouphead {
-  display: flex; align-items: center; gap: 9px;
-  font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--c-500); margin-bottom: 2px;
-}
-.zw-help-qa { border-top: 1px solid rgba(28,28,26,0.09); }
-.zw-help-qa-row { border-bottom: 1px solid rgba(28,28,26,0.09); }
-.zw-help-qa-q {
-  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  background: transparent; border: 0; cursor: pointer; padding: 17px 4px; text-align: left;
-  list-style: none;
-}
-.zw-help-qa-q::-webkit-details-marker { display: none; }
-.zw-help-qa-qt {
-  font-size: 16px; font-weight: 600; letter-spacing: -0.016em; color: var(--c-900); line-height: 1.35;
-  transition: color .15s var(--ease-soft);
-}
-.zw-help-qa-q:hover .zw-help-qa-qt { color: var(--p-700); }
-.zw-help-qa-ic {
-  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-  border: 1px solid rgba(28,28,26,0.14); background: #fff; color: var(--c-700);
-  display: inline-flex; align-items: center; justify-content: center;
-  transition: background-color .2s var(--ease-soft), border-color .2s var(--ease-soft);
-}
-.zw-help-qa-row[open] .zw-help-qa-ic { background: var(--c-ink); border-color: var(--c-ink); color: #fff; }
-.zw-help-qa-row[open] .zw-help-qa-ic svg { transform: rotate(180deg); }
-
-.zw-help-card {
-  background: #fff; border: 1px solid rgba(28,28,26,0.08); border-radius: var(--r-xl);
-  box-shadow: var(--sh-sm); padding: 18px;
-}
-.zw-help-fulllink {
-  display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 0; padding: 0;
-  cursor: pointer; font-family: var(--font-sans); font-size: 13.5px; font-weight: 600;
-  color: var(--p-700); letter-spacing: -0.005em;
-}
-.zw-help-fulllink svg { transition: transform .2s var(--ease-out); }
-.zw-help-fulllink:hover svg { transform: translateX(3px); }
-.zw-help-treq {
-  width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
-  background: transparent; border: 0; border-top: 1px solid rgba(28,28,26,0.07);
-  padding: 11px 0; cursor: pointer;
-}
-.zw-help-treq:hover { opacity: 0.78; }
-.zw-help-qlink {
-  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  background: transparent; border: 0; border-top: 1px solid rgba(28,28,26,0.07);
-  padding: 12px 0; cursor: pointer; text-align: left;
-  font-size: 14px; font-weight: 500; color: var(--c-800); letter-spacing: -0.01em;
-  transition: color .15s var(--ease-soft);
-}
-.zw-help-qlink:hover { color: var(--p-700); }
-.zw-help-qlink:hover svg { transform: translateX(3px); }
-.zw-help-qlink svg { transition: transform .2s var(--ease-out); }
-
 /* ─────────────────────────────────────────────
    Legal — terms & policies library
    A quiet reading surface for long-form legal prose: an editorial index of
-   documents, then a measured article column with a sticky numbered contents
+   documents, then an article column with a sticky contents
    rail. Uses the marketplace vocabulary throughout (mono eyebrows, hairline
-   rules, shade→ink icon badges, terracotta as the active/structural accent).
+   rules, plain icons, terracotta as the active/structural accent).
    ───────────────────────────────────────────── */
 
-/* Both surfaces keep a readable column inside the shared marketplace grid —
-   legal reading wants a centred column, not the full shop window. */
-.zw-legal-shell { max-width: 880px; margin: 0 auto; }
-/* Once the contents rail drops away, the document's masthead, callouts and
-   article all collapse onto the single measure — otherwise the banner runs
-   300px wider than the prose it introduces. */
-@media (max-width: 1024px) {
-  .zw-legal-shell--doc { max-width: 58ch; }
-}
+/* Both surfaces fill the shared 1400px content area; the outer container owns gutters. */
+.zw-legal-shell { width: 100%; }
 
 /* ── Hub — audience groups ── */
 .zw-legal-group + .zw-legal-group { margin-top: clamp(34px, 4vw, 46px); }
@@ -927,17 +850,14 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
   white-space: nowrap;
 }
 .zw-legal-grouprule { flex: 1; height: 1px; background: rgba(28,28,26,0.10); }
-.zw-legal-groupn {
-  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
-  color: var(--c-400); font-variant-numeric: tabular-nums;
-}
 
 /* ── Document row — shared by the hub index and the "related" footer ── */
 /* Negative gutter so the row's hover field bleeds past the text column while
    the text itself stays optically aligned with the section label above it. */
 .zw-legal-rows { margin: 0 -16px; }
 .zw-legal-row {
-  position: relative; display: flex; align-items: flex-start; gap: 15px;
+  position: relative; display: grid; align-items: start;
+  grid-template-columns: 20px minmax(0, 1fr) auto; column-gap: 14px;
   padding: 17px 16px; border-radius: var(--r-lg); text-decoration: none;
   transition: background-color .18s var(--ease-soft);
 }
@@ -952,15 +872,12 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 .zw-legal-row:hover + .zw-legal-row::before { opacity: 0; }
 
 .zw-legal-ic {
-  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+  width: 20px; height: 22px;
   display: inline-flex; align-items: center; justify-content: center;
-  background: var(--c-shade); color: var(--c-700);
-  transition: background-color .25s var(--ease-soft), color .25s var(--ease-soft),
-              transform .3s var(--ease-spring);
+  color: var(--c-700);
 }
-.zw-legal-row:hover .zw-legal-ic { background: var(--c-ink); color: #fff; transform: translateY(-1px); }
 
-.zw-legal-rbody { min-width: 0; flex: 1; }
+.zw-legal-rbody { min-width: 0; }
 .zw-legal-rt {
   font-size: 16px; font-weight: 600; letter-spacing: -0.018em; line-height: 1.35;
   color: var(--c-900); transition: color .15s var(--ease-soft);
@@ -973,7 +890,7 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 /* Status and affordance share a right cluster, so the row's far edge carries
    meaning instead of trailing off into empty space. */
 .zw-legal-rcluster {
-  margin-left: auto; align-self: center; flex-shrink: 0;
+  justify-self: end; align-self: center;
   display: flex; align-items: center; gap: 16px;
 }
 .zw-legal-go {
@@ -985,9 +902,8 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
    goes, and the status drops to its own line under the description rather than
    stealing a third of the row's width from it. */
 @media (max-width: 640px) {
-  .zw-legal-row { flex-wrap: wrap; row-gap: 9px; }
-  .zw-legal-rbody { flex: 1 1 calc(100% - 55px); }
-  .zw-legal-rcluster { flex: 1 1 100%; margin-left: 55px; align-self: auto; gap: 0; }
+  .zw-legal-row { grid-template-columns: 20px minmax(0, 1fr); row-gap: 9px; }
+  .zw-legal-rcluster { grid-column: 2; justify-self: start; align-self: auto; gap: 0; }
   .zw-legal-rcluster:not(:has(.zw-legal-badge)) { display: none; }
   .zw-legal-rcluster .zw-legal-go { display: none; }
 }
@@ -1020,16 +936,13 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 .zw-legal-hubfoot-a:hover svg { transform: translateX(3px); }
 
 /* ── Document — reading column + contents rail ── */
-/* space-between pins the rail to the shell's right edge, so the masthead rules
-   above span exactly the article plus its rail rather than an arbitrary width. */
+/* The article uses the remaining width beside a compact right-hand contents rail. */
 .zw-legal-grid {
-  display: grid; grid-template-columns: minmax(0, 58ch) 196px;
-  justify-content: space-between; column-gap: 40px; align-items: start;
+  display: grid; grid-template-columns: minmax(0, 1fr) 240px;
+  column-gap: clamp(32px, 4vw, 64px); align-items: start;
 }
-/* 58ch of Geist at the container's 16px resolves to ~72 characters of the
-   15.5px prose below it — inside the comfortable measure at every viewport,
-   including the wide one where the contents rail is hidden. */
-.zw-legal-main { max-width: 58ch; min-width: 0; }
+.zw-legal-main { min-width: 0; }
+.zw-legal-main:only-child { grid-column: 1 / -1; }
 .zw-legal-aside { position: relative; min-width: 0; align-self: stretch; }
 @media (max-width: 1024px) {
   .zw-legal-grid { grid-template-columns: minmax(0, 1fr); }
@@ -1046,8 +959,9 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--c-600);
 }
 .zw-legal-meta-sep { color: var(--c-300); }
+.zw-legal-print-slot { margin-left: auto; }
 .zw-legal-print {
-  margin-left: auto; display: inline-flex; align-items: center; gap: 7px;
+  display: inline-flex; align-items: center; gap: 7px;
   background: transparent; border: 1px solid rgba(28,28,26,0.14);
   border-radius: 999px; padding: 6px 13px; cursor: pointer;
   font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
@@ -1057,6 +971,11 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 }
 .zw-legal-print:hover { background: var(--c-ink); border-color: var(--c-ink); color: #fff; }
 .zw-legal-print:active { transform: scale(0.96); }
+@media (max-width: 600px) {
+  .zw-legal-print-slot {
+    display: flex; justify-content: center; width: 100%; margin-left: 0;
+  }
+}
 
 /* Callouts — the draft banner and inline drafting notes share one family */
 .zw-legal-callout {
@@ -1070,18 +989,13 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 .zw-legal-callout--banner { margin-top: clamp(24px, 3vw, 32px); }
 .zw-legal-callout--banner p { font-size: 14px; }
 
-/* Sections — a hairline and a mono index above each heading */
+/* Sections — a hairline separates each heading and its content. */
 .zw-legal-sec {
   padding-top: clamp(28px, 3.2vw, 38px); margin-top: clamp(28px, 3.2vw, 38px);
   border-top: 1px solid rgba(28,28,26,0.08);
   scroll-margin-top: calc(var(--nav-h) + 28px);
 }
 .zw-legal-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-.zw-legal-secn {
-  font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
-  letter-spacing: 0.16em; color: var(--c-400); font-variant-numeric: tabular-nums;
-  margin-bottom: 9px;
-}
 .zw-legal-h2 {
   margin: 0; font-size: clamp(19px, 2vw, 22px); font-weight: 600;
   letter-spacing: -0.026em; line-height: 1.28; color: var(--c-900);
@@ -1113,7 +1027,6 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
   margin-bottom: 14px; padding-left: 15px;
   display: flex; align-items: baseline; gap: 8px;
 }
-.zw-legal-toc-total { color: var(--c-400); font-variant-numeric: tabular-nums; }
 .zw-legal-toc-link {
   display: flex; align-items: baseline; gap: 9px;
   padding: 7px 0 7px 15px; margin-left: -1px;
@@ -1127,12 +1040,6 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 .zw-legal-toc-link[data-on="1"] {
   color: var(--c-900); font-weight: 600; border-color: var(--p-500); padding-left: 19px;
 }
-.zw-legal-toc-n {
-  font-family: var(--font-mono); font-size: 10px; color: var(--c-400);
-  font-variant-numeric: tabular-nums; flex-shrink: 0;
-  transition: color .2s var(--ease-soft);
-}
-.zw-legal-toc-link[data-on="1"] .zw-legal-toc-n { color: var(--p-500); }
 
 /* Contents on narrow viewports — a native disclosure above the article, so the
    rail's wayfinding survives the breakpoint instead of disappearing with it. */
@@ -1149,7 +1056,10 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-700);
 }
 .zw-legal-toc-m > summary::-webkit-details-marker { display: none; }
-.zw-legal-toc-chev { display: inline-flex; transition: transform .25s var(--ease-out); }
+.zw-legal-toc-chev {
+  display: inline-flex;
+  transition: transform var(--disclosure-chevron) var(--disclosure-ease);
+}
 .zw-legal-toc-m[open] .zw-legal-toc-chev { transform: rotate(180deg); }
 .zw-legal-toc-mlist { padding: 0 16px 12px; display: flex; flex-direction: column; }
 .zw-legal-toc-mlink {
@@ -1207,17 +1117,13 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
   position: fixed;
   left: 16px;
   bottom: calc(16px + env(safe-area-inset-bottom));
-  z-index: 120; /* above the mobile tab bar (95) */
+  z-index: 120;
   width: min(400px, calc(100vw - 32px));
   background: #fff;
   border: 1px solid rgba(28,28,26,0.10);
   border-radius: var(--r-xl);
   box-shadow: var(--sh-lg);
   padding: 18px 20px 20px;
-}
-@media (max-width: 920px) {
-  /* Clear the fixed frosted tab bar on mobile. */
-  .zw-cookie-banner { bottom: calc(76px + env(safe-area-inset-bottom)); }
 }
 @media (prefers-reduced-motion: no-preference) {
   .zw-cookie-banner { animation: zwConsentIn .35s var(--ease-out) both; }
@@ -1289,11 +1195,9 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
    already responsive but read poorly on a narrow viewport.
    ───────────────────────────────────────────── */
 
-/* Footer spacer clears the fixed mobile tab bar; pages with a fixed action
-   bar stacked above the tabs (business "Book now", appointment "Directions")
-   mark it `.zw-mobile-actionbar`, and the spacer grows to clear both. */
-.zw-footer-spacer { height: 70px; }
-body:has(.zw-mobile-actionbar) .zw-footer-spacer { height: 136px; }
+/* Only pages with a fixed booking or appointment action bar need clearance. */
+.zw-footer-spacer { height: 0; }
+body:has(.zw-mobile-actionbar) .zw-footer-spacer { height: calc(70px + env(safe-area-inset-bottom)); }
 
 /* Footer links: a comfortable thumb target without changing desktop rhythm. */
 @media (max-width: 920px) {

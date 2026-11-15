@@ -110,7 +110,7 @@
 
 @media (max-width: 920px) {
   .bookingRail { display: none; }
-  .mobileBooking { position: fixed; z-index: 80; inset-inline: 0; bottom: var(--mobile-tabs-h); display: flex; align-items: center; gap: 16px; min-height: 70px; padding: 10px var(--gutter); border-top: 1px solid rgba(28, 28, 26, .10); background: var(--c-canvas); }
+  .mobileBooking { position: fixed; z-index: 80; inset-inline: 0; bottom: 0; display: flex; align-items: center; gap: 16px; min-height: calc(70px + env(safe-area-inset-bottom)); padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid rgba(28, 28, 26, .10); background: var(--c-canvas); }
   .mobileBooking .bookAction, .mobileBooking .callAction { width: auto; flex-shrink: 0; max-width: 48%; min-height: 46px; }
   .mobileBookingPrompt { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
   .mobileBookingPrompt > strong { overflow: hidden; color: var(--c-900); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
@@ -124,7 +124,7 @@
   .selectionDisclosure summary > svg { transform: rotate(90deg); flex-shrink: 0; }
   .selectionDisclosure[open] summary > svg { transform: rotate(-90deg); }
   /* The opened selection floats above the action bar. */
-  .mobileSelection { position: absolute; bottom: calc(100% + 10px); inset-inline: var(--gutter); max-height: calc(100dvh - var(--nav-h) - var(--mobile-tabs-h) - 130px); box-shadow: var(--sh-xl); }
+  .mobileSelection { position: absolute; bottom: calc(100% + 10px); inset-inline: var(--gutter); max-height: calc(100dvh - var(--nav-h) - env(safe-area-inset-bottom) - 130px); box-shadow: var(--sh-xl); }
   .mobileSelection .summaryBody { padding-top: 20px; }
   .mobileSummaryFooter { padding-block: 16px 20px; }
   .mobileSummaryFooter .totalAmount { font-size: 24px; }

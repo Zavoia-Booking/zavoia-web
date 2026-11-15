@@ -409,18 +409,38 @@ appointmentTest('Romanian composite titles use Romanian additional-item copy', a
   await expect(card).toHaveAccessibleName(/Confirmată/)
 })
 
-appointmentTest('mobile and tablet expose cancellation, rescheduling, calling and reviews', async ({ page }) => {
-  for (const width of [390, 768]) {
+appointmentTest('mobile and tablet keep appointment actions inline without a fixed bar', async ({ page, appointments }) => {
+  const expectInlineAction = async (control: Locator) => {
+    await expect(control).toHaveCount(1)
+    expect(await control.evaluate(element => !!element.closest('#appointment-management'))).toBe(true)
+    await expectReachableControl(control, page.getByRole('main'))
+    const before = { scroll: await page.evaluate(() => scrollY), top: (await control.boundingBox())!.y }
+    expect(before.scroll).toBeGreaterThan(0)
+    await page.evaluate(() => window.scrollBy({ top: -120, behavior: 'instant' }))
+    await expect.poll(() => page.evaluate(() => scrollY)).toBeLessThan(before.scroll)
+    const after = { scroll: await page.evaluate(() => scrollY), top: (await control.boundingBox())!.y }
+    expect(Math.abs((after.top - before.top) - (before.scroll - after.scroll))).toBeLessThanOrEqual(1)
+  }
+  for (const width of [768, 393]) {
     await page.setViewportSize({ width, height: 900 })
     await openDetail(page)
+    await expect(page.locator('.zw-mobile-actionbar')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Cancel appointment', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Reschedule', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Call', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Call', exact: true })).toHaveAttribute('href', 'tel:+40700000201')
+    await expectInlineAction(page.getByRole('link', { name: 'View map', exact: true }))
     await openDetail(page, COMPLETED)
-    await expect(page.getByRole('button', { name: 'Leave a review', exact: true })).toBeVisible()
+    await expectInlineAction(page.getByRole('button', { name: 'Leave a review', exact: true }))
+    await expectInlineAction(page.getByRole('button', { name: 'Book again', exact: true }))
+    await page.goto(`/appointments/${CANCELLED}`)
+    await expect(page.getByRole('heading', { name: 'Cancelled appointment fixture', level: 1, exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Leave a review', exact: true })).toHaveCount(0)
+    await expectInlineAction(page.getByRole('button', { name: 'Book again', exact: true }))
+    await expect(page.locator('.zw-mobile-actionbar')).toHaveCount(0)
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
+  expect(appointments.mutations).toEqual([])
 })
 
 appointmentTest('bundle details retain saved inclusions, descriptions and the recorded booking price', async ({ page, appointments }) => {
@@ -2098,6 +2118,12 @@ appointmentTest('review is primary on desktop and Romanian mobile and closes eli
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   const bounds = await mobileReview.boundingBox()
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320)
+  const management = page.getByRole('complementary', { name: 'Gestionează programarea', exact: true })
+  const mobileRebook = management.getByRole('button', { name: 'Programează-te din nou', exact: true })
+  for (const action of [mobileReview, mobileRebook]) {
+    await expectReachableControl(action, management)
+    expect(await action.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  }
   appointments.failDetails.add(COMPLETED)
   await mobileReview.click()
   const dialog = page.getByRole('dialog', { name: 'Cum a fost?', exact: true })
@@ -2109,17 +2135,41 @@ appointmentTest('review is primary on desktop and Romanian mobile and closes eli
   await expect(page.getByRole('button', { name: 'Programează-te din nou', exact: true })).toBeVisible()
 })
 
-appointmentTest('long business names stay within a narrow detail page', async ({ page, appointments }) => {
+appointmentTest('long appointment and business names retain the mobile title beside its date badge', async ({ page, appointments }) => {
+  const title = 'Precision appointment haircut with a detailed consultation and finishing service'
+  appointments.details[CONFIRMED].primaryItemName = title
+  appointments.details[CONFIRMED].bookedItemName = title
   appointments.details[CONFIRMED].business!.name = 'DenumireFirmă'.repeat(4)
   appointments.details[CONFIRMED].business!.description = 'A longer description of the venue, retained alongside the appointment details.'
   await page.setViewportSize({ width: 320, height: 760 })
-  await openDetail(page)
-  for (const width of [320, 768, 1024, 1440]) {
+  await page.goto(`/appointments/${CONFIRMED}`)
+  const heading = page.getByRole('heading', { name: title, exact: true, level: 1 })
+  await expect(heading).toBeVisible()
+  for (const width of [320, 393, 660, 768, 920, 1024, 1440]) {
     await page.setViewportSize({ width, height: 760 })
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    if (width <= 660) {
+      const hero = page.getByRole('main').locator('header').first()
+      const badge = (await hero.locator('[data-tense]').boundingBox())!
+      const copy = (await heading.locator('..').boundingBox())!
+      const titleBox = (await heading.boundingBox())!
+      const stamp = hero.getByText('Confirmed', { exact: true })
+      const stampBox = (await stamp.boundingBox())!
+      const status = (await stamp.locator('..').boundingBox())!
+      expect(Math.abs(titleBox.y - badge.y)).toBeLessThanOrEqual(1)
+      expect(titleBox.x).toBeGreaterThan(badge.x + badge.width)
+      expect(status.y + status.height).toBeLessThanOrEqual(Math.min(badge.y, copy.y))
+      expect(Math.abs(status.x - badge.x)).toBeLessThanOrEqual(1)
+      // The stamp retains its slight print rotation, so its painted bounds
+      // can extend by a fraction of a pixel beyond the metadata row.
+      expect(Math.abs((stampBox.x + stampBox.width) - (status.x + status.width))).toBeLessThanOrEqual(2)
+    }
     if (width <= 920) {
+      await expect(page.locator('.zw-mobile-actionbar')).toHaveCount(0)
       await page.getByRole('link', { name: 'Manage appointment', exact: true }).click()
       await expect(page.getByRole('complementary', { name: 'Manage appointment' })).toBeFocused()
+      await expectReachableControl(page.getByRole('link', { name: 'View map', exact: true }), page.getByRole('main'))
     }
   }
 })

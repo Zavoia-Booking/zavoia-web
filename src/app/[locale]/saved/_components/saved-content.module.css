@@ -15,19 +15,6 @@
   line-height: 1.12;
   letter-spacing: -0.035em;
 }
-.summary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 20px;
-  margin: 12px 0 0;
-  color: var(--c-600);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  font-variant-numeric: tabular-nums;
-}
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -301,7 +288,7 @@
   cursor: pointer;
 }
 .primaryAction:focus-visible {
-  outline: 2px solid var(--p-500);
+  outline: 2px solid var(--focus-ring-color, var(--c-700));
   outline-offset: -3px;
 }
 /* Top right, centred on the category line: a ringed chip like the location
@@ -463,12 +450,6 @@
   font-size: 14px;
 }
 
-/* Center within the space above the fixed mobile navigation. */
-@media (max-width: 920px) {
-  .empty {
-    min-height: calc(100svh - var(--nav-h) - var(--mobile-tabs-h));
-  }
-}
 @media (max-width: 600px) {
   .page {
     padding-top: 32px;

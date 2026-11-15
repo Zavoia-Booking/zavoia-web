@@ -3,9 +3,10 @@
   color: var(--marketing-note-color, var(--c-600));
   font-size: 12px;
   line-height: 1.6;
+  text-align: var(--marketing-note-align, inherit);
 }
 .note p { margin: 0; }
-.credits { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; }
+.credits { display: flex; align-items: center; justify-content: var(--marketing-credits-justify, flex-start); flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; }
 .credits img { display: block; }
 .credits a { color: inherit; text-underline-offset: 3px; }
-.credits a:focus-visible { outline: 2px solid var(--p-500); outline-offset: 3px; }
+.credits a:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 3px; }

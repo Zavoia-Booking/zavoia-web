@@ -60,7 +60,7 @@ export function MeasuredCollapse({
       role="region"
       aria-labelledby={labelledBy}
       aria-hidden={!open}
-      style={{ maxHeight: 0 }}
+      style={{ maxHeight: open ? undefined : 0 }}
     >
       <div ref={contentRef} className={innerClassName}>
         {children}

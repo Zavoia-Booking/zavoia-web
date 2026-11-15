@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ImgHTMLAttributes } from "react";
 import { cn } from "../../../../../../../../shared/lib/utils";
+import { useResponsivePublicImage } from "../../../shared/useResponsivePublicImage";
 
 type GalleryImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "src"> & {
   src: string;
@@ -19,6 +20,12 @@ export function GalleryImage({
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const previousSrc = useRef(src);
+  const loading = props.loading ?? "lazy";
+  const responsive = useResponsivePublicImage(
+    src,
+    props.sizes ?? (loading === "lazy" ? "auto, (max-width: 1400px) 100vw, 1400px" : "100vw"),
+    props.srcSet,
+  );
 
   useEffect(() => {
     if (previousSrc.current === src) return;
@@ -38,21 +45,25 @@ export function GalleryImage({
   return (
     <img
       {...props}
-      src={src}
+      {...responsive.props}
       alt={alt}
       className={cn("mc-gallery-image", loaded && "is-loaded", className)}
-      loading={props.loading ?? "lazy"}
+      loading={loading}
       decoding={props.decoding ?? "async"}
       onLoad={(event) => {
+        event.currentTarget.removeAttribute("data-fade-pending");
         setLoaded(true);
         onLoad?.(event);
       }}
       onError={(event) => {
+        if (responsive.retryOriginal()) return;
         setFailed(true);
         onError?.(event);
       }}
       ref={(node) => {
+        if (node && !node.complete) node.setAttribute("data-fade-pending", "true");
         if (node?.complete && node.naturalWidth > 0 && !loaded) setLoaded(true);
+        if (node?.complete && node.naturalWidth === 0 && node.currentSrc) responsive.retryOriginal();
       }}
     />
   );

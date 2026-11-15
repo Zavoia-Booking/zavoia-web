@@ -63,16 +63,17 @@ export function AuthSkeleton({ variant = "login" }: { variant?: Variant }) {
                     <span className="text-sm text-c-600">
                       {t.terms.agreementPrefix}{" "}
                       <span className="font-medium text-primary">
-                        {t.terms.termsLink}
-                      </span>
-                      ,{" "}
-                      <span className="font-medium text-primary">
-                        {t.terms.cookiesLink}
+                        {t.terms.termsOfUseLink}
                       </span>{" "}
-                      {t.terms.and}{" "}
+                      {t.terms.andThe}{" "}
                       <span className="font-medium text-primary">
-                        {t.terms.privacyLink}
+                        {t.terms.customerTermsLink}
                       </span>
+                      . {t.terms.privacyPrefix}{" "}
+                      <span className="font-medium text-primary">
+                        {t.terms.privacyNoticeLink}
+                      </span>
+                      .
                     </span>
                   </div>
                 )}
@@ -107,25 +108,7 @@ export function AuthSkeleton({ variant = "login" }: { variant?: Variant }) {
                 )}
               </div>
             )}
-            {variant === "login" && (
-              <>
-                <p
-                  aria-hidden="true"
-                  className="text-center text-xs leading-relaxed text-c-600"
-                >
-                  {t.terms.continueNotice}{" "}
-                  <span className="underline underline-offset-4">
-                    {t.terms.termsLink}
-                  </span>{" "}
-                  {t.terms.and}{" "}
-                  <span className="underline underline-offset-4">
-                    {t.terms.privacyLink}
-                  </span>
-                  .
-                </p>
-                <AuthBusinessSignIn />
-              </>
-            )}
+            {variant === "login" && <AuthBusinessSignIn />}
           </>
         )}
       </AuthCard>

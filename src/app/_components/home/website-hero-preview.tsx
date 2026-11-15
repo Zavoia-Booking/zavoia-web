@@ -25,6 +25,10 @@ const WebsiteSnapshot = dynamic(async () => {
     }, [onReady]);
     return <WebsiteHeroSnapshot {...props} />;
   };
+}, {
+  // Keep suspension inside the preview; its existing skeleton owns loading feedback.
+  // Otherwise the homepage's outer boundary hides the whole showcase while this loads.
+  loading: () => null,
 });
 
 function within<T>(task: Promise<T>, fallback: T): Promise<T> {

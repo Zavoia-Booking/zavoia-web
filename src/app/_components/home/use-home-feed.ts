@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { getNearbyLocations, searchListings } from "@/lib/api/marketplace/public";
+import { ApiError } from "@/lib/api/http";
 import type { LocationCard } from "@/lib/api/marketplace/types";
 import type { BrowserCoords } from "@/lib/geocoding";
+import { HomeRequestTimeoutError, withHomeDeadline } from "./request-deadline";
 
 // Discovery cards include availability hints. Revalidate after a minute on
 // entry/focus or pagination; this is a tab-local UX cache, not booking authority.
@@ -15,6 +17,7 @@ const CONFIG = {
   nearby: { pageSize: 6, radius: 20 },
 } as const;
 type FeedKind = keyof typeof CONFIG;
+type FailureKind = "initial" | "refresh" | "more" | "retry";
 
 interface FeedState {
   items: LocationCard[];
@@ -22,9 +25,14 @@ interface FeedState {
   failed: boolean;
   loaded: boolean;
   hasMore: boolean;
+  failureId: number;
+  failureKind?: FailureKind;
+  availabilityStale: boolean;
+  retryAt: number;
 }
 const INITIAL: FeedState = {
   items: [], loading: false, failed: false, loaded: false, hasMore: false,
+  failureId: 0, availabilityStale: false, retryAt: 0,
 };
 interface FeedEntry {
   kind: FeedKind;
@@ -38,6 +46,9 @@ interface FeedEntry {
   lastUsedAt: number;
   retryTarget: number;
   request: AbortController | null;
+  requestPromise: Promise<void> | null;
+  explicitFailures: number;
+  retryTimer: ReturnType<typeof setTimeout> | null;
   listeners: Set<() => void>;
 }
 
@@ -59,6 +70,7 @@ function prune(): void {
   idle.forEach(([key, entry], index) => {
     if (index < MAX_IDLE_FEEDS && Date.now() - entry.lastUsedAt < RETAIN_MS) return;
     entry.request?.abort();
+    if (entry.retryTimer) clearTimeout(entry.retryTimer);
     feeds.delete(key);
   });
 }
@@ -71,7 +83,7 @@ function getOrCreate(key: string, kind: FeedKind, coords: BrowserCoords): FeedEn
       seed: kind === "city" ? Math.random().toString(36).slice(2, 12) || "zv" : undefined,
       state: INITIAL, offset: 0, updatedAt: 0, attemptedAt: 0,
       lastUsedAt: Date.now(), retryTarget: CONFIG[kind].pageSize,
-      request: null, listeners: new Set(),
+      request: null, requestPromise: null, explicitFailures: 0, retryTimer: null, listeners: new Set(),
     };
     feeds.set(key, entry);
   }
@@ -79,33 +91,38 @@ function getOrCreate(key: string, kind: FeedKind, coords: BrowserCoords): FeedEn
   return entry;
 }
 
-async function load(key: string, entry: FeedEntry, target: number, refresh: boolean): Promise<void> {
-  if (entry.request) return;
+function load(key: string, entry: FeedEntry, target: number, refresh: boolean, kind: FailureKind): Promise<void> {
+  if (entry.requestPromise) return entry.requestPromise;
+  if ((kind === "more" || kind === "retry") && Date.now() < entry.state.retryAt) return Promise.resolve();
   const request = new AbortController();
   entry.request = request;
   entry.attemptedAt = Date.now();
   entry.retryTarget = target;
-  publish(entry, { ...entry.state, loading: true });
-  // A refresh replaces the whole previously loaded range atomically. Never mix
-  // freshly reordered first-page rows with old offset pages or discard cards on failure.
-  let offset = refresh ? 0 : entry.offset;
-  const items = refresh ? [] : [...entry.state.items];
-  const seen = new Set(items.map((item) => item.id));
-  let total = offset;
-  let exhausted = false;
-  try {
+  publish(entry, {
+    ...entry.state,
+    loading: true,
+    availabilityStale: entry.state.availabilityStale || (refresh && entry.state.loaded),
+  });
+  const task = withHomeDeadline(async (signal) => {
+    // A refresh replaces the whole previously loaded range atomically. Never mix
+    // freshly reordered first-page rows with old offset pages or discard cards on failure.
+    let offset = refresh ? 0 : entry.offset;
+    const items = refresh ? [] : [...entry.state.items];
+    const seen = new Set(items.map((item) => item.id));
+    let total = offset;
+    let exhausted = false;
     while (offset < target) {
       const params = {
         ...entry.coords, radius: CONFIG[entry.kind].radius, strict: true,
         limit: Math.min(100, target - offset), offset,
       };
       const page = entry.kind === "city"
-        ? await searchListings({ ...params, seed: entry.seed }, { signal: request.signal })
+        ? await searchListings({ ...params, seed: entry.seed }, { signal })
           .then((result) => ({ items: result.locations, total: result.total }))
-        : await getNearbyLocations(params, { signal: request.signal })
+        : await getNearbyLocations(params, { signal })
           .then((result) => ({ items: result.data, total: result.total }));
       // Eviction can race a fulfilled fetch or an abort-ignoring transport.
-      if (request.signal.aborted || feeds.get(key) !== entry) return;
+      if (signal.aborted || feeds.get(key) !== entry) throw new DOMException("Aborted", "AbortError");
       total = page.total;
       for (const item of page.items) {
         if (!seen.has(item.id)) {
@@ -117,25 +134,62 @@ async function load(key: string, entry: FeedEntry, target: number, refresh: bool
       exhausted = page.items.length === 0 || offset >= total;
       if (exhausted) break;
     }
+    return { items, offset, exhausted };
+  }, { controller: request }).then(({ items, offset, exhausted }) => {
+    if (request.signal.aborted || feeds.get(key) !== entry || entry.request !== request) return;
     entry.offset = offset;
+    entry.explicitFailures = 0;
+    if (entry.retryTimer) clearTimeout(entry.retryTimer);
+    entry.retryTimer = null;
     // Appending one page must not extend freshness of older cached pages.
     if (refresh) entry.updatedAt = Date.now();
-    publish(entry, { items, loaded: true, loading: false, failed: false, hasMore: !exhausted });
-  } catch {
-    if (request.signal.aborted || feeds.get(key) !== entry) return;
-    publish(entry, { ...entry.state, loading: false, failed: true });
-  } finally {
-    if (entry.request === request) entry.request = null;
-  }
+    publish(entry, {
+      ...entry.state, items, loaded: true, loading: false, failed: false,
+      hasMore: !exhausted, availabilityStale: refresh ? false : entry.state.availabilityStale, retryAt: 0,
+    });
+  }).catch((error: unknown) => {
+    if (feeds.get(key) !== entry || entry.request !== request
+      || (request.signal.aborted && !(error instanceof HomeRequestTimeoutError))) return;
+    let retryAt = entry.state.retryAt;
+    if (kind === "more" || kind === "retry") {
+      entry.explicitFailures++;
+      retryAt = Date.now() + Math.min(60_000, 15_000 * 2 ** (entry.explicitFailures - 1));
+      if (entry.retryTimer) clearTimeout(entry.retryTimer);
+      entry.retryTimer = setTimeout(() => {
+        entry.retryTimer = null;
+        if (feeds.get(key) === entry && entry.state.retryAt === retryAt) {
+          publish(entry, { ...entry.state, retryAt: 0 });
+        }
+      }, retryAt - Date.now());
+    }
+    console.error("Home discovery request failed", {
+      feed: entry.kind,
+      endpoint: entry.kind === "city" ? "/marketplace/public/listings" : "/marketplace/public/nearby-locations",
+      status: error instanceof ApiError ? error.status : error instanceof HomeRequestTimeoutError ? 0 : null,
+      reason: error instanceof HomeRequestTimeoutError ? "timeout" : "request_failed",
+      attempt: kind,
+    });
+    publish(entry, {
+      ...entry.state, loading: false, failed: true,
+      failureId: entry.state.failureId + 1, failureKind: kind, retryAt,
+    });
+  }).finally(() => {
+    if (entry.request === request) {
+      entry.request = null;
+      entry.requestPromise = null;
+    }
+  });
+  entry.requestPromise = task;
+  return task;
 }
 
 function ensure(key: string, entry: FeedEntry): void {
   const now = Date.now();
-  if (entry.request || (entry.state.loaded && now - entry.updatedAt < FRESH_MS)) return;
+  if (entry.request || now < entry.state.retryAt || (entry.state.loaded && now - entry.updatedAt < FRESH_MS)) return;
   // A failed request has an explicit retry. Repeated locale changes must not
   // hammer a failing backend; focus/entry may retry after the same short interval.
   if (entry.state.failed && now - entry.attemptedAt < FRESH_MS) return;
-  void load(key, entry, Math.max(CONFIG[entry.kind].pageSize, entry.offset), true);
+  void load(key, entry, Math.max(CONFIG[entry.kind].pageSize, entry.offset), true, entry.state.loaded ? "refresh" : "initial");
 }
 
 /** Locale-independent results and pagination, shared across locale remounts. */
@@ -177,13 +231,18 @@ export function useHomeFeed(kind: FeedKind, coords: BrowserCoords | null) {
     const entry = key ? feeds.get(key) : undefined;
     if (!key || !entry || !entry.state.hasMore) return;
     const stale = Date.now() - entry.updatedAt >= FRESH_MS;
-    void load(key, entry, entry.offset + CONFIG[kind].pageSize, stale);
+    void load(key, entry, entry.offset + CONFIG[kind].pageSize, stale, "more");
   }, [key, kind]);
-  const retry = useCallback(() => {
+  const retry = useCallback((): Promise<void> => {
     const entry = key ? feeds.get(key) : undefined;
-    if (!key || !entry) return;
-    void load(key, entry, entry.retryTarget, !entry.state.loaded || Date.now() - entry.updatedAt >= FRESH_MS);
+    if (!key || !entry) return Promise.resolve();
+    return load(key, entry, entry.retryTarget, !entry.state.loaded || Date.now() - entry.updatedAt >= FRESH_MS, "retry");
   }, [key]);
 
-  return { ...state, showMore, retry };
+  // Stale discovery cards remain useful after a failed refresh. Their cached
+  // booking hints are not current availability and must not survive that refresh.
+  const items = state.availabilityStale
+    ? state.items.map((item) => ({ ...item, nextAvailableDate: undefined, nextAvailableAt: undefined }))
+    : state.items;
+  return { ...state, items, showMore, retry };
 }

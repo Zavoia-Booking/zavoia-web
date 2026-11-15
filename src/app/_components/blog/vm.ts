@@ -63,13 +63,14 @@ export function collectHeadings(
 ): HeadingItem[] {
   if (!blocks || blocks.length === 0) return [];
 
-  const seen = new Map<string, number>();
+  const usedIds = new Set<string>();
   const out: HeadingItem[] = [];
 
   for (const block of blocks) {
     if (!block || block._type !== "block") continue;
     const style = (block as { style?: string }).style;
-    if (style !== "h2" && style !== "h3") continue;
+    // Older posts may contain an H1 body block. Render and index it as H2.
+    if (style !== "h1" && style !== "h2" && style !== "h3") continue;
 
     const children = (block as PortableTextBlock).children;
     const text = Array.isArray(children)
@@ -86,15 +87,15 @@ export function collectHeadings(
       : "";
 
     const base = headingSlug(text);
-    const count = seen.get(base) ?? 0;
-    seen.set(base, count + 1);
-    const id = count === 0 ? base : `${base}-${count + 1}`;
+    let id = base;
+    for (let suffix = 2; usedIds.has(id); suffix++) id = `${base}-${suffix}`;
+    usedIds.add(id);
 
     out.push({
       key: (block as { _key: string })._key,
       id,
       text,
-      level: style === "h2" ? 2 : 3,
+      level: style === "h3" ? 3 : 2,
     });
   }
 

@@ -7,7 +7,7 @@ export interface LegalTocProps {
   label: string;
 }
 
-// Sticky numbered contents rail with a scroll-driven scrollspy. Mirrors the
+// Sticky contents rail with a scroll-driven scrollspy. Mirrors the
 // Journal's ZwToc gesture (scroll position rather than IntersectionObserver,
 // rAF-throttled) so the two long-form reading surfaces navigate identically.
 // The rail is made sticky, and hidden below 1024px, by globals.css — the
@@ -57,11 +57,8 @@ export function LegalToc({ sections, label }: LegalTocProps) {
     <nav className="zw-legal-toc zw-legal-noprint" aria-label={label}>
       <div className="zw-legal-toc-lbl">
         <span>{label}</span>
-        <span className="zw-legal-toc-total">
-          {String(sections.length).padStart(2, "0")}
-        </span>
       </div>
-      {sections.map((s, i) => (
+      {sections.map((s) => (
         <a
           key={s.id}
           href={`#${s.id}`}
@@ -70,9 +67,6 @@ export function LegalToc({ sections, label }: LegalTocProps) {
           aria-current={active === s.id ? "true" : undefined}
           onClick={(e) => jump(e, s.id)}
         >
-          <span className="zw-legal-toc-n" aria-hidden="true">
-            {String(i + 1).padStart(2, "0")}
-          </span>
           <span>{s.title}</span>
         </a>
       ))}

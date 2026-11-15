@@ -12,6 +12,7 @@ import { localeHref } from "@/i18n/routes";
 import { socialMetadata } from "@/lib/site";
 import { notFoundMetadata } from "@/app/_components/not-found/metadata";
 import { Breadcrumb, Icon } from "@/components/ui";
+import disclosure from "@/components/ui/disclosure-motion.module.css";
 import {
   LEGAL_DOCUMENTS,
   getLegalDocument,
@@ -86,9 +87,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: doc.title[locale],
     description: doc.description[locale],
-    // An unfinished document stays out of the index until it is published.
-    // Omit the key otherwise: an undefined robots would replace the layout's.
-    ...(doc.status === "draft" && { robots: { index: false, follow: true } }),
+    // Legal documents stay out of search even after publication.
+    robots: { index: false, follow: true },
     alternates: {
       canonical: localeHref(locale, "terms", doc.slug),
       languages: {
@@ -100,8 +100,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// A single legal document. The reading column is capped at a 68ch measure and
-// paired with a numbered contents rail that tracks the reader's position; the
+// A single legal document spans the shared marketplace width and is
+// paired with a contents rail that tracks the reader's position; the
 // same contents collapse into a native disclosure once the rail no longer fits.
 export default async function LegalDocumentPage({ params }: Props) {
   const { locale, document } = await params;
@@ -126,7 +126,7 @@ export default async function LegalDocumentPage({ params }: Props) {
         className="zw-legal-page zw-container"
         style={{ padding: "clamp(26px, 3.4vw, 40px) var(--gutter) clamp(56px, 7vw, 88px)" }}
       >
-        <div className="zw-legal-shell zw-legal-shell--doc">
+        <div className="zw-legal-shell">
           <header>
             <div className="zw-legal-noprint">
               <Breadcrumb
@@ -187,37 +187,34 @@ export default async function LegalDocumentPage({ params }: Props) {
                   </span>
                 </>
               )}
-              <PrintButton label={t.printDocument} />
+              <div className="zw-legal-print-slot zw-legal-noprint">
+                <PrintButton label={t.printDocument} />
+              </div>
             </div>
           </header>
 
           {doc.status === "draft" && <Callout banner>{t.draftNotice}</Callout>}
 
           {sections.length > 1 && (
-            <details className="zw-legal-toc-m zw-legal-noprint">
+            <details open className={`zw-legal-toc-m zw-legal-noprint ${disclosure.root} ${disclosure.native}`}>
               <summary>
                 {t.onThisPage}
                 <span className="zw-legal-toc-chev" aria-hidden="true">
                   <Icon name="chevD" size={14} color="var(--c-600)" />
                 </span>
               </summary>
-              <div className="zw-legal-toc-mlist">
-                {sections.map((s, i) => (
-                  <a
-                    key={s.id}
-                    href={`#${s.id}`}
-                    className="zw-legal-toc-mlink"
-                  >
-                    <span
-                      className="zw-legal-toc-n"
-                      aria-hidden="true"
-                      style={{ paddingTop: 2 }}
+              <div className={disclosure.body}>
+                <div className="zw-legal-toc-mlist">
+                  {sections.map((s) => (
+                    <a
+                      key={s.id}
+                      href={`#${s.id}`}
+                      className="zw-legal-toc-mlink"
                     >
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span>{s.title}</span>
-                  </a>
-                ))}
+                      <span>{s.title}</span>
+                    </a>
+                  ))}
+                </div>
               </div>
             </details>
           )}
@@ -227,15 +224,12 @@ export default async function LegalDocumentPage({ params }: Props) {
             style={{ marginTop: "clamp(34px, 4vw, 48px)" }}
           >
             <article className="zw-legal-main">
-              {doc.sections.map((section, i) => (
+              {doc.sections.map((section) => (
                 <section
                   key={section.id}
                   id={section.id}
                   className="zw-legal-sec"
                 >
-                  <div className="zw-legal-secn">
-                    {String(i + 1).padStart(2, "0")}
-                  </div>
                   <h2 className="zw-legal-h2 txt-balance">
                     {section.title[locale]}
                   </h2>

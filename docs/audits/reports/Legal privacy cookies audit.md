@@ -2,6 +2,8 @@
 
 **Date:** 12 November 2026 · **State:** before launch, nothing public · **Nature:** read-only audit. No code and no legal text was changed.
 
+**Updated 13 November 2026:** plan 2.1 items 1, 2 and 5, section 2.5 and section 4.3 item 1 now reflect staging commit `6bdb0f4` and the new banner copy. Everything else is as written on 12 November.
+
 ## How to read this
 
 Four things were compared with each other:
@@ -60,11 +62,11 @@ Ordered by dependency. Items in 2.1 need no decision and can start now.
 
 | # | What | Where |
 |---|---|---|
-| 1 | **Stop showing internal notes to visitors and keep drafts out of search.** Every `note` block renders for every visitor, and the hub plus all 12 documents are in the sitemap with no `noindex`. The notes include admissions of gaps and a remark about a competitor. | `src/app/[locale]/terms/[document]/page.tsx:63`; `src/app/sitemap.ts:178` |
-| 2 | **Rewrite the banner copy (EN and RO).** It reads "By using this website, you agree to our cookie policy". The mechanism is a real opt-in, so the sentence is false, and it never says what Accept switches on. Say that Accept allows Google Analytics measurement and that Reject keeps the site fully working. | `consent.body` in `src/i18n/dictionaries/en.ts` and `ro.ts` |
+| 1 | **Draft-note guard done in `6bdb0f4`; indexing policy updated by owner decision, 13 November 2026.** The `/terms` hub and all legal/policy documents carry `noindex,follow` and are excluded from the sitemap in both languages, even after publication. The `note` blocks still render only while a document is a draft, so they disappear when it is published. The hub lists titles with a Draft badge and shows no notes. | `src/app/[locale]/terms/page.tsx`; `src/app/[locale]/terms/[document]/page.tsx`; `src/app/sitemap.ts` |
+| 2 | **Rewrite the banner copy (EN and RO) — done 13 November 2026.** It read "By using this website, you agree to our cookie policy": false, because the mechanism is a real opt-in, and it never said what Accept switches on. It now reads "We use analytics cookies to understand how the site is used, but only if you accept. Read more in our cookie policy.", with the same in Romanian. It deliberately names no vendor; Google Analytics is named in the cookie notice the banner links to (item 3). | `consent.body` in `src/i18n/dictionaries/en.ts` and `ro.ts` |
 | 3 | **Rewrite the cookie notice to match the code.** Sections 2, 4 and 5 are wrong today; the tables can be filled from section 4 of this report. | `src/data/legal/cookie-policy.ts` |
 | 4 | **Correct the privacy notice where the facts are already known** (section 3.2): analytics relies on consent; add Google Analytics and the hosting providers; fix the two IP-location sentences; add the three missing GDPR items; list what is collected from business owners. | `src/data/legal/privacy-policy.ts` |
-| 5 | **Remove claims that are not true yet** until they are built: "identity-checked" in the help centre; "every listing shows the identity of the business"; "you may reply to reviews"; the `[3 months]` review window. | section 3, rows marked BUILD or TEXT |
+| 5 | **Remove claims that are not true yet** until they are built: "every listing shows the identity of the business"; "you may reply to reviews"; the `[3 months]` review window. ("Identity-checked" in the help centre was removed in `6bdb0f4`, 13 November 2026.) | section 3, rows marked BUILD or TEXT |
 | 6 | **Align the three ranking descriptions with the code** (text in section 3.6). | `customer-terms.ts`, `provider-terms.ts`, `privacy-policy.ts` |
 | 7 | **Fix four legal attributions** (section 6). | `company-info.ts`, `provider-terms.ts`, `terms-of-use.ts` |
 | 8 | **Update the stale notes** so the gate list is trustworthy again (section 3, rows marked STALE). | six files |
@@ -105,7 +107,7 @@ Section 9 lists the narrow questions. Two are new since August: the EU Data Act'
 
 ### 2.5 At publication
 
-Resolve every note, set `status: "published"` and `effectiveDate`, put the legal URLs back in the sitemap, run the runtime check, and have the Romanian text reviewed.
+Resolve every note, set `status: "published"` and `effectiveDate`, run the runtime check, and have the Romanian text reviewed. Publishing hides the document's drafting notes. Under the owner's indexing decision of 13 November 2026, the legal hub and every document retain `noindex,follow` and remain outside the sitemap after publication.
 
 ---
 
@@ -318,7 +320,7 @@ Requests to third parties that store nothing: `ipwho.is` (IP location, automatic
 
 ### 4.3 What needs to change
 
-1. **The copy** (plan 2.1 item 2). Law 506/2004 art. 4(5)(b) requires clear and complete information, including the purpose, before consent. The banner states no purpose.
+1. **The copy** (plan 2.1 item 2) — done 13 November 2026. Law 506/2004 art. 4(5)(b) requires clear and complete information, including the purpose, before consent. The banner now states the purpose and links to the notice. When a third party stores the information, the same paragraph also asks for that party's general purpose and how to delete or refuse it through browser settings; that goes in the notice (plan 2.1 item 3).
 2. **The notice** (plan 2.1 item 3).
 3. **Reaching the settings where there is no footer** (build item 3). GDPR art. 7(3): "It shall be as easy to withdraw as to give consent."
 4. **The convenience storage** (decision I). The law exempts only storage "strictly necessary" for a service "explicitly requested" (Law 506/2004 art. 4(6)(b)). The dismissal flags and the sign-in state fit. Recent searches, recent places and recently viewed are written automatically and are harder to fit. The practical risk is low: the data never leaves the device and tracks nobody. My recommendation is to keep the feature and make the notice true: describe a "functional" group that is on by default and can be cleared, and drop the sentence that only strictly necessary storage is active. If you want no ambiguity, write these three keys only after consent. That is a judgment call, not a verified legal conclusion.

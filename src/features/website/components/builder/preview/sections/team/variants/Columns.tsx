@@ -3,6 +3,7 @@ import { Star, ArrowRight } from "lucide-react";
 import { MicrositeProfessionalAction, useMicrositeActions } from "../../../shared/actions";
 import { DISPLAY } from "../../../shared/constants";
 import type { TeamVariantProps } from "../types";
+import { TeamPortrait } from "../parts/TeamPortrait";
 import "./columns.css";
 
 /** Columns (paid) — one location's team as a row of doors: hover (or tap on touch) a column and it opens to
@@ -80,7 +81,7 @@ export function Columns({ locationGroups, ratings, nameOf, initialsOf, tintOf, t
               }}
             >
               {m.profileImage ? (
-                <img src={m.profileImage} alt={nameOf(m)} loading="lazy" decoding="async" draggable={false} />
+                <TeamPortrait src={m.profileImage} alt={nameOf(m)} sizes="auto, (max-width: 1400px) 100vw, 1400px" />
               ) : (
                 <div
                   className="mc-tmc-fallback"

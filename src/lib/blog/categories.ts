@@ -1,9 +1,9 @@
 import type { BlogCategory } from "@/sanity/types";
 
-// Synthetic "all" tab id sits in front of the real categories in the UI.
+// The complete archive sits alongside the three editorial categories.
 export type BlogTab = "all" | BlogCategory;
 
-// Tab order after the "All" tab. Mirrors web-blog.jsx ordering.
+// Editorial category order after the complete archive.
 export const CATEGORY_ORDER: BlogCategory[] = ["guides", "business", "product"];
 
 // Per-category accent colour. Mirrors web-blog.jsx:8-13.
@@ -20,14 +20,14 @@ export function categoryAccent(cat: BlogCategory | undefined): string {
   }
 }
 
-// i18n label key per tab id. Components resolve these against `dict.blog`.
-export const CATEGORY_LABEL_KEY: Record<BlogTab, string> = {
+// Archive label keys, resolved against `dict.blog`.
+export const CATEGORY_LABEL_KEY = {
   all: "catAll",
   guides: "catGuides",
   business: "catBusiness",
   product: "catProduct",
-};
+} as const satisfies Record<BlogTab, string>;
 
-export function categoryLabelKey(cat: BlogTab): string {
+export function categoryLabelKey(cat: BlogTab) {
   return CATEGORY_LABEL_KEY[cat];
 }

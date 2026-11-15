@@ -1,0 +1,24 @@
+.card {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+}
+
+@media (max-width: 640px) {
+  .compactOnMobile {
+    aspect-ratio: 1;
+    min-height: 280px;
+  }
+
+  .compactOnMobile .name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .compactOnMobile .businessName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

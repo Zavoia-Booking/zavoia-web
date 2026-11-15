@@ -135,6 +135,10 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
   return (
     <section className={clsx(theme, styles["studio-option"])} id="web-studio" aria-labelledby="web-studio-heading">
       <div className={styles["studio-option-inner"]}>
+        <div className={styles["studio-copy"]}>
+          <h2 className={styles["studio-title"]} id="web-studio-heading">{s.titleFirst}{" "}<br />{s.titleSecond}<em className={styles.signature}>{s.titleAccent}</em></h2>
+          <p className={styles["studio-intro"]}>{s.sub}</p>
+        </div>
         <div className={clsx(styles["studio-visual"], styles["sa-scene"])}>
           <div className={styles["sa-hardware-stage"]}>
             <div className={styles["sa-contact"]} aria-hidden="true" />
@@ -165,15 +169,15 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
           </div>
           <MarketingExampleNote locale={locale} websites className={styles["studio-example-note"]} />
         </div>
-        <div className={styles["studio-copy"]}>
-          <h2 className={styles["studio-title"]} id="web-studio-heading">{s.titleFirst}{" "}<br />{s.titleSecond}<em className={styles.signature}>{s.titleAccent}</em></h2>
-          <p className={styles["studio-intro"]}>{s.sub}</p>
-          <div className={studioActions.actions}>
-            <Link className={styles["studio-cta"]} href={localeHref(locale, "web-studio")} title={s.cta}>{s.cta}<Arrow /></Link>
-            <Link className={studioActions.secondary} href={{ pathname: localeHref(locale, "web-studio", "demo"), query: { returnTo: `${localeHref(locale)}#web-studio` } }}>
-              {dictionaries[locale].webStudio.hero.demoCta}<Arrow />
-            </Link>
-          </div>
+        <div className={clsx(studioActions.actions, styles["studio-band-actions"])}>
+          <Link className={styles["studio-cta"]} href={localeHref(locale, "web-studio")} title={s.cta}>
+            <span className={styles["studio-full-label"]}>{s.cta}</span>
+            <span className={styles["studio-short-label"]}>{dictionaries[locale].nav.webStudio}</span>
+            <Arrow />
+          </Link>
+          <Link className={studioActions.secondary} href={{ pathname: localeHref(locale, "web-studio", "demo"), query: { returnTo: `${localeHref(locale)}#web-studio` } }}>
+            {dictionaries[locale].webStudio.hero.demoCta}<Arrow />
+          </Link>
         </div>
       </div>
     </section>

@@ -1,6 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { choosePinHit, searchAreaOffered, usableFitArea, viewportRadiusKm } from "./map-behavior.ts";
+import { choosePinHit, searchAreaOffered, shouldRevealResults, usableFitArea, viewportRadiusKm } from "./map-behavior.ts";
+
+test("mobile arrivals and explicit camera links preserve their local zoom", () => {
+  // Initial discovery, delayed GPS/IP resolution and new city/place arrivals
+  // all choose an anchor zoom before the matching results become available.
+  assert.equal(shouldRevealResults({ mobile: true, arrival: true, explicitZoom: false }), false);
+  assert.equal(shouldRevealResults({ mobile: true, arrival: true, explicitZoom: true }), false);
+  assert.equal(shouldRevealResults({ mobile: true, arrival: false, explicitZoom: true }), false);
+  // A later refinement at the same anchor can still reveal off-screen matches.
+  assert.equal(shouldRevealResults({ mobile: true, arrival: false, explicitZoom: false }), true);
+});
+
+test("desktop keeps its results-reveal policy for every arrival and explicit zoom", () => {
+  for (const arrival of [false, true]) {
+    for (const explicitZoom of [false, true]) {
+      assert.equal(shouldRevealResults({ mobile: false, arrival, explicitZoom }), true);
+    }
+  }
+});
 
 test("short phone map strips cannot force a globe-scale results fit", () => {
   // EN 390×568: main 442px, mid sheet 313.62px, rail 64px, 32px fit padding.

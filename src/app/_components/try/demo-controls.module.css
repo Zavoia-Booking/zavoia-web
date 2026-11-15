@@ -24,6 +24,9 @@ button[aria-expanded="true"] > .chevron { transform: rotate(180deg); }
 .demoInfo { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--control-line); color: var(--c-stone); font-size: 13px; line-height: 1.6; }
 .demoInfo p { margin: 0; }
 .demoInfo .demoInfoTitle { color: var(--c-700); font-size: 13px; font-weight: 550; }
+.demoLegal { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 16px 0 0; color: var(--c-stone); font-size: 13px; line-height: 1.6; }
+.demoLegal a, .demoLegal button { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.demoLegal a:hover, .demoLegal button:hover { color: var(--c-700); }
 .appearance { padding: 12px 0 3px; border-top: 1px solid var(--control-line); }
 .colourHeading { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 14px; font-weight: 500; }
 .currentColour { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; color: var(--c-stone); font-size: 13px; font-weight: 400; }

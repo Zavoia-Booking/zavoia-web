@@ -41,7 +41,6 @@ import {
   AboutCard,
   CloserBand,
   LiveStrip,
-  MobileBar,
   NotesCard,
   PendingBanner,
   RecurringNote,
@@ -272,7 +271,6 @@ function DetailBody({ t, appt, locale, onOpenApp }: {
   const relative = relativeLabel(t, tense, appt.scheduled_at, tz, now);
   const venue = appointmentVenue(appt);
   const venueHref = locationHref(locale, appt.location);
-  const directionsHref = venue.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.address)}` : null;
   const professionals = appointmentProfessionals(appt);
   const businessReview = appt.reviews.business;
   const professionalReviews = appt.reviews.professionals.filter((professional) => professional.review);
@@ -335,7 +333,6 @@ function DetailBody({ t, appt, locale, onOpenApp }: {
         <CloserBand t={t} appt={appt} locale={locale} tone={tone} />
       </div>
     </div>
-    <MobileBar t={t} appt={appt} locale={locale} tense={tense} tone={tone} directionsHref={directionsHref} onBookAgain={() => void rebook(appt)} bookingAgain={rebooking} offline={offline} />
   </main>;
 }
 

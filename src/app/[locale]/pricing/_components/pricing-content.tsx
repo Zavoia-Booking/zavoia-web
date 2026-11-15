@@ -2,10 +2,11 @@ import Link from "next/link";
 import clsx from "clsx";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
-import { format, formatCount } from "@/i18n/format";
+import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { Icon } from "@/components/ui/icon";
 import { formatPrice, getPlanPricing } from "@/lib/marketing/pricing";
+import type { MarketingFaqItem } from "@/lib/marketing/page-content";
 import { preloadSignatureFont } from "@/app/_components/for-business/signature-font";
 import { PlanCards } from "@/app/_components/for-business/plan-cards";
 import { TeamSeatPrice } from "@/app/_components/for-business/team-seat-price";
@@ -17,14 +18,11 @@ import { SmsArtwork } from "./pricing-artwork";
 import styles from "./pricing.module.css";
 
 /** Fixed subscriptions, visible plan differences and the full included capabilities. */
-export function PricingContent({ locale }: { locale: Locale }) {
+export function PricingContent({ locale, faqItems }: { locale: Locale; faqItems: readonly MarketingFaqItem[] }) {
   const dict = dictionaries[locale];
   const t = dict.pricing;
   const b = dict.businessMarketing;
   const pricing = getPlanPricing(locale);
-  const days = formatCount(pricing.trialDays, locale, b.counts.days);
-  const baseTeamMembers = formatCount(pricing.teamMemberLimits.base, locale, b.counts.teamMembers);
-  const values = { days, seat: formatPrice(pricing.teamMember, pricing.currency), baseTeamMembers };
   preloadSignatureFont();
 
   return (
@@ -90,7 +88,7 @@ export function PricingContent({ locale }: { locale: Locale }) {
         lead={t.faq.lead}
         helpPrompt={t.faq.helpPrompt}
         helpLink={t.faq.helpLink}
-        items={t.faq.items.map(item => ({ q: item.q, a: format(item.a, values) }))}
+        items={faqItems}
       />
     </main>
   );

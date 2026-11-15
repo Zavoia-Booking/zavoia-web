@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
-import { LayoutTemplate, Newspaper, type LucideIcon } from "lucide-react";
 import { useLocaleAlternates } from "@/i18n/locale-navigation";
 import { authEntryHref } from "@/lib/auth/redirects";
-import { Avatar, Button, Icon, InlineError, Skeleton, Spinner, type IconName, useToast } from "@/components/ui";
+import { Avatar, Button, Icon, InlineError, Skeleton, Spinner, useToast } from "@/components/ui";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import type { Locale } from "@/i18n/locales";
 import { Popover } from "./popover";
+import { accountNavigation, AccountNavigationIcon, type AccountNavigationItem } from "./account-navigation";
 
 // Port of ZwAccountMenu (docs/web-account.jsx). Real user from useAuth; all
 // links use next/link + localeHref and close the menu on click. Log out calls
@@ -61,20 +61,6 @@ function subscribeHash(onChange: () => void) {
 const getHash = () => window.location.hash;
 const getServerHash = () => "";
 
-function MenuIcon({ icon, color }: { icon: IconName | LucideIcon; color: string }) {
-  if (typeof icon === "string") return <Icon name={icon} size={16} color={color} />;
-  const Glyph = icon;
-  return (
-    <Glyph
-      size={16}
-      strokeWidth={1.7}
-      color={color}
-      aria-hidden="true"
-      style={{ display: "block", flexShrink: 0 }}
-    />
-  );
-}
-
 export function AccountMenu({ locale, triggerId, onClose }: Props) {
   const { status, user, logout, initializing, optimisticUser, refresh } = useAuth();
   const [retryingSession, setRetryingSession] = useState(false);
@@ -85,6 +71,7 @@ export function AccountMenu({ locale, triggerId, onClose }: Props) {
   const alternates = useLocaleAlternates(pathname);
   const toast = useToast();
   const t = dict.accountMenu;
+  const groups = accountNavigation(dict);
 
   const isAuthed = status === "authenticated" && !!user;
   const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
@@ -97,39 +84,19 @@ export function AccountMenu({ locale, triggerId, onClose }: Props) {
   const current = `${pathname}${query ? `?${query}` : ""}${hash}`;
   const loginHref = authEntryHref(locale, "login", current, alternates);
 
-  const linkRow = (
-    icon: IconName | LucideIcon,
-    label: string,
-    ...segments: string[]
-  ) => (
-    <Link
-      href={localeHref(locale, ...segments)}
-      title={label}
-      className="tap zw-hover-row"
-      onClick={onClose}
-      style={{ ...rowStyle, color: "var(--c-800)" }}
-    >
-      <MenuIcon icon={icon} color="var(--c-600)" />
-      {label}
-    </Link>
-  );
-
   // Web Studio is the one promoted row in the menu: it carries the brand accent
   // (icon --p-600, label --p-700 per the terracotta-as-text rule) so it reads as
   // an offer rather than another destination.
-  const accentRow = (
-    icon: IconName | LucideIcon,
-    label: string,
-    ...segments: string[]
-  ) => (
+  const linkRow = ({ key, icon, label, segments, accent }: AccountNavigationItem) => (
     <Link
+      key={key}
       href={localeHref(locale, ...segments)}
       title={label}
       className="tap zw-hover-row"
       onClick={onClose}
-      style={{ ...rowStyle, color: "var(--p-700)", fontWeight: 600 }}
+      style={{ ...rowStyle, color: accent ? "var(--p-700)" : "var(--c-800)", fontWeight: accent ? 600 : rowStyle.fontWeight }}
     >
-      <MenuIcon icon={icon} color="var(--p-600)" />
+      <AccountNavigationIcon icon={icon} color={accent ? "var(--p-600)" : "var(--c-600)"} />
       {label}
     </Link>
   );
@@ -267,17 +234,13 @@ export function AccountMenu({ locale, triggerId, onClose }: Props) {
           <div className="zv-hair" style={{ height: 1 }} />
           <div style={{ padding: "8px 0" }}>
             {pendingSession ? (
-              ([ ["cal", t.appointments], ["heartO", t.saved], ["user", t.profileSettings] ] as const).map(([icon, label]) => (
-                <span key={icon} role="link" aria-disabled="true" style={{ ...rowStyle, cursor: "default", opacity: 0.5 }}>
-                  <Icon name={icon} size={16} color="var(--c-600)" />{label}
+              groups.personal.map(({ key, icon, label }) => (
+                <span key={key} role="link" aria-disabled="true" style={{ ...rowStyle, cursor: "default", opacity: 0.5 }}>
+                  <AccountNavigationIcon icon={icon} color="var(--c-600)" />{label}
                 </span>
               ))
             ) : (
-              <>
-                {linkRow("cal", t.appointments, "appointments")}
-                {linkRow("heartO", t.saved, "saved")}
-                {linkRow("user", t.profileSettings, "account")}
-              </>
+              groups.personal.map(linkRow)
             )}
           </div>
         </>
@@ -285,15 +248,12 @@ export function AccountMenu({ locale, triggerId, onClose }: Props) {
 
       <div className="zv-hair" style={{ height: 1 }} />
       <div style={{ padding: "8px 0" }}>
-        {linkRow(Newspaper, t.journal, "blog")}
-        {linkRow("info", t.helpSupport, "help")}
+        {groups.community.map(linkRow)}
       </div>
 
       <div className="zv-hair" style={{ height: 1 }} />
       <div style={{ padding: "8px 0" }}>
-        {linkRow("building", t.forBusiness, "for-business")}
-        {accentRow(LayoutTemplate, t.webStudio, "web-studio")}
-        {linkRow("wallet", t.pricing, "pricing")}
+        {groups.business.map(linkRow)}
       </div>
 
       {status !== "error" && <>

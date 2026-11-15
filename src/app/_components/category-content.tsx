@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import type { CityView, TaxonomyView } from "@/data/seo";
-import { categorySearchName, listCities, listTaxonomy, taxonomyDisplayName } from "@/data/seo";
+import { categorySearchName, listTaxonomy, taxonomyDisplayName } from "@/data/seo";
 import { dictionaries } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
@@ -9,7 +9,10 @@ import { BusinessCard } from "@/components/business";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { SearchPageContext } from "@/components/search/search-overlay-provider";
 import { SITE_URL } from "@/lib/site";
-import { siteEntities, websiteId } from "@/lib/seo/page-structured-data";
+import { siteEntities, websiteId } from "@/lib/seo/site-identity";
+import { serializeJsonLd } from "@/lib/seo/json-ld";
+import { collectionItemList } from "@/lib/seo/collection-structured-data";
+import type { CategoryDiscoveryGroup } from "@/lib/seo/category-discovery";
 import { Icon } from "@/components/ui/icon";
 import { locationCardToData } from "@/lib/marketplace/card-mappers";
 import { buildSlugById, industryVisual } from "@/lib/marketplace/industry-visuals";
@@ -27,6 +30,7 @@ export function CategoryContent({
   industries,
   listings,
   total,
+  discoveryGroups,
 }: {
   locale: Locale;
   city: CityView;
@@ -34,6 +38,7 @@ export function CategoryContent({
   industries: Industry[];
   listings: LocationCard[];
   total: number;
+  discoveryGroups: CategoryDiscoveryGroup[];
 }) {
   const dict = dictionaries[locale];
   const t = dict.category;
@@ -42,7 +47,10 @@ export function CategoryContent({
   const vars = { industry: name, city: city.name };
   const taxonomy = listTaxonomy(industries, locale);
   const slugById = buildSlugById(industries);
-  const otherCities = listCities(locale).filter((item) => item.id !== city.id);
+  const eligibleEntries = new Set(discoveryGroups.find((group) => group.id === city.id)?.entries.map((item) => item.id));
+  const otherCities = discoveryGroups.filter((group) =>
+    group.id !== city.id && group.entries.some((item) => item.id === entry.id),
+  );
   const pathname = localeHref(locale, city.slug, entry.slug);
   const parentIndustry = entry.kind === "tag"
     ? taxonomy.find((item) => item.kind === "industry" && item.industrySlug === entry.industrySlug)
@@ -57,6 +65,12 @@ export function CategoryContent({
     { label: parentIndustry ? name : format(t.heading, vars) },
   ];
   const pageUrl = `${SITE_URL}${pathname}`;
+  const cards = listings.map((location) => locationCardToData(location, locale, slugById));
+  const itemList = collectionItemList(pathname, cards.flatMap((card) => card.href ? [{
+    name: card.locationName?.trim() || card.name,
+    // The same destination used by BusinessCard; cards do not carry branch UUIDs.
+    path: card.href,
+  }] : []));
   const breadcrumb = {
     "@type": "BreadcrumbList",
     "@id": `${pageUrl}#breadcrumb`,
@@ -82,7 +96,9 @@ export function CategoryContent({
         inLanguage: locale,
         isPartOf: { "@id": websiteId },
         breadcrumb: { "@id": breadcrumb["@id"] },
+        ...(itemList && { mainEntity: { "@id": itemList["@id"] } }),
       },
+      ...(itemList ? [itemList] : []),
     ],
   };
   const numbers = new Intl.NumberFormat(locale);
@@ -90,15 +106,15 @@ export function CategoryContent({
   const resultHeading = t.resultsHeading[plural === "one" ? "one" : plural === "few" ? "few" : "other"];
   const sparseResults = listings.length <= 2;
 
-  // Keep city/service discovery in server HTML independently of the sitemap.
+  // Use the same eligible city/category destinations as the sitemap.
   const industryLinks = otherIndustryLast(
-    taxonomy.filter((item) => item.kind === "industry" && (
+    taxonomy.filter((item) => eligibleEntries.has(item.id) && item.kind === "industry" && (
       entry.kind === "tag" || item.id !== entry.id
     )),
     (item) => item.industrySlug,
   );
   const services = taxonomy.filter((item) =>
-    item.kind === "tag" && item.industrySlug === entry.industrySlug && (
+    eligibleEntries.has(item.id) && item.kind === "tag" && item.industrySlug === entry.industrySlug && (
       entry.kind === "industry" || item.tagId !== entry.tagId
     ),
   );
@@ -142,7 +158,7 @@ export function CategoryContent({
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <div className="zw-container">
         <Breadcrumb
@@ -176,18 +192,15 @@ export function CategoryContent({
               </Link>
             </div>
             <ul className={styles.grid} data-layout={sparseResults ? "rows" : "grid"}>
-              {listings.map((location) => {
-                const card = locationCardToData(location, locale, slugById);
-                return (
-                  <li key={location.id}>
-                    <BusinessCard
-                      variant="result"
-                      resultLayout={sparseResults ? "row" : "stacked"}
-                      b={card}
-                    />
-                  </li>
-                );
-              })}
+              {cards.map((card) => (
+                <li key={card.id}>
+                  <BusinessCard
+                    variant="result"
+                    resultLayout={sparseResults ? "row" : "stacked"}
+                    b={card}
+                  />
+                </li>
+              ))}
             </ul>
             {total > listings.length && (
               <div className={styles.moreResults}>
@@ -215,63 +228,67 @@ export function CategoryContent({
         )}
       </div>
 
-      <div className={styles.discovery}>
-        <div className="zw-container">
-          {relatedGroups.map((group) => (
-            <section
-              key={group.id}
-              className={group.industries ? styles.industries : styles.related}
-              aria-labelledby={`category-${group.id}`}
-            >
-              <h2 id={`category-${group.id}`} className={styles.sectionTitle}>
-                {format(group.title, vars)}
-              </h2>
-              <ul role="list" className={group.industries ? styles.industryGrid : styles.linkGrid}>
-                {group.items.map((item) => {
-                  const visual = group.industries ? industryVisual(item.industrySlug) : null;
-                  return (
-                    <li key={item.id}>
-                      <Link
-                        href={localeHref(locale, city.slug, item.slug)}
-                        prefetch={false}
-                        className={group.industries ? styles.industryLink : styles.relatedLink}
-                      >
-                        {visual && <Icon name={visual.icon} size={24} color={visual.accent} />}
-                        <span>{label(item)}</span>
-                        <Icon name="chevR" size={14} />
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+      {(relatedGroups.length > 0 || otherCities.length > 0) && (
+        <div className={styles.discovery}>
+          <div className="zw-container">
+            {relatedGroups.map((group) => (
+              <section
+                key={group.id}
+                className={group.industries ? styles.industries : styles.related}
+                aria-labelledby={`category-${group.id}`}
+              >
+                <h2 id={`category-${group.id}`} className={styles.sectionTitle}>
+                  {format(group.title, vars)}
+                </h2>
+                <ul role="list" className={group.industries ? styles.industryGrid : styles.linkGrid}>
+                  {group.items.map((item) => {
+                    const visual = group.industries ? industryVisual(item.industrySlug) : null;
+                    return (
+                      <li key={item.id}>
+                        <Link
+                          href={localeHref(locale, city.slug, item.slug)}
+                          prefetch={false}
+                          className={group.industries ? styles.industryLink : styles.relatedLink}
+                        >
+                          {visual && <Icon name={visual.icon} size={24} color={visual.accent} />}
+                          <span>{label(item)}</span>
+                          <Icon name="chevR" size={14} />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
 
-          <details className={`${styles.disclosure} ${motion.root} ${motion.native}`}>
-            <summary className={styles.disclosureSummary}>
-              <h2 className={styles.sectionTitle}>{format(t.otherCitiesHeading, vars)}</h2>
-              <Icon name="chevD" size={18} />
-            </summary>
-            <div className={motion.body}>
-              <p className={styles.disclosureIntro}>{format(t.otherCitiesIntro, vars)}</p>
-              <ul className={styles.disclosureGrid}>
-                {otherCities.map((otherCity) => (
-                  <li key={otherCity.id}>
-                    <Link
-                      href={localeHref(locale, otherCity.slug, entry.slug)}
-                      prefetch={false}
-                      className={styles.relatedLink}
-                    >
-                      <span>{otherCity.name}</span>
-                      <Icon name="chevR" size={14} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </details>
+            {otherCities.length > 0 && (
+              <details className={`${styles.disclosure} ${motion.root} ${motion.native}`}>
+                <summary className={styles.disclosureSummary}>
+                  <h2 className={styles.sectionTitle}>{format(t.otherCitiesHeading, vars)}</h2>
+                  <Icon name="chevD" size={18} />
+                </summary>
+                <div className={motion.body}>
+                  <p className={styles.disclosureIntro}>{format(t.otherCitiesIntro, vars)}</p>
+                  <ul className={styles.disclosureGrid}>
+                    {otherCities.map((otherCity) => (
+                      <li key={otherCity.id}>
+                        <Link
+                          href={localeHref(locale, otherCity.slug, entry.slug)}
+                          prefetch={false}
+                          className={styles.relatedLink}
+                        >
+                          <span>{otherCity.name}</span>
+                          <Icon name="chevR" size={14} />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </main>
   );
 }

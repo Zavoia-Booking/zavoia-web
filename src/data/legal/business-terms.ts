@@ -12,7 +12,8 @@ export const businessTerms: LegalDocument = {
     en: "The agreement between Zavoia and the businesses using the platform — plans, billing, team seats, data protection and termination.",
     ro: "Acordul dintre Zavoia și afacerile care folosesc platforma — planuri, facturare, locuri de echipă, protecția datelor și încetare.",
   },
-  status: "draft",
+  status: "published",
+  effectiveDate: "2026-11-15",
   sections: [
     {
       id: "parties-professional-use",
@@ -29,8 +30,8 @@ export const businessTerms: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "This agreement is between the company on the Company Information page (“Zavoia”) and the customer of a business workspace: either a legal entity (represented by the accepting owner, who warrants authority to bind it) or an individual acting in a professional capacity, in which case that individual is the contracting party personally. The acceptance record captures which of the two applies.",
-            ro: "Acest acord se încheie între societatea de pe pagina Informații despre companie („Zavoia”) și clientul unui spațiu de lucru business: fie o persoană juridică (reprezentată de proprietarul care acceptă și care garantează că are autoritatea de a o angaja), fie o persoană fizică acționând în calitate profesională, caz în care acea persoană este parte contractantă personal. Evidența acceptării înregistrează care dintre cele două situații se aplică.",
+            en: "This agreement is between the company on the Company Information page (“Zavoia”) and the customer of a business workspace: either a legal entity (represented by the accepting owner, who warrants authority to bind it) or an individual acting in a professional capacity, in which case that individual is the contracting party personally. The billing details you give us before your first payment show which of the two applies.",
+            ro: "Acest acord se încheie între societatea de pe pagina Informații despre companie („Zavoia”) și clientul unui spațiu de lucru pentru afaceri: fie o persoană juridică (reprezentată de proprietarul care acceptă și care garantează că are autoritatea de a o angaja), fie o persoană fizică acționând în calitate profesională, caz în care acea persoană este parte contractantă personal. Datele de facturare pe care ni le furnizați înainte de prima plată arată care dintre cele două situații se aplică.",
           },
         },
         {
@@ -47,22 +48,15 @@ export const businessTerms: LegalDocument = {
       blueprintRef: "A3 / §0.2",
       title: { en: "Account and acceptance", ro: "Cont și acceptare" },
       summary: {
-        en: "Account terms bind at signup; this agreement binds at workspace creation.",
-        ro: "Termenii de cont se aplică la înregistrare; acest acord — la crearea spațiului de lucru.",
+        en: "A ticked box at sign-up; applies once you create your business.",
+        ro: "O căsuță bifată la înregistrare; se aplică după ce vă creați afacerea.",
       },
       body: [
         {
           kind: "p",
           text: {
-            en: "Creating a personal account is governed by the Account & Authorized User Terms. This SaaS agreement binds when you create your business workspace and your trial activates. Acceptance happens through an explicit action on every path (email registration, Google sign-in, invitation completion), and we record the accepted document version, the accepting user, the represented business and the timestamp.",
-            ro: "Crearea unui cont personal este guvernată de Termenii contului și ai utilizatorilor autorizați. Acest contract SaaS se aplică din momentul creării spațiului de lucru business și activării perioadei de probă. Acceptarea are loc printr-o acțiune explicită pe fiecare cale (înregistrare cu email, autentificare Google, finalizarea invitației), iar noi înregistrăm versiunea documentului acceptat, utilizatorul care acceptă, afacerea reprezentată și data și ora.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "IMPL (re-verified 11 Nov 2026): partly built. Users now carry termsAccepted / termsAcceptedAt, set at account creation, and the dashboard register screen blocks Google until the terms box is ticked. Still missing before the acceptance and recording statements above are true: the record holds no document version, workspace or language; Google on the dashboard LOGIN screen creates new accounts with no checkbox (POST /auth/google); team-invitation links activate the role on page load; the sign-up screen links only the Terms of Use, Privacy and Cookies, not this agreement; and there is no professional-purpose statement at workspace creation (decisions doc §9.3) or invitee acceptance in the Team section.",
-            ro: "IMPL (re-verificat 11 nov. 2026): parțial construit. Utilizatorii au acum termsAccepted / termsAcceptedAt, setate la crearea contului, iar ecranul de înregistrare din panou blochează Google până la bifarea termenilor. Lipsesc încă, înainte ca declarațiile de acceptare și înregistrare de mai sus să fie adevărate: evidența nu conține versiunea documentului, spațiul de lucru sau limba; Google pe ecranul de AUTENTIFICARE din panou creează conturi noi fără bifă (POST /auth/google); linkurile de invitație activează rolul la încărcarea paginii; ecranul de înregistrare face trimitere doar la Termenii de utilizare, Confidențialitate și Cookie-uri, nu la acest acord; și nu există declarația de scop profesional la crearea spațiului de lucru (documentul de decizii §9.3) sau acceptarea de către invitați din secțiunea Echipă.",
+            en: "Your personal account is governed by the Terms of Use. You accept this agreement expressly by ticking the box when you sign up as a business owner, or when you add a business to an existing Zavoia account, including its clauses on automatic renewal, suspension and termination, liability, no set-off, governing law and courts. It applies from when you create your business in Zavoia, which also starts your free trial.",
+            ro: "Contul dumneavoastră personal este guvernat de Termenii de utilizare. Acceptați în mod expres acest acord bifând căsuța când vă înregistrați ca proprietar de afacere sau când adăugați o afacere la un cont Zavoia existent, inclusiv clauzele sale privind reînnoirea automată, suspendarea și încetarea, răspunderea, excluderea compensării, legea aplicabilă și instanțele competente. Acordul se aplică din momentul în care vă creați afacerea în Zavoia, moment în care începe și perioada de probă gratuită.",
           },
         },
       ],
@@ -80,24 +74,17 @@ export const businessTerms: LegalDocument = {
           kind: "list",
           items: {
             en: [
-              "Subscription plans: Standard, Plus and Custom, with the limits and features presented to you at the time of purchase (Custom plans are agreed individually); Lifetime Deal workspaces keep their purchased entitlements and can buy additional paid seats.",
-              "Add-ons: additional team seats; SMS credit packs (purchased credits do not expire); one-time Website Builder purchases on eligible plans.",
-              "The marketplace listing is governed additionally by the Marketplace Provider Terms, accepted when you activate your listing.",
+              "Subscription plans: Base, Plus and Custom, with the limits and features presented to you at the time of purchase (Custom plans are agreed individually); workspaces with Lifetime access keep their purchased entitlements and can buy additional paid seats.",
+              "Add-ons: additional team seats; SMS credit packs (purchased credits do not expire); premium Web Studio styles, available on Plus as one-time purchases.",
+              "Your marketplace listing is additionally governed by the Marketplace Provider Terms, which form part of this agreement.",
               "We continuously improve the service and may introduce new features; features that materially affect your rights or obligations follow the change-notice rules in this agreement.",
             ],
             ro: [
-              "Planuri de abonament: Standard, Plus și Custom, cu limitele și funcțiile prezentate la momentul achiziției (planurile Custom se convin individual); spațiile de lucru Lifetime Deal își păstrează drepturile achiziționate și pot cumpăra locuri suplimentare plătite.",
-              "Suplimente: locuri de echipă suplimentare; pachete de credite SMS (creditele achiziționate nu expiră); achiziții unice Website Builder pe planurile eligibile.",
-              "Listarea în marketplace este guvernată suplimentar de Termenii pentru furnizori, acceptați la activarea listării.",
+              "Planuri de abonament: Base, Plus și Personalizat, cu limitele și funcțiile prezentate la momentul achiziției (planurile personalizate se convin individual); spațiile de lucru cu Acces pe viață își păstrează drepturile achiziționate și pot cumpăra locuri suplimentare plătite.",
+              "Suplimente: locuri de echipă suplimentare; pachete de credite SMS (creditele achiziționate nu expiră); stiluri premium Web Studio, disponibile pe planul Plus ca achiziții unice.",
+              "Listarea în marketplace este guvernată suplimentar de Termenii pentru furnizori, care fac parte din acest acord.",
               "Îmbunătățim continuu serviciul și putem introduce funcții noi; funcțiile care vă afectează semnificativ drepturile sau obligațiile urmează regulile de notificare a modificărilor din acest acord.",
             ],
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "Accuracy gates (blueprint A4 + audit §10.3): do not promise deposits, payouts, client import or bulk export — they are not built. Seat billing must be reconciled: marketing describes 'bookable staff' but the code bills all non-owner seats; the final clause must state whichever the business confirms as true.",
-            ro: "Gate-uri de acuratețe (blueprint A4 + audit §10.3): nu promiteți avansuri, plăți către afaceri, importul clienților sau exportul în masă — nu sunt construite. Facturarea locurilor trebuie clarificată: marketingul descrie „personal programabil”, dar codul facturează toate locurile non-proprietar; clauza finală trebuie să reflecte varianta confirmată de business ca adevărată.",
           },
         },
       ],
@@ -120,24 +107,17 @@ export const businessTerms: LegalDocument = {
             en: [
               "New workspaces start with a 14-day free trial; no charge before the trial converts to a paid subscription.",
               "Subscriptions are billed through Stripe and renew automatically for successive periods until cancelled; plan changes are prorated per the rules shown at the time of change.",
-              "Invoices are issued electronically [via Oblio] to the billing details you provide; you must keep billing data (including CUI for companies) accurate.",
-              "Price changes are announced at least [30] days in advance; if you do not agree, you can cancel before the new price takes effect.",
-              "If you dispute an invoice, tell us within [10] days of receiving it; undisputed non-payment can lead to suspension per the Suspension and termination section.",
+              "Invoices are issued electronically to the billing details you provide; you must keep billing data (including the fiscal code for companies) accurate.",
+              "Price changes are announced at least 30 days in advance; if you do not agree, you can cancel before the new price takes effect.",
+              "If you dispute an invoice, tell us within 30 days of receiving it; undisputed non-payment can lead to suspension per the Suspension and termination section.",
             ],
             ro: [
-              "Spațiile de lucru noi încep cu o perioadă de probă gratuită de 14 zile; nicio plată înainte ca proba să devină abonament plătit.",
+              "Spațiile de lucru noi încep cu o perioadă de probă gratuită de 14 zile; nu se percepe nicio plată înainte ca perioada de probă să devină abonament plătit.",
               "Abonamentele se facturează prin Stripe și se reînnoiesc automat pentru perioade succesive până la anulare; schimbările de plan se calculează pro-rata conform regulilor afișate la momentul schimbării.",
-              "Facturile se emit electronic [prin Oblio] la datele de facturare furnizate; trebuie să mențineți datele de facturare (inclusiv CUI pentru societăți) corecte.",
-              "Modificările de preț se anunță cu cel puțin [30] de zile înainte; dacă nu sunteți de acord, puteți anula înainte ca noul preț să intre în vigoare.",
-              "Dacă contestați o factură, anunțați-ne în [10] zile de la primire; neplata necontestată poate duce la suspendare conform secțiunii Suspendare și încetare.",
+              "Facturile se emit electronic la datele de facturare furnizate; trebuie să mențineți datele de facturare (inclusiv CUI pentru societăți) corecte.",
+              "Modificările de preț se anunță cu cel puțin 30 de zile înainte; dacă nu sunteți de acord, puteți anula înainte ca noul preț să intre în vigoare.",
+              "Dacă contestați o factură, anunțați-ne în 30 de zile de la primire; neplata necontestată poate duce la suspendare conform secțiunii Suspendare și încetare.",
             ],
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "GATES: VAT treatment and invoicing details to be confirmed with the accountant (blueprint A5). Bracketed notice periods are proposals — confirm. E-invoicing: per blueprint, B2C e-Factura uses the 13-zeros identifier, never CNP.",
-            ro: "GATE-uri: tratamentul TVA și detaliile de facturare de confirmat cu contabilul (blueprint A5). Termenele dintre paranteze sunt propuneri — de confirmat. E-facturare: conform blueprint, e-Factura B2C folosește identificatorul cu 13 zerouri, niciodată CNP.",
           },
         },
       ],
@@ -157,8 +137,8 @@ export const businessTerms: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "You can invite team members into your workspace; each invitee accepts the Account & Authorized User Terms through an explicit action when completing the invitation. Additional seats are billed per your plan. You are responsible for your users' acts and omissions in the workspace, for granting appropriate roles, for not sharing logins (including to avoid seat billing), and for removing access when someone leaves.",
-            ro: "Puteți invita membri de echipă în spațiul de lucru; fiecare persoană invitată acceptă Termenii contului și ai utilizatorilor autorizați printr-o acțiune explicită la finalizarea invitației. Locurile suplimentare se facturează conform planului. Răspundeți pentru actele și omisiunile utilizatorilor dumneavoastră în spațiul de lucru, pentru acordarea rolurilor potrivite, pentru nepartajarea conturilor (inclusiv pentru a evita facturarea locurilor) și pentru retragerea accesului când cineva pleacă.",
+            en: "You can invite team members into your workspace; each invitee accepts the Account & Authorized User Terms through an explicit action when completing the invitation. Each team member besides you uses a team seat, billed per your plan; your own account is included. You are responsible for your users' acts and omissions in the workspace, for granting appropriate roles, for not sharing logins (including to avoid seat billing), and for removing access when someone leaves.",
+            ro: "Puteți invita membri de echipă în spațiul de lucru; fiecare persoană invitată acceptă Termenii contului și ai utilizatorilor autorizați printr-o acțiune explicită la finalizarea invitației. Fiecare membru al echipei în afară de dumneavoastră ocupă un loc de echipă, facturat conform planului; contul dumneavoastră este inclus. Răspundeți pentru actele și omisiunile utilizatorilor dumneavoastră în spațiul de lucru, pentru acordarea rolurilor potrivite, pentru nepartajarea conturilor (inclusiv pentru a evita facturarea locurilor) și pentru retragerea accesului când cineva pleacă.",
           },
         },
       ],
@@ -190,14 +170,14 @@ export const businessTerms: LegalDocument = {
       title: { en: "Data protection", ro: "Protecția datelor" },
       summary: {
         en: "Roles per activity; the DPA governs processing on your behalf.",
-        ro: "Roluri pe activități; DPA guvernează prelucrarea în numele dumneavoastră.",
+        ro: "Roluri pe activități; Acordul de prelucrare a datelor guvernează prelucrarea în numele dumneavoastră.",
       },
       body: [
         {
           kind: "p",
           text: {
-            en: "For client records you enter and manage in your workspace, you are the controller and Zavoia processes on your behalf under the Data Processing Addendum, which forms part of this agreement. For platform-level processing (marketplace accounts and bookings, reviews, security, support, billing), Zavoia is an independent controller as described in the Privacy Notice. Each party assists the other with data-subject requests and regulator inquiries concerning shared flows, and you notify us without undue delay — at the latest within 24 hours — of any security incident affecting data in your workspace.",
-            ro: "Pentru evidențele de clienți pe care le introduceți și gestionați în spațiul de lucru, dumneavoastră sunteți operatorul, iar Zavoia prelucrează în numele dumneavoastră conform Acordului de prelucrare a datelor, care face parte din acest acord. Pentru prelucrările la nivel de platformă (conturi și programări din marketplace, recenzii, securitate, asistență, facturare), Zavoia este operator independent, conform Politicii de confidențialitate. Fiecare parte o asistă pe cealaltă la cererile persoanelor vizate și la solicitările autorităților privind fluxurile comune, iar dumneavoastră ne notificați fără întârzieri nejustificate — cel târziu în 24 de ore — orice incident de securitate care afectează datele din spațiul de lucru.",
+            en: "For client records and team schedules you enter and manage in your workspace, you are the controller and Zavoia processes on your behalf under the Data Processing Addendum, which forms part of this agreement. For platform-level processing (marketplace accounts and bookings, reviews, security, support, billing), Zavoia is an independent controller as described in the Privacy Notice. Each party assists the other with data-subject requests and regulator inquiries concerning shared flows, and you notify us without undue delay — at the latest within 24 hours — of any security incident affecting data in your workspace.",
+            ro: "Pentru evidențele de clienți și programul echipei pe care le introduceți și gestionați în spațiul de lucru, dumneavoastră sunteți operatorul, iar Zavoia prelucrează în numele dumneavoastră conform Acordului de prelucrare a datelor, care face parte din acest acord. Pentru prelucrările la nivel de platformă (conturi și programări din marketplace, recenzii, securitate, asistență, facturare), Zavoia este operator independent, conform Politicii de confidențialitate. Fiecare parte o asistă pe cealaltă la cererile persoanelor vizate și la solicitările autorităților privind fluxurile comune, iar dumneavoastră ne notificați fără întârzieri nejustificate — cel târziu în 24 de ore — orice incident de securitate care afectează datele din spațiul de lucru.",
           },
         },
       ],
@@ -220,22 +200,15 @@ export const businessTerms: LegalDocument = {
             en: [
               "You can cancel your subscription at any time, effective at the end of the paid period.",
               "We may suspend the workspace for: sustained non-payment after notice, serious or repeated breach of this agreement, security threats, or where the law requires it. We give you the reasons and, except where immediate action is legally required, prior notice and a chance to remedy.",
-              "We may terminate for material breach not remedied after notice, or with [30] days' notice if we discontinue the service.",
-              "On subscription lapse or termination, your workspace data is preserved and you keep read-only access (writes are blocked); your marketplace listing is unpublished. The marketplace-specific rules (including reinstatement and data re-access) are in the Provider Terms. [Defined retention window and export options — decision pending, see note.]",
+              "We may terminate for material breach not remedied after notice, or with 30 days' notice if we discontinue the service. If a termination also ends your marketplace listing, the Provider Terms apply: 30 days' notice with reasons, except in the cases they list.",
+              "On subscription lapse or termination, your workspace data is preserved and you keep read-only access (writes are blocked); your marketplace listing is unpublished. The marketplace-specific rules (including reinstatement and data re-access) are in the Provider Terms. Your workspace data stays available, read-only, until you delete your account, which deletes the business and everything in it (see Deleting your account). You can download each client's history as a PDF; there is no bulk export.",
             ],
             ro: [
               "Puteți anula abonamentul oricând, cu efect la finalul perioadei plătite.",
-              "Putem suspenda spațiul de lucru pentru: neplată persistentă după notificare, încălcare gravă sau repetată a acordului, amenințări de securitate sau când legea o impune. Vă comunicăm motivele și, cu excepția cazurilor în care legea impune acțiune imediată, o notificare prealabilă și posibilitatea de remediere.",
-              "Putem rezilia pentru încălcare esențială neremediată după notificare, sau cu preaviz de [30] de zile dacă întrerupem serviciul.",
-              "La expirarea abonamentului sau la încetare, datele spațiului de lucru sunt păstrate și mențineți acces de citire (scrierile sunt blocate); listarea din marketplace este retrasă de la publicare. Regulile specifice marketplace-ului (inclusiv restabilirea și reaccesarea datelor) sunt în Termenii pentru furnizori. [Fereastra definită de păstrare și opțiunile de export — decizie în curs, vezi nota.]",
+              "Putem suspenda spațiul de lucru pentru: neplată persistentă după notificare, încălcare gravă sau repetată a acordului, amenințări de securitate sau când legea o impune. Vă comunicăm motivele și, cu excepția cazurilor în care legea impune acțiune imediată, vă notificăm în prealabil și vă oferim posibilitatea de remediere.",
+              "Putem rezilia pentru încălcare esențială neremediată după notificare, sau cu preaviz de 30 de zile dacă întrerupem serviciul. Dacă încetarea duce și la retragerea listării din marketplace, se aplică Termenii pentru furnizori: preaviz de 30 de zile, cu motivare, cu excepția cazurilor prevăzute acolo.",
+              "La expirarea abonamentului sau la încetare, datele spațiului de lucru sunt păstrate și mențineți acces de citire (modificările sunt blocate); listarea din marketplace este retrasă de la publicare. Regulile specifice marketplace-ului (inclusiv restabilirea și reaccesarea datelor) sunt în Termenii pentru furnizori. Datele spațiului de lucru rămân disponibile, în regim de citire, până când vă ștergeți contul, ceea ce șterge afacerea și tot conținutul ei (vezi Ștergerea contului). Puteți descărca istoricul fiecărui client ca PDF; nu există export în masă.",
             ],
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "Verified 1 Aug 2026 (subscription.guard.ts): lapse = indefinite read-only access, writes blocked, no automated deletion, no bulk export (individual customer-history PDF only). The read-only statement reflects real behaviour. Still to decide/build: a defined retention window, export tooling, and a deletion policy — before promising any of them.",
-            ro: "Verificat 1 aug. 2026 (subscription.guard.ts): expirare = acces de citire pe durată nedeterminată, scrieri blocate, fără ștergere automată, fără export în masă (doar PDF-ul cu istoricul individual al unui client). Declarația de acces de citire reflectă comportamentul real. Rămân de decis/construit: o fereastră definită de păstrare, instrumente de export și o politică de ștergere — înainte de a promite oricare dintre ele.",
           },
         },
       ],
@@ -256,13 +229,6 @@ export const businessTerms: LegalDocument = {
             ro: "Zavoia furnizează platforma cu diligență profesională, dar nu garantează funcționarea neîntreruptă. Răspunderea totală a fiecărei părți în temeiul acestui acord este plafonată la taxele plătite în cele 12 luni anterioare evenimentului. Plafonul nu se aplică acolo unde legea română nu permite limitarea — inclusiv pentru intenție sau culpă gravă, ori pentru deces sau vătămare corporală.",
           },
         },
-        {
-          kind: "note",
-          text: {
-            en: "Counsel drafting required (blueprint A11–A15): the cap structure is permissible in principle under the Civil Code but enforceability needs professional drafting, not template text.",
-            ro: "Necesită redactare de către avocați (blueprint A11–A15): structura plafonului este permisă în principiu de Codul civil, dar aplicabilitatea necesită redactare profesionistă, nu text șablon.",
-          },
-        },
       ],
     },
     {
@@ -280,8 +246,8 @@ export const businessTerms: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "We change this agreement by notice on a durable medium (email or in-product with email confirmation) at least 15 days before the change takes effect — longer where you need technical or commercial adaptation. Changes are not retroactive. If a change materially affects you, you may terminate before it takes effect. Shorter notice applies only where a change is required by law or addresses an imminent security risk.",
-            ro: "Modificăm acest acord prin notificare pe suport durabil (email sau în produs, cu confirmare pe email) cu cel puțin 15 zile înainte ca modificarea să intre în vigoare — mai mult când aveți nevoie de adaptare tehnică sau comercială. Modificările nu sunt retroactive. Dacă o modificare vă afectează semnificativ, puteți rezilia înainte de intrarea ei în vigoare. Un preaviz mai scurt se aplică doar când o modificare este impusă de lege sau vizează un risc iminent de securitate.",
+            en: "We change this agreement by notice on a durable medium (email or in-product with email confirmation) at least 15 days before the change takes effect — longer where you need technical or commercial adaptation. Changes are not retroactive. If you do not accept a change, you may terminate this agreement before the change takes effect. Shorter notice applies only where a change is required by law or addresses an imminent security or fraud risk.",
+            ro: "Modificăm acest acord prin notificare pe suport durabil (email sau în produs, cu confirmare pe email) cu cel puțin 15 zile înainte ca modificarea să intre în vigoare — mai mult când aveți nevoie de adaptare tehnică sau comercială. Modificările nu sunt retroactive. Dacă nu acceptați o modificare, puteți rezilia acest acord înainte de intrarea ei în vigoare. Un preaviz mai scurt se aplică doar când o modificare este impusă de lege sau vizează un risc iminent de securitate sau de fraudă.",
           },
         },
       ],
@@ -303,7 +269,7 @@ export const businessTerms: LegalDocument = {
               "Assignment: you may not assign this agreement without our consent; a change of control of your business does not require consent, but tell us promptly so we can keep verification data accurate (see the Provider Terms). Zavoia may assign this agreement within a corporate reorganization or sale, with notice to you and without reducing your rights.",
               "Notices: we send notices to your workspace and the owner's email address; you send notices to the contact on the Company Information page. Email counts as a durable medium.",
               "Survival: clauses that by nature outlast termination — data protection and return, confidentiality, liability, payment of accrued fees, governing law — survive the end of this agreement.",
-              "Entire agreement: this agreement together with the documents it references (Order/plan details, Provider Terms, Account Terms, DPA) is the whole agreement for the service; it does not exclude liability for fraud.",
+              "Entire agreement: this agreement together with the documents it references (plan details, Provider Terms, DPA) is the whole agreement for the service; it does not exclude liability for fraud.",
               "If a clause is found invalid, the rest remains in force; the invalid clause is replaced by the valid rule closest to its purpose.",
             ],
             ro: [
@@ -311,7 +277,7 @@ export const businessTerms: LegalDocument = {
               "Cesiune: nu puteți cesiona acest acord fără acordul nostru; o schimbare a controlului afacerii nu necesită acord, dar anunțați-ne prompt pentru a menține datele de verificare corecte (vezi Termenii pentru furnizori). Zavoia poate cesiona acest acord în cadrul unei reorganizări sau vânzări corporative, cu notificare și fără a vă reduce drepturile.",
               "Notificări: vă trimitem notificările în spațiul de lucru și la adresa de email a proprietarului; ne trimiteți notificările la contactul de pe pagina Informații despre companie. Emailul contează ca suport durabil.",
               "Supraviețuire: clauzele care prin natura lor depășesc încetarea — protecția și returnarea datelor, confidențialitatea, răspunderea, plata taxelor acumulate, legea aplicabilă — supraviețuiesc încetării acordului.",
-              "Întregul acord: acest acord, împreună cu documentele la care face trimitere (detaliile planului, Termenii pentru furnizori, Termenii de cont, DPA), reprezintă întregul acord pentru serviciu; nu exclude răspunderea pentru fraudă.",
+              "Întregul acord: acest acord, împreună cu documentele la care face trimitere (detaliile planului, Termenii pentru furnizori, Acordul de prelucrare a datelor), reprezintă întregul acord pentru serviciu; nu exclude răspunderea pentru fraudă.",
               "Dacă o clauză este constatată nulă, restul rămâne în vigoare; clauza nulă se înlocuiește cu regula validă cea mai apropiată de scopul ei.",
             ],
           },
@@ -330,15 +296,8 @@ export const businessTerms: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "This agreement is governed by Romanian law; disputes go to the competent Romanian courts. The agreement is concluded in Romanian and English; the Romanian text prevails. The contracting formalities of Legea 365/2002 (technical steps, error correction, storage of the contract) will be presented in the product at the point of contracting.",
-            ro: "Acest acord este guvernat de legea română; litigiile revin instanțelor române competente. Acordul se încheie în română și engleză; textul în limba română prevalează. Formalitățile de contractare din Legea 365/2002 (etapele tehnice, corectarea erorilor, stocarea contractului) vor fi prezentate în produs la momentul contractării.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "IMPL (re-verified 11 Nov 2026): the Lorem Ipsum terms and invented company details were removed from the dashboard on 6 Aug 2026 (df9e4ba). Still missing before contracting under this agreement: the Legea 365/2002 formalities (technical steps, correcting input errors, how the contract is stored) are not shown at sign-up or checkout; and the dashboard links only to the Terms of Use, Privacy and Cookies (legal-links.ts, register-form.tsx, BusinessProfile.tsx) — nothing links to these Business Terms, the DPA, the Account Terms or the Provider Terms. legal-links.ts also points at zavoia.com instead of www.zavoia.com (works only through the redirect).",
-            ro: "IMPL (re-verificat 11 nov. 2026): termenii Lorem Ipsum și detaliile de companie inventate au fost eliminate din panou pe 6 aug. 2026 (df9e4ba). Lipsesc încă, înainte de contractarea sub acest acord: formalitățile din Legea 365/2002 (etapele tehnice, corectarea erorilor de introducere, modul de stocare a contractului) nu sunt afișate la înregistrare sau la plată; iar panoul face trimitere doar la Termenii de utilizare, Confidențialitate și Cookie-uri (legal-links.ts, register-form.tsx, BusinessProfile.tsx) — nimic nu trimite la acești Termeni pentru afaceri, la DPA, la Termenii contului sau la Termenii pentru furnizori. legal-links.ts indică și zavoia.com în loc de www.zavoia.com (funcționează doar prin redirecționare).",
+            en: "This agreement is governed by Romanian law; disputes go to the competent Romanian courts. The agreement is concluded in Romanian and English; the Romanian text prevails. How the contract is concluded (Law 365/2002 art. 8): you sign up and tick the box accepting these terms; you create your business in Zavoia, which starts your free trial; and you subscribe by choosing a plan and paying through Stripe. Before paying, you can review and correct your plan, seats and billing details, and you can change billing details later under Account → Billing & Subscription. The current version of these terms is always on this page, where you can print or save it, and we send you the version you accepted on request.",
+            ro: "Acest acord este guvernat de legea română; litigiile revin instanțelor române competente. Acordul se încheie în română și engleză; textul în limba română prevalează. Cum se încheie contractul (Legea 365/2002 art. 8): vă înregistrați și bifați căsuța prin care acceptați acești termeni; vă creați afacerea în Zavoia, ceea ce pornește perioada de probă gratuită; și vă abonați alegând un plan și plătind prin Stripe. Înainte de plată, puteți verifica și corecta planul, locurile și datele de facturare, iar datele de facturare le puteți modifica ulterior din Cont → Facturare și abonament. Versiunea în vigoare a acestor termeni este mereu pe această pagină, de unde o puteți tipări sau salva, iar la cerere vă trimitem versiunea pe care ați acceptat-o.",
           },
         },
       ],

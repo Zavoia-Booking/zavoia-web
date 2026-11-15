@@ -4,6 +4,7 @@ import { MicrositeProfessionalAction } from "../../../shared/actions";
 import { DISPLAY } from "../../../shared/constants";
 import { Stars } from "../../../shared/primitives";
 import type { TeamVariantProps } from "../types";
+import { TeamPortrait } from "../parts/TeamPortrait";
 import "./roster.css";
 
 /** Roster (paid) — a numbered editorial directory: rank, circular avatar, name/role/location, a star rating
@@ -18,7 +19,7 @@ export function Roster({ members, ratings, nameOf, initialsOf, tintOf }: TeamVar
             <MicrositeProfessionalAction uuid={m.publicProfileAvailable === true ? m.uuid : undefined} previewTag="div" intent={{ locationId: locId, teamMemberId: m.id }} className="mc-rrow-btn" aria-label={nameOf(m)}>
               <span className="mc-rrow-ava" style={{ background: tintOf(m) }}>
                 {m.profileImage ? (
-                  <img src={m.profileImage} alt={nameOf(m)} loading="lazy" decoding="async" />
+                  <TeamPortrait src={m.profileImage} alt={nameOf(m)} sizes="auto, 74px" />
                 ) : (
                   <span
                     className="flex h-full w-full items-center justify-center"

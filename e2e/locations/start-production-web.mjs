@@ -14,6 +14,8 @@ const env = {
   NEXT_TELEMETRY_DISABLED: '1',
   NEXT_DIST_DIR: distDir,
   NEXT_PUBLIC_API_URL: `http://127.0.0.1:${apiPort}`,
+  // Pin the approved canonical host before Next loads .env files and inlines it.
+  NEXT_PUBLIC_SITE_URL: 'https://www.zavoia.com',
   // Use the application's existing unconfigured-CMS behavior. Local .env
   // credentials must never make an isolated regression build query real content.
   NEXT_PUBLIC_SANITY_PROJECT_ID: 'placeholder',

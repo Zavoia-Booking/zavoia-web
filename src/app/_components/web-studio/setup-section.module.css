@@ -43,7 +43,7 @@
 .note { display: flex; align-items: start; gap: 9px; margin: 0; color: var(--c-700); font-size: 14px; line-height: 1.55; text-wrap: pretty; }
 .note svg { flex-shrink: 0; margin-top: 2px; color: oklch(47% .11 158); }
 .demoLink { display: inline-flex; flex-shrink: 0; align-items: center; gap: 12px; min-height: 44px; padding-block: 8px; color: var(--c-ink); font-size: 15px; font-weight: 500; line-height: 1.4; text-decoration: underline; text-decoration-color: color-mix(in oklch, currentColor 35%, transparent); text-underline-offset: 5px; text-decoration-thickness: 1px; transition: text-decoration-color 160ms var(--ease-out); }
-.demoLink:focus-visible { outline: 2px solid var(--p-500); outline-offset: 5px; border-radius: 2px; }
+.demoLink:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 5px; border-radius: 2px; }
 @media (hover: hover) and (pointer: fine) { .demoLink:hover { text-decoration-color: currentColor; } }
 
 @media (max-width: 1100px) {

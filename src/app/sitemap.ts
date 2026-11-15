@@ -6,8 +6,10 @@ import { professionalHref } from "@/lib/professionals/urls";
 import { getCategoryAlternates } from "@/data/seo";
 import { getCategoryDiscoveryGroups } from "@/lib/seo/category-discovery";
 import { listPostsForSitemap } from "@/sanity/queries";
-import { getPostAlternates } from "@/lib/blog/alternates";
-import { LEGAL_DOCUMENTS } from "@/data/legal";
+import { getPostAlternates, getPostTranslation } from "@/lib/blog/alternates";
+import { CATEGORY_ORDER } from "@/lib/blog/categories";
+import { categoryPath } from "@/lib/blog/category-routes";
+import { getPostModifiedAt } from "@/lib/blog/dates";
 import { getIndustries } from "@/lib/api/marketplace/public";
 import { loadSitemapFeed } from "@/lib/seo/sitemap-feed.server";
 import { webUrl } from "@/lib/locations/structured-data";
@@ -27,23 +29,17 @@ function loadMarketplaceEntries(): Promise<MarketplaceSitemap> {
   return loadSitemapFeed();
 }
 
-// Blog availability retains its existing independent fallback policy.
-async function loadBlogEntries(): Promise<
+// A failed CMS query must not replace the last good sitemap with missing posts.
+function loadBlogEntries(): Promise<
   Awaited<ReturnType<typeof listPostsForSitemap>>
 > {
-  try {
-    return await listPostsForSitemap();
-  } catch {
-    return [];
-  }
+  return listPostsForSitemap();
 }
 
-async function loadIndustries(): Promise<Industry[]> {
-  try {
-    return await getIndustries();
-  } catch {
-    return [];
-  }
+// Taxonomy failures must preserve the last good sitemap too; an outage is not
+// evidence that every city/category destination has disappeared.
+function loadIndustries(): Promise<Industry[]> {
+  return getIndustries();
 }
 
 /** Advertise only city/taxonomy combinations supported by a searchable location.
@@ -137,6 +133,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const posts = await loadBlogEntries();
+  const blogCategoryEntries: MetadataRoute.Sitemap = CATEGORY_ORDER.flatMap((category) => {
+    const languages = Object.fromEntries(LOCALES.flatMap((locale) =>
+      posts.some((post) => post.category === category && getPostTranslation(post, locale))
+        ? [[locale, abs(categoryPath(locale, category))]]
+        : [],
+    ));
+    const fallback = languages[DEFAULT_LOCALE] ?? Object.values(languages)[0];
+    if (!fallback) return [];
+
+    return Object.values(languages).map((url) => ({
+      url,
+      // Post dates do not establish when the category's introductory copy changed.
+      alternates: { languages: { ...languages, "x-default": fallback } },
+    }));
+  });
   const postEntries: MetadataRoute.Sitemap = posts.flatMap((post) => {
     const alternates = getPostAlternates(post);
     const languages = Object.fromEntries(
@@ -149,7 +160,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if (!path) continue;
       entries.push({
         url: abs(path),
-        lastModified: new Date(post.publishedAt),
+        lastModified: new Date(getPostModifiedAt(post) ?? post.publishedAt),
         alternates: {
           languages: {
             ...languages,
@@ -160,39 +171,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
     return entries;
   });
-
-  const legalHubLanguages = Object.fromEntries(
-    LOCALES.map((l) => [l, abs(localeHref(l, "terms"))]),
-  ) as Record<Locale, string>;
-
-  const legalEntries: MetadataRoute.Sitemap = [
-    ...LOCALES.map((locale) => ({
-      url: abs(localeHref(locale, "terms")),
-      alternates: {
-        languages: {
-          ...legalHubLanguages,
-          "x-default": legalHubLanguages[DEFAULT_LOCALE],
-        },
-      },
-    })),
-    // Draft documents are noindex until published, so they stay out of the sitemap.
-    ...LOCALES.flatMap((locale) =>
-      LEGAL_DOCUMENTS.filter((doc) => doc.status === "published").map((doc) => {
-        const languages = Object.fromEntries(
-          LOCALES.map((l) => [l, abs(localeHref(l, "terms", doc.slug))]),
-        ) as Record<Locale, string>;
-        return {
-          url: abs(localeHref(locale, "terms", doc.slug)),
-          alternates: {
-            languages: {
-              ...languages,
-              "x-default": languages[DEFAULT_LOCALE],
-            },
-          },
-        };
-      }),
-    ),
-  ];
 
   // Marketplace URLs. These render identical content under both locales (the
   // data is the same; only the chrome is translated), so each URL is listed
@@ -235,11 +213,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const brandEntries = localizedEntries(
     marketplace.brands,
     (locale, slug) => localeHref(locale, "brand", slug),
+    // business.updatedAt does not cover the displayed listing, locations or team.
+    false,
   );
 
   const websiteEntries = localizedEntries(
     marketplace.websites,
     (locale, slug) => localeHref(locale, slug),
+    // The publish timestamp does not cover subsequent live catalogue/review edits.
+    false,
   );
 
   const professionalEntries: MetadataRoute.Sitemap = (marketplace.professionals ?? []).flatMap(({ uuid }) => {
@@ -254,6 +236,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   });
 
+  // The legal directory and all policy documents are noindex, regardless of status.
   return [
     ...homeEntries,
     ...industryDirectoryEntries,
@@ -264,7 +247,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...brandEntries,
     ...professionalEntries,
     ...blogIndexEntries,
+    ...blogCategoryEntries,
     ...postEntries,
-    ...legalEntries,
   ];
 }

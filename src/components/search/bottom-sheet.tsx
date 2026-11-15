@@ -11,6 +11,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
+import { SHEET_SETTLE_MS as SNAP_MS, SHEET_SETTLE_EASE as SNAP_EASE } from "@/components/ui/sheet-motion";
 
 /**
  * The mobile results sheet — an Apple/Airbnb-style drawer over the map.
@@ -31,9 +32,6 @@ import {
 
 export type SheetPosition = "down" | "mid" | "top";
 
-/** Snap animation. Matches --ease-out, the app's standard settle. */
-const SNAP_MS = 320;
-const SNAP_EASE = "cubic-bezier(.2, .7, .3, 1)";
 /** A flick faster than this decides the direction regardless of where it ended. */
 const FLICK_VELOCITY = 0.5; // px per ms
 /** `mid` sits this far down the sheet's travel. */
@@ -226,6 +224,17 @@ export function BottomSheet({
     setAndReport(best);
   };
 
+  const cancelDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!gesture.current) return;
+    // Interrupted gestures return to the resting snap, without using the
+    // unfinished drag's position or velocity to select a new destination.
+    gesture.current = null;
+    setDrag(null);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
   const y = drag ?? snapY(position);
   const dragging = drag != null;
 
@@ -274,7 +283,8 @@ export function BottomSheet({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        onPointerCancel={cancelDrag}
+        onLostPointerCapture={cancelDrag}
         style={{ touchAction: "none", cursor: dragging ? "grabbing" : "grab" }}
       >
         <div style={{ display: "flex", justifyContent: "center", paddingTop: 2 }}>

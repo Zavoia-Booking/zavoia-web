@@ -2,27 +2,17 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import disclosure from "@/components/ui/disclosure-motion.module.css";
 import { dictionaries } from "@/i18n/dictionaries";
-import { format, formatCount } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { formatPrice, getPlanPricing } from "@/lib/marketing/pricing";
+import type { MarketingFaqItem } from "@/lib/marketing/page-content";
 import { FaqArtwork } from "./faq-artwork";
 import m from "./marketing.module.css";
 import styles from "./faq-section.module.css";
 
 /** Secondary questions remain independent native disclosures with no client state. */
-export function FaqSection({ locale }: { locale: Locale }) {
+export function FaqSection({ locale, items }: { locale: Locale; items: readonly MarketingFaqItem[] }) {
   const dict = dictionaries[locale];
   const t = dict.forBusiness.faq;
-  const pricing = getPlanPricing(locale);
-  const counts = dict.businessMarketing.counts;
-  const values = {
-    days: formatCount(pricing.trialDays, locale, counts.days),
-    seat: formatPrice(pricing.teamMember, pricing.currency),
-    baseTeamMembers: formatCount(pricing.teamMemberLimits.base, locale, counts.teamMembers),
-    baseLocations: formatCount(pricing.plans.base.locations, locale, counts.locations),
-    plusLocations: formatCount(pricing.plans.plus.locations, locale, counts.locations),
-  };
 
   return (
     <MarketingFaq
@@ -32,7 +22,7 @@ export function FaqSection({ locale }: { locale: Locale }) {
       lead={t.aside}
       helpPrompt={t.helpPrompt}
       helpLink={t.helpLink}
-      items={t.items.map(item => ({ q: item.q, a: format(item.a, values) }))}
+      items={items}
     />
   );
 }
@@ -45,7 +35,7 @@ interface MarketingFaqProps {
   helpPrompt: string;
   helpLink: string;
   /** Answers are formatted by the page; blank lines separate paragraphs. */
-  items: readonly { q: string; a: string; link?: { label: string; href: string } }[];
+  items: readonly MarketingFaqItem[];
 }
 
 /** The shared disclosure presentation keeps each page's questions and wording. */

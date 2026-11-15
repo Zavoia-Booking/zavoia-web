@@ -11,6 +11,7 @@ import {
 } from "../../_components/auth-messages";
 import { localeHref } from "@/i18n/routes";
 import { authErrorMessage } from "@/lib/api/auth-error-messages";
+import { ApiError } from "@/lib/api/http";
 import {
   getAccountLinkNeededDetails,
   getGoogleUnlinkedDetails,
@@ -45,7 +46,8 @@ type View =
   | { kind: "error"; error?: unknown; invalid?: boolean; back: "auth" | "account" }
   | { kind: "googleLink"; context: GoogleLinkContext }
   | { kind: "confirmAccess"; context: ConfirmAccessContext }
-  | { kind: "enableAccess"; details: AccountLinkNeededDetails };
+  | { kind: "enableAccess"; details: AccountLinkNeededDetails }
+  | { kind: "noAccount" };
 
 type CallbackFlow = {
   context: GoogleOAuthContext | null;
@@ -181,6 +183,16 @@ export function GoogleCallback({
               context: { txId: unlinked.txId, email: unlinked.email ?? "" },
             };
           }
+          // Signing in never creates an account: an unknown Google email goes
+          // to sign-up, where the terms box comes before the account exists.
+          if (
+            saved.intent === "login" &&
+            error instanceof ApiError &&
+            error.status === 404 &&
+            error.code === "account_not_found"
+          ) {
+            return { kind: "noAccount" };
+          }
           return { kind: "error", error, back: "auth" };
         }
       });
@@ -192,6 +204,10 @@ export function GoogleCallback({
           saved.intent === "link"
             ? accountHref
             : safeRedirectTarget(saved.redirect, locale, defaultPostAuthTarget(locale)),
+        );
+      } else if (next.kind === "noAccount") {
+        router.replace(
+          `${authEntryHref(locale, "register", saved.redirect ?? defaultPostAuthTarget(locale))}&notice=google-no-account`,
         );
       } else show(next);
     });

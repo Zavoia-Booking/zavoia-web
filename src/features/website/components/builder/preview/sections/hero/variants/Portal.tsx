@@ -6,6 +6,7 @@ import { HERO_DELAY } from "../constants";
 import { WordRise } from "../parts/WordRise";
 import { deriveHeroContent } from "../parts/content";
 import type { HeroVariantProps } from "../types";
+import { useResponsivePublicImage } from "../../../shared/useResponsivePublicImage";
 import "./portal.css";
 
 const easeOut = (p: number) => 1 - Math.pow(1 - p, 3);
@@ -85,6 +86,7 @@ type ScrollDrivenAnimationOptions = KeyframeAnimationOptions & { rangeStart: str
  *  (Design source: HeroPortal.) */
 export function Portal(props: HeroVariantProps) {
   const { data, parallax } = props;
+  const cover = useResponsivePublicImage(data.heroImageUrl, "100vw");
   const reducedMotion = useReducedMotion();
   const { name, tagline, ctaLabel } = deriveHeroContent(props);
   const trackRef = useRef<HTMLElement>(null);
@@ -317,7 +319,7 @@ export function Portal(props: HeroVariantProps) {
           <div ref={fitRef} className="mc-heropt-fit">
             <div ref={imgRef} className="mc-heropt-imgmove">
               {data.heroImageUrl ? (
-                <img src={data.heroImageUrl} alt="" title={name} loading={parallax ? "eager" : "lazy"} decoding="async" />
+                <img {...cover.props} onError={cover.retryOriginal} alt="" title={name} loading={parallax ? "eager" : "lazy"} fetchPriority={parallax ? "high" : "auto"} decoding="async" />
               ) : (
                 <div className="mc-hero-cover-empty" style={{ position: "absolute", inset: 0 }} />
               )}

@@ -3,8 +3,9 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useAuthMessages } from "@/app/[locale]/auth/_components/auth-messages";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Locale } from "@/i18n/locales";
+import { localeHref } from "@/i18n/routes";
 import {
   defaultPostAuthTarget,
   safeRedirectTarget,
@@ -58,6 +59,7 @@ export function ConfirmAccessPanel({
 
   const action = useRetainedAuthAction(`confirm-access:${context.txId}`);
   const submitting = action.status === "pending" || action.status === "success";
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Once confirmMarketplaceAccess establishes the session, redirect like the
   // sign-in forms.
@@ -92,6 +94,43 @@ export function ConfirmAccessPanel({
         {(isApple ? t.appleExplanation : t.explanation).replace("{email}", context.email)}
       </p>
 
+      <div className="mt-6 flex items-start gap-2.5">
+        <input
+          id="acceptTerms"
+          name="acceptTerms"
+          type="checkbox"
+          checked={termsAccepted}
+          onChange={(e) => setTermsAccepted(e.target.checked)}
+          disabled={submitting}
+          required
+          className="mt-0.5 size-4 shrink-0 cursor-pointer accent-[var(--p-500)] disabled:cursor-not-allowed"
+        />
+        <label
+          htmlFor="acceptTerms"
+          className="cursor-pointer text-sm text-c-600 select-none"
+        >
+          {dict.terms.agreementPrefix}{" "}
+          <a
+            href={localeHref(locale, "terms", "customer-terms")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {dict.terms.customerTermsLink}
+          </a>
+          . {dict.terms.privacyPrefix}{" "}
+          <a
+            href={localeHref(locale, "terms", "privacy-policy")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {dict.terms.privacyNoticeLink}
+          </a>
+          .
+        </label>
+      </div>
+
       {action.status === "error" && (
         <InlineError
           className="mt-4 rounded-md border border-[var(--s-error-300)] bg-[var(--s-error-100)] px-3 py-2"
@@ -103,7 +142,7 @@ export function ConfirmAccessPanel({
       <button
         type="button"
         onClick={handleConfirm}
-        disabled={submitting}
+        disabled={submitting || !termsAccepted}
         aria-label={t.confirm}
         aria-busy={submitting}
         className="relative mt-6 w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"

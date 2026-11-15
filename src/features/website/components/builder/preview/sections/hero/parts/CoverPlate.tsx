@@ -3,12 +3,14 @@ import { Stars, BookButton } from "../../../shared/primitives";
 import { HERO_DELAY } from "../constants";
 import { WordRise } from "./WordRise";
 import type { HeroModeProps } from "../types";
+import { useResponsivePublicImage } from "../../../shared/useResponsivePublicImage";
 
 /** Cover plate — three layers: the drenched accent FIELD on the left (accent flood + ghost monogram +
  *  masthead hairline, the same treatment as the no-cover hero), the cover PHOTO bleeding full-height on
  *  the right, and a white CARD straddling the seam (the signature overlap). The .mc-plate* layout
  *  (absolute field + photo + the overlapping card + the stack breakpoint) lives in globals.css. */
 export function CoverPlate({ data, t, parallax, name, eyebrow, eyebrowDot, monogram, rating, count, showRating, ctaLabel, headerRef, parallaxRef }: HeroModeProps) {
+  const cover = useResponsivePublicImage(data.heroImageUrl, "(max-width: 640px) 100vw, 56vw");
   return (
     <header ref={headerRef} className="mc-plate">
       <div className="mc-plate-field">
@@ -35,7 +37,8 @@ export function CoverPlate({ data, t, parallax, name, eyebrow, eyebrowDot, monog
       <div className="mc-plate-photo">
         <div ref={parallaxRef} className="mc-plate-track">
           <img
-            src={data.heroImageUrl ?? undefined}
+            {...cover.props}
+            onError={cover.retryOriginal}
             alt=""
             title={name}
             loading={parallax ? "eager" : "lazy"}

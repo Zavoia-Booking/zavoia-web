@@ -1,13 +1,12 @@
 /* FAQ · Index — editorial master/detail, switching to an inline accordion at 880px. */
 .mc-fq-fade {
-  opacity: 0;
-  transform: translateY(10px);
+  opacity: 1;
   transition: opacity 500ms var(--mc-faq-ease-out), transform 500ms var(--mc-faq-ease-out);
 }
 
-.mc-fq-fade[data-shown="1"] {
-  opacity: 1;
-  transform: none;
+.mc-fq-fade[data-shown="0"] {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 .mc-fqx-card {
@@ -234,7 +233,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mc-fq-fade {
+  .mc-fq-fade,
+  .mc-fq-fade[data-shown="0"] {
     opacity: 1;
     transform: none;
     transition: none !important;

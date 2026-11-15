@@ -3,13 +3,14 @@ import type { LegalDocument } from "./types";
 export const termsOfUse: LegalDocument = {
   slug: "terms-of-use",
   audience: "general",
-  title: { en: "Website Terms of Use", ro: "Termeni de utilizare a site-ului" },
+  title: { en: "Terms of Use", ro: "Termeni de utilizare" },
   shortTitle: { en: "Terms of Use", ro: "Termeni de utilizare" },
   description: {
     en: "The rules for visiting and using the Zavoia website and apps — accounts, acceptable use, content and intellectual property.",
     ro: "Regulile pentru vizitarea și utilizarea site-ului și aplicațiilor Zavoia — conturi, utilizare acceptabilă, conținut și proprietate intelectuală.",
   },
-  status: "draft",
+  status: "published",
+  effectiveDate: "2026-11-15",
   sections: [
     {
       id: "who-we-are",
@@ -23,8 +24,8 @@ export const termsOfUse: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "These terms govern your use of the zavoia.com website and the Zavoia mobile applications (together, the “Site”). The Site is operated by the company identified on our Company Information page, which forms part of these terms.",
-            ro: "Acești termeni guvernează utilizarea site-ului zavoia.com și a aplicațiilor mobile Zavoia (împreună, „Site-ul”). Site-ul este operat de societatea identificată pe pagina Informații despre companie, care face parte din acești termeni.",
+            en: "These terms govern your use of the Zavoia websites — www.zavoia.com and app.zavoia.com — and the Zavoia and Zavoia Admin mobile apps (together, the “Site”). The Site is operated by the company identified on our Company Information page, which forms part of these terms.",
+            ro: "Acești termeni guvernează utilizarea site-urilor Zavoia — www.zavoia.com și app.zavoia.com — și a aplicațiilor mobile Zavoia și Zavoia Admin (împreună, „Site-ul”). Site-ul este operat de societatea identificată pe pagina Informații despre companie, care face parte din acești termeni.",
           },
         },
         {
@@ -51,8 +52,15 @@ export const termsOfUse: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "If you only browse the Site, these terms and our Privacy Notice are presented for your information. If you create an account, you accept these terms through an explicit action at registration, and we keep a record of the version you accepted.",
-            ro: "Dacă doar navigați pe Site, acești termeni și Politica de confidențialitate vă sunt prezentate cu titlu de informare. Dacă vă creați un cont, acceptați acești termeni printr-o acțiune explicită la înregistrare, iar noi păstrăm o evidență a versiunii acceptate.",
+            en: "If you only browse the Site, these terms and our Privacy Notice are presented for your information. If you create an account, you expressly accept these terms by ticking the box at registration, including the sections on account suspension, liability, governing law and courts, and we record when you accepted them.",
+            ro: "Dacă doar navigați pe Site, acești termeni și Politica de confidențialitate vă sunt prezentate cu titlu de informare. Dacă vă creați un cont, acceptați în mod expres acești termeni bifând căsuța la înregistrare, inclusiv secțiunile privind suspendarea contului, răspunderea, legea aplicabilă și instanțele competente, iar noi păstrăm evidența momentului în care i-ați acceptat.",
+          },
+        },
+        {
+          kind: "p",
+          text: {
+            en: "How the account contract is concluded (Law 365/2002 art. 8): you enter your details or continue with Google, tick the box accepting these terms, and create the account. Before you create it, you can review and correct what you have entered; afterwards, you can change your details in your account settings. The current version of these terms is always on this page, where you can print or save it, and we send you the version you accepted on request.",
+            ro: "Cum se încheie contractul pentru cont (Legea 365/2002 art. 8): vă introduceți datele sau continuați cu Google, bifați căsuța prin care acceptați acești termeni și creați contul. Înainte de a-l crea, puteți verifica și corecta ce ați introdus; ulterior, vă puteți modifica datele din setările contului. Versiunea în vigoare a acestor termeni este mereu pe această pagină, de unde o puteți tipări sau salva, iar la cerere vă trimitem versiunea pe care ați acceptat-o.",
           },
         },
         {
@@ -60,13 +68,6 @@ export const termsOfUse: LegalDocument = {
           text: {
             en: "When we change these terms, we publish the new version with its date and notify account holders in advance through the Site or by email. Changes do not apply retroactively. If you do not agree with a change, you can stop using the Site and delete your account before the change takes effect.",
             ro: "Când modificăm acești termeni, publicăm noua versiune cu data ei și notificăm în avans deținătorii de cont prin Site sau prin email. Modificările nu se aplică retroactiv. Dacă nu sunteți de acord cu o modificare, puteți înceta utilizarea Site-ului și vă puteți șterge contul înainte ca modificarea să intre în vigoare.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "IMPL (re-verified 11 Nov 2026): partly built. Accounts now store termsAccepted and termsAcceptedAt, set when any account is created (user.entity.ts), and the register screens of the dashboard, website and app block Google sign-up until the terms box is ticked. Still missing before the statements above are true: (1) nothing records WHICH document or version was accepted, or in which language — so “we keep a record of the version you accepted” is not true yet; (2) Google on the LOGIN screens still creates new accounts behind a passive “By continuing you agree…” line, and the server never checks for acceptance; (3) team-invitation links activate the role when the page loads (GET /auth/check-team-invitation); (4) enabling the customer role on an existing account (confirm-access panel on the web, enable-marketplace modal in the app) shows no terms.",
-            ro: "IMPL (re-verificat 11 nov. 2026): parțial construit. Conturile rețin acum termsAccepted și termsAcceptedAt, setate la crearea oricărui cont (user.entity.ts), iar ecranele de înregistrare din panou, de pe site și din aplicație blochează înregistrarea cu Google până la bifarea termenilor. Lipsesc încă, înainte ca declarațiile de mai sus să fie adevărate: (1) nu se înregistrează CE document sau ce versiune a fost acceptată, nici în ce limbă — deci „păstrăm o evidență a versiunii acceptate” nu este încă adevărat; (2) Google pe ecranele de AUTENTIFICARE creează în continuare conturi noi, cu doar un text pasiv „Continuând, sunteți de acord…”, iar serverul nu verifică niciodată acceptarea; (3) linkurile de invitație în echipă activează rolul la încărcarea paginii (GET /auth/check-team-invitation); (4) activarea rolului de client pentru un cont existent (panoul confirm-access de pe web, fereastra enable-marketplace din aplicație) nu prezintă termenii.",
           },
         },
       ],
@@ -92,7 +93,7 @@ export const termsOfUse: LegalDocument = {
             ro: [
               "Puteți deține un singur cont personal. Conturile sunt personale și netransferabile — nu partajați datele de autentificare și nu vindeți, împrumutați sau transferați un cont.",
               "Furnizați informații corecte la înregistrare și mențineți-le actualizate.",
-              "Păstrați confidențialitatea parolei și a metodelor de autentificare. Anunțați-ne imediat dacă suspectați un acces neautorizat.",
+              "Păstrați confidențialitatea parolei și a metodelor de autentificare. Anunțați-ne prompt dacă suspectați un acces neautorizat.",
               "Același cont poate deține roluri diferite în timp — client în marketplace, membru al echipei unei afaceri sau proprietar de afacere. Fiecare rol este guvernat de propriul document, care vă este prezentat la activarea rolului.",
             ],
           },
@@ -100,8 +101,8 @@ export const termsOfUse: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "We may suspend an account for a serious or repeated breach of these terms; when we do, we tell you why and how to respond, as described in the Reviews, Content & Moderation Policy and, for customers, the Marketplace Customer Terms.",
-            ro: "Putem suspenda un cont pentru o încălcare gravă sau repetată a acestor termeni; când o facem, vă comunicăm motivele și cum puteți răspunde, conform Politicii de recenzii, conținut și moderare și, pentru clienți, Termenilor pentru clienți.",
+            en: "We may suspend an account for a serious or repeated breach of these terms; when we do, we tell you why and how to respond, as described in the Reviews, Content & Moderation Policy and, for customers, the Marketplace Customer Terms or, for businesses, the Business Terms and, for marketplace listings, the Marketplace Provider Terms.",
+            ro: "Putem suspenda un cont pentru o încălcare gravă sau repetată a acestor termeni; când o facem, vă comunicăm motivele și cum puteți răspunde, conform Politicii de recenzii, conținut și moderare și, pentru clienți, Termenilor pentru clienți sau, pentru afaceri, Termenilor pentru afaceri și, pentru listările din marketplace, Termenilor pentru furnizori.",
           },
         },
       ],
@@ -118,15 +119,8 @@ export const termsOfUse: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "You must be at least [16/18] years old to create an account. Appointments for minors may be booked by a parent or legal guardian from their own account, where the service is appropriate for minors.",
-            ro: "Trebuie să aveți cel puțin [16/18] ani pentru a vă crea un cont. Programările pentru minori pot fi făcute de un părinte sau tutore legal din propriul cont, acolo unde serviciul este potrivit pentru minori.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "GATE D11 (blueprint): the minors/age policy is an open business decision. Romanian digital-consent age under Legea 190/2018 is 16; whether to allow 16–18-year-old account holders, and any per-category restrictions (e.g. tattoo/piercing venues), must be decided before publication.",
-            ro: "GATE D11 (blueprint): politica privind minorii/vârsta este o decizie de business nerezolvată. Vârsta consimțământului digital conform Legii 190/2018 este 16 ani; dacă se permit titulari de cont între 16–18 ani, precum și eventuale restricții pe categorii (ex. saloane de tatuaje/piercing), trebuie decise înainte de publicare.",
+            en: "You must be at least 18 years old to create an account; by creating one, you confirm that you are. A parent or legal guardian may book appointments for a minor from their own account, where the service is appropriate for minors. If we learn that an account belongs to someone under 18, we will close it.",
+            ro: "Trebuie să aveți cel puțin 18 ani pentru a vă crea un cont; prin crearea contului, confirmați că îndepliniți această condiție. Un părinte sau tutore legal poate face programări pentru un minor din propriul cont, acolo unde serviciul este potrivit pentru minori. Dacă aflăm că un cont aparține unei persoane sub 18 ani, îl vom închide.",
           },
         },
       ],
@@ -151,7 +145,7 @@ export const termsOfUse: LegalDocument = {
           kind: "list",
           items: {
             en: [
-              "scrape, crawl or extract data from the Site by automated means, or use bots to make or hold bookings;",
+              "scrape the Site or extract its data in bulk by automated means — search engines and AI assistants may crawl it within the limits of our robots.txt file — or use bots to make or hold bookings;",
               "copy, frame or mirror the Site or present it as your own;",
               "reverse engineer, decompile or attempt to extract source code, except where the law permits;",
               "interfere with the Site's operation — including probing or testing vulnerabilities without authorization, transmitting malware, or overloading our infrastructure;",
@@ -160,7 +154,7 @@ export const termsOfUse: LegalDocument = {
               "use the Site for any unlawful purpose.",
             ],
             ro: [
-              "extrageți date de pe Site prin mijloace automate (scraping/crawling) sau să folosiți boți pentru a face programări ori a ocupa intervale;",
+              "extrageți în masă date de pe Site prin mijloace automate (scraping) — motoarele de căutare și asistenții de inteligență artificială îl pot parcurge în limitele fișierului nostru robots.txt — sau să folosiți boți pentru a face programări ori a ocupa intervale;",
               "copiați, încadrați (frame) sau oglindiți Site-ul ori să îl prezentați drept al dumneavoastră;",
               "faceți inginerie inversă, decompilare sau să încercați extragerea codului sursă, cu excepția cazurilor permise de lege;",
               "perturbați funcționarea Site-ului — inclusiv prin testarea neautorizată a vulnerabilităților, transmiterea de malware sau supraîncărcarea infrastructurii;",
@@ -277,8 +271,8 @@ export const termsOfUse: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "These terms are governed by Romanian law. If you are a consumer, you keep the protection of the mandatory rules of the country where you live. Disputes are resolved by the competent Romanian courts, without limiting a consumer's statutory forum rights. These terms are published in Romanian and English; if the versions diverge, the Romanian text prevails. The Site is operated from Romania and the marketplace currently addresses services provided in Romania; if you use the Site from elsewhere, you are responsible for compliance with your local law.",
-            ro: "Acești termeni sunt guvernați de legea română. Dacă sunteți consumator, păstrați protecția normelor imperative din țara în care locuiți. Litigiile se soluționează de instanțele române competente, fără a limita drepturile legale ale consumatorului privind instanța competentă. Acești termeni sunt publicați în română și engleză; în caz de divergență, textul în limba română prevalează. Site-ul este operat din România, iar marketplace-ul vizează în prezent servicii prestate în România; dacă folosiți Site-ul din altă parte, sunteți responsabil de respectarea legii locale.",
+            en: "These terms are governed by Romanian law. If you are a consumer, you keep the protection of the mandatory rules of the country where you live. Disputes are resolved by the competent Romanian courts; if you are a consumer living in another EU country, you can also bring a claim in the courts where you live. These terms are published in Romanian and English; if the versions diverge, the Romanian text prevails. The Site is operated from Romania; if you use the Site from elsewhere, you are responsible for compliance with your local law.",
+            ro: "Acești termeni sunt guvernați de legea română. Dacă sunteți consumator, păstrați protecția normelor imperative din țara în care locuiți. Litigiile se soluționează de instanțele române competente; dacă sunteți consumator și locuiți în alt stat UE, puteți sesiza și instanțele de la domiciliul dumneavoastră. Acești termeni sunt publicați în română și engleză; în caz de divergență, textul în limba română prevalează. Site-ul este operat din România; dacă folosiți Site-ul din altă parte, sunteți responsabil de respectarea legii locale.",
           },
         },
       ],
@@ -289,13 +283,13 @@ export const termsOfUse: LegalDocument = {
       title: { en: "Contact and complaints", ro: "Contact și reclamații" },
       summary: {
         en: "How to reach us, and consumer-protection channels.",
-        ro: "Cum ne contactați și canalele de protecția consumatorului.",
+        ro: "Cum ne contactați și canalele de protecție a consumatorilor.",
       },
       body: [
         {
           kind: "p",
           text: {
-            en: "You can reach us through the Help Centre or at the contact details on the Company Information page. Consumers may also address ANPC (anpc.ro) or use the SAL alternative dispute resolution mechanism (reclamatiisal.anpc.ro) — details on the Company Information page.",
+            en: "You can reach us through the Help Centre or at the contact details on the Company Information page. Consumers may also contact the National Authority for Consumer Protection (ANPC, anpc.ro) or use ANPC's alternative dispute resolution service (reclamatiisal.anpc.ro) — details on the Company Information page.",
             ro: "Ne puteți contacta prin Centrul de ajutor sau la datele de contact de pe pagina Informații despre companie. Consumatorii se pot adresa și ANPC (anpc.ro) sau pot folosi mecanismul SAL de soluționare alternativă a litigiilor (reclamatiisal.anpc.ro) — detalii pe pagina Informații despre companie.",
           },
         },

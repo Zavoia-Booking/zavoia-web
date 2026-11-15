@@ -9,6 +9,7 @@
   background: transparent;
 }
 .mc-nav-capsule-shell {
+  --mc-focus: var(--mc-cap-ink);
   --mc-cap-progress: 0;
   --mc-cap-surface: 0;
   --mc-cap-ink: #fff;
@@ -45,6 +46,7 @@
 
 .mc-nav-menu-overlay--capsule { z-index: 70; background: rgba(19,17,16,.52); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .mc-nav-menu-surface--capsule {
+  --mc-focus: #fff;
   top: calc(var(--mc-nav-overlay-top, 0px) + 12px);
   right: 12px;
   left: 12px;

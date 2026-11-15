@@ -1,16 +1,18 @@
-import { dictionaries } from "@/i18n/dictionaries";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { dictionaries } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
-import { OPEN_GRAPH_LOCALES, SITE_URL } from "@/lib/site";
+import { OPEN_GRAPH_LOCALES, SITE_URL, defaultSocialImage } from "@/lib/site";
 import { ApiError } from "@/lib/api/http";
 import { getPublicWebsite } from "@/lib/api/marketplace/public";
 import { WEBSITE_TAG, websiteTag } from "@/lib/cache/tags";
 import type { PublicWebsite } from "@/lib/api/marketplace/types";
 import { BusinessMicrosite } from "./_components/business-microsite";
-import { NotFoundPage } from "@/app/_components/not-found/not-found-page";
 import { notFoundMetadata } from "@/app/_components/not-found/metadata";
+import { serializeJsonLd } from "@/lib/seo/page-structured-data";
+import { websiteStructuredData } from "@/lib/seo/website-structured-data";
 
 // Published business website — zavoia.com/[businessSlug].
 //
@@ -27,8 +29,8 @@ import { notFoundMetadata } from "@/app/_components/not-found/metadata";
 // comes first. Must be a literal to be statically analysable.
 //
 // This segment has no loading.tsx: its first render waits for the lookup and
-// subsequent visitors use ISR. An API 404 renders the shared fallback in-page
-// with explicit noindex metadata; it retains the existing HTTP 200 behavior.
+// subsequent visitors use ISR. An API 404 calls notFound before streaming;
+// the scoped fallback retains localized unavailable-page metadata.
 export const revalidate = 600;
 
 // Required for ISR even though it enumerates nothing: without a
@@ -59,9 +61,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isLocale(locale) || !slug) return {};
   try {
     const site = await getPublicWebsite(slug, WEBSITE_CACHE(slug));
+    const description = site.identity.description?.trim()
+      || format(dictionaries[locale].brandPage.metaDescriptionProfile, { name: site.identity.name });
+    const logo = site.identity.logo?.trim();
+    const socialImage = logo ? { url: logo, alt: site.identity.name } : defaultSocialImage(locale);
     return {
       title: site.identity.name,
-      description: site.identity.description ?? undefined,
+      description,
       alternates: {
         canonical: localeHref(locale, slug),
         languages: {
@@ -75,22 +81,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         type: "website",
         siteName: "Zavoia",
         title: site.identity.name,
-        description: site.identity.description ?? undefined,
+        description,
         url: `${SITE_URL}${localeHref(locale, slug)}`,
         locale: OPEN_GRAPH_LOCALES[locale],
         alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => OPEN_GRAPH_LOCALES[l]),
-        images: site.identity.logo ? [site.identity.logo] : undefined,
+        images: [socialImage],
       },
-      // The share image is the business logo, so the compact card.
+      // Compact for a merchant logo; the shared landscape artwork is the fallback.
       twitter: {
-        card: "summary",
+        card: logo ? "summary" : "summary_large_image",
         title: site.identity.name,
-        description: site.identity.description ?? undefined,
-        images: site.identity.logo ? [site.identity.logo] : undefined,
+        description,
+        images: [socialImage],
       },
     };
   } catch (error) {
-    // The matched fallback does not throw notFound(), so supply its metadata.
     // Operational failures are rethrown by the page and must not become misses.
     if (error instanceof ApiError && error.status === 404) return notFoundMetadata(locale);
     return {};
@@ -104,9 +109,8 @@ export default async function BusinessWebsitePage({ params }: Props) {
 
   // Now that the render is CACHED, the two failure modes have to be told apart.
   //
-  //   404          → nothing is published at this address, and that is a real,
-  //                  cacheable answer: show the shared missing-page UI (metadata marks it
-  //                  noindex) without claiming the address is available.
+  //   404          → nothing is published at this address: return a real 404
+  //                  without claiming the address is available.
   //   anything else → backend down, 500, timeout. Rethrown, so the render fails
   //                  and Next stores NOTHING; the next request retries. An
   //                  outage must never freeze a wrong answer in for ten minutes.
@@ -115,12 +119,20 @@ export default async function BusinessWebsitePage({ params }: Props) {
     site = await getPublicWebsite(slug, WEBSITE_CACHE(slug));
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
-      return <NotFoundPage dictionary={dictionaries[locale]} locale={locale} pathname={localeHref(locale, slug)} />;
+      notFound();
     }
     throw error;
   }
 
   // The published microsite: the copied Website Builder renderer consuming the
   // frozen snapshot (site.website) + live locations/reviews/tags off the payload.
-  return <BusinessMicrosite key={site.slug} site={site} locale={locale} />;
+  const structuredData = websiteStructuredData(site, locale, localeHref(locale, slug));
+  return (
+    <>
+      {structuredData && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }} />
+      )}
+      <BusinessMicrosite key={site.slug} site={site} locale={locale} />
+    </>
+  );
 }

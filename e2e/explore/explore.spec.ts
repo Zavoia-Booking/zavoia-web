@@ -190,7 +190,7 @@ test("mobile selection clears the sheet and controls; expanded sheet hides card 
   expect(await page.locator('button[aria-label="Close"]').evaluate(element => !!element.closest("[inert]"))).toBe(true);
 });
 
-test("mobile results raise before scrolling and the last row stays above navigation", async ({ page }) => {
+test("mobile results raise before scrolling and the last row stays inside the viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openExplore(page);
   const separator = page.getByRole("separator");
@@ -203,8 +203,10 @@ test("mobile results raise before scrolling and the last row stays above navigat
   await expect(separator).toHaveAttribute("aria-valuenow", "100");
   await list.evaluate(element => { element.scrollTop = element.scrollHeight; });
   const last = await page.locator("[data-biz]").last().boundingBox();
-  const tabs = await page.locator("nav.zw-only-mobile").boundingBox();
-  expect(last!.y + last!.height).toBeLessThanOrEqual(tabs!.y);
+  const main = await page.locator("main:not([inert])").boundingBox();
+  expect(last!.y + last!.height).toBeLessThanOrEqual(main!.y + main!.height + 1);
+  expect(main!.y + main!.height).toBe(page.viewportSize()!.height);
+  await expect(page.locator("nav.zw-only-mobile")).toHaveCount(0);
 });
 
 for (const screen of [{ locale: "en", width: 390 }, { locale: "ro", width: 320 }]) {
@@ -260,21 +262,21 @@ test("real map offers an area search after zooming and persists its expanded rad
   expect(Number(new URL(page.url()).searchParams.get("radius"))).toBe(radius);
 });
 
-test("Romanian mobile layout fits above navigation and has no nested card actions", async ({ page }) => {
+test("Romanian mobile map fills the viewport and has no nested card actions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openExplore(page, "ro");
   const geometry = await page.evaluate(() => {
     const main = document.querySelector("main:not([inert])")!.getBoundingClientRect();
-    const tabs = document.querySelector("nav.zw-only-mobile")!.getBoundingClientRect();
-    return { bottom: main.bottom, tabs: tabs.top, document: document.documentElement.scrollHeight, viewport: innerHeight };
+    return { bottom: main.bottom, document: document.documentElement.scrollHeight, viewport: innerHeight };
   });
   expect(geometry.document).toBe(geometry.viewport);
-  expect(geometry.bottom).toBe(geometry.tabs);
+  expect(geometry.bottom).toBe(geometry.viewport);
+  await expect(page.locator("nav.zw-only-mobile")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Filtre", exact: true })).toBeVisible();
   expect(await page.locator("[data-biz] a button, [data-biz] button a").count()).toBe(0);
 });
 
-async function expectCurrentMapLinkToPreserveState(page: Page, link: Locator, selectionLabel?: string) {
+async function expectCurrentMapLinkToPreserveState(page: Page, link: Locator, selectionLabel?: string, beforeActivation?: () => Promise<void>) {
   const url = page.url();
   const results = page.locator('[data-locale-scroll="search-results"]');
   await expect(results).toBeVisible();
@@ -287,11 +289,14 @@ async function expectCurrentMapLinkToPreserveState(page: Page, link: Locator, se
       || (target.pathname.endsWith("/search") && (target.searchParams.has("_rsc") || request.isNavigationRequest()))) requests.push(target.pathname + target.search);
   };
   page.on("request", recordNavigation);
-  await expect(link).toHaveAttribute("aria-current", "page");
-  await link.click();
-  await link.click();
-  await link.focus();
-  await link.press("Enter");
+  for (const keyboard of [false, false, true]) {
+    await beforeActivation?.();
+    await expect(link).toHaveAttribute("aria-current", "page");
+    if (keyboard) {
+      await link.focus();
+      await link.press("Enter");
+    } else await link.click();
+  }
   // Observe the request scheduling window after pointer and keyboard activation.
   await page.waitForTimeout(250);
   expect(page.url()).toBe(url);
@@ -323,12 +328,272 @@ test("active map navigation opens Explore from another page and does not refresh
   await expectCurrentMapLinkToPreserveState(page, explore);
 });
 
-test("active map navigation preserves the Romanian mobile Search tab query", async ({ page }) => {
+for (const locale of ["en", "ro"] as const) {
+  test(`active map navigation preserves the ${locale} mobile menu Search query`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const dict = locale === "en" ? en : ro;
+    const searchText = locale === "en" ? "Navigation test" : "Căutare test";
+    const query = new URLSearchParams({ lat: "48.85", lng: "2.35", radius: "42", mapZoom: "10.5", search: searchText, date: "2026-12-10", sort: "rating", minRating: "4.2" });
+    await page.goto(`${locale === "en" ? "" : "/ro"}/search?${query}`);
+    const selectionLabel = dict.search.clearSelection.replace("{selection}", searchText);
+    await expect(page.getByRole("button", { name: selectionLabel, exact: true })).toBeVisible();
+    const menu = page.getByRole("dialog", { name: dict.nav.navigation, exact: true });
+    const search = menu.getByRole("link", { name: dict.mobileTabs.search, exact: true });
+    const openMenu = async () => {
+      await page.locator("header[data-marketplace-chrome]").getByRole("button", { name: dict.nav.openMenu, exact: true }).click();
+      await expect(menu).toBeVisible();
+    };
+    await expectCurrentMapLinkToPreserveState(page, search, selectionLabel, openMenu);
+    await expect(menu).toHaveCount(0);
+  });
+}
+
+test("mobile menu keeps keyboard focus, lets the language drawer close first and restores its trigger", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/search?lat=44.4268&lng=26.1025&radius=20");
+  const trigger = page.locator("header[data-marketplace-chrome]").getByRole("button", { name: en.nav.openMenu, exact: true });
+  const menu = page.getByRole("dialog", { name: en.nav.navigation, exact: true });
+  const overflow = await page.evaluate(() => document.body.style.overflow);
+  await trigger.focus();
+  await trigger.press("Enter");
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("link", { name: en.mobileTabs.explore, exact: true })).toHaveCount(0);
+  await expect(menu.getByRole("link", { name: en.nav.homeAria, exact: true })).toBeVisible();
+  await expect(menu.getByRole("link", { name: en.nav.homeAria, exact: true })).toHaveAttribute("href", "/");
+  await expect(menu.getByRole("link", { name: en.mobileTabs.search, exact: true })).toBeVisible();
+  await expect(menu.getByRole("link", { name: en.mobileTabs.search, exact: true })).toHaveAttribute("href", "/search");
+  await expect(menu.getByRole("link", { name: en.accountMenu.helpSupport, exact: true })).toBeVisible();
+  await page.keyboard.press("Shift+Tab");
+  expect(await menu.evaluate(element => element.contains(document.activeElement))).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(page.viewportSize()!.width);
+  const language = menu.locator("[data-mobile-language]").getByRole("button");
+  const drawer = page.getByRole("dialog", { name: en.language.label, exact: true });
+  await language.click();
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole("link", { name: "English", exact: true })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(drawer).toHaveCount(0);
+  await expect(menu).toBeVisible();
+  await expect(language).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe(overflow);
+  expect(await page.evaluate(() => document.body.dataset.mobileMenuEngaged)).toBeUndefined();
+});
+
+test("mobile Search avoids input autofocus and its drawer handle resets cancelled drags before dismissing", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const query = new URLSearchParams({ lat: "48.85", lng: "2.35", radius: "42", mapZoom: "10.5", search: "Căutare test", date: "2026-12-10", sort: "rating", minRating: "4.2" });
-  await page.goto(`/ro/search?${query}`);
-  const selectionLabel = ro.search.clearSelection.replace("{selection}", "Căutare test");
-  await expect(page.getByRole("button", { name: selectionLabel, exact: true })).toBeVisible();
-  const search = page.locator("nav.zw-only-mobile").getByRole("link", { name: ro.mobileTabs.search, exact: true });
-  await expectCurrentMapLinkToPreserveState(page, search, selectionLabel);
+  await page.goto("/help");
+  const trigger = page.locator("header[data-marketplace-chrome]").getByRole("button", { name: en.nav.search, exact: true });
+  const drawer = page.getByRole("dialog", { name: en.searchOverlay.overlayTitle, exact: true });
+  await trigger.click();
+  await expect(drawer).toBeFocused();
+  // Wait beyond the desktop input's delayed autofocus, including after the
+  // active search step changes back to What.
+  await page.waitForTimeout(300);
+  await expect(drawer).toBeFocused();
+  const sections = drawer.locator("[data-search-section]");
+  await sections.nth(1).locator("button[aria-expanded]").first().click();
+  await expect(sections.nth(1)).toHaveAttribute("data-open", "true");
+  await sections.nth(0).locator("button[aria-expanded]").first().click();
+  await page.waitForTimeout(300);
+  await expect(drawer.getByRole("textbox", { name: en.searchOverlay.whatPlaceholder, exact: true })).not.toBeFocused();
+  expect(await drawer.evaluate(element => element.contains(document.activeElement))).toBe(true);
+
+  const handle = drawer.locator("[data-drawer-handle]");
+  const top = (await drawer.boundingBox())!.y;
+  for (const distance of [36, 160]) {
+    const box = (await handle.boundingBox())!;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, y + distance, { steps: 6 });
+    await expect(drawer).toHaveAttribute("data-drawer-dragging", "true");
+    await handle.dispatchEvent("pointercancel", { pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, buttons: 1, clientX: x, clientY: y + distance });
+    await page.mouse.up();
+    await expect(drawer).toBeVisible();
+    await expect(drawer).not.toHaveAttribute("data-drawer-dragging");
+    await expect(drawer).toHaveCSS("transform", "none");
+    expect((await drawer.boundingBox())!.y).toBe(top);
+  }
+
+  const box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 160, { steps: 6 });
+  await page.mouse.up();
+  await expect(drawer).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
+test("mobile language drawer handle dismisses only the nested drawer and restores focus", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/help");
+  await page.locator("header[data-marketplace-chrome]").getByRole("button", { name: en.nav.openMenu, exact: true }).click();
+  const menu = page.getByRole("dialog", { name: en.nav.navigation, exact: true });
+  const language = menu.locator("[data-mobile-language]").getByRole("button");
+  const drawer = page.getByRole("dialog", { name: en.language.label, exact: true });
+  await language.click();
+  await expect(drawer).toBeVisible();
+  const handle = drawer.locator("[data-drawer-handle]");
+  const box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 100, { steps: 6 });
+  await page.mouse.up();
+  await expect(drawer).toHaveCount(0);
+  await expect(menu).toBeVisible();
+  await expect(language).toBeFocused();
+
+  await language.press("Enter");
+  await expect(drawer).toBeVisible();
+  await handle.focus();
+  await handle.press("Enter");
+  await expect(drawer).toHaveCount(0);
+  await expect(menu).toBeVisible();
+  await expect(language).toBeFocused();
+});
+
+test("mobile Search drag release keeps the paper opaque through its smooth exit", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/help");
+  const trigger = page.locator("header[data-marketplace-chrome]").getByRole("button", { name: en.nav.search, exact: true });
+  const drawer = page.getByRole("dialog", { name: en.searchOverlay.overlayTitle, exact: true });
+  await trigger.click();
+  await expect(drawer).toBeVisible();
+  await drawer.evaluate(async element => {
+    await Promise.all([...element.getAnimations(), ...element.parentElement!.getAnimations()].map(animation => animation.finished.catch(() => {})));
+  });
+  const handle = drawer.locator("[data-drawer-handle]");
+  const box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 160, { steps: 6 });
+
+  // Pause both release animations at creation, so a busy test host cannot skip
+  // past the middle of the movement before its opacity and position are read.
+  await drawer.evaluate(element => {
+    for (const target of [element, element.parentElement!]) {
+      const animate = target.animate;
+      target.animate = (keyframes, options) => {
+        const animation = animate.call(target, keyframes, options);
+        animation.pause();
+        animation.currentTime = 160;
+        target.animate = animate;
+        return animation;
+      };
+    }
+  });
+  await page.mouse.up();
+  const midpoint = await drawer.evaluate(element => {
+    const movement = element.getAnimations().find(animation => animation.effect instanceof KeyframeEffect
+      && animation.effect.getKeyframes().some(frame => typeof frame.transform === "string"));
+    const backdrop = element.parentElement!.getAnimations().find(animation => animation.effect instanceof KeyframeEffect
+      && animation.effect.getKeyframes().some(frame => typeof frame.backgroundColor === "string"));
+    if (!movement || !backdrop) throw new Error("Expected separate paper movement and backdrop paint animations");
+    const opacity: string[] = [];
+    for (let ancestor: Element | null = element; ancestor; ancestor = ancestor.parentElement) opacity.push(getComputedStyle(ancestor).opacity);
+    return {
+      connected: element.isConnected,
+      state: element.getAttribute("data-state"),
+      duration: movement.effect!.getTiming().duration,
+      easing: movement.effect!.getTiming().easing,
+      playState: movement.playState,
+      backdropPlayState: backdrop.playState,
+      translation: new DOMMatrixReadOnly(getComputedStyle(element).transform).m42,
+      height: element.getBoundingClientRect().height,
+      opacity,
+    };
+  });
+  expect(midpoint.connected).toBe(true);
+  expect(midpoint.state).toBe("open");
+  expect(midpoint.duration).toBe(320);
+  expect(midpoint.easing).toBe("cubic-bezier(0.2, 0.7, 0.3, 1)");
+  expect(midpoint.playState).toBe("paused");
+  expect(midpoint.backdropPlayState).toBe("paused");
+  expect(midpoint.translation).toBeGreaterThan(160);
+  expect(midpoint.translation).toBeLessThan(midpoint.height - 5);
+  expect(midpoint.opacity.every(opacity => opacity === "1")).toBe(true);
+  await drawer.evaluate(element => {
+    [...element.getAnimations(), ...element.parentElement!.getAnimations()].forEach(animation => animation.play());
+  });
+  await expect(drawer).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
+test("mobile Filters drawer keeps drafts private through dragging and applies only confirmed choices", async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 852 });
+  const amenities = Array.from({ length: 24 }, (_, index) => ({ id: 992000 + index, slug: `drawer-feature-${index + 1}`, name: `Drawer feature ${index + 1}` }));
+  await page.route("**/marketplace/public/venue-tags", route => route.fulfill({ json: { amenities, paymentMethods: [], languages: [] } }));
+  const query = new URLSearchParams({ city: "Bucharest", lat: "44.4268", lng: "26.1025", radius: "40" });
+  await page.goto(`/search?${query}`);
+  await expect(page.locator("[data-biz]").first()).toBeVisible();
+  const url = page.url();
+  const t = en.search.filters;
+  const trigger = page.getByRole("button", { name: t.title, exact: true });
+  const dialog = page.getByRole("dialog", { name: t.title, exact: true });
+  await trigger.click();
+  const handle = dialog.locator("[data-drawer-handle]");
+  await expect(handle).toBeVisible();
+  const rating = dialog.getByRole("button", { name: "4.5+", exact: true });
+  await rating.click();
+  await expect(rating).toHaveAttribute("aria-pressed", "true");
+  expect(page.url()).toBe(url);
+
+  const header = dialog.locator("[data-filter-header]");
+  const footer = dialog.locator("[data-filter-footer]");
+  const body = dialog.locator("[data-filter-body]");
+  const headerTop = (await header.boundingBox())!.y;
+  const footerTop = (await footer.boundingBox())!.y;
+  await expect.poll(() => body.evaluate(element => element.scrollHeight - element.clientHeight)).toBeGreaterThan(0);
+  const bodyBox = (await body.boundingBox())!;
+  await page.mouse.move(bodyBox.x + bodyBox.width / 2, bodyBox.y + bodyBox.height / 2);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => body.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  expect((await header.boundingBox())!.y).toBe(headerTop);
+  expect((await footer.boundingBox())!.y).toBe(footerTop);
+
+  const frameTop = (await dialog.boundingBox())!.y;
+  const box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 160, { steps: 6 });
+  await expect(dialog).toHaveAttribute("data-drawer-dragging", "true");
+  await handle.dispatchEvent("pointercancel", { pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, buttons: 1, clientX: x, clientY: y + 160 });
+  await page.mouse.up();
+  await expect(dialog).toBeVisible();
+  await expect.poll(async () => (await dialog.boundingBox())!.y).toBe(frameTop);
+  await expect(rating).toHaveAttribute("aria-pressed", "true");
+  expect(page.url()).toBe(url);
+
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 160, { steps: 6 });
+  await page.mouse.up();
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  expect(page.url()).toBe(url);
+
+  await trigger.click();
+  await expect(rating).toHaveAttribute("aria-pressed", "false");
+  await rating.click();
+  const apply = dialog.getByRole("button", { name: /^Show \d+ places?$/ });
+  await expect(apply).toBeEnabled();
+  await apply.click();
+  await expect(dialog).toHaveCount(0);
+  await expect.poll(() => new URL(page.url()).searchParams.get("minRating")).toBe("4.5");
+  const applied = new URL(page.url()).searchParams;
+  expect(applied.get("lat")).toBe(query.get("lat"));
+  expect(applied.get("lng")).toBe(query.get("lng"));
 });

@@ -94,15 +94,15 @@ for (const locale of ['en', 'ro'] as const) {
     const html = await response.text();
     expect(html).toMatch(/<h1\b[^>]*>Mara Share<\/h1>/);
     expect(html).toContain(ABOUT);
-    expect(html).toContain(`<title>${PERSON} | Zavoia</title>`);
-    expect(html).toContain(`property="og:title" content="${PERSON}"`);
-    expect(html).toContain(`property="og:image" content="https://zavoia.com${IMAGE}"`);
+    expect(html).toContain(`<title>${PERSON}, Stylist | Zavoia</title>`);
+    expect(html).toContain(`property="og:title" content="${PERSON}, Stylist"`);
+    expect(html).toContain(`property="og:image" content="https://www.zavoia.com${IMAGE}"`);
     expect(html).toContain(`property="og:image:alt" content="${PERSON}"`);
     expect(html).toContain('name="twitter:card" content="summary"');
-    expect(html).toContain(`name="twitter:image" content="https://zavoia.com${IMAGE}"`);
-    expect(html).toContain(`rel="canonical" href="https://zavoia.com${url}"`);
-    expect(html).toContain(`hrefLang="en" href="https://zavoia.com${path}"`);
-    expect(html).toContain(`hrefLang="ro" href="https://zavoia.com/ro${path}"`);
+    expect(html).toContain(`name="twitter:image" content="https://www.zavoia.com${IMAGE}"`);
+    expect(html).toContain(`rel="canonical" href="https://www.zavoia.com${url}"`);
+    expect(html).toContain(`hrefLang="en" href="https://www.zavoia.com${path}"`);
+    expect(html).toContain(`hrefLang="ro" href="https://www.zavoia.com/ro${path}"`);
 
     const noScript = await browser.newContext({ javaScriptEnabled: false });
     const page = await noScript.newPage();
@@ -119,15 +119,16 @@ for (const locale of ['en', 'ro'] as const) {
     const response = await request.get(locale === 'ro' ? `/ro${path}` : path, { headers: { 'User-Agent': 'facebookexternalhit/1.1' } });
     expect(response.status()).toBe(200);
     const html = await response.text();
-    const image = 'https://zavoia.com/brand/home-social.png';
+    const image = 'https://www.zavoia.com/brand/home-social.png';
     expect(html).toContain(`property="og:image" content="${image}"`);
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
-    expect(html).toContain('property="og:image:alt" content="Zavoia. Local services. On your schedule."');
+    const imageAlt = locale === 'ro' ? 'Zavoia. Servicii locale. Tu alegi când.' : 'Zavoia. Local services. On your schedule.';
+    expect(html).toContain(`property="og:image:alt" content="${imageAlt}"`);
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
     expect(html).toContain(`name="twitter:image" content="${image}"`);
-    expect(html).toContain('name="twitter:image:alt" content="Zavoia. Local services. On your schedule."');
-    expect(html).toContain(`property="og:title" content="${PERSON}"`);
+    expect(html).toContain(`name="twitter:image:alt" content="${imageAlt}"`);
+    expect(html).toContain(`property="og:title" content="${PERSON}, Stylist"`);
     expect(html).toContain(`property="og:description" content="${ABOUT}"`);
   });
 }
@@ -207,10 +208,10 @@ test('the sitemap advertises both canonical professional locales with language a
   expect((xml.match(/<loc>/g) ?? []).length).toBeLessThanOrEqual(50_000);
   expect(Buffer.byteLength(xml, 'utf8')).toBeLessThanOrEqual(50 * 1024 * 1024);
   for (const prefix of ['', '/ro']) {
-    expect(xml).toContain(`<loc>https://zavoia.com${prefix}${path}</loc>`);
+    expect(xml).toContain(`<loc>https://www.zavoia.com${prefix}${path}</loc>`);
   }
-  expect(xml).toContain(`hreflang="en" href="https://zavoia.com${path}"`);
-  expect(xml).toContain(`hreflang="ro" href="https://zavoia.com/ro${path}"`);
+  expect(xml).toContain(`hreflang="en" href="https://www.zavoia.com${path}"`);
+  expect(xml).toContain(`hreflang="ro" href="https://www.zavoia.com/ro${path}"`);
 });
 
 for (const locale of ['en', 'ro'] as const) {
@@ -219,12 +220,12 @@ for (const locale of ['en', 'ro'] as const) {
     const response = await request.get(`${prefix}/business/201`, { headers: { 'User-Agent': 'facebookexternalhit/1.1' } });
     expect(response.status()).toBe(200);
     const html = await response.text();
-    const canonical = `https://zavoia.com${prefix}/business/share-old-town`;
+    const canonical = `https://www.zavoia.com${prefix}/business/share-old-town`;
     expect(html).toContain(`rel="canonical" href="${canonical}"`);
     expect(html).toContain(`property="og:url" content="${canonical}"`);
-    expect(html).toContain('hrefLang="en" href="https://zavoia.com/business/share-old-town"');
-    expect(html).toContain('hrefLang="ro" href="https://zavoia.com/ro/business/share-old-town"');
-    expect(html).toContain('hrefLang="x-default" href="https://zavoia.com/business/share-old-town"');
+    expect(html).toContain('hrefLang="en" href="https://www.zavoia.com/business/share-old-town"');
+    expect(html).toContain('hrefLang="ro" href="https://www.zavoia.com/ro/business/share-old-town"');
+    expect(html).toContain('hrefLang="x-default" href="https://www.zavoia.com/business/share-old-town"');
   });
 }
 

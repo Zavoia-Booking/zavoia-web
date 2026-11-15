@@ -1,8 +1,0 @@
-import { BrandPageSkeleton } from "@/components/ui/page-skeletons";
-
-// Suspense boundary for this route: the locale layout's chrome (header,
-// footer, tabs) paints immediately and this stands in for the page body while
-// the brand loads.
-export default function Loading() {
-  return <BrandPageSkeleton />;
-}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { MouseEvent } from "react";
 import { Img } from "@/components/ui/image";
 import { Icon } from "@/components/ui/icon";
 import { Rating } from "@/components/ui/rating";
@@ -12,7 +13,9 @@ import styles from "./business-row.module.css";
 
 export interface BusinessRowProps {
   b: BusinessCardData;
-  onClick?: () => void;
+  /** An explicit action selects a map result instead of following its detail link. */
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+  selected?: boolean;
   favorited?: boolean | null;
   /** Favorite handler — the heart only renders when provided. */
   onFavorite?: (id: BusinessCardData["id"]) => void;
@@ -25,6 +28,7 @@ export interface BusinessRowProps {
 export function BusinessRow({
   b,
   onClick,
+  selected,
   favorited,
   onFavorite,
   imageLoading,
@@ -73,10 +77,10 @@ export function BusinessRow({
           </div>
         )}
       </div>
-      {b.href ? (
+      {onClick ? (
+        <button type="button" onClick={onClick} aria-label={cardName} aria-pressed={selected} className={styles.action} />
+      ) : b.href ? (
         <Link href={b.href} title={cardName} aria-label={cardName} className={styles.action} />
-      ) : onClick ? (
-        <button type="button" onClick={onClick} aria-label={cardName} className={styles.action} />
       ) : null}
       {onFavorite && (
         <div className={styles.favorite}>

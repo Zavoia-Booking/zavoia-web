@@ -58,7 +58,7 @@ function useTypewriter(prompts: string[]): string {
   return reducedMotion ? (prompts[0] ?? "") : text;
 }
 
-// Editorial hero — radial gradient band, giant faded ZAVOIA backdrop word,
+// Editorial hero — warm paper band, giant faded ZAVOIA backdrop word,
 // headline + subcopy, and a command-search pill with animated placeholder.
 // Clicking opens the command-search overlay at the "what" step. The pill is a
 // decorative typewriter (no real input), so there is no typed text to carry.
@@ -73,14 +73,7 @@ export function Hero() {
   const go = () => openSearch({ step: "what" });
 
   return (
-    <section
-      style={{
-        position: "relative",
-        overflow: "hidden",
-        background: "var(--surface-warm)",
-        borderBottom: "1px solid rgba(28,28,26,0.05)",
-      }}
-    >
+    <section className={styles.hero}>
       <div
         aria-hidden="true"
         style={{
@@ -94,44 +87,27 @@ export function Hero() {
         }}
       >
         <span
+          className={styles.wordmark}
           style={{
-            fontSize: "clamp(180px, 28vw, 420px)",
             fontWeight: 700,
             letterSpacing: "-0.05em",
             color: "rgba(28,28,26,0.027)",
             whiteSpace: "nowrap",
             lineHeight: 1,
             userSelect: "none",
-            transform: "translateY(8%)",
           }}
         >
           ZAVOIA
         </span>
       </div>
       <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: "62%",
-          transform: "translate(-50%, -50%)",
-          width: 760,
-          height: 360,
-          borderRadius: "50%",
-          pointerEvents: "none",
-          background:
-            "radial-gradient(closest-side, color-mix(in oklch, var(--p-400) 9%, transparent) 0%, transparent 100%)",
-        }}
-      />
-      <div
-        className="zw-container"
+        className={`zw-container ${styles.content}`}
         style={{
           position: "relative",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           textAlign: "center",
-          padding: "clamp(76px, 10vw, 148px) var(--gutter)",
         }}
       >
         <h1
@@ -151,10 +127,9 @@ export function Hero() {
           <span style={{ color: "var(--c-600)" }}>{h.headlineAccent}</span>
         </h1>
         <p
-          className="txt-pretty zw-rise"
+          className={`txt-pretty zw-rise ${styles.subcopy}`}
           data-d="1"
           style={{
-            margin: "26px 0 48px",
             fontSize: "clamp(16px, 1.5vw, 19px)",
             lineHeight: 1.55,
             color: "var(--c-600)",
@@ -193,12 +168,14 @@ export function Hero() {
                 flex: 1,
                 minWidth: 0,
                 marginLeft: 14,
+                marginRight: 12,
                 fontSize: 17,
                 fontWeight: 500,
                 color: "var(--c-600)",
                 letterSpacing: "-0.015em",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
+                textOverflow: "ellipsis",
                 textAlign: "left",
               }}
             >

@@ -1,273 +1,141 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Icon, Kicker, type IconName } from "@/components/ui";
-import disclosure from "@/components/ui/disclosure-motion.module.css";
+import { Icon } from "@/components/ui";
+import { QARow } from "@/components/ui/qa-row";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { formatCount } from "@/i18n/format";
 import type { Locale } from "@/i18n/locales";
 import { ReportIssue } from "./report-issue";
+import m from "@/app/_components/for-business/marketing.module.css";
+import faq from "@/app/_components/for-business/faq-section.module.css";
+import searchStyles from "@/components/search/search-overlay.module.css";
+import styles from "./help-center.module.css";
 
-type QA = { q: string; a: string };
-type Topic = { id: string; icon: string; label: string; items: QA[] };
-type GoodToKnowLink = { label: string; href: string };
+type QA = {
+  q: string;
+  a: string;
+  searchTerms?: string[];
+};
+type Topic = { id: string; label: string; items: QA[] };
 
 interface HelpCenterProps {
   locale: Locale;
-  head: { kicker: string; title: string; sub: string };
+  head: Dictionary["help"]["head"];
+  artwork: ReactNode;
   searchPlaceholder: string;
-  allLabel: string;
-  resultsLabel: string;
+  searchLabel: string;
+  clearSearchLabel: string;
+  resultsLabel: Dictionary["help"]["resultsLabel"];
   noResults: string;
   topics: Topic[];
-  goodToKnowTitle: string;
-  goodToKnowLinks: GoodToKnowLink[];
+  usefulLinks: { title: string; items: { label: string; href: string }[] };
   report: Dictionary["help"]["report"];
 }
 
-// One expandable Q&A row: a native disclosure, so every answer is in the
-// server HTML and opens without JavaScript, as on the business FAQs. We only
-// carry a single answer string, so the body is a single <p>.
-function QARow({ item }: { item: QA }) {
-  return (
-    <details className={`zw-help-qa-row ${disclosure.root} ${disclosure.native}`}>
-      <summary className="zw-help-qa-q tap">
-        <span className="zw-help-qa-qt">{item.q}</span>
-        <span className="zw-help-qa-ic">
-          <Icon name="chevD" size={14} />
-        </span>
-      </summary>
-      <div className={disclosure.body}>
-        <div style={{ padding: "0 4px 20px", maxWidth: 660 }}>
-          <p
-            className="txt-pretty"
-            style={{
-              margin: "8px 0",
-              fontSize: 14.5,
-              lineHeight: 1.65,
-              color: "var(--c-600)",
-            }}
-          >
-            {item.a}
-          </p>
-        </div>
-      </div>
-    </details>
-  );
+/** Romanian search accepts the same words with or without diacritics. */
+function normalizeSearch(value: string): string {
+  return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
 export function HelpCenter({
-  locale,
-  head,
-  searchPlaceholder,
-  allLabel,
-  resultsLabel,
-  noResults,
-  topics,
-  goodToKnowTitle,
-  goodToKnowLinks,
-  report,
+  locale, head, artwork, searchPlaceholder, searchLabel, clearSearchLabel,
+  resultsLabel, noResults, topics, usefulLinks, report,
 }: HelpCenterProps) {
   const [q, setQ] = useState("");
-  const [topic, setTopic] = useState("all");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const clearSearch = () => { setQ(""); searchRef.current?.focus(); };
+  const query = normalizeSearch(q.trim());
 
-  const query = q.trim().toLowerCase();
-
-  // Flat, cross-topic search results (only when there's a query). Each entry
-  // keeps a stable id, used as its key in both modes.
   const results = useMemo(() => {
     if (!query) return null;
-    const matches: { id: string; item: QA }[] = [];
-    topics.forEach((tp) => {
-      tp.items.forEach((item, i) => {
-        if (
-          item.q.toLowerCase().includes(query) ||
-          item.a.toLowerCase().includes(query)
-        ) {
-          matches.push({ id: `${tp.id}-${i}`, item });
-        }
-      });
-    });
-    return matches;
+    const words = query.split(" ");
+    return topics.flatMap((tp) => tp.items.flatMap((item, i) => {
+      const text = normalizeSearch([item.q, item.a, ...(item.searchTerms ?? [])].join(" "));
+      return words.every(word => text.includes(word)) ? [{ id: `${tp.id}-${i}`, item }] : [];
+    }));
   }, [query, topics]);
-
-  const visibleTopics =
-    topic === "all" ? topics : topics.filter((tp) => tp.id === topic);
+  const resultHeading = query ? `${formatCount(results?.length ?? 0, locale, resultsLabel)} “${q.trim()}”` : "";
 
   return (
-    <div
-      className="zw-container"
-      style={{ paddingTop: "clamp(30px, 4vw, 52px)", width: "100%" }}
-    >
-      {/* Editorial header */}
-      <div style={{ maxWidth: 700 }}>
-        <Kicker style={{ marginBottom: 14 }}>{head.kicker}</Kicker>
-        <h1
-          className="txt-balance"
-          style={{
-            margin: 0,
-            fontSize: "clamp(32px, 4.4vw, 54px)",
-            fontWeight: 600,
-            letterSpacing: "-0.04em",
-            lineHeight: 1.0,
-            color: "var(--c-900)",
-          }}
-        >
-          {head.title}
-        </h1>
-        <p
-          className="txt-pretty"
-          style={{
-            margin: "18px 0 0",
-            fontSize: "clamp(15.5px, 1.4vw, 18px)",
-            lineHeight: 1.6,
-            color: "var(--c-600)",
-            maxWidth: 540,
-          }}
-        >
-          {head.sub}
-        </p>
-        <div className="zw-help-search">
-          <Icon name="search" size={18} color="var(--c-500)" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={searchPlaceholder}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              border: 0,
-              outline: 0,
-              background: "transparent",
-              fontSize: 15.5,
-              color: "var(--c-900)",
-              fontFamily: "inherit",
-              padding: "8px 0",
-            }}
-          />
-          {q && (
-            <button
-              type="button"
-              className="tap"
-              onClick={() => setQ("")}
-              aria-label="Clear"
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: "50%",
-                border: 0,
-                background: "var(--c-shade)",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Icon name="x" size={14} color="var(--c-700)" />
-            </button>
-          )}
+    <div className={styles.page} data-locale={locale}>
+      <div className={`zw-container ${faq.layout} ${styles.layout}`}>
+        <div className={styles.sidebar}>
+          <div className={`${faq.intro} ${styles.intro}`}>
+            <div className={`${faq.copy} ${styles.copy}`}>
+              <h1 className={`${m.h1} ${styles.title}`} id="help-title">
+                {head.title}{" "}<span className={`${m.signature} ${styles.signature}`}>{head.titleAccent}</span>
+              </h1>
+              <p className={`${faq.lead} ${styles.lead}`}>{head.sub}</p>
+            </div>
+          </div>
+          <div className={styles.support}>
+            <ReportIssue t={report} locale={locale} />
+          </div>
         </div>
-      </div>
 
-      {/* Two-column body — Q&A left, "Good to know" right */}
-      <div className="zw-help-grid">
-        <div className="zw-help-main">
-          {query ? (
-            <>
-              <div className="zw-help-grouphead">
-                {results?.length ?? 0} {resultsLabel} &ldquo;{q}&rdquo;
-              </div>
-              {results && results.length === 0 ? (
-                <div style={{ padding: "24px 4px", color: "var(--c-600)" }}>
-                  <p
-                    className="txt-pretty"
-                    style={{ margin: 0, fontSize: 15 }}
-                  >
-                    {noResults}
-                  </p>
+        <div className={styles.main}>
+          <div className={styles.searchRow}>
+            <div className={`${searchStyles.searchField} ${styles.search}`} role="search" aria-label={searchLabel}>
+              <Icon name="search" size={20} color="var(--c-600)" />
+              <input
+                ref={searchRef}
+                type="search"
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder={searchPlaceholder}
+                aria-label={searchLabel}
+                aria-controls="help-answers"
+                autoComplete="off"
+              />
+              {q && <button type="button" className={styles.searchClear} onClick={clearSearch} aria-label={clearSearchLabel}>
+                <Icon name="x" size={18} />
+              </button>}
+            </div>
+            <div className={styles.artwork} aria-hidden="true">{artwork}</div>
+          </div>
+          <div className={styles.resultsArea}>
+            <div className={query ? styles.resultsHeading : "sr-only"} role="status" aria-live="polite" aria-atomic="true">{resultHeading}</div>
+            {query ? (
+              results?.length === 0 ? (
+                <div className={styles.empty} id="help-answers">
+                  <p>{noResults}</p>
+                  <div className={styles.emptyActions}>
+                    <button type="button" className={`${m.button} ${m.buttonInk}`} onClick={clearSearch}>{clearSearchLabel}</button>
+                  </div>
                 </div>
               ) : (
-                <div className="zw-help-qa">
-                  {results?.map(({ id, item }) => (
-                    <QARow key={id} item={item} />
-                  ))}
+                <div className={faq.list} id="help-answers">
+                  {results?.map(({ id, item }) => <QARow key={id} item={item} />)}
                 </div>
-              )}
-            </>
-          ) : (
-            <>
-              {/* Topic filter */}
-              <div className="zw-help-chips">
-                <button
-                  type="button"
-                  className="zw-help-chip"
-                  data-on={topic === "all" ? "1" : "0"}
-                  onClick={() => setTopic("all")}
-                >
-                  {allLabel}
-                </button>
-                {topics.map((tp) => (
-                  <button
-                    key={tp.id}
-                    type="button"
-                    className="zw-help-chip"
-                    data-on={topic === tp.id ? "1" : "0"}
-                    onClick={() => setTopic(tp.id)}
-                  >
-                    {tp.label}
-                  </button>
-                ))}
-              </div>
-
-              {visibleTopics.map((tp) => {
-                if (!tp.items.length) return null;
-                return (
-                  <section key={tp.id} style={{ marginTop: 26 }}>
-                    <h2 className="zw-help-grouphead">
-                      <Icon
-                        name={tp.icon as IconName}
-                        size={14}
-                        color="var(--p-600)"
-                      />
+              )
+            ) : (
+              <div id="help-answers">
+                {topics.map(tp => tp.items.length > 0 && (
+                  <section key={tp.id} className={styles.group} aria-labelledby={`help-topic-${tp.id}`}>
+                    <h2 className={styles.groupHeading} id={`help-topic-${tp.id}`}>
                       {tp.label}
                     </h2>
-                    <div className="zw-help-qa">
-                      {tp.items.map((item, i) => (
-                        <QARow key={`${tp.id}-${i}`} item={item} />
-                      ))}
+                    <div className={faq.list}>
+                      {tp.items.map((item, i) => <QARow key={`${tp.id}-${i}`} item={item} />)}
                     </div>
                   </section>
-                );
-              })}
-            </>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-
-        <aside className="zw-help-aside">
-          <ReportIssue t={report} locale={locale} />
-          <div className="zw-help-card">
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 10.5,
-                fontWeight: 600,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--c-500)",
-                marginBottom: 2,
-              }}
-            >
-              {goodToKnowTitle}
-            </div>
-            {goodToKnowLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="zw-help-qlink tap">
-                <span>{link.label}</span>
-                <Icon name="arrowR" size={13} color="var(--c-400)" />
+        <section className={styles.resources} aria-labelledby="help-useful-links">
+          <h2 className={styles.groupHeading} id="help-useful-links">{usefulLinks.title}</h2>
+          <div className={styles.resourceList}>
+            {usefulLinks.items.map(link => (
+              <Link key={link.href} href={link.href} className={styles.resourceLink}>
+                <span>{link.label}</span><Icon name="arrowR" size={18} />
               </Link>
             ))}
           </div>
-        </aside>
+        </section>
       </div>
     </div>
   );

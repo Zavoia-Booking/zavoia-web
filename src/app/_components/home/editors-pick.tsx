@@ -1,19 +1,63 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef } from "react";
+import { getImageProps } from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { Icon } from "@/components/ui/icon";
 import type { PublicWebsiteShowcaseCard } from "@/lib/api/marketplace/types";
 import { taxonomyLabel, toCat } from "@/lib/marketplace/card-mappers";
 import { industryVisual } from "@/lib/marketplace/industry-visuals";
+import { canOptimizePublicImage } from "@/lib/image-sources";
 import type { Locale } from "@/i18n/locales";
 import { WebsiteHeroPreview } from "./website-hero-preview";
 import cardStyles from "./website-card.module.css";
 import studioActions from "./studio-actions.module.css";
+import styles from "./website-showcase.module.css";
 
 const pad2 = (n: number) => String(n + 1).padStart(2, "0");
+
+/** Full-width backdrop; retain the native image ref used by the scroll animation. */
+function BackdropImage({ src, title, initial, onImageRef }: {
+  src: string;
+  title: string;
+  initial: boolean;
+  onImageRef: (node: HTMLImageElement | null) => void;
+}) {
+  const [useOriginal, setUseOriginal] = useState(false);
+  const optimized = !useOriginal && canOptimizePublicImage(src)
+    ? getImageProps({ src, alt: "", fill: true, sizes: "100vw", loading: "lazy" }).props
+    : null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={optimized?.src ?? src}
+      srcSet={optimized?.srcSet}
+      sizes={optimized?.sizes}
+      loading="lazy"
+      decoding="async"
+      alt=""
+      title={title}
+      onError={() => { if (optimized?.srcSet) setUseOriginal(true); }}
+      ref={(node) => {
+        onImageRef(node);
+        if (optimized?.srcSet && node?.complete && node.naturalWidth === 0 && node.currentSrc) setUseOriginal(true);
+      }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        filter: "grayscale(1) brightness(0.46)",
+        willChange: "opacity, transform",
+        opacity: initial ? 1 : 0,
+        transform: initial ? "scale(1)" : "scale(1.05)",
+      }}
+    />
+  );
+}
 
 // ── Interruptible rAF scroll tween (ported from docs/web-featured.jsx
 // zwCancelScroll/zwAnimateScroll). We can't rely on native
@@ -91,6 +135,9 @@ function WebsiteCard({
     <Link
       href={localeHref(locale, site.slug)}
       prefetch={false}
+      draggable={false}
+      target="_blank"
+      rel="noopener noreferrer"
       aria-label={`${viewWebsiteLabel}: ${site.name}`}
       title={`${viewWebsiteLabel}: ${site.name}`}
       className={`${cardStyles.card} zw-hover-lift zw-zoom-parent`}
@@ -169,6 +216,7 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
   const s = dict.homeSections.websiteShowcase;
 
   const railRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const backdropRefs = useRef<(HTMLElement | null)[]>([]);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
   const dotRef = useRef<HTMLSpanElement | null>(null);
@@ -177,6 +225,7 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
   const prevRef = useRef<HTMLButtonElement | null>(null);
   const nextRef = useRef<HTMLButtonElement | null>(null);
   const pagerRef = useRef<HTMLDivElement | null>(null);
+  const controlsRef = useRef<HTMLDivElement | null>(null);
   const progressRef = useRef<HTMLDivElement | null>(null);
 
   const n = cards.length;
@@ -222,6 +271,8 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
     let idle = 0;
     let lastSL = -1;
     let lastCount = -1;
+    let drag: { id: number; x: number; y: number; scrollLeft: number; moved: boolean } | null = null;
+    let suppressClick = false;
 
     const frame = () => {
       const sl = rail.scrollLeft;
@@ -231,6 +282,9 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
       // layout footprint, and show all cards at full emphasis. Re-evaluated live (ResizeObserver wakes
       // the loop), so shrinking the window brings the pager back.
       const noScroll = max <= 2;
+      rail.dataset.scrollable = noScroll ? "false" : "true";
+      if (controlsRef.current)
+        controlsRef.current.dataset.scrollable = noScroll ? "false" : "true";
       if (pagerRef.current)
         pagerRef.current.style.visibility = noScroll ? "hidden" : "visible";
       if (progressRef.current)
@@ -274,16 +328,14 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
             : `translateX(${dx.toFixed(3)}%) scale(${sc.toFixed(4)})`;
       }
 
-      // Cards — pronounced hierarchy: the in-view card reads full size;
-      // neighbours sit ~8% smaller, dimmer and slightly sunk, easing up into
-      // full size as they arrive (smoothstep on distance from active).
+      // Cards stay fully opaque; size and position distinguish the active card.
+      // Neighbours ease into full size as they arrive.
       const cr = cardRefs.current;
       for (let i = 0; i < cr.length; i++) {
         const el = cr[i];
         if (!el) continue;
         const d = noScroll ? 0 : Math.min(1, Math.abs(i - p));
         const e = d * d * (3 - 2 * d);
-        el.style.opacity = (1 - 0.3 * e).toFixed(3);
         el.style.transform = reduce
           ? "none"
           : `translateY(${(10 * e).toFixed(2)}px) scale(${(1 - 0.075 * e).toFixed(4)})`;
@@ -319,6 +371,10 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
       // Arrow availability (imperative — no re-render).
       const atStart = sl <= 2;
       const atEnd = sl >= max - 2;
+      if (previewRef.current) {
+        previewRef.current.dataset.edgeStart = !noScroll && !atStart ? "true" : "false";
+        previewRef.current.dataset.edgeEnd = !noScroll && !atEnd ? "true" : "false";
+      }
       const setArrow = (b: HTMLButtonElement | null, off: boolean) => {
         if (!b) return;
         b.disabled = off;
@@ -356,19 +412,85 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
       ensure();
     };
 
+    const finishDrag = () => {
+      const current = drag;
+      drag = null;
+      delete rail.dataset.dragging;
+      if (current && rail.hasPointerCapture(current.id)) rail.releasePointerCapture(current.id);
+    };
+    const pointerDown = (event: PointerEvent) => {
+      if (drag) return;
+      suppressClick = false;
+      // Keep native touch panning, modified clicks and secondary buttons intact.
+      if (!event.isPrimary || event.button !== 0 || event.pointerType === "touch" ||
+          event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
+          rail.scrollWidth - rail.clientWidth <= 2) return;
+      takeOver();
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, scrollLeft: rail.scrollLeft, moved: false };
+    };
+    const pointerMove = (event: PointerEvent) => {
+      if (!drag || drag.id !== event.pointerId) return;
+      if ((event.buttons & 1) === 0) { finishDrag(); return; }
+      const dx = event.clientX - drag.x;
+      const dy = event.clientY - drag.y;
+      if (!drag.moved) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) <= 5) return;
+        if (Math.abs(dy) > Math.abs(dx)) { finishDrag(); return; }
+        drag.moved = true;
+        suppressClick = true;
+        rail.dataset.dragging = "true";
+        // Capture only after movement, so ordinary clicks retain their link target.
+        try {
+          rail.setPointerCapture(event.pointerId);
+        } catch {
+          // Window listeners also keep tracking when capture is unavailable.
+        }
+      }
+      event.preventDefault();
+      rail.scrollLeft = drag.scrollLeft - dx;
+      ensure();
+    };
+    const pointerEnd = (event: PointerEvent) => {
+      if (drag?.id === event.pointerId) finishDrag();
+    };
+    const click = (event: MouseEvent) => {
+      if (!suppressClick || event.detail === 0) return;
+      suppressClick = false;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const preventNativeDrag = (event: DragEvent) => event.preventDefault();
+
     frame();
     rail.addEventListener("scroll", ensure, { passive: true });
     rail.addEventListener("wheel", takeOver, { passive: true });
     rail.addEventListener("touchstart", takeOver, { passive: true });
+    rail.addEventListener("pointerdown", pointerDown);
+    rail.addEventListener("lostpointercapture", pointerEnd);
+    rail.addEventListener("click", click, true);
+    rail.addEventListener("dragstart", preventNativeDrag);
+    window.addEventListener("pointermove", pointerMove, { passive: false });
+    window.addEventListener("pointerup", pointerEnd);
+    window.addEventListener("pointercancel", pointerEnd);
+    window.addEventListener("blur", finishDrag);
     const ro = new ResizeObserver(ensure);
     ro.observe(rail);
     window.addEventListener("resize", ensure);
     return () => {
       cancelAnimationFrame(raf);
       cancelScroll(rail);
+      finishDrag();
       rail.removeEventListener("scroll", ensure);
       rail.removeEventListener("wheel", takeOver);
       rail.removeEventListener("touchstart", takeOver);
+      rail.removeEventListener("pointerdown", pointerDown);
+      rail.removeEventListener("lostpointercapture", pointerEnd);
+      rail.removeEventListener("click", click, true);
+      rail.removeEventListener("dragstart", preventNativeDrag);
+      window.removeEventListener("pointermove", pointerMove);
+      window.removeEventListener("pointerup", pointerEnd);
+      window.removeEventListener("pointercancel", pointerEnd);
+      window.removeEventListener("blur", finishDrag);
       ro.disconnect();
       window.removeEventListener("resize", ensure);
     };
@@ -392,26 +514,13 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
       <div aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
         {cards.map((b, i) =>
           b.heroImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={b.businessId}
+            <BackdropImage
+              key={`${b.businessId}:${b.heroImageUrl}`}
               src={b.heroImageUrl}
-              loading="lazy"
-              alt=""
               title={`${s.viewWebsite}: ${b.name}`}
-              ref={(el) => {
+              initial={i === 0}
+              onImageRef={(el) => {
                 backdropRefs.current[i] = el;
-              }}
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                filter: "grayscale(1) brightness(0.46)",
-                willChange: "opacity, transform",
-                opacity: i === 0 ? 1 : 0,
-                transform: i === 0 ? "scale(1)" : "scale(1.05)",
               }}
             />
           ) : null,
@@ -437,206 +546,202 @@ export function WebsiteShowcase({ cards }: { cards: PublicWebsiteShowcaseCard[] 
         />
       </div>
 
-      <div
-        className="zw-container zw-split"
-        style={{
-          position: "relative",
-          paddingBlock: "clamp(48px, 6vw, 92px)",
-          minHeight: "70vh",
-        }}
-      >
-        {/* Intro + pager */}
-        <div className="zw-split-left">
-          <div style={{ display: "flex", gap: "clamp(20px, 2.2vw, 32px)" }}>
-            {/* Vertical stepper track */}
-            <div
-              aria-hidden="true"
-              className="zw-only-desktop"
-              style={{
-                width: 1,
-                alignSelf: "stretch",
-                position: "relative",
-                flexShrink: 0,
-                background: "rgba(255,255,255,0.20)",
-              }}
-            >
-              <span
-                ref={dotRef}
-                style={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "6%",
-                  transform: "translate(-50%, -50%)",
-                  width: 9,
-                  height: 9,
-                  borderRadius: "50%",
-                  background: "var(--p-400)",
-                  boxShadow: "0 0 0 4px rgba(255,255,255,0.14)",
-                }}
-              />
-            </div>
-
-            <div style={{ minWidth: 0 }}>
-              <h2
-                className="txt-balance"
-                style={{
-                  margin: 0,
-                  fontSize: "clamp(34px, 3.4vw, 54px)",
-                  fontWeight: 700,
-                  letterSpacing: "-0.04em",
-                  lineHeight: 1.0,
-                  color: "#fff",
-                  textShadow: "0 2px 24px rgba(0,0,0,0.35)",
-                }}
-              >
-                {s.title}
-              </h2>
-              <p
-                className="txt-pretty"
-                style={{
-                  margin: "20px 0 30px",
-                  fontSize: "clamp(15px, 1.3vw, 17px)",
-                  lineHeight: 1.55,
-                  color: "rgba(255,255,255,0.76)",
-                  maxWidth: 380,
-                }}
-              >
-                {s.sub}
-              </p>
-              <div className={studioActions.actions}>
-                <Link
-                  href={localeHref(locale, "web-studio")}
-                  title={s.cta}
-                  className="tap zw-btn"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textDecoration: "none",
-                    background: "#fff",
-                    color: "var(--c-900)",
-                    border: "1px solid rgba(28,28,26,0.14)",
-                    borderRadius: "var(--r-full)",
-                    padding: "15px 28px",
-                    fontSize: 16,
-                    fontWeight: 600,
-                    letterSpacing: "-0.01em",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {s.cta}
-                </Link>
-                <Link className={studioActions.secondary} href={{ pathname: localeHref(locale, "web-studio", "demo"), query: { returnTo: `${localeHref(locale)}#website-showcase` } }}>
-                  {dict.webStudio.hero.demoCta}<Icon name="arrowR" size={16} />
-                </Link>
-              </div>
-
-              {/* Pager (hidden by the rAF loop when the rail has no overflow) */}
-              <div
-                ref={pagerRef}
-                style={{
-                  marginTop: "clamp(30px, 3.2vw, 44px)",
-                  visibility: n <= 1 ? "hidden" : "visible",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 18,
-                }}
-              >
-                <div style={{ display: "flex", gap: 9 }}>
-                  <RailArrow
-                    dir={-1}
-                    onClick={() => step(-1)}
-                    ariaLabel={s.prev}
-                    innerRef={prevRef}
-                  />
-                  <RailArrow
-                    dir={1}
-                    onClick={() => step(1)}
-                    ariaLabel={s.next}
-                    innerRef={nextRef}
-                  />
-                </div>
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    letterSpacing: "0.06em",
-                    color: "rgba(255,255,255,0.90)",
-                    fontVariantNumeric: "tabular-nums",
-                    display: "inline-flex",
-                    overflow: "hidden",
-                  }}
-                >
-                  <span
-                    ref={counterRef}
-                    style={{ display: "inline-block", opacity: 1 }}
-                  >
-                    {pad2(0)}
-                  </span>
-                  <span style={{ opacity: 0.45 }}>&nbsp;/ {pad2(n - 1)}</span>
-                </span>
-              </div>
-
-              {/* Progress thumb (hidden alongside the pager when no overflow) */}
-              <div
-                ref={progressRef}
-                style={{
-                  marginTop: 18,
-                  visibility: n <= 1 ? "hidden" : "visible",
-                  height: 3,
-                  borderRadius: 999,
-                  maxWidth: 240,
-                  background: "rgba(255,255,255,0.22)",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  ref={barRef}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    bottom: 0,
-                    borderRadius: 999,
-                    background: "#fff",
-                    width: "30%",
-                    left: "0%",
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+      <div className={`zw-container ${styles.layout}`}>
+        {/* Vertical stepper track */}
+        <div aria-hidden="true" className={`zw-only-desktop ${styles.stepper}`}>
+          <span
+            ref={dotRef}
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "6%",
+              transform: "translate(-50%, -50%)",
+              width: 9,
+              height: 9,
+              borderRadius: "50%",
+              background: "var(--p-400)",
+              boxShadow: "0 0 0 4px rgba(255,255,255,0.14)",
+            }}
+          />
         </div>
 
-        {/* Card rail — bleeds off the right edge */}
-        <div className="zw-split-right">
-          <div ref={railRef} className="zw-carousel-rail zw-rail-split">
+        <div className={styles.intro}>
+          <h2
+            className="txt-balance"
+            style={{
+              margin: 0,
+              fontSize: "clamp(34px, 3.4vw, 54px)",
+              fontWeight: 700,
+              letterSpacing: "-0.04em",
+              lineHeight: 1.0,
+              color: "#fff",
+              textShadow: "0 2px 24px rgba(0,0,0,0.35)",
+            }}
+          >
+            {s.title}
+          </h2>
+          <p
+            className={`txt-pretty ${styles.description}`}
+            style={{
+              fontSize: "clamp(15px, 1.3vw, 17px)",
+              lineHeight: 1.55,
+              color: "rgba(255,255,255,0.76)",
+              maxWidth: 380,
+            }}
+          >
+            {s.sub}
+          </p>
+        </div>
+
+        {/* Mobile reading and keyboard order: preview, pager, then Web Studio actions. */}
+        <div ref={previewRef} className={styles.preview}>
+          <div
+            ref={railRef}
+            className={`zw-carousel-rail zw-rail-split ${styles.rail}`}
+          >
             {cards.map((b, i) => (
               <div
                 key={b.businessId}
                 data-card
-                className="zw-carousel-card"
+                className={`zw-carousel-card ${styles.railCard}`}
                 ref={(el) => {
                   cardRefs.current[i] = el;
                 }}
                 style={{
                   transformOrigin: "left center",
-                  willChange: "transform, opacity",
-                  opacity: i === 0 ? 1 : 0.7,
-                  transform:
-                    i === 0 ? "none" : "translateY(10px) scale(0.925)",
+                  willChange: "transform",
+                  transform: i === 0 ? "none" : "translateY(10px) scale(0.925)",
                 }}
               >
                 <WebsiteCard
                   site={b}
                   locale={locale}
                   viewWebsiteLabel={s.viewWebsite}
-                  industryLabel={b.industry ? taxonomyLabel(b.industry, locale, dict.industries) : null}
+                  industryLabel={
+                    b.industry
+                      ? taxonomyLabel(b.industry, locale, dict.industries)
+                      : null
+                  }
                 />
               </div>
             ))}
           </div>
+        </div>
+
+        <div
+          ref={controlsRef}
+          className={styles.controls}
+          data-scrollable={n > 1 ? "true" : "false"}
+        >
+          {/* Pager (hidden by the rAF loop when the rail has no overflow) */}
+          <div
+            ref={pagerRef}
+            className={styles.pager}
+            style={{
+              visibility: n <= 1 ? "hidden" : "visible",
+              display: "flex",
+              alignItems: "center",
+              gap: 18,
+            }}
+          >
+            <div style={{ display: "flex", gap: 9 }}>
+              <RailArrow
+                dir={-1}
+                onClick={() => step(-1)}
+                ariaLabel={s.prev}
+                innerRef={prevRef}
+              />
+              <RailArrow
+                dir={1}
+                onClick={() => step(1)}
+                ariaLabel={s.next}
+                innerRef={nextRef}
+              />
+            </div>
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: "0.06em",
+                color: "rgba(255,255,255,0.90)",
+                fontVariantNumeric: "tabular-nums",
+                display: "inline-flex",
+                overflow: "hidden",
+              }}
+            >
+              <span
+                ref={counterRef}
+                style={{ display: "inline-block", opacity: 1 }}
+              >
+                {pad2(0)}
+              </span>
+              <span style={{ opacity: 0.45 }}>&nbsp;/ {pad2(n - 1)}</span>
+            </span>
+          </div>
+
+          {/* Progress thumb (hidden alongside the pager when no overflow) */}
+          <div
+            ref={progressRef}
+            className={styles.progress}
+            style={{
+              marginTop: 18,
+              visibility: n <= 1 ? "hidden" : "visible",
+              height: 3,
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.22)",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              ref={barRef}
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                borderRadius: 999,
+                background: "#fff",
+                width: "30%",
+                left: "0%",
+              }}
+            />
+          </div>
+        </div>
+
+        <div className={`${studioActions.actions} ${styles.actions}`}>
+          <Link
+            href={localeHref(locale, "web-studio")}
+            title={s.cta}
+            className={`tap zw-btn ${styles.primary}`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textDecoration: "none",
+              background: "#fff",
+              color: "var(--c-900)",
+              border: "1px solid rgba(28,28,26,0.14)",
+              borderRadius: "var(--r-full)",
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {s.cta}
+          </Link>
+          <Link
+            className={`${studioActions.secondary} ${styles.secondary}`}
+            href={{
+              pathname: localeHref(locale, "web-studio", "demo"),
+              query: { returnTo: `${localeHref(locale)}#website-showcase` },
+            }}
+          >
+            {dict.webStudio.hero.demoCta}
+            <span className={styles.demoArrow}>
+              <Icon name="arrowR" size={16} />
+            </span>
+          </Link>
         </div>
       </div>
     </section>

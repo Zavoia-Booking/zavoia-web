@@ -20,6 +20,7 @@ import { Icon } from "@/components/ui/icon";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InlineError } from "@/components/ui/inline-error";
+import { DrawerHandle } from "@/components/ui/drawer-handle";
 import { useToast } from "@/components/ui";
 import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
@@ -486,11 +487,12 @@ function WhatSection({
   </div>;
 
   useEffect(() => {
-    if (!autoFocus) return;
+    if (!autoFocus || window.matchMedia("(max-width: 920px)").matches) return;
     const id = setTimeout(() => {
       // Do not steal focus if the visitor already started browsing while the
-      // dialog's entrance animation was finishing.
-      if (document.activeElement?.closest('[data-search-section-scroll]')) return;
+      // dialog's entrance animation was finishing, or raise a mobile keyboard.
+      if (window.matchMedia("(max-width: 920px)").matches
+        || document.activeElement?.closest('[data-search-section-scroll]')) return;
       inputRef.current?.focus({ preventScroll: true });
     }, 240);
     return () => clearTimeout(id);
@@ -1247,6 +1249,9 @@ export function SearchOverlay({
   const router = useRouter();
   const toast = useToast();
   const contentRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [inputMode, setInputMode] = useState<"pointer" | "keyboard">("pointer");
+  const [entryMode, setEntryMode] = useState<"pointer" | "keyboard">("pointer");
 
   // `initialStep`/`initial` are the per-open snapshot — the provider remounts
   // this component (via `key`) each time openSearch() runs, so these useState
@@ -1545,8 +1550,6 @@ export function SearchOverlay({
     router.push(buildSearchUrl(model));
   };
 
-  if (!open) return null;
-
   // ── Collapsed summaries ──
   const selectedTag = industries
     .flatMap((ind) => ind.tags)
@@ -1575,14 +1578,33 @@ export function SearchOverlay({
     >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
+          ref={overlayRef}
           className={`zv-sheet-backdrop ${styles.overlay}`}
+          data-input={inputMode}
+          data-entry={entryMode}
+          onPointerDownCapture={() => setInputMode("pointer")}
         >
           <DialogPrimitive.Content
             ref={contentRef}
             className={`zv-sheet-card ${styles.dialog}`}
+            data-input={inputMode}
+            data-entry={entryMode}
+            inert={!open}
             aria-describedby={undefined}
+            onKeyDown={() => setInputMode("keyboard")}
+            onEscapeKeyDown={() => setInputMode("keyboard")}
             onOpenAutoFocus={(event) => {
-              if (browseIndustry === undefined) return;
+              if (returnFocusRef.current?.matches(":focus-visible")) {
+                setInputMode("keyboard");
+                setEntryMode("keyboard");
+              }
+              if (browseIndustry === undefined) {
+                if (window.matchMedia("(max-width: 920px)").matches) {
+                  event.preventDefault();
+                  contentRef.current?.focus({ preventScroll: true });
+                }
+                return;
+              }
               // Category entry points focus the catalogue, without raising the
               // mobile keyboard. Focus the requested industry's disclosure.
               event.preventDefault();
@@ -1608,6 +1630,7 @@ export function SearchOverlay({
               }
             }}
           >
+            <DrawerHandle contentRef={contentRef} overlayRef={overlayRef} onClose={onClose} label={t.close} />
             <div className={styles.header}>
               <DialogPrimitive.Title asChild>
                 <span
@@ -1663,7 +1686,7 @@ export function SearchOverlay({
                     onClose();
                     router.push(href);
                   }}
-                  autoFocus={step === "what" && browseIndustry === undefined}
+                  autoFocus={open && step === "what" && browseIndustry === undefined}
                   initialBrowseIndustry={openingIndustry}
                   browsedIndustry={browsedIndustry ?? openingIndustry}
                   onBrowseIndustry={setBrowsedIndustry}

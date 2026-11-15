@@ -214,6 +214,8 @@ export interface PublicWebsiteIdentity {
   logo: string | null;
   businessCurrency: string;
   timezone: string | null;
+  /** Signup country, ISO 3166-1 alpha-2 (e.g. "ro"). Optional: older API responses omit it. */
+  countryCode?: string | null;
   email: string | null;
   phone: string | null;
   description: string | null;
@@ -602,6 +604,9 @@ export interface BookingPolicy {
   allowCustomerCancellation: boolean;
   rescheduleWindowMinutes: number;
   allowCustomerReschedule: boolean;
+  /** Health & Medical venue: booking needs the customer's explicit consent
+   *  (GDPR art. 9(2)(a)). Sent with the booking calendar and time slots. */
+  requiresHealthConsent?: boolean;
 }
 
 /**
@@ -1249,6 +1254,8 @@ export interface BookAppointmentBody {
   /** ISO datetime — start of the first service. */
   scheduledAt: string;
   services: BookingServiceItem[];
+  /** Explicit health-data consent; sent when the policy requires it. */
+  healthDataConsent?: boolean;
 }
 
 export interface BookedAppointment {

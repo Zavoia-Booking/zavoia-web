@@ -6,12 +6,14 @@ import { WordRise } from "../parts/WordRise";
 import { deriveHeroContent } from "../parts/content";
 import { useCoverParallax } from "../parts/useCoverParallax";
 import type { HeroVariantProps } from "../types";
+import { useResponsivePublicImage } from "../../../shared/useResponsivePublicImage";
 import "./cinematic.css";
 
 /** Cinematic full-bleed cover — the photo-forward premium hero (design source: HeroCinematic). The cover
  *  bleeds the whole frame under a warm charcoal scrim with a bottom-left lockup. */
 export function Cinematic(props: HeroVariantProps) {
   const { data, t, parallax } = props;
+  const cover = useResponsivePublicImage(data.heroImageUrl, "100vw");
   const { name, tagline, eyebrow, eyebrowDot, rating, count, showRating, ctaLabel } = deriveHeroContent(props);
   const headerRef = useRef<HTMLElement>(null);
   const parallaxRef = useRef<HTMLDivElement>(null);
@@ -23,7 +25,8 @@ export function Cinematic(props: HeroVariantProps) {
         <div ref={parallaxRef} className="absolute left-0 right-0" style={{ top: "-14%", height: "128%", willChange: "transform" }}>
           {data.heroImageUrl ? (
             <img
-              src={data.heroImageUrl}
+              {...cover.props}
+              onError={cover.retryOriginal}
               alt=""
               title={name}
               loading={parallax ? "eager" : "lazy"}

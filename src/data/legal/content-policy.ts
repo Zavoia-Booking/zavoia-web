@@ -12,7 +12,8 @@ export const contentPolicy: LegalDocument = {
     en: "Who can leave reviews and how they are verified, what content is prohibited, how moderation works, and how to report content.",
     ro: "Cine poate lăsa recenzii și cum sunt verificate, ce conținut este interzis, cum funcționează moderarea și cum raportați conținut.",
   },
-  status: "draft",
+  status: "published",
+  effectiveDate: "2026-11-15",
   sections: [
     {
       id: "review-rules",
@@ -29,15 +30,8 @@ export const contentPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "You can review a venue or professional after a completed appointment there, booked through Zavoia — the system only accepts a review once the appointment is marked completed. One review per appointment; reviews cannot currently be edited after submission, and you can ask our support team to remove a review you wrote. Reviews can be left within [3 months] after the appointment.",
-            ro: "Puteți lăsa o recenzie unei unități sau unui profesionist după o programare finalizată acolo, făcută prin Zavoia — sistemul acceptă o recenzie doar după ce programarea este marcată ca finalizată. O recenzie per programare; recenziile nu pot fi în prezent editate după trimitere, iar echipa noastră de asistență poate elimina, la cerere, o recenzie scrisă de dumneavoastră. Recenziile pot fi lăsate în termen de [3 luni] după programare.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "DEC + IMPL (re-verified 11 Nov 2026): the completed-appointment rule and one review per appointment are enforced by the server (customer.service.ts), so those statements are accurate. Customers can only create reviews — there is no edit or delete in the product, so removal on request is a manual commitment support must honour. Still open: the [3 months] window is NOT enforced in code — decide it and build it, or delete the window sentence. Marking an appointment COMPLETED is a manual action by the business (decisions doc §6.4).",
-            ro: "DEC + IMPL (re-verificat 11 nov. 2026): regula programării finalizate și o recenzie per programare sunt impuse de server (customer.service.ts), deci aceste afirmații sunt exacte. Clienții pot doar crea recenzii — nu există editare sau ștergere în produs, așa că eliminarea la cerere este un angajament manual pe care asistența trebuie să îl onoreze. Rămâne deschis: fereastra de [3 luni] NU este impusă în cod — decideți-o și implementați-o, sau ștergeți propoziția despre fereastră. Marcarea unei programări ca FINALIZATĂ este o acțiune manuală a afacerii (documentul de decizii §6.4).",
+            en: "You can review a venue or professional after a completed appointment there, whether you booked it through Zavoia or the business booked it for you in Zavoia — the system only accepts a review once the appointment is marked completed. One review per appointment; reviews cannot currently be edited after submission, and you can ask our support team to remove a review you wrote. Your review is public: it shows your first name, the initial of your last name, your profile photo if you added one, your star rating, your comment and the date. A review of a Health & Medical venue also shows that you visited it, so leave health details out of your comment.",
+            ro: "Puteți lăsa o recenzie unei unități sau unui profesionist după o programare finalizată acolo, fie că ați făcut-o prin Zavoia, fie că afacerea a făcut-o pentru dumneavoastră în Zavoia — sistemul acceptă o recenzie doar după ce programarea este marcată ca finalizată. O recenzie per programare; recenziile nu pot fi în prezent editate după trimitere, iar echipa noastră de asistență poate elimina, la cerere, o recenzie scrisă de dumneavoastră. Recenzia dumneavoastră este publică: afișează prenumele, inițiala numelui de familie, fotografia de profil, dacă ați adăugat una, numărul de stele, comentariul și data. O recenzie la o unitate din categoria Sănătate & Medical arată și că ați vizitat-o, așa că nu includeți detalii despre sănătate în comentariu.",
           },
         },
       ],
@@ -57,15 +51,8 @@ export const contentPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "Reviews on Zavoia can only be submitted from the customer account that booked the appointment through the platform, and only after that appointment is marked completed — they cannot be submitted by unregistered visitors. We do not accept paid or incentivized reviews, and businesses cannot pay to change or remove reviews. Beyond this link to a completed booking, we do not independently verify the opinions expressed.",
-            ro: "Recenziile pe Zavoia pot fi trimise doar din contul de client care a făcut programarea prin platformă și doar după ce acea programare este marcată ca finalizată — nu pot fi trimise de vizitatori neînregistrați. Nu acceptăm recenzii plătite sau stimulate, iar afacerile nu pot plăti pentru modificarea sau eliminarea recenziilor. Dincolo de această legătură cu o programare finalizată, nu verificăm independent opiniile exprimate.",
-          },
-        },
-        {
-          kind: "p",
-          text: {
-            en: "This statement is required to be accurate under Romanian consumer law (Legea 363/2007): we tell you exactly what 'verified' means here, and nothing more.",
-            ro: "Această declarație trebuie să fie exactă conform legislației române de protecție a consumatorilor (Legea 363/2007): vă spunem exact ce înseamnă „verificat” aici, și nimic mai mult.",
+            en: "Reviews on Zavoia can only be submitted from the Zavoia customer account an appointment belongs to — whether the customer booked it through Zavoia or the business booked it for them in Zavoia — and only after the business marks that appointment as completed. Unregistered visitors cannot submit reviews. We do not accept paid or incentivized reviews, and businesses cannot pay to change or remove reviews. Beyond this link to a completed booking, we do not independently verify the opinions expressed. Star ratings are simple averages of all published reviews, rounded to one decimal: a venue's rating counts the reviews of the venue and of its professionals, a brand's rating counts those of all its venues, and a professional's rating counts the reviews of that professional.",
+            ro: "Recenziile de pe Zavoia pot fi trimise doar din contul de client Zavoia căruia îi aparține programarea — fie că clientul a făcut-o prin Zavoia, fie că afacerea a făcut-o pentru el în Zavoia — și doar după ce afacerea marchează acea programare ca finalizată. Vizitatorii neînregistrați nu pot trimite recenzii. Nu acceptăm recenzii plătite sau stimulate, iar afacerile nu pot plăti pentru modificarea sau eliminarea recenziilor. Dincolo de această legătură cu o programare finalizată, nu verificăm independent opiniile exprimate. Ratingurile sunt medii simple ale tuturor recenziilor publicate, rotunjite la o zecimală: ratingul unei unități include recenziile unității și ale profesioniștilor ei, ratingul unui brand include recenziile tuturor unităților lui, iar ratingul unui profesionist include recenziile acelui profesionist.",
           },
         },
       ],
@@ -133,15 +120,8 @@ export const contentPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "Anyone — with or without an account — can report content they consider illegal or in breach of this policy, at [report channel: form/email]. A useful report includes: where the content is (link), why you consider it illegal or non-compliant, your name and email (unless the report concerns content where anonymity is legally protected), and a statement that your report is made in good faith. We confirm receipt and tell you the outcome.",
-            ro: "Oricine — cu sau fără cont — poate raporta conținut pe care îl consideră ilegal sau contrar acestei politici, la [canalul de raportare: formular/email]. O raportare utilă include: unde se află conținutul (link), de ce îl considerați ilegal sau neconform, numele și emailul dumneavoastră (cu excepția cazurilor în care anonimatul este protejat legal) și o declarație că raportarea este făcută cu bună-credință. Confirmăm primirea și vă comunicăm rezultatul.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "DEC + IMPL (re-verified 11 Nov 2026): “Report a problem” exists on listings, professional profiles and appointments, on the web and in the app, and opens a support ticket with context (create-support-ticket.dto.ts). Gaps: reviews cannot be reported; ticket categories are only “bug” and “question” (ticket.entity.ts); there is no notice form for illegal content open to people without an account. DSA art. 16 requires an easy, electronic notice mechanism: either add a report option on reviews plus an illegal-content form, or name a monitored email address (for example support@zavoia.com) in [report channel] above.",
-            ro: "DEC + IMPL (re-verificat 11 nov. 2026): „Raportează o problemă” există pe profilurile din marketplace, pe profilurile profesioniștilor și pe programări, pe web și în aplicație, și deschide un tichet de asistență cu context (create-support-ticket.dto.ts). Lacune: recenziile nu pot fi raportate; categoriile de tichete sunt doar „bug” și „întrebare” (ticket.entity.ts); nu există un formular de notificare pentru conținut ilegal deschis persoanelor fără cont. Art. 16 DSA cere un mecanism electronic de notificare ușor de folosit: fie adăugați raportarea recenziilor și un formular pentru conținut ilegal, fie indicați o adresă de email monitorizată (de exemplu support@zavoia.com) în [canalul de raportare] de mai sus.",
+            en: "Anyone — with or without an account — can report content they consider illegal or in breach of this policy, using the “Report an issue” form in our Help Centre (zavoia.com/help) or by email to support@zavoia.com. A useful report includes: where the content is (link), why you consider it illegal or non-compliant, your name and email (unless the report concerns content where anonymity is legally protected), and a statement that your report is made in good faith. We confirm receipt and tell you the outcome.",
+            ro: "Oricine — cu sau fără cont — poate raporta conținut pe care îl consideră ilegal sau contrar acestei politici, prin formularul „Raportează o problemă” din Centrul de ajutor (zavoia.com/help) sau prin email la support@zavoia.com. O raportare utilă include: unde se află conținutul (link), de ce îl considerați ilegal sau neconform, numele și emailul dumneavoastră (cu excepția cazurilor în care anonimatul este protejat legal) și o declarație că raportarea este făcută cu bună-credință. Confirmăm primirea și vă comunicăm rezultatul.",
           },
         },
       ],
@@ -161,8 +141,8 @@ export const contentPolicy: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "If we remove or restrict your content, restrict your account's ability to post, or decline to act on your report, we tell you the decision and the reasons: which rule or law applied, the facts relied on, and whether the decision was made by a human. You can appeal within [14 days] by replying to the decision notice; an appeal is reviewed by a person not involved in the original decision.",
-            ro: "Dacă vă eliminăm sau restricționăm conținutul, restricționăm posibilitatea contului de a publica sau decidem să nu acționăm la raportarea dumneavoastră, vă comunicăm decizia și motivele: ce regulă sau lege s-a aplicat, faptele avute în vedere și dacă decizia a fost luată de un om. Puteți contesta în termen de [14 zile] răspunzând la notificarea deciziei; contestația este analizată de o persoană neimplicată în decizia inițială.",
+            en: "If we remove or restrict your content, restrict your account's ability to post, or decline to act on your report, we tell you the decision and the reasons: what we did and, if it is temporary, for how long; which rule or law applied; the facts relied on; and whether the decision was made by a human. You can appeal within 6 months by replying to the decision notice; an appeal is reviewed by a person not involved in the original decision. You can also take the matter to the competent courts.",
+            ro: "Dacă vă eliminăm sau restricționăm conținutul, restricționăm posibilitatea contului de a publica sau decidem să nu dăm curs raportării dumneavoastră, vă comunicăm decizia și motivele: ce măsură am luat și, dacă este temporară, pe ce durată; ce regulă sau lege s-a aplicat; faptele avute în vedere; și dacă decizia a fost luată de un om. Puteți contesta în termen de 6 luni răspunzând la notificarea deciziei; contestația este analizată de o persoană neimplicată în decizia inițială. Vă puteți adresa, de asemenea, instanțelor competente.",
           },
         },
       ],

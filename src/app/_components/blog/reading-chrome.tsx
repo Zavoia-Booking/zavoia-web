@@ -22,11 +22,16 @@ export function ReadingChrome({ articleId }: { articleId: string }) {
         parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) || 0;
       const start = Math.max(0, rect.top + window.scrollY - navHeight);
       const end = Math.max(start, rect.bottom + window.scrollY - window.innerHeight);
+      const hasReadingDistance = end > start;
       const progress =
-        end > start
+        hasReadingDistance
           ? Math.min(1, Math.max(0, (window.scrollY - start) / (end - start)))
-          : Number(window.scrollY >= start);
-      if (fillRef.current) fillRef.current.style.transform = `scaleX(${progress})`;
+          : 0;
+      if (fillRef.current) {
+        const track = fillRef.current.parentElement;
+        if (track) track.hidden = !hasReadingDistance;
+        fillRef.current.style.transform = `scaleX(${progress})`;
+      }
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(update);

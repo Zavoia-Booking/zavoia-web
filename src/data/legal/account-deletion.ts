@@ -19,7 +19,7 @@ export const accountDeletion: LegalDocument = {
     ro: "Cum vă ștergeți contul din aplicațiile Zavoia și Zavoia Admin sau de pe web, ce se șterge și ce se păstrează.",
   },
   status: "published",
-  effectiveDate: "2026-11-11",
+  effectiveDate: "2026-11-15",
   sections: [
     {
       id: "in-the-apps",
@@ -51,7 +51,7 @@ export const accountDeletion: LegalDocument = {
           kind: "p",
           text: {
             en: "A business owner with an active subscription must cancel it before the account can be deleted. In the Zavoia Admin app you will receive an email with the steps; on the web, cancel it under Account → Billing & Subscription.",
-            ro: "Un proprietar de afacere cu un abonament activ trebuie să îl anuleze înainte ca contul să poată fi șters. În aplicația Zavoia Admin veți primi un email cu pașii de urmat; pe web, îl anulați din Cont → Facturare și Abonament.",
+            ro: "Un proprietar de afacere cu un abonament activ trebuie să îl anuleze înainte ca contul să poată fi șters. În aplicația Zavoia Admin veți primi un email cu pașii de urmat; pe web, îl anulați din Cont → Facturare și abonament.",
           },
         },
       ],
@@ -116,12 +116,12 @@ export const accountDeletion: LegalDocument = {
           kind: "list",
           items: {
             en: [
-              "Customer account: your profile and sign-in details, profile photo, bookings, saved businesses and professionals, the reviews you wrote, your notifications and the devices registered for push notifications.",
+              "Customer account: your profile and sign-in details, profile photo, bookings, saved businesses and professionals, the reviews you wrote, your notifications and the devices registered for push notifications. Upcoming bookings are cancelled first, and each business receives the same notice as when you cancel a booking yourself; businesses are not told that you deleted your account.",
               "Business account (owner): the business and everything in it: locations, services, team, calendar and appointments, client list, marketplace listing and website, photos and files, notifications, support requests and SMS history. Team members who have no other Zavoia access are deleted as well and are informed by email.",
               "Team member account: your access to every business you belonged to, your professional profile and your profile photo.",
             ],
             ro: [
-              "Cont de client: profilul și datele de autentificare, fotografia de profil, programările, afacerile și profesioniștii salvați, recenziile scrise de dumneavoastră, notificările și dispozitivele înregistrate pentru notificări push.",
+              "Cont de client: profilul și datele de autentificare, fotografia de profil, programările, afacerile și profesioniștii salvați, recenziile scrise de dumneavoastră, notificările și dispozitivele înregistrate pentru notificări push. Programările viitoare sunt anulate mai întâi, iar fiecare afacere primește aceeași notificare ca atunci când anulați dumneavoastră o programare; afacerile nu sunt informate că v-ați șters contul.",
               "Cont de afacere (proprietar): afacerea și tot ce conține: locațiile, serviciile, echipa, calendarul și programările, lista de clienți, profilul din marketplace și site-ul, fotografiile și fișierele, notificările, solicitările de asistență și istoricul SMS. Membrii echipei care nu au alt acces în Zavoia sunt șterși la rândul lor și sunt anunțați pe email.",
               "Cont de membru al echipei: accesul la fiecare afacere din care ați făcut parte, profilul profesional și fotografia de profil.",
             ],
@@ -144,7 +144,7 @@ export const accountDeletion: LegalDocument = {
       },
       summary: {
         en: "A few records must be kept after deletion, either by law or because they belong to someone else.",
-        ro: "Câteva înregistrări trebuie păstrate după ștergere, fie prin lege, fie pentru că aparțin altcuiva.",
+        ro: "Câteva înregistrări trebuie păstrate după ștergere, fie pentru că legea o impune, fie pentru că aparțin altcuiva.",
       },
       body: [
         {
@@ -153,12 +153,14 @@ export const accountDeletion: LegalDocument = {
             en: [
               "Invoices and payment records for Zavoia subscriptions and purchases are kept by our payment processor (Stripe) and our invoicing provider (Oblio) for the period required by Romanian accounting and tax law.",
               "For businesses that completed bookings through Zavoia, the business identification details and booking-activity records needed for EU platform tax reporting (DAC7) are kept for the period required by tax law.",
+              "Support requests you sent as a customer are kept for as long as we need them to handle the request and any later dispute about it.",
               "Deleted data can remain in our database backups for a short period, until those backups are overwritten.",
               "Client records that a business created itself, for example when you booked by phone, belong to that business. To have them deleted, contact the business directly.",
             ],
             ro: [
               "Facturile și evidențele plăților pentru abonamentele și achizițiile Zavoia sunt păstrate de procesatorul nostru de plăți (Stripe) și de furnizorul nostru de facturare (Oblio) pe perioada impusă de legislația contabilă și fiscală din România.",
               "Pentru afacerile care au avut programări finalizate prin Zavoia, datele de identificare ale afacerii și evidențele activității de programare necesare raportării fiscale a platformelor în UE (DAC7) sunt păstrate pe perioada impusă de legislația fiscală.",
+              "Solicitările de asistență trimise ca client sunt păstrate cât avem nevoie de ele pentru a rezolva solicitarea și orice dispută ulterioară legată de ea.",
               "Datele șterse pot rămâne pentru o scurtă perioadă în copiile de siguranță ale bazei de date, până când acestea sunt suprascrise.",
               "Fișele de client create chiar de o afacere, de exemplu când ați făcut o programare telefonic, aparțin acelei afaceri. Pentru ștergerea lor, contactați direct afacerea.",
             ],

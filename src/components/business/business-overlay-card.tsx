@@ -7,6 +7,7 @@ import { Img } from "@/components/ui/image";
 import { Icon } from "@/components/ui/icon";
 import { HeartButton } from "@/components/ui/heart-button";
 import type { BusinessCardData } from "./types";
+import styles from "./business-overlay-card.module.css";
 
 export interface BusinessOverlayCardProps {
   b: BusinessCardData;
@@ -14,6 +15,8 @@ export interface BusinessOverlayCardProps {
   favorited?: boolean | null;
   /** Favorite handler — the heart only renders when provided. */
   onFavorite?: (id: BusinessCardData["id"]) => void;
+  /** Shorter photo treatment for mobile discovery rails; desktop stays portrait. */
+  compactOnMobile?: boolean;
 }
 
 const ROOT_STYLE: CSSProperties = {
@@ -21,7 +24,6 @@ const ROOT_STYLE: CSSProperties = {
   borderRadius: "var(--card-r, 18px)",
   overflow: "hidden",
   cursor: "pointer",
-  aspectRatio: "4 / 5",
   background: "var(--c-ink)",
   boxShadow: "var(--sh-md)",
   display: "block",
@@ -41,7 +43,7 @@ const ACTION_STYLE: CSSProperties = {
 // Photo-forward card: full-bleed image, dual gradient scrims, magazine-bold
 // name, and a confident rating block (big number + fractional stars).
 // Ported from ZwBusinessOverlayCard.
-export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: BusinessOverlayCardProps) {
+export function BusinessOverlayCard({ b, onClick, favorited, onFavorite, compactOnMobile = false }: BusinessOverlayCardProps) {
   const { dict } = useTranslation();
   const locationName = b.locationName?.trim() || b.name;
   const businessName = b.businessName?.trim();
@@ -55,7 +57,9 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
           src={b.image}
           alt={imageName}
           label={b.cat}
-          sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) 50vw, 320px"
+          sizes={compactOnMobile
+            ? "(max-width: 320px) 248px, (max-width: 404px) calc(86vw - 27.52px), (max-width: 640px) 320px, (max-width: 920px) 50vw, 320px"
+            : "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) 50vw, 320px"}
           style={{ width: "100%", height: "100%" }}
         />
       </div>
@@ -86,7 +90,7 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
         style={{ position: "absolute", left: 18, right: 18, bottom: 18, color: "#fff", textAlign: "left" }}
       >
         <div
-          className="txt-balance"
+          className={`txt-balance ${styles.name}`}
           style={{
             fontSize: "clamp(20px, 1.5vw, 25px)",
             fontWeight: 700,
@@ -99,6 +103,7 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
         </div>
         {showBusinessName && (
           <div
+            className={styles.businessName}
             style={{
               marginTop: 7,
               fontSize: 13,
@@ -189,7 +194,7 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite }: Busin
 
   return (
     <div
-      className="zw-hover-lift zw-zoom-parent"
+      className={`zw-hover-lift zw-zoom-parent ${styles.card}${compactOnMobile ? ` ${styles.compactOnMobile}` : ""}`}
       style={{ ...ROOT_STYLE, cursor: b.href || onClick ? "pointer" : "default" }}
     >
       {b.href ? (

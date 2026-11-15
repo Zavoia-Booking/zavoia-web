@@ -46,6 +46,8 @@ export interface ImageViewerProps {
 }
 
 const EASE = "cubic-bezier(.19,1,.22,1)";
+// Match .stage's mobile margins and desktop clamp(76px, 9vw, 144px).
+const PHOTO_SIZES = "(max-width: 600px) calc(100vw - 24px), (max-width: 844px) calc(100vw - 152px), (max-width: 1600px) 82vw, calc(100vw - 288px)";
 const media = "(prefers-reduced-motion: reduce)";
 function subscribeMotion(callback: () => void) {
   const query = window.matchMedia(media);
@@ -57,6 +59,15 @@ function readMotion() {
 }
 function serverMotion() {
   return true;
+}
+
+/** Only use painted photos, never the hidden request for a larger version. */
+function loadedPhoto(source: HTMLElement | null | undefined): HTMLImageElement | null {
+  if (!source) return null;
+  const images = source instanceof HTMLImageElement ? [source] : Array.from(source.querySelectorAll("img"));
+  return images.find((image) =>
+    image.complete && image.naturalWidth > 0 && !image.closest("[data-viewer-request]"),
+  ) ?? null;
 }
 
 function containedRect(
@@ -137,25 +148,55 @@ function morph(
 function ViewerPhoto({
   image,
   unavailable,
+  getPreview,
+  onReady,
+  thumbnail = false,
 }: {
   image: ImageViewerImage;
   unavailable: string;
+  getPreview: () => string | undefined;
+  onReady?: (src: string) => void;
+  thumbnail?: boolean;
 }) {
-  const [pending, setPending] = useState(true);
+  const [loadedSrc, setLoadedSrc] = useState(getPreview);
+  const [failed, setFailed] = useState(false);
+
+  // The responsive request stays mounted so viewport changes can select a new
+  // size. Only successfully loaded URLs replace the photo the user can see.
+  const remember = (element: HTMLImageElement) => {
+    const src = element.currentSrc || element.src;
+    setLoadedSrc(src);
+    onReady?.(src);
+  };
   return (
-    <>
-      {pending && (
-        <Skeleton className={styles.pending} w="100%" h="100%" r={8} />
-      )}
-      <Img
-        src={image.src}
-        alt={image.alt}
-        title=""
-        loading="eager"
-        draggable={false}
-        className={styles.image}
-        style={{ objectFit: "contain" }}
-        label={
+    <div className={styles.photo}>
+      <div className={styles.request} data-viewer-request="" aria-hidden="true">
+        <Img
+          src={image.src}
+          alt=""
+          title=""
+          label=""
+          sizes={thumbnail ? "64px" : PHOTO_SIZES}
+          loading={thumbnail ? "lazy" : "eager"}
+          onReady={remember}
+          onFailure={() => {
+            setLoadedSrc((previous) => previous || getPreview());
+            setFailed(true);
+          }}
+        />
+      </div>
+      {loadedSrc ? (
+        <Img
+          src={loadedSrc}
+          alt={thumbnail ? "" : image.alt}
+          title=""
+          loading="eager"
+          draggable={false}
+          className={styles.image}
+          style={{ objectFit: thumbnail ? "cover" : "contain" }}
+        />
+      ) : failed ? (
+        <Img className={styles.image} label={thumbnail ? "" : (
           <span
             role="img"
             aria-label={image.alt}
@@ -163,11 +204,11 @@ function ViewerPhoto({
           >
             {unavailable}
           </span>
-        }
-        onLoad={() => setPending(false)}
-        onError={() => setPending(false)}
-      />
-    </>
+        )} />
+      ) : (
+        <Skeleton className={styles.pending} w="100%" h="100%" r={8} />
+      )}
+    </div>
   );
 }
 
@@ -198,6 +239,7 @@ export function ImageViewer({
   const stage = useRef<HTMLElement>(null);
   const figure = useRef<HTMLDivElement>(null);
   const strip = useRef<HTMLDivElement>(null);
+  const loadedSources = useRef(new Map<string, string>());
   const lastImage = useRef<string | null>(null);
   const closingImage = useRef<string | null>(null);
   const cancelMorph = useRef<(() => void) | null>(null);
@@ -217,6 +259,15 @@ export function ImageViewer({
   } | null>(null);
   const dragged = useRef(false);
   const current = images[index];
+
+  function getPreview(photoIndex: number) {
+    const image = images[photoIndex];
+    if (!image) return undefined;
+    return loadedSources.current.get(`${image.id}:${image.src}`)
+      || loadedPhoto(getSource?.(photoIndex))?.currentSrc
+      || loadedPhoto(strip.current?.children[photoIndex] as HTMLElement | undefined)?.currentSrc
+      || undefined;
+  }
 
   const restoreSourcePointer = useCallback(() => {
     if (!sourcePointer.current) return;
@@ -244,10 +295,7 @@ export function ImageViewer({
   );
   const photoRect = useCallback(() => {
     if (!stage.current) return null;
-    const image =
-      figure.current?.querySelector("img") ??
-      getSource?.(index)?.querySelector("img") ??
-      null;
+    const image = loadedPhoto(figure.current) ?? loadedPhoto(getSource?.(index));
     const bounds =
       figure.current?.getBoundingClientRect() ??
       stage.current.getBoundingClientRect();
@@ -273,7 +321,7 @@ export function ImageViewer({
       getReturnFocus?.() ?? getSource?.(index) ?? returnFocus.current;
     const from = photoRect();
     const to = sourceRect(getSource?.(index) ?? null);
-    const image = figure.current?.querySelector("img");
+    const image = loadedPhoto(figure.current) ?? loadedPhoto(getSource?.(index));
     cancelMotion();
     if (reduce) {
       onIndexChange(-1);
@@ -288,7 +336,7 @@ export function ImageViewer({
       };
       source.style.setProperty("pointer-events", "auto");
     }
-    const canMorph = from && to && image?.naturalWidth;
+    const canMorph = from && to && image;
     if (canMorph && figure.current) figure.current.style.opacity = "0";
     const fade =
       content.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
@@ -312,7 +360,7 @@ export function ImageViewer({
         );
       return;
     }
-    cancelMorph.current = morph(current.src, from, to, 540, true, () => {
+    cancelMorph.current = morph(image.currentSrc, from, to, 540, true, () => {
       cancelMorph.current = null;
       restoreSourcePointer();
       onIndexChange(-1);
@@ -346,20 +394,21 @@ export function ImageViewer({
     if (!opening || reduce) return;
     setDirection(0);
     const from = sourceRect(source);
+    const sourceImage = loadedPhoto(source);
     const to = stage.current
       ? containedRect(
-          source?.querySelector("img") ?? null,
+          sourceImage,
           stage.current.getBoundingClientRect(),
         )
       : null;
-    if (!from || !to || !source?.querySelector("img")?.naturalWidth) return;
+    if (!from || !to || !sourceImage) return;
     if (figure.current) figure.current.style.opacity = "0";
     backdrop.current =
       content.current?.animate([{ opacity: 0 }, { opacity: 1 }], {
         duration: 560,
         easing: EASE,
       }) ?? null;
-    cancelMorph.current = morph(current.src, from, to, 560, false, () => {
+    cancelMorph.current = morph(sourceImage.currentSrc, from, to, 560, false, () => {
       cancelMorph.current = null;
       if (figure.current) figure.current.style.opacity = "1";
     });
@@ -591,7 +640,7 @@ export function ImageViewer({
                     event.clientY <= bounds.top + bounds.height;
                   if (
                     dragged.current ||
-                    !figure.current?.querySelector("img") ||
+                    !loadedPhoto(figure.current) ||
                     inside
                   ) {
                     event.stopPropagation();
@@ -615,6 +664,8 @@ export function ImageViewer({
                     <ViewerPhoto
                       image={current}
                       unavailable={labels.unavailable}
+                      getPreview={() => getPreview(index)}
+                      onReady={(src) => loadedSources.current.set(`${current.id}:${current.src}`, src)}
                     />
                   </div>
                 </div>
@@ -642,7 +693,7 @@ export function ImageViewer({
                 <div className={styles.thumbnails} ref={strip}>
                   {images.map((image, photoIndex) => (
                     <button
-                      key={image.id}
+                      key={`${image.id}:${image.src}`}
                       type="button"
                       className={styles.thumbnail}
                       aria-label={
@@ -651,13 +702,11 @@ export function ImageViewer({
                       aria-pressed={photoIndex === index}
                       onClick={() => choose(photoIndex)}
                     >
-                      <Img
-                        src={image.src}
-                        alt=""
-                        title=""
-                        draggable={false}
-                        label=""
-                        style={{ width: "100%", height: "100%" }}
+                      <ViewerPhoto
+                        image={image}
+                        unavailable={labels.unavailable}
+                        getPreview={() => getPreview(photoIndex)}
+                        thumbnail
                       />
                     </button>
                   ))}

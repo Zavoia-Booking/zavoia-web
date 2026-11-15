@@ -1011,8 +1011,13 @@ export function ProfessionalProfile({
                             openPortfolio(index);
                           }}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={image.src} alt={image.alt} loading="lazy" />
+                          <Img
+                            src={image.src}
+                            alt={image.alt}
+                            title=""
+                            sizes="auto, (max-width: 720px) calc(50vw - 32px), 200px"
+                            style={{ width: "100%", height: "100%" }}
+                          />
                         </button>
                       ))}
                     </div>
@@ -1276,12 +1281,15 @@ function ProfessionalVenues({
                 return (
                   <div key={venue.key} className={`${styles.venueEntry} ${disclosure.root}`}>
                     <div className={styles.venue} data-single={!multi} data-selected={selected}>
-                      <Img
-                        src={location.featuredImage ?? business.logo ?? undefined}
-                        alt=""
-                        className={styles.venuePhoto}
-                        label={<Icon name="pin" size={24} color="var(--c-500)" />}
-                      />
+                      <span className={styles.venuePhoto}>
+                        <Img
+                          src={location.featuredImage ?? business.logo ?? undefined}
+                          alt=""
+                          sizes={multi ? "(max-width: 720px) 72px, 88px" : "(max-width: 720px) 64px, 80px"}
+                          style={{ width: "100%", height: "100%" }}
+                          label={<Icon name="pin" size={24} color="var(--c-500)" />}
+                        />
+                      </span>
                       {multi ? (
                         <button
                           type="button"
@@ -1448,6 +1456,20 @@ function ProfessionalReviews({
                 })}
               </span>
             </div>
+            {/* Same note as the venue reviews; the ⓘ opens how reviews are verified. */}
+            <p className={styles.reviewVerified}>
+              <Icon name="shield" size={16} color="var(--s-success-600)" />
+              {dict.locationPage.reviewsVerified}
+              <a
+                href={`${localeHref(locale, "terms", "content-policy")}#review-verification`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.reviewVerifiedInfo}
+                aria-label={dict.locationPage.reviewsHowVerified}
+              >
+                <Icon name="info" size={16} />
+              </a>
+            </p>
           </div>
           <div aria-busy={pending || undefined} className={styles.reviewList}>
             {visibleReviews.map((review) => {

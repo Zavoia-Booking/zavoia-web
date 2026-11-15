@@ -2,7 +2,6 @@
    Visible error rows add height above the shared minimum; the document scrolls. */
 .auth-page {
   --auth-page-space: 16px;
-  --auth-bottom-clearance: 0px;
   padding-block: var(--auth-page-space);
 }
 .auth-shell { inline-size: 100%; margin-inline: auto; }
@@ -137,8 +136,7 @@
 }
 @media (max-width: 920px) {
   .auth-page {
-    --auth-bottom-clearance: calc(66px + env(safe-area-inset-bottom));
-    padding-block-end: calc(var(--auth-page-space) + var(--auth-bottom-clearance));
+    padding-block-end: calc(var(--auth-page-space) + env(safe-area-inset-bottom));
   }
   .auth-shell { max-inline-size: 480px; }
   .auth-card { grid-template-columns: minmax(0, 1fr); }

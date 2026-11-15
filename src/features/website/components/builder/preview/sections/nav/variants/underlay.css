@@ -46,9 +46,9 @@
   top: calc(8px - 3px * var(--mc-underlay-progress, 0));
   transform: rotate(calc(-45deg * var(--mc-underlay-progress, 0)));
 }
-.mc-nav-underlay-toggle:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 3px; }
+.mc-nav-underlay-toggle:focus-visible { outline: 2px solid var(--mc-focus, var(--mc-fg)); outline-offset: 3px; }
 .mc-nav-underlay--open { --mc-nav-shadow: none !important; }
-.mc-nav-underlay--open .mc-nav-underlay-toggle { color: var(--mc-fg); text-shadow: none; }
+.mc-nav-underlay--open .mc-nav-underlay-toggle { --mc-focus: var(--mc-fg); color: var(--mc-fg); text-shadow: none; }
 .mc-nav-underlay .mc-nav-brand { transition: opacity 220ms ease-out; }
 .mc-nav-underlay--open .mc-nav-brand { pointer-events: none; }
 
@@ -69,6 +69,7 @@
 }
 
 .mc-nav-underlay-panel {
+  --mc-focus: var(--mc-fg);
   position: absolute;
   z-index: 10;
   top: var(--mc-nav-overlay-top, 0);

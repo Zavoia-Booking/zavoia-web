@@ -6,7 +6,7 @@ import { listingFixture } from '../professionals/fixtures.mjs';
 
 const api = `http://127.0.0.1:${process.env.LOCATIONS_SEO_FIXTURE_PORT || '4321'}`;
 const secret = 'location-seo-isolated-fixture-secret';
-const publicOrigin = 'https://zavoia.com';
+const publicOrigin = 'https://www.zavoia.com';
 
 function fixture(key: string, id: number): ListingDetail {
   const listing: ListingDetail = listingFixture();
@@ -72,7 +72,7 @@ async function expectPublished(response: APIResponse, listing: ListingDetail, pa
   expect(schema['@context']).toBe('https://schema.org');
   const location = schema['@graph'].find(entity => entity['@type'] === 'LocalBusiness');
   const webPage = schema['@graph'].find(entity => entity['@type'] === 'WebPage');
-  expect(location).toMatchObject({ name: listing.location.name, url: `${publicOrigin}/business/${listing.slug}` });
+  expect(location).toMatchObject({ name: `${listing.name} – ${listing.location.name}`, url: `${publicOrigin}/business/${listing.slug}` });
   expect(webPage).toMatchObject({
     url: `${publicOrigin}${prefix}/business/${listing.slug}`,
     inLanguage: prefix ? 'ro' : 'en', mainEntity: { '@id': location?.['@id'] },

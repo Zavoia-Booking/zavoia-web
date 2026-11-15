@@ -39,9 +39,14 @@
 .filtersButton[aria-expanded="true"] { background: var(--c-200); border-color: var(--c-400); }
 .filterCount { min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: var(--c-ink); color: var(--c-canvas); font-size: 10.5px; font-weight: 600; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
 .clearButton { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--c-600); font: inherit; font-size: 13px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; cursor: pointer; }
+/* The ranking-info icon sits inside the count's row, so the header (and the phone sheet's peek) keeps its height; the hit area is 44px. */
+.rankingInfo { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 999px; color: var(--c-600); }
+.rankingInfo::after { content: ""; position: absolute; inset: -12px; }
+.rankingInfo:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 2px; }
 @media (hover: hover) and (pointer: fine) {
   .filtersButton:hover { background: var(--c-100); border-color: var(--c-400); }
   .clearButton:hover { color: var(--c-ink); }
+  .rankingInfo:hover { color: var(--c-ink); }
 }
 @container (max-width: 340px) {
   .headerRow { align-items: flex-start; }
@@ -69,8 +74,13 @@
   --zv-search-placeholder-sheet-top: max(12px, calc(46% + 6.48px - var(--zv-search-placeholder-peek-h) * .46));
 }
 
+@media (min-width: 921px) {
+  /* Keep scrolling cards clear of the rounded edge, not just at list end. */
+  .panel { padding-bottom: 16px; }
+}
+
 @media (max-width: 920px) {
-  .shell { height: calc(100dvh - var(--nav-h) - var(--mobile-tabs-h, calc(66px + env(safe-area-inset-bottom)))); }
+  .header { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
   .desktopMapPlaceholder { display: none; }
   .mobileMapPlaceholder { display: block; }
   .placeholderPanel {

@@ -39,6 +39,7 @@
 }
 
 .mc-site-nav {
+  --mc-focus: var(--mc-nav-fg, var(--mc-fg));
   /* Contain the row's content without narrowing the full-width scroll surface. */
   --mc-nav-content-inset: max(clamp(18px, 4cqw, 56px), calc((100% - var(--mc-content-max, 1400px)) / 2));
   box-sizing: border-box;
@@ -130,7 +131,7 @@
 .mc-nav-menu-close:focus-visible,
 .mc-nav-menu-link:focus-visible,
 .mc-nav-menu-book:focus-visible {
-  outline: 2px solid var(--mc-accent);
+  outline: 2px solid var(--mc-focus, var(--mc-fg));
   outline-offset: 3px;
 }
 
@@ -163,6 +164,7 @@
 
 .mc-nav-menu-overlay,
 .mc-nav-menu-surface {
+  --mc-focus: var(--mc-fg);
   position: absolute;
   top: var(--mc-nav-overlay-top, 0);
   right: 0;

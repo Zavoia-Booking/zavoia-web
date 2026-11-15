@@ -1,6 +1,7 @@
 import { type CSSProperties } from "react";
 import { Star } from "lucide-react";
 import { DISPLAY } from "../../../shared/constants";
+import { TeamPortrait } from "./TeamPortrait";
 import "../base.css";
 
 /** Shared portrait card — full-bleed photo (or an initials fallback), a bottom scrim, an optional rating
@@ -12,7 +13,7 @@ export function TeamCard({ name, initials, image, rating, tint }: { name: string
     <div className="mc-portrait-inner">
       <div className="mc-pfig" style={{ background: tint }}>
         {image ? (
-          <img src={image} alt={name} loading="lazy" decoding="async" draggable={false} />
+          <TeamPortrait src={image} alt={name} sizes="auto, (max-width: 560px) 100vw, 470px" />
         ) : (
           <div
             className="flex h-full w-full items-center justify-center"

@@ -79,6 +79,8 @@ async function install(page: Page): Promise<State> {
 async function open(page: Page, token = TOKEN) {
   await page.goto(`/auth/verify-account-link?token=${encodeURIComponent(token)}`)
   await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
+  // Confirming adds the customer role, so the submit waits for the terms box.
+  await page.locator('#acceptTerms').check()
 }
 
 test('empty and incorrect passwords focus their field; editing removes stale errors', async ({ page }) => {
@@ -218,6 +220,7 @@ for (const phase of ['preflight', 'completion'] as const) {
     else state.complete = () => DEAD
     await page.goto(`/auth/verify-account-link?token=${TOKEN}`)
     if (phase === 'completion') {
+      await page.locator('#acceptTerms').check()
       await page.locator('#password').fill('existing-password')
       await page.getByRole('button', { name: submitLabel, exact: true }).click()
     }
@@ -236,8 +239,10 @@ test('changing the query token revalidates and clears the previous draft and err
   await page.evaluate(() => window.history.pushState(null, '', '?token=next-token'))
   await expect(page.getByText('next-token@example.test', { exact: true })).toBeVisible()
   await expect(page.locator('#password')).toHaveValue('')
+  await expect(page.locator('#acceptTerms')).not.toBeChecked()
   await expect(page.getByText(wrong, { exact: true })).toHaveCount(0)
   expect(state.validations).toEqual([TOKEN, 'next-token'])
+  await page.locator('#acceptTerms').check()
   await page.locator('#password').fill('new-draft')
   await page.getByRole('button', { name: submitLabel, exact: true }).click()
   await expect(page.getByText(wrong, { exact: true })).toBeVisible()

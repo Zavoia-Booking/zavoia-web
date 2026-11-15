@@ -382,6 +382,9 @@ export function specimenData(
     ),
     establishedYear: 2016,
     businessCurrency: "RON",
+    // A Bucharest business: the Romanian demo shows the ANPC link and SAL badge every Romanian site
+    // gets; the English demo stays country-neutral for markets beyond Romania.
+    countryCode: locale === "ro" ? "ro" : null,
     email: "hello@studio-lumina.example.test",
     phone: "",
     social: {},

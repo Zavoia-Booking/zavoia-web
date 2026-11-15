@@ -1,0 +1,50 @@
+.section {
+  padding-top: 60px;
+}
+
+/* Discovery feeds keep their desktop grid and use native swipe rails on phones. */
+.track:global(.zw-carousel-rail) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(232px, 100%), 1fr));
+  gap: 18px;
+  padding: 0;
+  overflow: visible;
+}
+
+.item {
+  min-width: 0;
+}
+
+.skeleton {
+  aspect-ratio: 4 / 5;
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+@media (max-width: 640px) {
+  .track:global(.zw-carousel-rail) {
+    display: flex;
+    gap: 14px;
+    padding: 10px 0 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .item {
+    flex: 0 0 clamp(248px, 86%, 320px);
+    scroll-snap-align: start;
+  }
+
+  .skeleton {
+    aspect-ratio: 1;
+    min-height: 280px;
+  }
+
+  .more {
+    display: none;
+  }
+}

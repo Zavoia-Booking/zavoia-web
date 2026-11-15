@@ -70,7 +70,7 @@
 .check { visibility: hidden; color: var(--p-600); }
 .option[aria-current="true"] { background: oklch(96% .009 70); color: var(--nf-ink, var(--c-ink)); font-weight: 550; }
 .option[aria-current="true"] .check { visibility: visible; }
-.trigger:focus-visible, .option:focus-visible { outline: 2px solid var(--p-500); }
+.trigger:focus-visible, .option:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); }
 .trigger:focus-visible { outline-offset: 3px; }
 .option:focus-visible { outline-offset: -3px; }
 
@@ -119,3 +119,45 @@
   .language[data-compact="responsive"] .label,
   .language[data-compact="responsive"] .chevron { display: none; }
 }
+
+/* The native disclosure remains the no-JavaScript fallback. Hydrated mobile
+   controls use a modal drawer, including inside the header's Underlay menu. */
+.language[data-mobile-drawer] { display: none; }
+.drawerTrigger { border: 0; background: transparent; color: inherit; font-family: inherit; }
+.drawerTrigger[aria-expanded="true"] { background: oklch(95% .008 70); }
+.drawerOverlay { position: fixed; inset: 0; z-index: 320; background: rgb(28 28 26 / 28%); }
+.drawer {
+  position: fixed;
+  z-index: 321;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 560px);
+  max-height: calc(100dvh - 24px);
+  margin-inline: auto;
+  padding: 0 20px max(24px, env(safe-area-inset-bottom));
+  border: 1px solid var(--c-300);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--c-canvas);
+  color: var(--c-900);
+  box-shadow: var(--sh-up);
+  outline: none;
+}
+.drawerHeader { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 16px; padding: 0 0 14px; border-bottom: 1px solid var(--c-200); }
+.drawerTitle { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.2; letter-spacing: -.025em; }
+.drawerClose { display: grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 1px solid var(--c-300); border-radius: 50%; background: transparent; color: var(--c-700); cursor: pointer; }
+.drawer > .options { min-height: 0; max-height: none; margin-top: 12px; }
+.drawer .option { min-height: 52px; font-size: 16px; }
+.drawer .check { color: var(--c-ink); }
+.drawerClose:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .drawerOverlay[data-state="open"]:not([data-entry="keyboard"]) { animation: drawer-backdrop-in 160ms var(--ease-out); }
+  .drawerOverlay[data-state="closed"]:not([data-input="keyboard"]) { animation: drawer-backdrop-out 120ms var(--ease-out); }
+  .drawer[data-state="open"]:not([data-entry="keyboard"]) { animation: drawer-in 240ms var(--ease-out); }
+  .drawer[data-state="closed"]:not([data-input="keyboard"]) { animation: drawer-out 180ms var(--ease-out); }
+}
+@keyframes drawer-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes drawer-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes drawer-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes drawer-out { from { transform: translateY(0); } to { transform: translateY(100%); } }

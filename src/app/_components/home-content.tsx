@@ -18,7 +18,7 @@ import { BrandsSection } from "@/app/_components/home/brands-section";
 import { NearYouSection } from "@/app/_components/home/near-you-section";
 import { RecentlyViewed } from "@/app/_components/home/recently-viewed";
 import { WebsiteShowcase } from "@/app/_components/home/editors-pick";
-import { SectionFailed } from "@/app/_components/home/section-failed";
+import { DiscoveryProvider, DiscoveryRecovery, ServerDiscoveryFeed } from "@/app/_components/home/discovery-feedback";
 import {
   BrandsSkeleton,
   CategoryRailSkeleton,
@@ -33,9 +33,9 @@ import {
 // "No data" vs. "the request failed" for a home feed: `ok: true` carries the
 // resolved rows (possibly zero — a real empty result); `ok: false` means the
 // fetch itself failed. page.tsx's `settle()` produces this instead of
-// collapsing both cases into `[]`, so a failed band can say so instead of
-// silently disappearing.
-export type FeedResult<T> = { ok: true; data: T } | { ok: false };
+// collapsing both cases into `[]`. Optional failures can be omitted visually
+// while still contributing to shared recovery and diagnostics.
+export type FeedResult<T> = { ok: true; data: T } | { ok: false; failureId: number };
 
 export interface HomeContentProps {
   locale: Locale;
@@ -75,12 +75,14 @@ export function HomeContent({
   brands,
 }: HomeContentProps) {
   return (
-    <main>
+    <DiscoveryProvider><main>
       <Hero />
 
       <Suspense fallback={<CategoryRailSkeleton />}>
         <CategorySection locale={locale} industries={industries} />
       </Suspense>
+
+      <DiscoveryRecovery />
 
       <InYourCity />
 
@@ -103,7 +105,7 @@ export function HomeContent({
       </AppBand>
       <WebStudioBand locale={locale} />
       <BizStrip locale={locale} />
-    </main>
+    </main></DiscoveryProvider>
   );
 }
 
@@ -115,7 +117,7 @@ async function CategorySection({
   industries: Promise<FeedResult<Industry[]>>;
 }) {
   const result = await industries;
-  if (!result.ok) return <SectionFailed paddingTop={44} />;
+  if (!result.ok) return <ServerDiscoveryFeed id="categories" failed failureId={result.failureId} count={0} />;
   // Resolve discovery order on the server so refreshes and locale changes
   // share the same daily order without a client-side shuffle after hydration.
   // Keep Other last before taking the responsive discovery subset.
@@ -125,7 +127,9 @@ async function CategorySection({
   )
     .slice(0, 11)
     .map((industry) => industry.id);
-  return <CategoryRail locale={locale} industries={result.data} featuredIndustryIds={featuredIndustryIds} />;
+  return <ServerDiscoveryFeed id="categories" failed={false} count={result.data.length}>
+    <CategoryRail locale={locale} industries={result.data} featuredIndustryIds={featuredIndustryIds} />
+  </ServerDiscoveryFeed>;
 }
 
 // Brand cards lead with the brand name; nav target is still the primary
@@ -138,9 +142,11 @@ async function BrandsBlock({
   brands: Promise<FeedResult<BrandCard[]>>;
 }) {
   const result = await brands;
-  if (!result.ok) return <SectionFailed paddingTop={60} />;
+  if (!result.ok) return <ServerDiscoveryFeed id="brands" failed failureId={result.failureId} count={0} />;
   const cards = result.data.map((b) => brandCardToData(b, locale));
-  return <BrandsSection cards={cards} />;
+  return <ServerDiscoveryFeed id="brands" failed={false} count={cards.length}>
+    <BrandsSection cards={cards} />
+  </ServerDiscoveryFeed>;
 }
 
 async function WebsitesSection({
@@ -149,7 +155,8 @@ async function WebsitesSection({
   websites: Promise<FeedResult<PublicWebsiteShowcaseCard[]>>;
 }) {
   const result = await websites;
-  if (!result.ok) return <SectionFailed paddingTop={64} />;
-  if (result.data.length === 0) return null;
-  return <WebsiteShowcase cards={result.data} />;
+  if (!result.ok) return <ServerDiscoveryFeed id="websites" failed failureId={result.failureId} count={0} />;
+  return <ServerDiscoveryFeed id="websites" failed={false} count={result.data.length}>
+    {result.data.length > 0 ? <WebsiteShowcase cards={result.data} /> : null}
+  </ServerDiscoveryFeed>;
 }

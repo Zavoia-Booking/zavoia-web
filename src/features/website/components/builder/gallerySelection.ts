@@ -40,7 +40,7 @@ function imagesForLocation(location: WebsiteBuilderLocation): ResolvedGalleryIma
       id: galleryImageRefId({ locationId: location.id, imageKey: image.key }),
       ref: { locationId: location.id, imageKey: image.key },
       src: image.url,
-      alt: image.originalName ?? "",
+      alt: location.name.trim(),
       locationName: location.name,
       featured: image.url === location.featuredImage,
     }));

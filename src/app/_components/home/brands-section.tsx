@@ -4,11 +4,10 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { localeHref } from "@/i18n/routes";
 import { SectionTitle } from "@/components/ui/section-title";
 import { BusinessOverlayCard, type BusinessCardData } from "@/components/business";
+import styles from "./discovery-rail.module.css";
 
-// "Brands" — overlay-card grid of listed brands (business sourced; no heart:
-// customers save locations and people only). Cards are pre-mapped on the
-// server and, until the dedicated brand page exists, link to each brand's
-// primary location page. Styling mirrors the "Fresh on Zavoia" section.
+// Listed brands are pre-mapped on the server. Customers save locations and
+// people only, so brand cards do not show a heart.
 // With no brands yet the section is left out, as the website showcase is.
 export function BrandsSection({ cards }: { cards: BusinessCardData[] }) {
   const { locale, dict } = useTranslation();
@@ -17,22 +16,22 @@ export function BrandsSection({ cards }: { cards: BusinessCardData[] }) {
   if (cards.length === 0) return null;
 
   return (
-    <section className="zw-container" style={{ paddingTop: 60 }}>
+    <section className={`zw-container ${styles.section}`}>
       <SectionTitle
         title={s.title}
         action={s.action}
         href={localeHref(locale, "search")}
       />
       <div
-
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(min(232px, 100%), 1fr))",
-          gap: 18,
-        }}
+        className={`zw-carousel-rail ${styles.track}`}
+        data-locale-scroll="home-brands"
+        role="list"
+        aria-label={s.title}
       >
         {cards.map((b) => (
-          <BusinessOverlayCard key={b.id} b={b} />
+          <div key={b.id} className={styles.item} role="listitem">
+            <BusinessOverlayCard b={b} compactOnMobile />
+          </div>
         ))}
       </div>
     </section>

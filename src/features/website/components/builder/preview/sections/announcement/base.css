@@ -1,6 +1,7 @@
 /* Announcement foundation shared by Ribbon, Ticker, and Pill. Positioning relative to the page lives in
    Microsite; the variants own their composition in adjacent stylesheets. */
 .mc-anno {
+  --mc-focus: currentColor;
   position: relative;
   box-sizing: border-box;
   background: var(--mc-fg);

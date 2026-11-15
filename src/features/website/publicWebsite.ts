@@ -92,6 +92,7 @@ export function buildMicrositeRender(
     aboutContent: snapshot.aboutContent ?? "",
     establishedYear: snapshot.establishedYear ?? null,
     businessCurrency: identity.businessCurrency?.trim().toUpperCase() || "EUR",
+    countryCode: identity.countryCode ?? null,
     email: identity.email ?? "",
     phone: identity.phone ?? "",
     social: {

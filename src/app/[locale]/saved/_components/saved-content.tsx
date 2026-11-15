@@ -49,32 +49,10 @@ const TAB_KEYS = {
 } as const;
 
 // The account-page header, shared with Appointments.
-function SavedHeader({
-  t,
-  total,
-  loading,
-  locale,
-}: {
-  t: SavedDict;
-  total: number | null;
-  loading: boolean;
-  locale: Locale;
-}) {
+function SavedHeader({ t }: { t: SavedDict }) {
   return (
     <header>
       <h1 className={styles.heading}>{t.heading}</h1>
-      {(total === null ? loading : total > 0) && (
-        <div className={styles.summary}>
-          {total !== null ? (
-            new Intl.NumberFormat(locale).format(total)
-          ) : (
-            <span aria-hidden="true">
-              <Skeleton w="2ch" h={14} r={3} />
-            </span>
-          )}{" "}
-          {t.countSuffix}
-        </div>
-      )}
     </header>
   );
 }
@@ -440,7 +418,7 @@ function SavedSessionContent({ locale }: { locale: Locale }) {
   if (status === "error")
     return (
       <main className={`zw-container ${styles.page}`}>
-        <SavedHeader t={t} total={null} loading={false} locale={locale} />
+        <SavedHeader t={t} />
         <div className={styles.error}>
           <InlineError>{dict.accountMenu.sessionError}</InlineError>
           <Button
@@ -470,12 +448,7 @@ function SavedSessionContent({ locale }: { locale: Locale }) {
     >
       <div className="zw-container">
         {!empty && (
-          <SavedHeader
-            t={t}
-            total={items === null ? null : counts.all}
-            loading={busy && !initialOffline}
-            locale={locale}
-          />
+          <SavedHeader t={t} />
         )}
         {offline && authenticated && (
           <p role="status" className={styles.notice}>

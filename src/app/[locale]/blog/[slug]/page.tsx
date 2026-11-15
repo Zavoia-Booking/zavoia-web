@@ -8,7 +8,10 @@ import {
 import { getPostBySlug, listPostSlugs, listPosts } from "@/sanity/queries";
 import { localeHref } from "@/i18n/routes";
 import { OPEN_GRAPH_LOCALES, defaultSocialImage } from "@/lib/site";
-import { urlForImage } from "@/sanity/image";
+import { blogImageUrl } from "@/lib/blog/images";
+import { getBlogCoverAlt } from "@/lib/blog/image-alt";
+import { getPostModifiedAt } from "@/lib/blog/dates";
+import { resolveBlogAuthor } from "@/lib/blog/author";
 import { dictionaries } from "@/i18n/dictionaries";
 import { getPostAlternates, getPostTranslation, selectRelated } from "@/lib/blog";
 import { LocaleRouteAlternates } from "@/i18n/locale-navigation";
@@ -55,28 +58,36 @@ export async function generateMetadata({
   const post = await getPostBySlug(localeParam, slug);
   if (!post) return notFoundMetadata(localeParam);
 
-  const title =
-    post.seo?.title?.[localeParam] || post.title[localeParam] || "";
+  // An authored meta title is complete. Only the article-title fallback uses
+  // the layout's brand suffix, so an editor's "| Zavoia" is never added twice.
+  const seoTitle = post.seo?.title?.[localeParam]?.trim();
+  const articleTitle = post.title[localeParam]?.trim() || "";
+  const title = seoTitle || `${articleTitle} | Zavoia`;
   const description =
-    post.seo?.description?.[localeParam] ||
-    post.excerpt?.[localeParam] ||
+    post.seo?.description?.[localeParam]?.trim() ||
+    post.excerpt?.[localeParam]?.trim() ||
     "";
+  const author = resolveBlogAuthor(post.author);
+  const modifiedAt = getPostModifiedAt(post);
 
   const canonical = localeHref(localeParam, "blog", slug);
 
   const languages = getPostAlternates(post);
-  // Link previews use a 1200 x 630 framing of the visible cover, with its alt
-  // text. The image builder never upscales, so no pixel size is declared.
-  const shareImage = post.coverImage?.asset
+  // The same crop-aware, non-upscaling image pipeline supplies truthful sizes.
+  const socialCover = blogImageUrl(post.coverImage, { width: 1200, aspectRatio: 1200 / 630 });
+  const shareImage = socialCover
     ? {
-        url: urlForImage(post.coverImage).width(1200).height(630).url(),
-        alt: post.coverImage.alt || post.title[localeParam] || title,
+        url: socialCover.url,
+        width: socialCover.width,
+        height: socialCover.height,
+        alt: getBlogCoverAlt(post.coverImage, localeParam),
       }
     : defaultSocialImage(localeParam);
 
   return {
-    title,
+    title: seoTitle ? { absolute: seoTitle } : articleTitle,
     description,
+    authors: [author],
     alternates: {
       canonical,
       languages: { ...languages, "x-default": languages[DEFAULT_LOCALE] ?? canonical },
@@ -92,6 +103,8 @@ export async function generateMetadata({
       alternateLocale: LOCALES.filter((language) => language !== localeParam && languages[language])
         .map((language) => OPEN_GRAPH_LOCALES[language]),
       publishedTime: post.publishedAt,
+      ...(modifiedAt && { modifiedTime: modifiedAt }),
+      ...(author.url && { authors: [author.url] }),
       images: [shareImage],
     },
     twitter: {

@@ -18,6 +18,7 @@ import {
   NAME_MAX_LENGTH,
   NAME_MIN_LENGTH,
   PASSWORD_REGEX,
+  isValidEmail,
   isValidPersonName,
   isValidPhone,
   normalizePhone,
@@ -101,7 +102,7 @@ export function RegisterForm({
       switch (key) {
         case "email":
           if (!value) return dict.errors.emailRequired;
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+          if (!isValidEmail(value))
             return dict.errors.emailInvalid;
           return undefined;
         case "password":
@@ -302,31 +303,32 @@ export function RegisterForm({
             >
               {dict.terms.agreementPrefix}{" "}
               <a
+                href={localeHref(locale, "terms", "terms-of-use")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                {dict.terms.termsOfUseLink}
+              </a>{" "}
+              {dict.terms.andThe}{" "}
+              <a
                 href={localeHref(locale, "terms", "customer-terms")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-primary underline-offset-4 hover:underline"
               >
-                {dict.terms.termsLink}
+                {dict.terms.customerTermsLink}
               </a>
-              ,{" "}
-              <a
-                href={localeHref(locale, "terms", "cookie-policy")}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary underline-offset-4 hover:underline"
-              >
-                {dict.terms.cookiesLink}
-              </a>{" "}
-              {dict.terms.and}{" "}
+              . {dict.terms.privacyPrefix}{" "}
               <a
                 href={localeHref(locale, "terms", "privacy-policy")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-primary underline-offset-4 hover:underline"
               >
-                {dict.terms.privacyLink}
+                {dict.terms.privacyNoticeLink}
               </a>
+              .
             </label>
           </div>
           {termsError && (

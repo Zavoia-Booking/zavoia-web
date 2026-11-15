@@ -12,6 +12,9 @@ export interface ImgProps
   label?: ReactNode;
   className?: string;
   style?: CSSProperties;
+  /** Also called when an image has already settled before its load event attaches. */
+  onReady?: (image: HTMLImageElement) => void;
+  onFailure?: () => void;
 }
 
 // Image with the shared pending treatment and stripe fallback if it fails.
@@ -21,7 +24,7 @@ export function Img(props: ImgProps) {
   return <ImageSource key={props.src ?? ""} {...props} />;
 }
 
-function ImageSource({ src, alt = "", title, label, className, style, onLoad, onError, sizes, loading = "lazy", fetchPriority, ...rest }: ImgProps) {
+function ImageSource({ src, alt = "", title, label, className, style, onLoad, onError, onReady, onFailure, sizes, loading = "lazy", fetchPriority, ...rest }: ImgProps) {
   const { dict } = useTranslation();
   const [err, setErr] = useState(false);
   const [ok, setOk] = useState(false);
@@ -68,17 +71,22 @@ function ImageSource({ src, alt = "", title, label, className, style, onLoad, on
           return;
         }
         setErr(true);
+        onFailure?.();
         onError?.(event);
       }}
-      onLoad={(event) => { setOk(true); onLoad?.(event); }}
+      onLoad={(event) => { setOk(true); onReady?.(event.currentTarget); onLoad?.(event); }}
       ref={(el) => {
         if (!el?.complete) return;
         if (el.naturalWidth > 0) {
           setOk(true);
+          onReady?.(el);
         } else if (el.currentSrc) {
           // A server-rendered image can fail before hydration attaches onError.
           if (optimized) setUseOriginal(true);
-          else setErr(true);
+          else {
+            setErr(true);
+            onFailure?.();
+          }
         }
       }}
       className={["zw-img", ok ? "zw-img--in" : "zv-skel", className].filter(Boolean).join(" ")}

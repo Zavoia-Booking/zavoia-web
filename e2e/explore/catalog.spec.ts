@@ -127,6 +127,17 @@ test("Romanian mobile catalog selects one industry, resets to All when reopened 
   await page.setViewportSize({ width: 390, height: 844 });
   const industries = await publicTaxonomy(request);
   await page.goto("/ro/search?lat=48.85&lng=2.35");
+  const rail = page.getByRole("group", { name: ro.searchOverlay.browseByIndustry, exact: true });
+  const more = rail.getByRole("button", { name: ro.search.browseMore, exact: true });
+  const suggestions = more.locator("..");
+  await expect(rail.getByRole("button")).toHaveCount(Math.min(5, industries.filter(industry => industry.tags.length > 0).length) + 1);
+  await expect(rail.getByRole("button").last()).toHaveAccessibleName(ro.search.browseMore);
+  await expect.poll(() => suggestions.evaluate(element => element.scrollWidth - element.clientWidth)).toBeGreaterThan(0);
+  const initialScroll = await suggestions.evaluate(element => element.scrollLeft);
+  await more.scrollIntoViewIfNeeded();
+  await expect.poll(() => suggestions.evaluate(element => element.scrollLeft)).toBeGreaterThan(initialScroll);
+  await expect(more).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(page.viewportSize()!.width);
   const { trigger, dialog } = await openMapCatalog(page, "ro");
   const filters = dialog.getByRole("group", { name: ro.serviceCatalog.industries, exact: true });
   const all = filters.getByRole("button", { name: ro.serviceCatalog.allIndustries, exact: true });
@@ -247,4 +258,52 @@ test("Romanian mobile clears an industry selection and keeps the expanded sheet'
   expect(new URL(page.url()).pathname).toBe("/ro/search");
   await more.press("Enter");
   await expect(page.getByRole("dialog", { name: ro.serviceCatalog.title, exact: true })).toBeVisible();
+});
+
+test("mobile catalog keeps its header fixed while services scroll and its handle cancels or dismisses", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/search?lat=48.85&lng=2.35");
+  const { trigger, dialog } = await openMapCatalog(page);
+  const handle = dialog.locator("[data-drawer-handle]");
+  await expect(handle).toBeVisible();
+  const frame = (await dialog.boundingBox())!;
+  expect(frame.x).toBe(0);
+  expect(frame.y).toBe(24);
+  expect(frame.width).toBe(page.viewportSize()!.width);
+  expect(frame.y + frame.height).toBe(page.viewportSize()!.height);
+
+  const header = dialog.locator("header");
+  const filters = dialog.getByRole("group", { name: en.serviceCatalog.industries, exact: true });
+  const services = dialog.getByRole("region", { name: en.serviceCatalog.services, exact: true });
+  const headerTop = (await header.boundingBox())!.y;
+  const filtersTop = (await filters.boundingBox())!.y;
+  await expect.poll(() => services.evaluate(element => element.scrollHeight - element.clientHeight)).toBeGreaterThan(0);
+  const servicesBox = (await services.boundingBox())!;
+  await page.mouse.move(servicesBox.x + servicesBox.width / 2, servicesBox.y + servicesBox.height / 2);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => services.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  expect((await header.boundingBox())!.y).toBe(headerTop);
+  expect((await filters.boundingBox())!.y).toBe(filtersTop);
+  expect((await dialog.boundingBox())!.y).toBe(frame.y);
+
+  const box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 160, { steps: 6 });
+  await expect(dialog).toHaveAttribute("data-drawer-dragging", "true");
+  await handle.dispatchEvent("pointercancel", { pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, buttons: 1, clientX: x, clientY: y + 160 });
+  await page.mouse.up();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).not.toHaveAttribute("data-drawer-dragging");
+  await expect.poll(async () => (await dialog.boundingBox())!.y).toBe(frame.y);
+
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 160, { steps: 6 });
+  await page.mouse.up();
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toBeInViewport();
 });

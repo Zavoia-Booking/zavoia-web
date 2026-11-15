@@ -2,6 +2,7 @@
    adapted to the builder preview's inline-size container. */
 .mc-footer--directory {
   --fd-fg: #f4f1ea;
+  --mc-focus: var(--fd-fg);
   --fd-mut: rgba(244, 241, 234, 0.55);
   --fd-line: rgba(244, 241, 234, 0.14);
   position: static;
@@ -299,5 +300,14 @@
       clamp(20px, calc(var(--mc-vph, 100svh) * 0.024), 30px),
       env(safe-area-inset-bottom)
     );
+  }
+}
+
+/* Phones: the legal row (Romanian ANPC block, ©, credit) is one centred stack. */
+@container (max-width: 620px) {
+  .mc-fdir-base {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
 }

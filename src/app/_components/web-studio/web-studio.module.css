@@ -16,7 +16,7 @@
 .designCanvas { position: relative; margin-top: 48px; scroll-margin-top: calc(var(--nav-h) + 20px); }
 .page > :global([data-business-faq]) { padding-top: clamp(64px, 7vw, 104px); }
 .connected { padding-block: clamp(60px, 5.5vw, 84px); }
-.publishing { position: relative; isolation: isolate; padding-block: clamp(72px, 7vw, 108px) 48px; background: radial-gradient(ellipse at 95% 0%, color-mix(in oklch, var(--p-500) 18%, transparent), transparent 68%), var(--c-ink); color: var(--c-canvas); }
+.publishing { --focus-ring-color: var(--c-canvas); position: relative; isolation: isolate; padding-block: clamp(72px, 7vw, 108px) 48px; background: radial-gradient(ellipse at 95% 0%, color-mix(in oklch, var(--p-500) 18%, transparent), transparent 68%), var(--c-ink); color: var(--c-canvas); }
 .publishing::before { position: absolute; z-index: -1; inset: 0; content: ""; pointer-events: none; background: url('/images/for-business/plan-grain.svg') repeat; background-size: 180px; opacity: .16; mix-blend-mode: soft-light; }
 .publishingLayout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: clamp(48px, 9vw, 140px); align-items: center; }
 .publishingCopy > h2 { max-width: 18ch; color: var(--c-canvas); }
@@ -44,7 +44,7 @@
 .stylesInfo p { margin: 0; color: oklch(81% .014 76); font-size: 14px; line-height: 1.7; text-wrap: pretty; }
 .stylesInfo .stylePrice { margin-top: 10px; color: oklch(93% .01 76); }
 .stylesInfo .textLink { margin-top: 8px; font-size: 14px; }
-.primaryAction:focus-visible, .trial:focus-visible, .textLink:focus-visible { outline: 2px solid var(--p-500); outline-offset: 5px; }
+.primaryAction:focus-visible, .trial:focus-visible, .textLink:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 5px; }
 @media (hover: hover) and (pointer: fine) {
   .primaryAction:hover { background: var(--c-800); }
   .primaryAction:hover svg { transform: translateX(3px); }

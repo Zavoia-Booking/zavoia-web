@@ -161,9 +161,6 @@
   .rail::after { width: 2px; flex: 1; min-height: 10px; background: radial-gradient(circle, rgba(28, 28, 26, .16) 1px, transparent 1px) center top / 2px 6px repeat-y; content: ""; }
   .timelineRow[data-first] .rail::before, .timelineRow[data-last] .rail::after { background: none; }
 }
-@media (max-width: 920px) {
-  .empty { min-height: calc(100svh - var(--nav-h) - var(--mobile-tabs-h)); }
-}
 @media (max-width: 640px) {
   .page { padding-block: 28px 44px; }
   .page[data-empty] { padding-block: 0; }

@@ -15,7 +15,6 @@ import { SearchOverlayProvider } from "@/components/search/search-overlay-provid
 import { ServiceCatalogProvider } from "@/components/search/service-catalog-provider";
 import { ConditionalHeader } from "@/components/shell/conditional-header";
 import { ConditionalFooter } from "@/components/shell/conditional-footer";
-import { MobileTabs } from "@/components/shell/mobile-tabs";
 import { AuthProvider, SessionExpiredToast } from "@/lib/auth/AuthProvider";
 import { AuthModalProvider } from "@/components/shell/auth-modal-provider";
 import { BookingProvider } from "@/lib/booking";
@@ -23,6 +22,7 @@ import { ConsentProvider } from "@/lib/consent/ConsentProvider";
 import { CookieBanner } from "@/components/shell/cookie-banner";
 import { AnalyticsGate } from "@/components/shell/analytics-gate";
 import { PageEntrance } from "@/components/shell/page-entrance";
+import mobileNavStyles from "@/components/shell/mobile-navigation.module.css";
 
 export async function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -50,7 +50,7 @@ export async function generateMetadata({
     // Allow large image previews in results. Noindex pages replace this with their own robots.
     robots: { "max-image-preview": "large" },
     icons: {
-      icon: { url: "/favicon.ico", type: "image/x-icon" },
+      icon: { url: "/favicon.ico?v=2", type: "image/x-icon" },
       apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     },
   };
@@ -89,11 +89,12 @@ export default async function LocaleRootLayout({ children, params }: Props) {
                 {/* Each Phase-1 page renders its own <main> landmark, so this
                     content region is a plain wrapper to avoid nesting two
                     <main> elements (invalid HTML / duplicate landmark). */}
-                <PageEntrance>{children}</PageEntrance>
-                {/* Footer + mobile spacer are suppressed on the full-bleed
-                    /search route (a nested layout can't remove parent chrome). */}
-                <ConditionalFooter locale={locale} />
-                <MobileTabs locale={locale} />
+                <div data-marketplace-page className={mobileNavStyles.pageFlow}>
+                  <PageEntrance>{children}</PageEntrance>
+                  {/* Full-bleed routes own their footer; fixed action bars
+                      reserve their own mobile clearance. */}
+                  <ConditionalFooter locale={locale} />
+                </div>
                 <ToastHost />
                 {/* GDPR consent: banner asks on first visit; GA mounts only
                     after "accept" (AnalyticsGate) — nothing loads before. */}

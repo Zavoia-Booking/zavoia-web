@@ -1,3 +1,67 @@
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--surface-warm);
+  border-bottom: 1px solid rgba(28, 28, 26, .05);
+}
+
+/* The terracotta haze sits beneath For Business's shared paper texture. */
+.hero::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: 760px;
+  height: 360px;
+  z-index: -2;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in oklch, var(--p-400) 9%, transparent), transparent);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url("/images/for-business/hero-grain.svg") repeat;
+  opacity: .11;
+  mix-blend-mode: multiply;
+}
+
+.content {
+  padding: clamp(76px, 10vw, 148px) var(--gutter);
+}
+
+.wordmark {
+  font-size: clamp(180px, 28vw, 420px);
+  transform: translateY(8%);
+}
+
+.subcopy {
+  margin: 26px 0 48px;
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding-block: clamp(112px, 15svh, 136px);
+    padding-bottom: calc(clamp(112px, 15svh, 136px) - 88px);
+  }
+
+  .wordmark {
+    flex-shrink: 0;
+    font-size: 29vw;
+    transform: translateY(calc(8% + 96px));
+  }
+
+  .subcopy {
+    margin-block: 40px 152px;
+  }
+}
+
 .searchCircle {
   overflow: hidden;
 }

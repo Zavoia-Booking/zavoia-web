@@ -48,8 +48,7 @@
 }
 
 .mc-abm-word {
-  opacity: 0.14;
-  will-change: opacity;
+  opacity: 1;
 }
 
 .mc-abm-body {

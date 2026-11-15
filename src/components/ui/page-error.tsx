@@ -24,7 +24,7 @@ export interface PageErrorProps {
   artwork?: ReactNode;
   focusOnMount?: boolean;
   /** Use within an existing page or dialog without another main landmark. */
-  variant?: "page" | "contained";
+  variant?: "page" | "contained" | "compact";
 }
 
 /** Provider-free so the same recovery design can survive a root-layout failure. */
@@ -35,8 +35,8 @@ export function PageError({ title, description, primary, secondary, artwork, foc
   useEffect(() => {
     if (focusOnMount) heading.current?.focus();
   }, [focusOnMount]);
-  const Root = variant === "contained" ? "section" : "main";
-  const Heading = variant === "contained" ? "h2" : "h1";
+  const Root = variant === "page" ? "main" : "section";
+  const Heading = variant === "page" ? "h1" : "h2";
 
   const action = (item: PageErrorAction, kind: "primary" | "secondary") => {
     if (item.href) {
@@ -50,9 +50,9 @@ export function PageError({ title, description, primary, secondary, artwork, foc
       loading={item.loading} disabled={item.disabled}>{item.label}</Button>;
   };
 
-  return <Root className={variant === "contained" ? styles.contained : styles.page} aria-labelledby={titleId} aria-describedby={descriptionId}>
+  return <Root className={styles[variant]} aria-labelledby={titleId} aria-describedby={descriptionId}>
     <div className={styles.content}>
-      <div className={styles.artwork} aria-hidden="true">{artwork ?? <PageErrorArt />}</div>
+      {variant !== "compact" && <div className={styles.artwork} aria-hidden="true">{artwork ?? <PageErrorArt />}</div>}
       <div className={styles.copy}>
         <Heading ref={heading} className={styles.title} id={titleId} tabIndex={focusOnMount ? -1 : undefined}>{title}</Heading>
         <p id={descriptionId}>{description}</p>

@@ -174,7 +174,7 @@
 .compactSearch:active, .phoneSearch:active, .searchGo:active { transform: scale(.98); }
 
 .segment:focus-visible, .searchGo:focus-visible, .compactSearch:focus-visible, .phoneSearch:focus-visible {
-  outline: 2px solid var(--p-500);
+  outline: 2px solid var(--focus-ring-color, var(--c-700));
   outline-offset: 2px;
   transition: none;
 }
@@ -193,6 +193,7 @@
 }
 
 @media (max-width: 920px) {
+  .searchSlot, .phoneSpacer, .desktopControls { display: none !important; }
   .accountControls { width: 40px; }
 }
 

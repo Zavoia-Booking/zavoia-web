@@ -592,80 +592,6 @@ a.contact:active .contactAction {
   color: var(--c-500);
 }
 
-/* The tab signs off on the way onward: the header's category link, widened
-   into the city's other places. Rules above and below and a pill closing the
-   row, like the contact rows; no box, no fill. */
-.discover {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 18px;
-  min-width: 0;
-  padding: 28px 0;
-  border-top: 1px solid var(--c-200);
-  border-bottom: 1px solid var(--c-200);
-  color: var(--c-900);
-  text-decoration: none;
-}
-
-.discoverText {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-/* The header's category set large: its glyph on the name's line, in the
-   colour the header gives it. */
-.discoverTitle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.025em;
-}
-
-.discoverTitle > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-/* One supporting line: the invitation, lighter than the name above it. */
-.discoverLead {
-  color: var(--c-700);
-  font-size: 16px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-/* The contact rows' pill, so every actionable row on the tab ends the same way. */
-.discoverAction {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border: 1px solid rgba(28, 28, 26, 0.14);
-  border-radius: var(--r-full);
-  background: #fff;
-  color: var(--c-900);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out);
-}
-
-.discoverAction > svg {
-  color: var(--c-500);
-}
-
-.discover:active .discoverAction {
-  background: var(--c-mist);
-}
-
 .report {
   display: inline-flex;
   align-items: center;
@@ -688,7 +614,6 @@ a.contact:active .contactAction {
 }
 
 .contact:focus-visible,
-.discover:focus-visible,
 .brandAction:focus-visible,
 .locationCard:focus-visible,
 .socials a:focus-visible,
@@ -700,11 +625,6 @@ a.contact:active .contactAction {
 @media (hover: hover) and (pointer: fine) {
   /* Shade is the hover fill for white pills, and the hairline rises toward 26%. */
   a.contact:hover .contactAction {
-    border-color: rgba(28, 28, 26, 0.26);
-    background: var(--c-shade);
-  }
-
-  .discover:hover .discoverAction {
     border-color: rgba(28, 28, 26, 0.26);
     background: var(--c-shade);
   }
@@ -802,10 +722,6 @@ a.contact:active .contactAction {
   .title { font-size: 28px; }
   .lead { font-size: 16px; }
   .brandName { font-size: 23px; }
-  .discover { column-gap: 14px; padding: 22px 0; }
-  .discoverTitle { gap: 10px; font-size: 20px; }
-  .discoverTitle > svg { width: 22px; height: 22px; }
-  .discoverLead { font-size: 15px; }
 }
 
 .hoursSection:only-child {
@@ -821,13 +737,9 @@ a.contact:active .contactAction {
   .brandIdentity { gap: 14px; }
   .locationCard { gap: 12px; }
   .locationPhoto { width: 64px; height: 80px; }
-  /* The pill drops under the text when the row is narrow. */
-  .discover { grid-template-columns: minmax(0, 1fr); row-gap: 14px; }
-  .discoverAction { justify-self: start; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .discoverAction,
   .contactAction,
   .locationCard,
   .locationCard > svg,

@@ -14,6 +14,17 @@ export const MIN_BADGE_GAP = 48;
 /** A fit needs room for at least two badge pitches on each axis. */
 export const MIN_FIT_SPAN_PX = 2 * MIN_BADGE_GAP;
 
+/** Mobile arrivals keep their local view; refinements may reveal more matches. */
+export function shouldRevealResults({
+  mobile, arrival, explicitZoom,
+}: {
+  mobile: boolean;
+  arrival: boolean;
+  explicitZoom: boolean;
+}): boolean {
+  return !mobile || (!arrival && !explicitZoom);
+}
+
 export function usableFitArea(
   width: number,
   height: number,

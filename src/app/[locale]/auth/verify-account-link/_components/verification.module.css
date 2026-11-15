@@ -60,7 +60,7 @@
   .back:not([aria-disabled="true"]):hover { color: var(--c-900); }
 }
 @media (max-width: 920px) {
-  .page { min-block-size: calc(100svh - var(--nav-h) - var(--mobile-tabs-h)); padding-block: 32px 48px; }
+  .page { padding-block: 32px 48px; }
 }
 @media (max-width: 600px) {
   .page { padding-inline: 24px; }

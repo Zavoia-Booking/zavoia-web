@@ -45,11 +45,14 @@ export const DEFAULT_CENTER_LAT = 44.4268;
 
 /** Badge↔dot and select↔deselect ease over this window instead of flashing. */
 const MODE_ANIM_MS = 160;
+const HOVER_ANIM_MS = 120;
 /** Pointer target around a pin centre, so a 16px dot is still clickable. */
 const HIT_RADIUS = 22;
 /** Hover's share of the selected treatment — enough to answer "this one?",
  *  never enough to outrank a real selection. */
 const HOVER_WEIGHT = 0.55;
+const HOVER_SCALE = 0.12;
+const SELECTED_SCALE = 0.08;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -90,13 +93,13 @@ export interface GeoPoint {
 
 /** Imperative camera commands — lets the page fly the map (e.g. recenter). */
 export interface MapboxSurfaceHandle {
-  flyTo: (point: GeoPoint, opts?: { zoom?: number; duration?: number }) => void;
+  flyTo: (point: GeoPoint, opts?: { zoom?: number; duration?: number; bottomInset?: number }) => void;
   /** Reveal matches hidden outside the exposed map without zooming in. */
   revealPins: (points: GeoPoint[], opts?: { duration?: number }) => void;
 }
 
 type CameraIntent =
-  | { kind: "fly"; point: GeoPoint; options?: { zoom?: number; duration?: number } }
+  | { kind: "fly"; point: GeoPoint; options?: Parameters<MapboxSurfaceHandle["flyTo"]>[1] }
   | { kind: "reveal"; points: GeoPoint[]; options?: { duration?: number } };
 
 function isValidPoint(point: GeoPoint): boolean {
@@ -239,6 +242,17 @@ export function MapboxSurface({
     key: "", zoom: null, offered: false,
   });
   const [focusedPinId, setFocusedPinId] = useState<number | null>(null);
+  const [pointerHoverId, setPointerHoverId] = useState<number | null>(null);
+  const hoveredRef = useRef<number | null>(null);
+  const activeHoverId = hoverId === undefined ? pointerHoverId ?? focusedPinId : hoverId;
+  const clearPointerHover = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (map) map.getCanvas().style.cursor = "";
+    if (hoveredRef.current == null) return;
+    hoveredRef.current = null;
+    setPointerHoverId(null);
+    onHover?.(null);
+  }, [onHover]);
 
   // A single queue means a newer focus/reveal replaces an earlier arrival.
   // Camera commands can arrive before react-map-gl has constructed its map.
@@ -254,11 +268,16 @@ export function MapboxSurface({
     userInputPendingRef.current = false;
     if (intent.kind === "fly") {
       if (!isValidPoint(intent.point)) return;
-      map.flyTo({
+      // Mapbox's reduced-motion flyTo falls back to jumpTo and drops offset.
+      // easeTo settles instantly for that preference while keeping framing.
+      const move = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? map.easeTo.bind(map) : map.flyTo.bind(map);
+      move({
         center: [intent.point.lng, intent.point.lat],
         zoom: intent.options?.zoom ?? RECENTER_ZOOM,
         duration: intent.options?.duration ?? 900,
-        offset: [(insetLeft - insetRight) / 2, (insetTop - insetBottom) / 2],
+        // A selected location must also clear its floating detail card.
+        offset: [(insetLeft - insetRight) / 2, (insetTop - Math.max(insetBottom, intent.options?.bottomInset ?? 0)) / 2],
         // Let Mapbox honor the visitor's reduced-motion preference.
         essential: false,
       });
@@ -432,21 +451,22 @@ export function MapboxSurface({
         s:
           pin.id === selectedId
             ? 1
-            : pin.id === hoverId
+            : pin.id === activeHoverId
               ? HOVER_WEIGHT
               : 0,
+        h: pin.id === pointerHoverId && pin.id === activeHoverId ? 1 : 0,
         accent: industryAccent(slug),
         glyph: pinGlyphKey(slug),
       };
     });
-  }, [pinById, selectedId, hoverId, promotedId, zoom]);
+  }, [pinById, selectedId, activeHoverId, pointerHoverId, promotedId, zoom]);
 
   // ── Per-pin animation ───────────────────────────────────────────────────
-  // `t` 0→1 morphs dot→badge, `s` 0→1 morphs deselected→selected. Slot and
-  // selection changes ease the affected pins over MODE_ANIM_MS; Mapbox cannot
+  // `t` morphs dot→badge, `s` selection and `h` pointer hover. Slot and
+  // interaction changes ease the affected pins over MODE_ANIM_MS; Mapbox cannot
   // transition data-driven paint itself, so each frame is a data update. Pins
   // new to the source appear already settled.
-  const animRef = useRef(new Map<number, { t: number; s: number; f: number }>());
+  const animRef = useRef(new Map<number, { t: number; s: number; f: number; h: number }>());
   const rafRef = useRef<number | null>(null);
   const [shape, setShape] = useState<FeatureCollection>(EMPTY_COLLECTION);
 
@@ -456,14 +476,16 @@ export function MapboxSurface({
     for (const id of [...anim.keys()]) if (!ids.has(id)) anim.delete(id);
 
     const targets = pinTargets.map((pt) => ({ ...pt, f: favoriteIds?.has(pt.pin.id) ? 1 : 0 }));
-    const starts = new Map<number, { t: number; s: number; f: number }>();
+    const starts = new Map<number, { t: number; s: number; f: number; h: number }>();
     let settled = true;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let hoverChanged = false;
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
     for (const pt of targets) {
-      const cur = anim.get(pt.pin.id) ?? { t: pt.t, s: pt.s, f: pt.f };
+      const cur = anim.get(pt.pin.id) ?? { t: pt.t, s: pt.s, f: pt.f, h: 0 };
       starts.set(pt.pin.id, cur);
       anim.set(pt.pin.id, cur);
-      if (Math.abs(cur.t - pt.t) > 0.001 || Math.abs(cur.s - pt.s) > 0.001 || Math.abs(cur.f - pt.f) > 0.001) {
+      if (Math.abs(cur.h - pt.h) > 0.001) hoverChanged = true;
+      if (Math.abs(cur.t - pt.t) > 0.001 || Math.abs(cur.s - pt.s) > 0.001 || Math.abs(cur.f - pt.f) > 0.001 || Math.abs(cur.h - pt.h) > 0.001) {
         settled = false;
       }
     }
@@ -483,6 +505,7 @@ export function MapboxSurface({
             t: v.t,
             s: v.s,
             f: v.f,
+            h: v.h,
           },
         };
       }),
@@ -491,13 +514,21 @@ export function MapboxSurface({
     if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
 
-    if (settled || reducedMotion) {
-      for (const pt of targets) anim.set(pt.pin.id, { t: pt.t, s: pt.s, f: pt.f });
+    const settle = () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      for (const pt of targets) anim.set(pt.pin.id, { t: pt.t, s: pt.s, f: pt.f, h: preference.matches ? 0 : pt.h });
       setShape(build());
+    };
+    preference.addEventListener("change", settle);
+
+    if (settled || preference.matches) {
+      settle();
     } else {
+      const duration = hoverChanged ? HOVER_ANIM_MS : MODE_ANIM_MS;
       const t0 = performance.now();
       const step = () => {
-        const k = Math.min(1, (performance.now() - t0) / MODE_ANIM_MS);
+        const k = Math.min(1, (performance.now() - t0) / duration);
         const e = 1 - (1 - k) ** 4; // ease-out-quart: fast start, clean settle
         for (const pt of targets) {
           const from = starts.get(pt.pin.id)!;
@@ -505,6 +536,7 @@ export function MapboxSurface({
             t: from.t + (pt.t - from.t) * e,
             s: from.s + (pt.s - from.s) * e,
             f: from.f + (pt.f - from.f) * e,
+            h: from.h + (pt.h - from.h) * e,
           });
         }
         setShape(build());
@@ -514,6 +546,7 @@ export function MapboxSurface({
     }
 
     return () => {
+      preference.removeEventListener("change", settle);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
@@ -679,6 +712,7 @@ export function MapboxSurface({
   // originalEvent. Camera commands clear that intent before moving the map.
   const handleMoveStart = useCallback(
     (e: ViewStateChangeEvent) => {
+      clearPointerHover();
       if ((e as { originalEvent?: unknown }).originalEvent || userInputPendingRef.current) {
         userInputPendingRef.current = false;
         pendingCamera.current = null;
@@ -689,7 +723,7 @@ export function MapboxSurface({
         if (!wasMoving) onUserMoveStart?.();
       }
     },
-    [onUserMoveStart, syncSearchViewport],
+    [onUserMoveStart, syncSearchViewport, clearPointerHover],
   );
 
   const handleSearchArea = useCallback(() => {
@@ -728,37 +762,36 @@ export function MapboxSurface({
     [pinById, selectedId, onSelect, onDismiss],
   );
 
-  const hoveredRef = useRef<number | null>(null);
   const handleMouseMove = useCallback(
     (e: MapMouseEvent) => {
       const map = mapRef.current?.getMap();
-      const id = choosePinHit(e.features ?? [], e.lngLat, pinById);
+      const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+      const id = canHover && !map?.isMoving() && !e.originalEvent.buttons
+        ? choosePinHit(e.features ?? [], e.lngLat, pinById) : null;
       if (map) map.getCanvas().style.cursor = id != null ? "pointer" : "";
       if (id === hoveredRef.current) return;
       hoveredRef.current = id;
+      setPointerHoverId(id);
       onHover?.(id);
     },
     [onHover, pinById],
   );
 
-  const handleMouseLeave = useCallback(() => {
-    const map = mapRef.current?.getMap();
-    if (map) map.getCanvas().style.cursor = "";
-    if (hoveredRef.current == null) return;
-    hoveredRef.current = null;
-    onHover?.(null);
-  }, [onHover]);
-
   // ── Layer styles ────────────────────────────────────────────────────────
-  // Per-feature animated inputs: `t` dot→badge, `s` selection, `f` saved.
+  // Per-feature animated inputs: `t` dot→badge, `s` selection, `f` saved,
+  // `h` pointer hover. Only the disc/shadow scale; glyph size stays static to
+  // avoid Mapbox symbol re-layout and hit targets never move under the pointer.
   // Zoom may only sit in an OUTERMOST interpolate, so each zoom stop mixes
   // dot + (badge − dot) · t inline.
   const layers = useMemo(() => {
     const T = ["get", "t"] as unknown as ExpressionSpecification;
     const S = ["get", "s"] as unknown as ExpressionSpecification;
     const F = ["get", "f"] as unknown as ExpressionSpecification;
+    // Hover stops at HOVER_WEIGHT; only a real selection gets the ink ring.
+    const selected = ["interpolate", ["linear"], S, HOVER_WEIGHT, 0, 1, 1] as unknown as ExpressionSpecification;
+    const scale = ["+", 1, ["max", ["*", HOVER_SCALE, ["get", "h"]], ["*", SELECTED_SCALE, selected]]];
     const stop = (dot: number, badge: number) =>
-      ["+", dot, ["*", badge - dot, T]] as unknown as ExpressionSpecification;
+      ["*", ["+", dot, ["*", badge - dot, T]], scale] as unknown as ExpressionSpecification;
     // Selected on top, badges above dots. `round` keeps the sort key stable
     // while `t` animates — a per-frame re-sort is a visible jank source.
     const sortKey = [
@@ -767,7 +800,7 @@ export function MapboxSurface({
       ["round", T],
     ] as unknown as ExpressionSpecification;
 
-    return { T, S, F, stop, sortKey };
+    return { T, S, F, selected, stop, sortKey };
   }, []);
 
   // Controls overlay (recenter) + arbitrary children — shared by the real map
@@ -846,6 +879,8 @@ export function MapboxSurface({
         // returning to /search doesn't re-initialize the map (a billed map load).
         reuseMaps={reuseMap}
         mapboxAccessToken={MAPBOX_TOKEN}
+        // Opt out of the performance report mapbox-gl sends to Mapbox by default.
+        performanceMetricsCollection={false}
         initialViewState={{
           longitude: anchor?.lng ?? pins[0]?.lng ?? DEFAULT_CENTER_LNG,
           latitude: anchor?.lat ?? pins[0]?.lat ?? DEFAULT_CENTER_LAT,
@@ -865,7 +900,7 @@ export function MapboxSurface({
         onMoveEnd={handleMoveEnd}
         onClick={handleMapClick}
         onMouseMove={handleMouseMove}
-        onMouseOut={handleMouseLeave}
+        onMouseOut={clearPointerHover}
       >
         {/* All pins in one data-driven source. Industry colour, badge-vs-dot
             (`t`), selection (`s`) and saved status (`f`) are feature properties;
@@ -910,16 +945,33 @@ export function MapboxSurface({
                 14,
                 layers.stop(8, 21),
               ] as never,
-              // 2px ring, thinning to 1.5 as a dot grows into a badge, then
-              // widening again with `s` — the halo that says "this one". The
-              // phone has no equivalent because it has no hover and its card
-              // covers half the screen; a pointer needs the cue on the pin.
+              // Hover keeps its soft white halo. A selected pin has a thin
+              // 2px white separator between its category colour and ink ring.
               "circle-stroke-width": [
-                "+",
-                ["-", 2, ["*", 0.5, layers.T]],
-                ["*", 2.5, layers.S],
+                "interpolate", ["linear"], layers.selected,
+                0, ["+", ["-", 2, ["*", 0.5, layers.T]], ["*", 2.5, layers.S]],
+                1, 2,
               ] as never,
               "circle-stroke-color": "#FEFBF9",
+              "circle-pitch-alignment": "viewport",
+            }}
+            layout={{ "circle-sort-key": layers.sortKey as never }}
+          />
+          {/* Stroke-only, above the other discs so nearby pins cannot hide
+              the selected outline. Mapbox strokes sit outside circle-radius. */}
+          <Layer
+            id="zv-pin-selection"
+            type="circle"
+            paint={{
+              "circle-opacity": 0,
+              "circle-radius": [
+                "interpolate", ["linear"], ["zoom"],
+                11, ["+", 2, layers.stop(6.5, 18)],
+                14, ["+", 2, layers.stop(8, 21)],
+              ] as never,
+              "circle-stroke-width": 3,
+              "circle-stroke-color": "#1C1C1A",
+              "circle-stroke-opacity": layers.selected as never,
               "circle-pitch-alignment": "viewport",
             }}
             layout={{ "circle-sort-key": layers.sortKey as never }}
@@ -1018,7 +1070,7 @@ export function MapboxSurface({
                 overflow: "hidden", clipPath: "inset(50%)", whiteSpace: "nowrap", border: 0,
               }}
               onClick={() => p.id === selectedId ? onDismiss?.() : onSelect?.(p.id)}
-              onFocus={() => { setFocusedPinId(p.id); onHover?.(p.id); }}
+              onFocus={() => { clearPointerHover(); setFocusedPinId(p.id); onHover?.(p.id); }}
               onBlur={() => { setFocusedPinId(null); onHover?.(null); }}
             >
               {p.name}

@@ -155,6 +155,10 @@ test.describe.serial('Account linking — complete the link via the emailed toke
     await expect(auth.verifyLinkConfirmHeading).toBeVisible()
     await expect(auth.verifyLinkPassword).toBeVisible()
 
+    // Confirming adds the customer role, so it waits for the terms box.
+    await expect(auth.verifyLinkConfirmButton).toBeDisabled()
+    await auth.acceptTerms.check()
+
     // Wrong password first: inline error, the confirm form stays put.
     await auth.verifyLinkPassword.fill('DefinitelyWrong123!')
     await auth.verifyLinkConfirmButton.click()

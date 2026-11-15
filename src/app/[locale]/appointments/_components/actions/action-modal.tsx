@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Icon } from "@/components/ui";
@@ -30,6 +31,8 @@ export interface ActionModalProps {
   width?: number;
   /** Scoped presentation overrides for a particular action. */
   className?: string;
+  /** Optional first field for form dialogs; other actions keep Radix's default. */
+  initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -55,6 +58,7 @@ export function ActionModal({
   onClosing,
   width = 480,
   className,
+  initialFocusRef,
 }: ActionModalProps) {
   const { dict } = useTranslation();
   const toastContainerRef = useToastContainerRef();
@@ -108,12 +112,16 @@ export function ActionModal({
             className={[closing ? "zw-modal-out" : "zw-modal-in", className].filter(Boolean).join(" ")}
             role="dialog"
             aria-describedby={subtitle ? descriptionId : undefined}
-            onOpenAutoFocus={() => {
+            onOpenAutoFocus={(event) => {
               // Capture before Radix focuses the first enabled control inside the dialog.
               returnFocusRef.current =
                 document.activeElement instanceof HTMLElement
                   ? document.activeElement
                   : null;
+              if (initialFocusRef?.current) {
+                event.preventDefault();
+                initialFocusRef.current.focus({ preventScroll: true });
+              }
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
@@ -184,6 +192,7 @@ export function ActionModal({
               </div>
               <button
                 type="button"
+                data-action-modal-close=""
                 className="tap"
                 onClick={requestClose}
                 disabled={!dismissible}

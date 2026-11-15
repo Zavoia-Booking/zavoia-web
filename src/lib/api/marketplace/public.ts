@@ -45,11 +45,11 @@ import type {
  * `apiFetch` if an access token is attached, so a per-user response can never
  * land in the shared cache.
  */
-export type CacheOptions = { revalidate?: number; tags?: string[] };
+export type CacheOptions = { revalidate?: number; tags?: string[]; signal?: AbortSignal };
 
 function cacheInit(opts?: CacheOptions): RequestInit {
   if (!opts) return {};
-  return { next: { revalidate: opts.revalidate, tags: opts.tags } };
+  return { next: { revalidate: opts.revalidate, tags: opts.tags }, signal: opts.signal };
 }
 
 /** GET /marketplace/public/industries — RAW Industry[]. */
@@ -148,12 +148,13 @@ export function searchListings(
  */
 export async function getListingsBulk(
   ids: number[],
+  opts?: { signal?: AbortSignal },
 ): Promise<ListingLightCard[]> {
   if (ids.length === 0) return [];
   const query = buildQuery({ ids: ids.slice(0, 10) });
   const res = await apiFetch<{ data: ListingLightCard[] }>(
     `/marketplace/public/listings/bulk${query}`,
-    { method: "GET" },
+    { method: "GET", signal: opts?.signal },
   );
   return res.data;
 }

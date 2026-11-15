@@ -231,6 +231,9 @@
         "locationCount_few": "{{count}} locații",
         "locationCount_other": "{{count}} de locații",
         "footer": {
+          "alternativeDisputeResolution": "Soluționarea alternativă a litigiilor (SAL) prin ANPC",
+          "consumerProtection": "Protecția consumatorilor (ANPC)",
+          "cookieSettings": "Setări cookie-uri",
           "poweredBy": "Creat cu Zavoia",
           "rights": "© {{year}} {{name}}"
         },

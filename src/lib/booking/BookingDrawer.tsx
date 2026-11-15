@@ -12,6 +12,7 @@ import {
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Icon, Skeleton, Spinner } from "@/components/ui";
+import { DrawerHandle } from "@/components/ui/drawer-handle";
 import { useToast, useToastContainerRef } from "@/components/ui/toast";
 import styles from "./booking-drawer.module.css";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -231,7 +232,12 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const toast = useToast();
   const toastContainerRef = useToastContainerRef();
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const [closing, setClosing] = useState(false);
+  const closingRef = useRef(false);
+  const [input, setInput] = useState<"pointer" | "keyboard">("pointer");
+  const [entryInput, setEntryInput] = useState<"pointer" | "keyboard">("pointer");
   const setDialogRef = useCallback(
     (node: HTMLDivElement | null) => {
       dialogRef.current = node;
@@ -290,6 +296,9 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   // removed at this location, no staff, pinned pro can't perform). Replaces
   // the step UI with an honest message instead of a retry that can't succeed.
   const [blocked, setBlocked] = useState<BookingBlock | null>(null);
+  // Explicit consent for Health & Medical venues (GDPR art. 9(2)(a)); the API
+  // says when it is needed, through the booking policy.
+  const [healthConsent, setHealthConsent] = useState(false);
   // staff-pin recovery: strip every pinned professional and refetch unpinned.
   const [ignorePins, setIgnorePins] = useState(false);
 
@@ -407,6 +416,19 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   // discards this component instance (and these refs) entirely on a real close.
   const calRequestIdRef = useRef(0);
   const slotsRequestIdRef = useRef(0);
+  const invalidatePendingWork = useCallback(() => {
+    validationRequestRef.current += 1;
+    calRequestIdRef.current += 1;
+    slotsRequestIdRef.current += 1;
+  }, []);
+  // End the active work immediately, then keep the paper mounted for its exit.
+  // A genuine dismissal still discards this session after Radix finishes.
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    invalidatePendingWork();
+    setClosing(true);
+  }, [invalidatePendingWork]);
 
   // Invalidate awaits on genuine unmount, payload replacement and auth hiding.
   useLayoutEffect(() => () => {
@@ -495,6 +517,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       setIgnorePins(false);
       setSubmitting(false);
       setSuccess(null);
+      setHealthConsent(false);
       idempotencyKeyRef.current = "";
       // Invalidate any load still in flight from whatever this instance was
       // showing before (a prior business's session, most commonly) so its
@@ -604,6 +627,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   const displaySlot = reviewQuote?.slot ?? selectedSlot;
   const displayPicks = reviewQuote?.picks ?? staffPicks;
   const displayDay = reviewQuote?.day ?? daySlots;
+  const reviewPolicy = displayDay?.bookingPolicy ?? calendar?.bookingPolicy ?? payload?.bookingPolicy ?? null;
+  const healthConsentRequired = reviewPolicy?.requiresHealthConsent === true;
 
   // ── The chosen slot re-resolved against the picked professionals. The slots
   //    response is computed staff-agnostic (longest duration, lowest price), so
@@ -718,6 +743,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       daySlots?.date !== selectedDate
     )
       return;
+    // The confirm button stays disabled until then; this also covers retries.
+    if (healthConsentRequired && !healthConsent) return;
     const sessionId = getAuthenticatedSessionId();
     if (sessionId == null) return;
     setSubmitting(true);
@@ -748,6 +775,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
             ...(item.type === "bundle" ? { bundleId: item.bundleId } : { serviceId: item.serviceId }),
             staffId: quote.picks[index],
           })),
+          ...(healthConsentRequired ? { healthDataConsent: true } : {}),
         };
         if (!idempotencyKeyRef.current) idempotencyKeyRef.current = mintKey();
         attempt = { body, key: idempotencyKeyRef.current, sessionId };
@@ -854,6 +882,8 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     timeZone,
     validateSequence,
     validatedQuote,
+    healthConsent,
+    healthConsentRequired,
     t.quoteChanged,
     invalidateQuote,
     resolvedServices,
@@ -1027,19 +1057,26 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
 
   return (
     <DialogPrimitive.Root
-      open
+      open={open && !closing}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose();
+        if (!nextOpen) requestClose();
       }}
     >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
+          ref={overlayRef}
           className={`zv-sheet-backdrop ${styles.overlay}`}
+          data-input={input}
+          data-entry={entryInput}
+          onPointerDownCapture={() => setInput("pointer")}
         >
           <DialogPrimitive.Content
             className={`zw-modal-in ${styles.dialog}`}
             data-booking-dialog
             data-toast-scope="dialog"
+            data-input={input}
+            data-entry={entryInput}
+            inert={closing}
             ref={setDialogRef}
             // The header note describes the dialog; without one there's nothing to point at.
             {...(headerNote ? {} : { "aria-describedby": undefined })}
@@ -1048,11 +1085,18 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                 document.activeElement instanceof HTMLElement
                   ? document.activeElement
                   : null;
+              const mode = returnFocusRef.current?.matches(":focus-visible") ? "keyboard" : "pointer";
+              setInput(mode);
+              setEntryInput(mode);
               event.preventDefault();
-              dialogRef.current?.focus();
+              dialogRef.current?.focus({ preventScroll: true });
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
+              if (closingRef.current) {
+                closingRef.current = false;
+                onClose();
+              }
               requestAnimationFrame(() => {
                 const target = returnFocusRef.current;
                 if (
@@ -1063,7 +1107,10 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                   target.focus({ preventScroll: true });
               });
             }}
+            onKeyDown={() => setInput("keyboard")}
+            onEscapeKeyDown={() => setInput("keyboard")}
             onPointerDownOutside={(event) => {
+              setInput("pointer");
               if (
                 event.target instanceof Element &&
                 event.target.closest("[data-toast-host]")
@@ -1071,6 +1118,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                 event.preventDefault();
             }}
           >
+            <DrawerHandle contentRef={dialogRef} overlayRef={overlayRef} onClose={requestClose} onDismissStart={invalidatePendingWork} label={tb.close} />
             <header className={styles.header}>
               {showBack && (
                 <button
@@ -1110,7 +1158,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
               <button
                 type="button"
                 className={`tap ${styles.iconButton}`}
-                onClick={onClose}
+                onClick={event => { setInput(event.detail === 0 ? "keyboard" : "pointer"); requestClose(); }}
                 aria-label={tb.close}
               >
                 <Icon name="x" size={20} color="currentColor" />
@@ -1138,7 +1186,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                   router.push(localeHref(locale, "appointments"));
                   onClose();
                 }}
-                onClose={onClose}
+                onClose={requestClose}
               />
             ) : blocked ? (
               <BlockedScreen
@@ -1165,7 +1213,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                   void loadCalendar(unpinned);
                   if (selectedDate) void loadSlots(selectedDate, unpinned);
                 }}
-                onClose={onClose}
+                onClose={requestClose}
               />
             ) : (
               <>
@@ -1277,6 +1325,12 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                         onEditVisit={() => setStep(2)}
                         onEditServices={hasStep1 ? () => setStep(1) : undefined}
                         policy={displayDay?.bookingPolicy ?? calendar?.bookingPolicy ?? payload.bookingPolicy}
+                        healthConsent={{
+                          required: healthConsentRequired,
+                          checked: healthConsent,
+                          onChange: setHealthConsent,
+                          href: `${localeHref(locale, "terms", "privacy-policy")}#health-related-bookings`,
+                        }}
                         t={t}
                         tb={tb}
                       />
@@ -1333,13 +1387,14 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                       kind="accent"
                       size="lg"
                       className={styles.primaryAction}
-                      disabled={submitting || validating}
+                      disabled={submitting || validating || (healthConsentRequired && !healthConsent)}
                       aria-label={isAuthed ? t.confirmBooking : t.signInToBook}
                       aria-busy={submitting}
                       onClick={onConfirm}
                       style={{
                         position: "relative",
-                        opacity: submitting ? 0.7 : 1,
+                        // This inline opacity overrides Button's own disabled look, so the missing consent tick sets the standard 45%.
+                        opacity: submitting ? 0.7 : healthConsentRequired && !healthConsent ? 0.45 : 1,
                       }}
                     >
                       <span
@@ -2301,6 +2356,7 @@ function ReviewStep({
   onEditVisit,
   onEditServices,
   policy,
+  healthConsent,
   t,
   tb,
 }: {
@@ -2326,10 +2382,18 @@ function ReviewStep({
   /** Absent when this booking has no services step. */
   onEditServices?: () => void;
   policy: BookingPolicy | null;
+  /** Health & Medical venues: explicit consent (GDPR art. 9(2)(a)). */
+  healthConsent: {
+    required: boolean;
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+    href: string;
+  };
   t: BookingDict;
   tb: BusinessDict;
 }) {
   const visitId = useId();
+  const healthConsentId = useId();
   const servicesId = useId();
   const paymentId = useId();
   const directory = daySlots?.staffDirectory ?? {};
@@ -2498,6 +2562,28 @@ function ReviewStep({
           </div>
         </section>
       </div>
+      {healthConsent.required && (
+        <div className={styles.healthConsent}>
+          <div className={styles.healthConsentRow}>
+            <input
+              id={healthConsentId}
+              type="checkbox"
+              checked={healthConsent.checked}
+              onChange={(e) => healthConsent.onChange(e.target.checked)}
+              disabled={busy}
+              className={styles.healthConsentInput}
+            />
+            {/* New tab, as on the sign-up form, so the booking isn't lost. */}
+            <label htmlFor={healthConsentId} className={`txt-pretty ${styles.healthConsentLabel}`}>
+              {t.healthConsentLabel}{" "}
+              <a href={healthConsent.href} target="_blank" rel="noopener noreferrer" className={styles.healthConsentLink}>
+                {t.healthConsentLink}
+                <Icon name="chevR" size={13} />
+              </a>
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

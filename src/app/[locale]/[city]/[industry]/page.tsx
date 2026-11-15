@@ -13,8 +13,9 @@ import { localeHref } from "@/i18n/routes";
 import { LocaleRouteAlternates } from "@/i18n/locale-navigation";
 import { searchListings } from "@/lib/api/marketplace/public";
 import { OPEN_GRAPH_LOCALES, defaultSocialImage } from "@/lib/site";
-import { MIN_LISTINGS_TO_INDEX } from "@/lib/seo/category-discovery";
+import { getCategoryDiscoveryGroups, MIN_LISTINGS_TO_INDEX } from "@/lib/seo/category-discovery";
 import { resolveCategoryRoute } from "@/lib/seo/category-page.server";
+import { getOptionalSitemapFeed } from "@/lib/seo/sitemap-feed.server";
 import type {
   Industry,
   LocationCard,
@@ -142,6 +143,13 @@ export default async function CategoryPage({ params }: Props) {
   if (resolved.kind === "redirect") permanentRedirect(resolved.to);
   if (resolved.kind !== "ok") notFound();
 
+  // Related destinations use the sitemap's shared, tagged inventory. If this
+  // optional lookup is unavailable, keep the results and omit discovery links.
+  const inventory = await getOptionalSitemapFeed();
+  const discoveryGroups = inventory
+    ? getCategoryDiscoveryGroups(inventory.locations, resolved.industries, localeParam)
+    : [];
+
   return (
     <>
       <LocaleRouteAlternates
@@ -158,6 +166,7 @@ export default async function CategoryPage({ params }: Props) {
         industries={resolved.industries}
         listings={resolved.listings}
         total={resolved.total}
+        discoveryGroups={discoveryGroups}
       />
     </>
   );

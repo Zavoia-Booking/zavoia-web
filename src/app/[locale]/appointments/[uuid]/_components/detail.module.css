@@ -142,7 +142,6 @@ a.venue:hover .textLink, .staffAction:hover .textLink, a.about:hover .textLink {
 .closer { margin-top: 36px; padding-top: 20px; border-top: 1px solid rgba(28,28,26,.1); color: var(--c-600); font-size: 12.5px; line-height: 1.6; }
 .cancellation { margin-bottom: 18px; color: var(--c-700); font-size: 14px; }
 .cancellation p { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.mobileBar { display: none; }
 .primaryLink { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 16px 20px; border-radius: var(--r-full); font-size: 15px; font-weight: 600; background: var(--c-ink); color: var(--c-50); text-decoration: none; }
 @media (min-width: 921px) and (min-height: 850px) {
  .rail { position: sticky; top: calc(var(--nav-h) + 28px); }
@@ -156,30 +155,26 @@ a.venue:hover .textLink, .staffAction:hover .textLink, a.about:hover .textLink {
  .providerGrid > .section + .section { border-inline-start: 0; padding-inline-start: 0; border-block-start: 1px solid rgba(28,28,26,.12); padding-block-start: 28px; }
 }
 @media (max-width: 920px) {
- .page { padding-top: 20px; padding-bottom: 100px; }
- .navigation { margin-bottom: 30px; }
+ .page { padding-top: 20px; padding-bottom: 48px; }
+ .navigation { margin-bottom: 24px; }
  .columns { grid-template-columns: minmax(0,1fr); }
  .rail { margin-top: 32px; grid-column: 1; grid-row: auto; }
  .railCard { padding: 22px 20px; }
  .managementShortcut { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px; min-height: 40px; padding: 4px 0; color: var(--c-700); font-size: 13px; font-weight: 600; text-decoration: none; }
  .railHeading { margin-bottom: 12px; }
- .railPrimary { display: none; }
+ /* Override the shared Button's inline sizing so translated actions fit phones. */
+ .railPrimary > button { padding-inline: 16px !important; white-space: normal !important; }
  .railRows { border-top: 0; padding-top: 0; }
+ .railPrimary + .railRows { border-top: 1px solid rgba(28,28,26,.1); padding-top: 12px; }
  .policies dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
  .hero { padding-bottom: 24px; }
  .title { font-size: 34px; }
- .mobileBar { display: flex; position: fixed; left: 0; right: 0; bottom: var(--mobile-tabs-h); z-index: 80; background: var(--c-canvas); border-top: 1px solid rgba(28,28,26,.08); padding: 10px var(--gutter); align-items: center; gap: 12px; }
- .mobileSummary { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
- .mobileSummary strong { color: var(--c-900); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
- .mobileSummary > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c-600); font-size: 11.5px; }
- .mobileDirection { border-radius: var(--r-full); background: var(--c-ink); color: var(--c-50); padding: 11px 20px; text-decoration: none; font-size: 14.5px; font-weight: 600; white-space: nowrap; }
- .mobileReviewActions { display: flex; align-items: stretch; gap: 10px; width: 100%; }
- .mobileReviewActions > button { flex: 1; min-width: 0; padding-inline: 12px; white-space: normal; }
- .mobileReviewActions > button:last-child { flex: 1.3; }
 }
 @media (max-width: 660px) {
  .providerGrid { grid-template-columns: minmax(0, 1fr); gap: 28px; }
- .heroIdentity { grid-template-columns: 56px minmax(0, 1fr); grid-template-areas: "date status" "date copy"; gap: 14px 18px; }
+ .heroIdentity { grid-template-columns: 56px minmax(0, 1fr); grid-template-areas: "status status" "date copy"; gap: 16px 18px; }
+ .heroCopy { align-self: center; }
+ .heroStatus { flex-direction: row-reverse; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding-top: 0; text-align: start; }
  .dateBadge { min-height: 90px; border-radius: 12px; gap: 4px; }
  .datePlaceholder { height: 90px; border-radius: 12px; }
  .dateBadge > strong { font-size: 30px; }

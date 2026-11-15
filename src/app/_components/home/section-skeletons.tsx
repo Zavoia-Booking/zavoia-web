@@ -3,6 +3,7 @@ import { SectionTitle } from "@/components/ui/section-title";
 import type { Dictionary } from "@/i18n/dictionaries";
 import categoryStyles from "./category-rail.module.css";
 import recentStyles from "./recently-viewed.module.css";
+import discoveryStyles from "./discovery-rail.module.css";
 
 // Streaming placeholders for the data-backed home sections. Each one mirrors
 // the container/padding/grid of the real section so the shell reserves the
@@ -26,25 +27,20 @@ export function CategoryRailSkeleton() {
   );
 }
 
-// The title is already known. Keep its actual wrapping and the live grid's
-// 4:5 cards; the server requests up to ten brands.
+// Match the live responsive discovery rail; the server requests up to ten brands.
 export function BrandsSkeleton({
   labels,
 }: {
   labels: Dictionary["homeSections"]["brands"];
 }) {
   return (
-    <section className="zw-container" style={{ paddingTop: 60 }} aria-hidden="true" inert>
+    <section className={`zw-container ${discoveryStyles.section}`} aria-hidden="true" inert>
       <SectionTitle title={labels.title} action={labels.action} />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(min(232px, 100%), 1fr))",
-          gap: 18,
-        }}
-      >
+      <div className={`zw-carousel-rail ${discoveryStyles.track}`}>
         {Array.from({ length: 10 }).map((_, i) => (
-          <Skeleton key={i} h="auto" r="var(--card-r, 18px)" style={{ aspectRatio: "4 / 5" }} />
+          <div key={i} className={discoveryStyles.item}>
+            <Skeleton h="auto" r="var(--card-r, 18px)" className={discoveryStyles.skeleton} />
+          </div>
         ))}
       </div>
     </section>

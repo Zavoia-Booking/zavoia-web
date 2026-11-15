@@ -1,4 +1,5 @@
 import type { Locale } from "../locales";
+import type { BlogCategory } from "@/sanity/types";
 import { locationPageEn } from "./location-page";
 import { appointmentPageEn } from "./appointment-page";
 import { textareaEn } from "./textarea";
@@ -30,6 +31,15 @@ export const en: {
     heroTagline: string;
   };
   homeSections: {
+    discovery: {
+      title: string;
+      body: string;
+      retry: string;
+      retryIn: string;
+      refreshFailed: string;
+      loadMoreFailed: string;
+      retryFailed: string;
+    };
     hero: {
       headlineLead: string;
       headlineAccent: string;
@@ -166,6 +176,8 @@ export const en: {
     relatedServicesHeading: string;
   };
   blog: {
+    categoryPages: Record<BlogCategory, { heading: string; intro: string; summary: string; seoTitle: string; seoDescription: string }>;
+    navigationPending: string;
     listTitle: string;
     listDescription: string;
     listHeading: string;
@@ -186,12 +198,19 @@ export const en: {
     catProduct: string;
     breadcrumbJournal: string;
     byline: string;
+    defaultByline: string;
     pageLabel: string;
     ofLabel: string;
     prev: string;
     next: string;
     inThisArticle: string;
     faqTitle: string;
+    faqHeading: string;
+    faqHeadingAccent: string;
+    publishedLabel: string;
+    updatedLabel: string;
+    readingTimeLabel: string;
+    usefulLinksTitle: string;
     keepReading: string;
     relatedStories: string;
     allStories: string;
@@ -203,7 +222,7 @@ export const en: {
     shareFailed: string;
     shareLabel: string;
     backToTop: string;
-    filterLabel: string;
+    categoryNavigationLabel: string;
     paginationLabel: string;
     emptyCategoryTitle: string;
     emptyCategoryBody: string;
@@ -235,6 +254,7 @@ export const en: {
       continue: string;
       signUp: string;
     };
+    googleNoAccount: string;
     businessSignIn: {
       title: string;
       description: string;
@@ -242,12 +262,12 @@ export const en: {
     };
     terms: {
       agreementPrefix: string;
-      termsLink: string;
-      cookiesLink: string;
-      and: string;
-      privacyLink: string;
+      termsOfUseLink: string;
+      andThe: string;
+      customerTermsLink: string;
+      privacyPrefix: string;
+      privacyNoticeLink: string;
       required: string;
-      continueNotice: string;
     };
     fields: {
       email: string;
@@ -857,8 +877,12 @@ export const en: {
     worksAt: string;
     /** Document title. The page lists the brand's locations. */
     metaTitle: string;
-    /** Meta description when the brand has written none. */
+    /** Document title when the profile does not display locations. */
+    metaTitleProfile: string;
+    /** Meta description when the profile displays its locations. */
     metaDescription: string;
+    /** Meta description when the profile does not display locations. */
+    metaDescriptionProfile: string;
   };
   booking: {
     stepServicesTitle: string;
@@ -912,6 +936,8 @@ export const en: {
     reschedulingUnavailable: string;
     payAtVenueTitle: string;
     payAtVenueNote: string;
+    healthConsentLabel: string;
+    healthConsentLink: string;
     reviewChange: string;
     reviewChangeVisit: string;
     reviewServicesTitle: string;
@@ -1003,6 +1029,10 @@ export const en: {
     };
   };
   nav: {
+    menu: string;
+    openMenu: string;
+    closeMenu: string;
+    navigation: string;
     explore: string;
     webStudio: string;
     forBusiness: string;
@@ -1083,6 +1113,7 @@ export const en: {
   };
   search: {
     inThisArea: string;
+    howResultsAreOrdered: string;
     resultCount: string;
     resultCountOne: string;
     updating: string;
@@ -1257,7 +1288,7 @@ export const en: {
   };
   breadcrumbHome: string;
   localeNames: Record<Locale, string>;
-  language: { label: string; loading: string; unavailable: string };
+  language: { label: string; loading: string; unavailable: string; close: string };
   tryStudio: {
     pageTitle: string;
     pageDescription: string;
@@ -1725,24 +1756,29 @@ export const en: {
     metaTitle: string;
     pageDescription: string;
     head: {
-      kicker: string;
       title: string;
+      titleAccent: string;
       sub: string;
     };
     searchPlaceholder: string;
-    allLabel: string;
-    resultsLabel: string;
+    resultsLabel: { one: string; few: string; other: string };
     noResults: string;
+    searchLabel: string;
+    clearSearchLabel: string;
+    guidesLabel: string;
+    webStudioLabel: string;
+    pricingLabel: string;
+    usefulLinksTitle: string;
     topics: {
       id: string;
-      icon: string;
       label: string;
-      items: { q: string; a: string }[];
+      items: {
+        q: string;
+        a: string;
+        searchTerms?: string[];
+        link?: { label: string; href: string[] };
+      }[];
     }[];
-    goodToKnow: {
-      title: string;
-      items: { label: string; href: string[] }[];
-    };
     report: {
       title: string;
       sub: string;
@@ -1752,6 +1788,7 @@ export const en: {
         intro: string;
         titleLabel: string;
         titlePlaceholder: string;
+        titleRequired: string;
         emailLabel: string;
         emailPlaceholder: string;
         messageLabel: string;
@@ -1763,7 +1800,6 @@ export const en: {
         success: {
           title: string;
           body: string;
-          reference: string;
           done: string;
         };
       };
@@ -1897,6 +1933,15 @@ export const en: {
       kicker: "Browse",
       title: "What are you looking for?",
     },
+    discovery: {
+      title: "We couldn't load places right now.",
+      body: "Please try again.",
+      retry: "Try again",
+      retryIn: "Try again in {seconds}s",
+      refreshFailed: "Some places couldn't be updated.",
+      loadMoreFailed: "We couldn't load more places.",
+      retryFailed: "We couldn't load places. Please try again shortly.",
+    },
     inCity: {
       kicker: "Around town",
       title: "In your city",
@@ -1942,8 +1987,8 @@ export const en: {
           sub: "See available times and choose one that works for you.",
         },
         {
-          title: "Pay at the venue",
-          sub: "Pay the business directly when you visit.",
+          title: "Pay the business directly",
+          sub: "Ask the business about payment methods and when payment is due.",
         },
       ],
     },
@@ -2035,38 +2080,69 @@ export const en: {
     relatedServicesHeading: "More to explore in {city}",
   },
   blog: {
-    listTitle: "Zavoia Journal — Booking guides and product news",
+    categoryPages: {
+      guides: {
+        heading: "Guides for your next booking",
+        summary: "Compare services, prepare for your visit and manage your bookings.",
+        intro: "Know what a service includes, what to ask before booking and how to manage your appointments on Zavoia.",
+        seoTitle: "Booking and local service guides | Zavoia Journal",
+        seoDescription: "Learn how to compare local services, check booking details and manage your appointments with Zavoia.",
+      },
+      business: {
+        heading: "Guides for service businesses",
+        summary: "Manage appointments, plan your team's time and help customers find you online.",
+        intro: "Manage appointments, organise your team and help customers find your business online.",
+        seoTitle: "Guides for service businesses | Zavoia Journal",
+        seoDescription: "Practical guides for service businesses on appointments, team schedules, business websites and using Zavoia.",
+      },
+      product: {
+        heading: "What's new on Zavoia",
+        summary: "New features, improvements and how to use them.",
+        intro: "See what's changed, who it's for and where to find it.",
+        seoTitle: "Zavoia product news and updates | Zavoia Journal",
+        seoDescription: "Discover what's new on Zavoia, from booking improvements to tools for managing your service business.",
+      },
+    },
+    navigationPending: "Opening {category}.",
+    listTitle: "Booking guides, business advice and news | Zavoia Journal",
     listDescription:
-      "Guides for booking well, playbooks for the businesses being booked, and what's new on Zavoia.",
-    listHeading: "Blog",
+      "Read guides to booking local services, practical advice for service businesses and updates about Zavoia.",
+    listHeading: "The Zavoia Journal",
     listIntro:
-      "Guides, tips and news about local services across Romania.",
-    empty: "No posts published yet. Check back soon.",
-    readMore: "Read more",
-    backToList: "Back to Journal",
+      "Guides for your next booking, advice for your business and news from Zavoia.",
+    empty: "No articles published yet.",
+    readMore: "Read article",
+    backToList: "Back to the Journal",
     kicker: "The Journal",
-    heading: "Notes from the neighbourhood",
+    heading: "The Zavoia Journal",
     intro:
-      "Guides for booking well, playbooks for the businesses being booked, and what's new on Zavoia.",
+      "Guides for your next booking, advice for your business and news from Zavoia.",
     updatedWeekly: "Updated weekly",
-    storiesLabel: "stories",
-    latestStory: "Latest story",
-    readStory: "Read story",
-    catAll: "All",
+    storiesLabel: "articles",
+    latestStory: "Latest article",
+    readStory: "Read article",
+    catAll: "All articles",
     catGuides: "Guides",
-    catBusiness: "For business",
-    catProduct: "Product news",
+    catBusiness: "Business advice",
+    catProduct: "Zavoia updates",
     breadcrumbJournal: "Journal",
-    byline: "By {author} from Zavoia",
+    byline: "By {author}",
+    defaultByline: "By {author} from Zavoia",
     pageLabel: "Page",
     ofLabel: "of",
     prev: "Prev",
     next: "Next",
     inThisArticle: "In this article",
     faqTitle: "Frequently asked questions",
+    faqHeading: "Questions &",
+    faqHeadingAccent: "answers",
+    publishedLabel: "Published",
+    updatedLabel: "Updated",
+    readingTimeLabel: "Reading time",
+    usefulLinksTitle: "Useful links",
     keepReading: "Keep reading",
-    relatedStories: "Related stories",
-    allStories: "All stories",
+    relatedStories: "Read next",
+    allStories: "All articles",
     moreFromJournal: "More from the Journal",
     nothingHere: "Nothing here yet.",
     copyLink: "Copy link",
@@ -2075,11 +2151,11 @@ export const en: {
     shareFailed: "Couldn't share this article. Please try again.",
     shareLabel: "Share",
     backToTop: "Back to top",
-    filterLabel: "Filter articles",
+    categoryNavigationLabel: "Explore the Journal",
     paginationLabel: "Article pages",
     emptyCategoryTitle: "No articles in this category yet.",
     emptyCategoryBody: "Explore the other articles in the Journal.",
-    showAll: "View all articles",
+    showAll: "Browse all articles",
     storySingular: "article",
     breadcrumbLabel: "Breadcrumb",
   },
@@ -2109,6 +2185,7 @@ export const en: {
       continue: "Continue with Apple",
       signUp: "Sign up with Apple",
     },
+    googleNoAccount: "There's no Zavoia account for this Google address yet. Tick the box below to create one.",
     businessSignIn: {
       title: "Zavoia Business",
       description: "Manage your appointments, clients and team.",
@@ -2116,12 +2193,12 @@ export const en: {
     },
     terms: {
       agreementPrefix: "I agree to the",
-      termsLink: "Terms and Conditions",
-      cookiesLink: "Cookie Policy",
-      and: "and",
-      privacyLink: "Privacy Policy",
+      termsOfUseLink: "Terms of Use",
+      andThe: "and the",
+      customerTermsLink: "Customer Terms",
+      privacyPrefix: "See our",
+      privacyNoticeLink: "Privacy Notice",
       required: "You must accept the terms to continue.",
-      continueNotice: "By continuing, you agree to our",
     },
     fields: {
       email: "Email",
@@ -2533,7 +2610,7 @@ export const en: {
       caption: "Permanently delete your account and all of its data.",
       confirmTitle: "Delete your account?",
       confirmBody:
-        "This permanently deletes your account and all of your data. This action cannot be undone.",
+        "This permanently deletes your account and all of your data. Your upcoming appointments are cancelled, and each business gets the same notice as when you cancel an appointment yourself. This action cannot be undone.",
       confirm: "Delete account",
       cancel: "Cancel",
     },
@@ -2779,7 +2856,9 @@ export const en: {
     viewLocation: "View & book",
     worksAt: "at {location}",
     metaTitle: "{name}: locations",
+    metaTitleProfile: "{name}",
     metaDescription: "{name} on Zavoia: all its locations in one place.",
+    metaDescriptionProfile: "Discover {name} on Zavoia.",
   },
   booking: {
     stepServicesTitle: "Choose services",
@@ -2832,8 +2911,10 @@ export const en: {
     quoteChanged: "The price or duration has changed. Review the updated details before confirming.",
     cancellationUnavailable: "This appointment cannot be cancelled online.",
     reschedulingUnavailable: "This appointment cannot be rescheduled online.",
-    payAtVenueTitle: "Pay at the venue",
-    payAtVenueNote: "Nothing to pay now — settle directly with {business} after your visit.",
+    payAtVenueTitle: "Pay the business directly",
+    payAtVenueNote: "Zavoia does not collect appointment payments. Check payment methods and timing with {business}.",
+    healthConsentLabel: "I agree that Zavoia may process any health information in this booking to arrange my appointment.",
+    healthConsentLink: "How we protect health data",
     reviewChange: "Change",
     reviewChangeVisit: "Change date, time or professional",
     reviewServicesTitle: "Your services",
@@ -2939,6 +3020,10 @@ export const en: {
     },
   },
   nav: {
+    menu: "Menu",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+    navigation: "Navigation",
     explore: "Explore",
     webStudio: "Web Studio",
     forBusiness: "For business",
@@ -3019,6 +3104,7 @@ export const en: {
   },
   search: {
     inThisArea: "In this area",
+    howResultsAreOrdered: "How results are ordered",
     resultCount: "{count} places",
     resultCountOne: "{count} place",
     updating: "Updating…",
@@ -3269,7 +3355,7 @@ export const en: {
   },
   consent: {
     title: "Cookie consent",
-    body: "We use cookies to help us deliver and improve our services. By using this website, you agree to our",
+    body: "We use cookies to help us deliver and improve our services. Read more in our",
     policyLink: "cookie policy",
     accept: "Accept",
     reject: "Reject",
@@ -3340,7 +3426,7 @@ export const en: {
   },
   breadcrumbHome: "Home",
   localeNames: { ro: "Română", en: "English" },
-  language: { label: "Language", loading: "Loading…", unavailable: "Not available" },
+  language: { label: "Language", loading: "Loading…", unavailable: "Not available", close: "Close language selection" },
   tryStudio: {
     "pageTitle": "Web Studio demo: explore website designs",
     "pageDescription": "Explore a complete sample website. Choose section styles, fonts and colours, or try another design. No account needed.",
@@ -4127,108 +4213,145 @@ export const en: {
     pageDescription:
       "Answers to the questions people ask us most about booking, paying, and managing appointments on Zavoia.",
     head: {
-      kicker: "Help centre",
-      title: "What do you need a hand with?",
+      title: "How can we",
+      titleAccent: "help?",
       sub: "Find answers about bookings, payments and your Zavoia account.",
     },
-    searchPlaceholder: "Search questions — cancel, reschedule, payment…",
-    allLabel: "All",
-    resultsLabel: "results for",
+    searchPlaceholder: "Search questions",
+    searchLabel: "Search help questions",
+    clearSearchLabel: "Clear search",
+    guidesLabel: "Browse guides",
+    webStudioLabel: "Web Studio",
+    pricingLabel: "Pricing & plans",
+    usefulLinksTitle: "Useful links",
+    resultsLabel: { one: "{count} result for", few: "{count} results for", other: "{count} results for" },
     noResults: "No questions matched. Try different words.",
     topics: [
       {
         id: "booking",
-        icon: "cal",
         label: "Appointments",
         items: [
           {
-            q: "How do I book an appointment?",
-            a: "Choose a service and an available time, then sign in or create a Zavoia account to send your booking. Depending on the business, it is confirmed right away or after the business reviews it.",
+            q: "How do I book an appointment on Zavoia?",
+            a: "On the Zavoia website or app, choose a business, one or more services and an available time. Sign in or create an account to send your booking request.",
           },
           {
-            q: "Can I reschedule or cancel?",
-            a: "If the business allows it, you can reschedule or cancel from your appointment in Zavoia, up to the deadline the business sets. After that, or if the option isn't shown, contact the business directly.",
+            q: "Can I choose a particular professional?",
+            a: "Yes. During booking, choose from the professionals available for your services and time. If your preferred professional isn’t available, try another date or time.",
+          },
+          {
+            q: "How do I know if my appointment is confirmed?",
+            a: "Open your appointment to check its status. Confirmed means your appointment has been accepted. Pending means the business still needs to review your request. Some businesses confirm bookings automatically.",
+          },
+          {
+            q: "How do I cancel or reschedule an appointment?",
+            a: "Open the appointment and choose the cancellation or rescheduling option if available. Each business sets its own deadlines and rules. If you don’t see the option you need, contact the business directly.",
+            searchTerms: ["cancel", "reschedule"],
+          },
+          {
+            q: "Why can’t I find an available appointment time?",
+            a: "If the location accepts online bookings but no times appear for your chosen services, try another date or professional. If the location doesn’t accept online bookings, contact it directly to ask about availability.",
+          },
+          {
+            q: "How do I book the same services again?",
+            a: "Open a past appointment and choose Book again. Select an available time and review the details before sending a new booking request. Services, prices and availability may have changed.",
+            searchTerms: ["rebook"],
           },
         ],
       },
       {
         id: "paying",
-        icon: "wallet",
-        label: "Paying & pricing",
+        label: "Payments & refunds",
         items: [
           {
-            q: "When and how do I pay?",
-            a: "You pay the business directly at your visit. Zavoia doesn't take payment for appointments.",
+            q: "When and how do I pay for my appointment?",
+            a: "You pay the business directly, not through Zavoia. Ask the business which payment methods it accepts and when payment is due.",
+            searchTerms: ["payment", "paying"],
           },
           {
-            q: "How do refunds work?",
-            a: "Because you pay the business directly, refunds are handled by the business under its own policy.",
+            q: "How do I request a refund for an appointment?",
+            a: "Contact the business you paid. It handles refund requests according to its policy. Zavoia does not process refunds for appointment payments.",
           },
         ],
       },
       {
         id: "account",
-        icon: "user",
-        label: "Your account",
+        label: "Account & notifications",
         items: [
           {
-            q: "Can I manage reminders and notifications?",
-            a: "Yes. In your account, choose whether you receive appointment reminders and marketing messages, and whether they come by push, SMS or email.",
+            q: "What should I do if I can’t sign in?",
+            a: "Use the email address linked to your Zavoia account. If you usually sign in with Google, choose that option. If you use a password and have forgotten it, select Forgot password? If you still can’t sign in, use Report an issue on this page. You don’t need to sign in to send a report.",
+            link: { label: "Reset your password", href: ["auth", "forgot-password"] },
+          },
+          {
+            q: "How do I manage reminders and notifications?",
+            a: "Open your account preferences to see which notifications you can change. Appointment reminders also depend on the business’s settings. To receive push notifications from the app, allow them in your phone’s settings. You may still receive booking confirmations and changes when reminders are turned off.",
+          },
+          {
+            q: "How do I save a place or professional?",
+            a: "Use the heart on a place or professional’s profile to save it. You need to be signed in. Find your saved places and professionals in Saved.",
+            searchTerms: ["favourites", "favorites"],
+          },
+          {
+            q: "How do I delete my Zavoia customer account?",
+            a: "You can delete your customer account under Login & security in your account settings. Your upcoming appointments are cancelled automatically, and each business gets the same notice as when you cancel an appointment yourself. Businesses aren't told that you deleted your account.",
+            link: { label: "Account-deletion information", href: ["terms", "account-deletion"] },
           },
         ],
       },
       {
         id: "reviews",
-        icon: "star",
         label: "Reviews",
         items: [
           {
-            q: "How do I leave a review?",
-            a: "After a completed visit, open the appointment from your history and rate your experience.",
+            q: "How do I leave a review after an appointment?",
+            a: "Once your appointment is marked Completed, open it to add your ratings and comments. You can submit feedback only once for that appointment.",
           },
         ],
       },
       {
-        id: "safety",
-        icon: "shield",
-        label: "Trust & safety",
+        id: "support",
+        label: "Contact & support",
         items: [
           {
-            q: "Are reviews written by real customers?",
-            a: "Yes. Only customers with a completed appointment can leave a review.",
+            q: "Should I contact the business or Zavoia?",
+            a: "Contact the business about your appointment, its services, payments or refunds. For help signing in or using Zavoia, select Report an issue on this page. You can contact Zavoia support without signing in.",
           },
         ],
       },
       {
         id: "business",
-        icon: "flash",
         label: "For businesses",
         items: [
           {
-            q: "How do I list my business?",
-            a: "Create a business account and start the free trial. Add your location, services and team, publish your page on Zavoia, and switch on online booking when you're ready.",
+            q: "How do I list my business on Zavoia?",
+            a: "Visit Zavoia for business to compare plans and create a business account. Add your locations and services, publish your Zavoia business pages and enable online booking when you’re ready.",
+            link: { label: "Zavoia for business", href: ["for-business"] },
+          },
+          {
+            q: "Can I create a website for my business with Zavoia?",
+            a: "Yes. Web Studio uses your Zavoia business details, services, team and photos to build your website without coding. Choose its design and prepare, preview and save a draft on either plan. Publishing your website requires Plus.",
+            searchTerms: ["Web Studio", "website builder"],
+          },
+          {
+            q: "What is the difference between Base and Plus?",
+            a: "Both plans include your locations’ Zavoia pages, online booking and tools for managing appointments and your team. Plus adds website publishing, more locations and no team-size limit. Additional team seats are billed separately on either plan. See Pricing for current prices, limits and optional extras.",
+            searchTerms: ["pricing", "plans", "subscription"],
           },
         ],
       },
     ],
-    goodToKnow: {
-      title: "Good to know",
-      items: [
-        { label: "Cancellation policy", href: ["terms", "booking-policy"] },
-        { label: "List your business", href: ["for-business"] },
-        { label: "Privacy policy", href: ["terms", "privacy-policy"] },
-      ],
-    },
     report: {
-      title: "Report an issue",
-      sub: "We look into every report.",
+      title: "Still need help?",
+      sub: "Contact the business about your appointment or payment. For help using Zavoia, send us a report.",
       cta: "Report an issue",
       modal: {
         title: "Report an issue",
         intro:
-          "Tell us what went wrong — no account needed. We'll get back to you at the email you leave here.",
+          "Tell us what went wrong. No account needed. We'll reply to the email you leave here.",
         titleLabel: "Title",
         titlePlaceholder: "A short summary of the issue",
+        titleRequired: "Enter a title.",
         emailLabel: "Email",
         emailPlaceholder: "you@example.com",
         messageLabel: "What happened?",
@@ -4239,10 +4362,9 @@ export const en: {
         errorRateLimit:
           "You've sent a few reports recently. Please wait a while and try again.",
         success: {
-          title: "Thanks — we got your report",
-          body: "Our team looks into every report. We'll reply to {email}.",
-          reference: "Reference",
-          done: "Done",
+          title: "Report sent",
+          body: "We’ll review your report and reply to:",
+          done: "Close",
         },
       },
     },

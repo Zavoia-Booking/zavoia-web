@@ -11,7 +11,7 @@ export interface DocRowProps {
   draftLabel: string;
 }
 
-// One line in the legal index: icon badge, title, description, draft marker.
+// One line in the legal index: icon, title, description, draft marker.
 // Shared by the hub's audience groups and the "related documents" footer on a
 // document page, so both read as the same object in the same library.
 export function DocRow({ doc, locale, draftLabel }: DocRowProps) {

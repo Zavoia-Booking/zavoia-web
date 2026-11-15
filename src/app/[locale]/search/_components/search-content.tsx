@@ -46,6 +46,7 @@ import type {
   SearchListingsResult,
 } from "@/lib/api/marketplace/types";
 import { useServiceCatalog } from "@/components/search/service-catalog-provider";
+import { shouldRevealResults } from "@/components/search/map-behavior";
 import {
   MapboxSurface,
   DEFAULT_ZOOM,
@@ -250,6 +251,8 @@ export function SearchContent({
   const initialFocusScrollPendingRef = useRef(true);
   const filtersTriggerRef = useRef<HTMLButtonElement>(null);
   const mapHandleRef = useRef<MapboxSurfaceHandle>(null);
+  const [resultFocus, setResultFocus] = useState<{ pin: GeoPin; cameraKey: string; instant: boolean } | null>(null);
+  const appliedResultFocus = useRef<typeof resultFocus>(null);
   const sheetRef = useRef<BottomSheetHandle>(null);
   const [sheetPosition, setSheetPosition] = useState<SheetPosition>("mid");
   const [sheetGeometry, setSheetGeometry] = useState<{
@@ -259,21 +262,6 @@ export function SearchContent({
   } | null>(null);
   const onSheetHeightChange = useCallback((height: number, position: SheetPosition) => {
     setSheetGeometry({ height, position, containerHeight: listRef.current?.closest("main")?.clientHeight ?? 0 });
-  }, []);
-
-  // The mobile tab bar is fixed to the bottom of the viewport, so the map
-  // region has to stop above it or the sheet's peek — and the last result row
-  // — sit underneath it. Measured rather than assumed: the bar's height is
-  // content-driven and grows by the device's bottom safe area.
-  const [tabBarH, setTabBarH] = useState(0);
-  useEffect(() => {
-    const nav = document.querySelector<HTMLElement>("nav.zw-only-mobile");
-    if (!nav) return;
-    const ro = new ResizeObserver(() =>
-      setTabBarH(nav.getBoundingClientRect().height),
-    );
-    ro.observe(nav);
-    return () => ro.disconnect();
   }, []);
 
   // ── First-load shell ─────────────────────────────────────────────────────
@@ -438,7 +426,9 @@ export function SearchContent({
   const pins: GeoPin[] = useMemo(() => {
     const out: GeoPin[] = [];
     for (const l of visibleLocations) {
-      if (l.latitude == null || l.longitude == null) continue;
+      if (l.latitude == null || l.longitude == null
+        || !Number.isFinite(l.latitude) || !Number.isFinite(l.longitude)
+        || Math.abs(l.latitude) > 90 || Math.abs(l.longitude) > 180) continue;
       out.push({
         id: l.id,
         name: l.name,
@@ -449,6 +439,7 @@ export function SearchContent({
     }
     return out;
   }, [visibleLocations, slugById]);
+  const pinById = useMemo(() => new Map(pins.map(pin => [pin.id, pin])), [pins]);
   const favoriteIds = useMemo(
     () => new Set(locations.filter(location => isLocationFavorited(location.id) === true).map(location => location.id)),
     [locations, isLocationFavorited],
@@ -590,7 +581,7 @@ export function SearchContent({
       list.removeEventListener("scrollend", measure);
       if (measureResultPhotosRef.current === measure) measureResultPhotosRef.current = null;
     };
-  }, [locationRows, businessRows, viewportReady, isMobile, tabBarH, sheetPosition, sheetGeometry]);
+  }, [locationRows, businessRows, viewportReady, isMobile, sheetPosition, sheetGeometry]);
 
   // ── Selecting a pin scrolls its row near the top of the list ────────────
   // Rect-delta (not offsetTop, whose offsetParent is this positioned container)
@@ -619,7 +610,7 @@ export function SearchContent({
     // retain their normal smooth scroll and do not re-anchor on data refreshes.
     container.scrollTo({ top: container.scrollTop + delta, behavior: initialFocus || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     measureResultPhotosRef.current?.();
-  }, [selectedId, focusId, viewportReady, isMobile, tabBarH, locationRows]);
+  }, [selectedId, focusId, viewportReady, isMobile, locationRows]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const onPinSelect = useCallback((id: number) => {
@@ -628,11 +619,19 @@ export function SearchContent({
     sheetRef.current?.snapTo("down");
   }, []);
 
+  const onResultSelect = useCallback((pin: GeoPin, instant: boolean) => {
+    // This explicit camera choice owns the view, including while results settle.
+    handledCameraKey.current = cameraKey;
+    onPinSelect(pin.id);
+    setResultFocus({ pin, cameraKey, instant });
+  }, [cameraKey, onPinSelect]);
+
   // A gesture takes ownership even when search results are still arriving.
   const onUserMoveStart = useCallback(() => {
     handledCameraKey.current = cameraKey;
+    appliedResultFocus.current = resultFocus;
     sheetRef.current?.snapTo("down");
-  }, [cameraKey]);
+  }, [cameraKey, resultFocus]);
 
   // The visitor has already positioned the camera for "Search this area".
   const onSearchArea = useCallback(
@@ -653,12 +652,16 @@ export function SearchContent({
   // existing requestKey fetch. A fresh location starts at the 20km base radius.
   const applyAnchor = useCallback(
     (p: GeoPoint) => {
+      // Initial GPS/IP discovery uses the app's wider view. Read the current
+      // viewport here: the async landing resolver starts before it hydrates.
+      // The explicit My location action below retains its closer zoom of 13.
+      const zoom = window.matchMedia(MOBILE_MQ).matches ? DEFAULT_ZOOM : RECENTER_ZOOM;
       updateParams({
         city: null,
         lat: p.lat.toFixed(6),
         lng: p.lng.toFixed(6),
         radius: String(SEARCH_RADIUS_KM),
-        mapZoom: String(RECENTER_ZOOM),
+        mapZoom: String(zoom),
       });
     },
     [updateParams],
@@ -822,7 +825,6 @@ export function SearchContent({
     // A dot on the map already means a position we can trust enough to move to.
     if (deviceLocation) {
       recenterTo(deviceLocation);
-      toast(t.centeredOnLocation, "nav");
       // Refresh it quietly for next time; a failure changes nothing on screen.
       void getBrowserLocation().then((fresh) => {
         if (fresh) setDeviceLocation(fresh);
@@ -835,7 +837,6 @@ export function SearchContent({
       .then((loc) => {
         if (loc) {
           recenterTo(loc);
-          toast(t.centeredOnLocation, "nav");
           return;
         }
         // No fix. Fall back to the anchor the results are already using, so the
@@ -848,11 +849,12 @@ export function SearchContent({
         locatingRef.current = false;
         setLocating(false);
       });
-  }, [deviceLocation, recenterTo, searchAnchor, toast, t.centeredOnLocation]);
+  }, [deviceLocation, recenterTo, searchAnchor]);
 
   // One camera intent per search/refinement, after matching results and the
-  // map are ready. Like the app, reveal off-screen matches without zooming in;
-  // background renders, sorting and manually searched areas leave the view alone.
+  // map are ready. Mobile arrivals keep the anchor's local zoom, like the app;
+  // later refinements can reveal off-screen matches. Background renders,
+  // sorting and manually searched areas leave the view alone.
   const anchorKey = searchAnchor ? `${searchAnchor.lat},${searchAnchor.lng}` : "";
   useEffect(() => {
     const map = mapHandleRef.current;
@@ -875,13 +877,17 @@ export function SearchContent({
       if (searchAnchor && (anchorChanged || !cameraArrived.current)) {
         map.flyTo(searchAnchor, { zoom: anchorZoom, duration: 0 });
       }
-      if (pins.length) map.revealPins(pins, { duration });
+      if (pins.length && shouldRevealResults({
+        mobile: isMobile,
+        arrival: anchorChanged || !cameraArrived.current,
+        explicitZoom: derived.mapZoom != null,
+      })) map.revealPins(pins, { duration });
     }
     handledCameraKey.current = cameraKey;
     cameraArrived.current = true;
   }, [mapMounted, mapEnabled, loading, resultsFailed, lastError, resultsKey,
     requestKey, cameraKey, focusId, pins, searchAnchor, anchorKey,
-    isMobile, sheetGeometry, sheetPosition, anchorZoom]);
+    isMobile, sheetGeometry, sheetPosition, anchorZoom, derived.mapZoom]);
 
   // Transport failures (offline/timeout/rate-limited/5xx) win over the plain
   // "couldn't load results" copy; falls back to it when there's no error to
@@ -903,6 +909,16 @@ export function SearchContent({
                   count: String(resultCount),
                 })
               )}
+              {/* How results are ordered: the ranking section of the Customer Terms. */}
+              <a
+                href={`${localeHref(locale, "terms", "customer-terms")}#ranking`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={searchStyles.rankingInfo}
+                aria-label={t.howResultsAreOrdered}
+              >
+                <Icon name="info" size={16} />
+              </a>
               <span aria-hidden="true" style={{ width: 14, height: 14, flexShrink: 0 }}>
                 {loading && <Spinner size={14} color="var(--c-600)" />}
               </span>
@@ -995,17 +1011,20 @@ export function SearchContent({
         </div>
       ) : (
         <div className={searchStyles.resultItems}>
-          {locationRows.map(({ id, data }) => (
-            <div key={`loc-${id}`} data-biz={id} data-result-key={`loc-${id}`}>
+          {locationRows.map(({ id, data }) => {
+            const pin = pinById.get(id);
+            return <div key={`loc-${id}`} data-biz={id} data-result-key={`loc-${id}`}>
               <BusinessRow
                 b={data}
+                onClick={pin && MAPBOX_TOKEN && mapEnabled && !mapFailed ? event => onResultSelect(pin, event.detail === 0) : undefined}
+                selected={selectedId === id}
                 imageLoading={data.image && eagerResultPhotoSources.has(data.image) ? "eager" : "lazy"}
                 imageFetchPriority={`loc-${id}` === firstResultPhotoKey ? "high" : undefined}
                 favorited={locFav.isFavorited(id)}
                 onFavorite={locFav.toggle}
               />
-            </div>
-          ))}
+            </div>;
+          })}
           {businessRows.length > 0 && <section className={searchStyles.resultItems} aria-label={t.matchingBusinesses}>
             <h2 className={searchStyles.businessHeading}>{t.matchingBusinesses}</h2>
             {businessRows.map(({ id, data }) => (
@@ -1067,8 +1086,11 @@ export function SearchContent({
   // The collapsed sheet's measured header, rather than a guessed fixed offset,
   // owns the space under the card and controls. Card height matches its scene.
   const collapsedSheetHeight = sheetGeometry?.position === "down" ? sheetGeometry.height : 0;
+  const mapTopInset = (industries.length > 0 || searchActive) && !(isMobile && sheetPosition === "top") ? 64 : 16;
+  // Short phones still leave room between the rail and card for the selected
+  // badge, its outer ring and the camera's small upward framing offset.
   const selectedCardHeight = isMobile && collapsedSheetHeight && sheetGeometry?.containerHeight
-    ? Math.min(220, Math.max(156, sheetGeometry.containerHeight - collapsedSheetHeight - 12 - 44 - 12 - 12))
+    ? Math.min(220, Math.max(156, sheetGeometry.containerHeight - collapsedSheetHeight - 12 - mapTopInset - 72))
     : 220;
   const selectedCardBottom = isMobile ? collapsedSheetHeight + 12 : 28;
   const mapControlsBottom = isMobile
@@ -1081,7 +1103,30 @@ export function SearchContent({
     right: reserveRailControls ? 60 : 0,
   };
   const cardHidden = isMobile && sheetPosition !== "down";
-  const mapTopInset = (industries.length > 0 || searchActive) && !(isMobile && sheetPosition === "top") ? 64 : 16;
+
+  useEffect(() => {
+    if (!resultFocus || appliedResultFocus.current === resultFocus) return;
+    if (resultFocus.cameraKey !== cameraKey || selectedId !== resultFocus.pin.id || !pinById.has(resultFocus.pin.id)) {
+      appliedResultFocus.current = resultFocus;
+      return;
+    }
+    const map = mapHandleRef.current;
+    if (!map || !mapMounted || !mapEnabled || mapFailed) return;
+    const mapHeight = listRef.current?.closest("main")?.clientHeight ?? window.innerHeight;
+    // Wait for the sheet's destination geometry before framing the pin above
+    // both the collapsed results and its card. Desktop also clears the card.
+    if (isMobile && (!sheetGeometry || sheetPosition !== "down" || sheetGeometry.position !== "down"
+      || Math.abs(sheetGeometry.containerHeight - mapHeight) > 1)) return;
+    const cardHeight = isMobile ? selectedCardHeight : Math.min(280, mapHeight - 112);
+    map.flyTo(resultFocus.pin, {
+      zoom: 14,
+      duration: resultFocus.instant || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 450,
+      bottomInset: selectedCardBottom + cardHeight + 12,
+    });
+    appliedResultFocus.current = resultFocus;
+    cameraArrived.current = true;
+  }, [resultFocus, cameraKey, selectedId, pinById, mapMounted, mapEnabled, mapFailed,
+    isMobile, sheetPosition, sheetGeometry, selectedCardHeight, selectedCardBottom]);
 
   const mapSurfaceInner = (
     <MapboxSurface
@@ -1235,7 +1280,7 @@ export function SearchContent({
 
   // Use the same CSS-responsive shell during hydration; never flash the
   // desktop layout before matchMedia resolves on a phone.
-  if (!viewportReady || (isMobile && tabBarH === 0)) return (
+  if (!viewportReady) return (
     <SearchPageSkeleton
       showRail={industries.length > 0 || searchActive}
       activeFilterCount={activeFilterCount}
@@ -1245,7 +1290,7 @@ export function SearchContent({
   // ── Mobile: the map, with the results on a sheet over it ────────────────
   if (isMobile) {
     return (
-      <main className={searchStyles.shell} style={{ height: `calc(100dvh - var(--nav-h) - ${tabBarH}px)` }}>
+      <main className={searchStyles.shell}>
         {mapSurface}
         <BottomSheet
           ref={sheetRef}

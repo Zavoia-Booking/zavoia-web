@@ -44,7 +44,15 @@
 
 .mc-gallery-title-word > span {
   display: inline-block;
+}
+
+.mc-gallery-section[data-gallery-motion] .mc-gallery-title-word > span {
   animation: mcGalleryTitleRise 920ms var(--ease-out-strong) both;
+}
+
+/* Server HTML and unenhanced pages keep all portfolio images visible. */
+.mc-gallery-section:not([data-gallery-motion]) .mc-mask-in {
+  animation: none;
 }
 
 /* The full microsite mounts every section together. Hold Gallery entrances at their
@@ -79,8 +87,12 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 450ms var(--ease-out-strong), transform 600ms var(--ease-out-strong);
+}
+
+.mc-gallery-image[data-fade-pending] {
+  opacity: 0;
 }
 
 .mc-gallery-image.is-loaded {
@@ -145,7 +157,7 @@
 }
 
 .mc-gallery-arrow:focus-visible {
-  outline: 2px solid var(--mc-accent);
+  outline: 2px solid var(--mc-focus, var(--mc-fg));
   outline-offset: 3px;
 }
 
@@ -178,6 +190,7 @@
 }
 
 .mc-gallery-lbox {
+  --mc-focus: #fff;
   position: fixed;
   inset: 0;
   z-index: 1600;

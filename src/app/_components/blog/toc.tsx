@@ -75,7 +75,7 @@ export function Toc({ headings, label }: TocProps) {
     <>
       <nav className={styles.tocDesktop} aria-label={label}>
         <p className={styles.tocLabel}>{label}</p>
-        {links}
+        <div className={styles.tocLinks}>{links}</div>
       </nav>
       <details className={styles.tocMobile}>
         <summary>

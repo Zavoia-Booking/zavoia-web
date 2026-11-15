@@ -3,6 +3,14 @@
    variant's own CSS file (variants/*.css). */
 
 /* ── Entrance ── */
+.mc-hero-drench,
+.mc-hero-cine,
+.mc-heropo,
+.mc-heropt,
+.mc-herodr {
+  --mc-focus: var(--mc-bg);
+}
+
 @keyframes mcHeroFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mcHeroUp { from { opacity: 0; transform: translateY(38px); } to { opacity: 1; transform: none; } }
 @keyframes mcHeroWord { from { transform: translateY(118%); } to { transform: translateY(0); } }

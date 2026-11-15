@@ -6,12 +6,10 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
-import { Avatar, Button, Icon, Img, Rating, Stars } from "@/components/ui";
+import { Avatar, Icon, Img, Rating, Stars } from "@/components/ui";
 import { formatDuration, formatMoney } from "@/lib/format/money-time";
 import { apptTime, apptTimeZone, formatApptPrice, STATUS_DOT_COLOR, type StatusTone, type Tense } from "../../_components/vm";
 import { useAppointmentClock } from "../../_components/use-appointment-clock";
-import { useAppointmentActions } from "../../_components/actions/actions-provider";
-import { canLeaveReview } from "../../_components/actions/shared";
 import type { AppointmentBreakdownItem, AppointmentDetail, AppointmentStatus } from "@/lib/api/marketplace/types";
 import { TeamMemberProfileModal } from "@/app/[locale]/business/_components/team-member-profile-modal";
 import styles from "./detail.module.css";
@@ -273,27 +271,5 @@ export function CloserBand({ t, appt, locale, tone }: { t: ApptDict; appt: Appoi
       {appt.cancellation_reason && <p>{appt.cancellation_reason}</p>}
     </div>}
     <span>{format(t.bookedOn, { date })}{source && <span> · {source}</span>}</span>
-  </div>;
-}
-
-export function MobileBar({ appt, locale, tense, tone, t, directionsHref, onBookAgain, bookingAgain, offline }: {
-  appt: AppointmentDetail; locale: Locale; tense: Tense; tone: StatusTone; t: ApptDict;
-  directionsHref: string | null; onBookAgain: () => void; bookingAgain: boolean; offline: boolean;
-}) {
-  const { openReview } = useAppointmentActions();
-  const reviewAllowed = canLeaveReview(appt);
-  const bookAgain = tense === "past" || appt.status === "completed" || tone === "warning" || tone === "error";
-  const canBookAgain = appt.location?.id != null;
-  if (!reviewAllowed && (bookAgain ? !canBookAgain : !directionsHref)) return null;
-  const tz = apptTimeZone(appt.location?.timezone, appt.business?.timezone);
-  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: tz }).format(new Date(appt.scheduled_at));
-  return <div className={`${styles.mobileBar} zw-mobile-actionbar`}>
-    {reviewAllowed ? <div className={styles.mobileReviewActions}>
-      {canBookAgain && <Button kind="secondary" style={{ padding: "12px", whiteSpace: "normal", lineHeight: 1.3 }} loading={bookingAgain} onClick={onBookAgain} disabled={bookingAgain || offline}>{t.bookAgain}</Button>}
-      <Button kind="accent" style={{ border: "none", color: "var(--c-50)", padding: "12px", whiteSpace: "normal", lineHeight: 1.3 }} disabled={offline} onClick={() => openReview(appt)}><Icon name="star" size={16} />{t.leaveReview}</Button>
-    </div> : <>
-      <div className={styles.mobileSummary}><strong>{date} · {apptTime(appt.scheduled_at, locale, tz)}</strong><span>{[appt.business?.name, appointmentVenue(appt).name].filter(Boolean).join(" · ")}</span></div>
-      {bookAgain ? <Button kind="primary" loading={bookingAgain} onClick={onBookAgain} disabled={bookingAgain || offline}>{t.bookAgain}</Button> : <a className={`tap zw-btn ${styles.mobileDirection}`} href={directionsHref!} target="_blank" rel="noopener noreferrer">{t.viewMap}</a>}
-    </>}
   </div>;
 }

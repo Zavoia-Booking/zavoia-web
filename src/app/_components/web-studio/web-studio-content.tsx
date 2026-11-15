@@ -5,6 +5,7 @@ import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { Icon } from "@/components/ui/icon";
 import { formatPrice, getPlanPricing, premiumStyleStartingPrice } from "@/lib/marketing/pricing";
+import type { MarketingFaqItem } from "@/lib/marketing/page-content";
 import { BRAND_ACCENT_CATALOG, FONT_CATALOG } from "@/features/website/components/builder/theme";
 import { MarketingFaq } from "@/app/_components/for-business/faq-section";
 import { TeamSeatPrice } from "@/app/_components/for-business/team-seat-price";
@@ -19,7 +20,7 @@ import connected from "./connected-story.module.css";
 import styles from "./web-studio.module.css";
 
 /** The product story and industry examples are authored on the server. */
-export function WebStudioContent({ locale, pending = false }: { locale: Locale; pending?: boolean }) {
+export function WebStudioContent({ locale, faqItems, pending = false }: { locale: Locale; faqItems: readonly MarketingFaqItem[]; pending?: boolean }) {
   const t = dictionaries[locale].webStudio;
   const pricing = getPlanPricing(locale);
   const values = { days: String(pricing.trialDays) };
@@ -91,11 +92,7 @@ export function WebStudioContent({ locale, pending = false }: { locale: Locale; 
         </div>
       </section>
 
-      <MarketingFaq locale={locale} headingId="studio-faq-title" title={t.faq.title} lead={t.faq.lead} helpPrompt={t.faq.helpPrompt} helpLink={t.faq.helpLink} items={t.faq.items.map(item => ({
-        q: item.q,
-        a: format(item.a, values),
-        link: item.helpLink ? { label: item.helpLink, href: localeHref(locale, "help") } : undefined,
-      }))} />
+      <MarketingFaq locale={locale} headingId="studio-faq-title" title={t.faq.title} lead={t.faq.lead} helpPrompt={t.faq.helpPrompt} helpLink={t.faq.helpLink} items={faqItems} />
     </div>
   );
 }

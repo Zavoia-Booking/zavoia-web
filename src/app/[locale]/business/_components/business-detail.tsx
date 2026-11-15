@@ -523,14 +523,67 @@ function Tabs({ tab, setTab, listing, panelId }: { tab: Tab; setTab: (tab: Tab) 
 function TeamTab({ members, memberId, setMemberId, listing, locale }: { members: ListingTeamMember[]; memberId: number | null; setMemberId: (id: number | null) => void; listing: ListingDetail; locale: Locale }) {
   const { dict } = useTranslation();
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [layout, setLayout] = useState({ view, animate: false });
+  const [instant, setInstant] = useState(true);
+  const roster = useRef<HTMLDivElement>(null);
+  const motion = useRef<Animation | null>(null);
+
+  // Change the layout while faded out, keeping the same cards and portraits.
+  // This is --ease-out; WAAPI cannot resolve the CSS variable itself.
+  const easeOut = "cubic-bezier(.2, .7, .3, 1)";
+  useLayoutEffect(() => {
+    motion.current?.cancel();
+    motion.current = null;
+    if (layout.animate && roster.current) {
+      motion.current = roster.current.animate([
+        { opacity: 0, transform: "translateY(4px)" },
+        { opacity: 1, transform: "none" },
+      ], { duration: 180, easing: easeOut });
+    }
+  }, [layout]);
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const settle = () => {
+      if (!preference.matches) return;
+      motion.current?.cancel();
+      setLayout({ view, animate: false });
+    };
+    preference.addEventListener("change", settle);
+    return () => preference.removeEventListener("change", settle);
+  }, [view]);
+  useEffect(() => () => motion.current?.cancel(), []);
+
+  const chooseView = (next: typeof view, detail: number) => {
+    if (next === view) return;
+    const immediately = detail === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setInstant(immediately);
+    setView(next);
+    const node = roster.current;
+    const current = node ? getComputedStyle(node) : null;
+    // Sample before cancelling so rapid switches continue from the live pose.
+    const from = { opacity: current?.opacity ?? "1", transform: current?.transform ?? "none" };
+    motion.current?.cancel();
+    if (immediately || !node) {
+      setLayout({ view: next, animate: false });
+      return;
+    }
+    const exit = node.animate([
+      from,
+      { opacity: 0, transform: "translateY(-4px)" },
+    ], { duration: 120, easing: easeOut, fill: "forwards" });
+    motion.current = exit;
+    exit.onfinish = () => setLayout({ view: next, animate: true });
+  };
+
   const selected = members.find(member => member.id === memberId);
   if (members.length === 0) return <EmptyState icon="user" title={dict.locationPage.teamEmptyTitle} body={dict.locationPage.teamEmptyBody} />;
   return <div className={styles.team}>
-    <div className={styles.teamToolbar}><p>{format(members.length === 1 ? dict.locationPage.professionalsCountOne : dict.locationPage.professionalsCount, { count: String(members.length) })}</p><div className={styles.viewSwitch}>
-      <button type="button" aria-label={dict.locationPage.gridView} aria-pressed={view === "grid"} onClick={() => setView("grid")}><Icon name="grid" size={17} /></button>
-      <button type="button" aria-label={dict.locationPage.listView} aria-pressed={view === "list"} onClick={() => setView("list")}><Icon name="list" size={17} /></button>
+    <div className={styles.teamToolbar}><p>{format(members.length === 1 ? dict.locationPage.professionalsCountOne : dict.locationPage.professionalsCount, { count: String(members.length) })}</p><div className={styles.viewSwitch} data-view={view} data-instant={instant || undefined}>
+      <button type="button" aria-label={dict.locationPage.gridView} aria-pressed={view === "grid"} onClick={event => chooseView("grid", event.detail)}><Icon name="grid" size={17} /></button>
+      <button type="button" aria-label={dict.locationPage.listView} aria-pressed={view === "list"} onClick={event => chooseView("list", event.detail)}><Icon name="list" size={17} /></button>
     </div></div>
-    <div className={view === "grid" ? styles.teamGrid : styles.teamList}>{members.map(member => {
+    <div ref={roster} className={layout.view === "grid" ? styles.teamGrid : styles.teamList}>{members.map(member => {
       const name = member.displayName || [member.firstName, member.lastName].filter(Boolean).join(" ");
       const content = <>
         {/* The name follows in text; the photo would only repeat it. */}

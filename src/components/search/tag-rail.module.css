@@ -40,6 +40,19 @@
 .rail[data-hidden="true"] .layer > button { pointer-events: none; }
 .selectionButton:focus-visible { outline-offset: -4px; }
 
+@media (max-width: 920px) {
+  .suggestions {
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+  }
+  .suggestions[data-active="true"] { pointer-events: auto; }
+  .chipButton { position: relative; }
+  .chipButton::after { position: absolute; inset: -5px 0; content: ""; }
+}
+
 /* Keyboard updates and first paint stay immediate. Two retained layers let
    rapid pointer changes reverse cleanly, without timers or layout animation. */
 @media (prefers-reduced-motion: no-preference) {

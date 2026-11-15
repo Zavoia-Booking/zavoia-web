@@ -10,37 +10,51 @@ import { listingFixture } from "../../../e2e/professionals/fixtures.mjs";
 // Compile the real dependency graph: the shared identity and hours parsers are
 // exercised, rather than replaced by copies of their implementations.
 const sourceRoot = fileURLToPath(new URL("../../", import.meta.url));
-const modules = new Map();
-function load(filename) {
-  if (modules.has(filename)) return modules.get(filename);
-  const exports = {};
-  modules.set(filename, exports);
-  const source = ts.transpileModule(readFileSync(filename, "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  const execute = vm.runInThisContext(`(function(exports, require) {${source}\n})`, { filename });
-  execute(exports, specifier => load(`${specifier.startsWith("@/")
-    ? resolve(sourceRoot, specifier.slice(2))
-    : resolve(dirname(filename), specifier)}.ts`));
-  return exports;
+function createLoader(env) {
+  const modules = new Map();
+  // Keep application configuration isolated without mutating the test process.
+  const moduleProcess = { env: { ...env } };
+  return function load(filename) {
+    if (modules.has(filename)) return modules.get(filename);
+    const exports = {};
+    modules.set(filename, exports);
+    const source = ts.transpileModule(readFileSync(filename, "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    const execute = vm.runInThisContext(`(function(exports, require, process) {${source}\n})`, { filename });
+    execute(exports, specifier => load(`${specifier.startsWith("@/")
+      ? resolve(sourceRoot, specifier.slice(2))
+      : resolve(dirname(filename), specifier)}.ts`), moduleProcess);
+    return exports;
+  };
 }
+const defaultEnv = { ...process.env };
+delete defaultEnv.NEXT_PUBLIC_SITE_URL;
+const load = createLoader(defaultEnv);
 const { locationStructuredData, serializeLocationStructuredData } = load(fileURLToPath(new URL("./structured-data.ts", import.meta.url)));
 const ofType = (graph, type) => graph["@graph"].find(node => node["@type"] === type);
 const venue = graph => ofType(graph, "LocalBusiness");
-const merchant = graph => graph["@graph"].find(node => node["@id"] === "https://zavoia.com/#business-101");
+const merchant = graph => graph["@graph"].find(node => node["@id"] === "https://www.zavoia.com/#business-101");
+
+test("the default canonical origin is the approved www host and explicit origins remain supported", () => {
+  const siteFile = resolve(sourceRoot, "lib/site.ts");
+  assert.equal(load(siteFile).SITE_URL, "https://www.zavoia.com");
+  const configured = createLoader({ ...defaultEnv, NEXT_PUBLIC_SITE_URL: "https://seo-preview.example.invalid/" });
+  assert.equal(configured(siteFile).SITE_URL, "https://seo-preview.example.invalid");
+});
 
 test("locale pages identify the same venue and publisher while preserving canonical page URLs", () => {
   const listing = listingFixture();
   const en = locationStructuredData(listing, "en");
   const ro = locationStructuredData(listing, "ro");
   assert.equal(venue(en)["@id"], venue(ro)["@id"]);
-  assert.equal(venue(en).url, "https://zavoia.com/business/share-old-town");
-  assert.equal(ofType(en, "WebPage").url, "https://zavoia.com/business/share-old-town");
-  assert.equal(ofType(ro, "WebPage").url, "https://zavoia.com/ro/business/share-old-town");
+  assert.equal(venue(en).url, "https://www.zavoia.com/business/share-old-town");
+  assert.equal(ofType(en, "WebPage").url, "https://www.zavoia.com/business/share-old-town");
+  assert.equal(ofType(ro, "WebPage").url, "https://www.zavoia.com/ro/business/share-old-town");
   assert.equal(ofType(ro, "WebPage").inLanguage, "ro");
   assert.deepEqual(ofType(ro, "WebPage").mainEntity, { "@id": venue(ro)["@id"] });
-  assert.deepEqual(ofType(ro, "WebPage").publisher, { "@id": "https://zavoia.com/#organization" });
-  assert.deepEqual(ofType(ro, "WebPage").isPartOf, { "@id": "https://zavoia.com/#website" });
+  assert.deepEqual(ofType(ro, "WebPage").publisher, { "@id": "https://www.zavoia.com/#organization" });
+  assert.deepEqual(ofType(ro, "WebPage").isPartOf, { "@id": "https://www.zavoia.com/#website" });
   assert.deepEqual(venue(ro).parentOrganization, { "@id": merchant(ro)["@id"] });
   assert.notEqual(merchant(ro)["@id"], ofType(ro, "WebPage").publisher["@id"]);
   listing.slug = listing.location.slug = "renamed-branch";
@@ -142,7 +156,7 @@ test("location photos are deduplicated public web URLs without borrowing brand a
     "https://user:password@photos.example.invalid/private.jpg", "//external.example.invalid/image.jpg",
   ];
   const node = venue(locationStructuredData(listing, "en"));
-  assert.deepEqual(node.image, ["https://photos.example.invalid/venue.jpg", "https://zavoia.com/images/second.webp"]);
+  assert.deepEqual(node.image, ["https://photos.example.invalid/venue.jpg", "https://www.zavoia.com/images/second.webp"]);
 });
 
 test("coordinates require a complete finite pair and preserve valid zero values", () => {

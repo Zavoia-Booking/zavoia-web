@@ -23,7 +23,10 @@
   font-weight: var(--mc-display-weight);
   letter-spacing: var(--mc-display-tracking);
   text-align: left;
+  list-style: none;
 }
+
+.mc-faq-q::-webkit-details-marker { display: none; }
 
 .mc-faq-ic {
   display: flex;
@@ -41,7 +44,8 @@
     border-color 250ms;
 }
 
-.mc-faq-item[data-on="1"] .mc-faq-ic {
+.mc-faq-item[data-on="1"] .mc-faq-ic,
+.mc-faq-item[open] .mc-faq-ic {
   border-color: var(--mc-accent);
   background: var(--mc-accent);
   color: var(--mc-on-accent);

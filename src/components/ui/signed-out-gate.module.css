@@ -46,8 +46,3 @@
   justify-content: center;
   gap: 12px;
 }
-@media (max-width: 920px) {
-  .illustrated {
-    min-height: calc(100svh - var(--nav-h) - var(--mobile-tabs-h));
-  }
-}

@@ -168,9 +168,12 @@ button.ticket { cursor: pointer; }
 .team { min-width: 0; }
 .teamToolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .teamToolbar > p { margin: 0; color: var(--c-600); font-size: 14px; }
-.viewSwitch { display: inline-flex; padding: 3px; border: 1px solid var(--c-300); border-radius: var(--r-full); background: var(--c-50); }
-.viewSwitch > button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: var(--r-full); color: var(--c-600); background: transparent; cursor: pointer; transition: background-color 160ms var(--ease-out); }
-.viewSwitch > button[aria-pressed="true"] { color: var(--c-50); background: var(--c-ink); }
+.viewSwitch { position: relative; isolation: isolate; display: inline-flex; padding: 3px; border: 1px solid var(--c-300); border-radius: var(--r-full); background: var(--c-50); }
+.viewSwitch::before { content: ""; position: absolute; z-index: -1; inset: 3px auto 3px 3px; width: 44px; border-radius: var(--r-full); background: var(--c-ink); transform: translateX(0); pointer-events: none; transition: transform 220ms var(--ease-out); }
+.viewSwitch[data-view="list"]::before { transform: translateX(100%); }
+.viewSwitch > button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: var(--r-full); color: var(--c-600); background: transparent; cursor: pointer; transition: color 160ms var(--ease-soft); }
+.viewSwitch > button[aria-pressed="true"] { color: var(--c-50); }
+.viewSwitch[data-instant]::before, .viewSwitch[data-instant] > button { transition: none; }
 .teamGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 16px; }
 /* Identity from the top and the profile link along the bottom, so names and
    links line up across a row whatever each card holds. */
@@ -184,7 +187,9 @@ button.ticket { cursor: pointer; }
 /* The list is a roster for scanning: hairline rows instead of boxes, the title
    and rating sharing a line under the name. */
 .teamList { display: flex; flex-direction: column; border-top: 1px solid var(--c-200); }
-.teamList .teamCard { grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-rows: auto; align-items: center; column-gap: 16px; padding: 14px 8px; border: 0; border-bottom: 1px solid var(--c-200); border-radius: 0; background: transparent; box-shadow: none; }
+/* Preserve hidden border colors: border: 0 resets them to ink and makes all
+   three restored grid borders flash during the border-color transition. */
+.teamList .teamCard { grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-rows: auto; align-items: center; column-gap: 16px; padding: 14px 8px; border-width: 0; border-bottom: 1px solid var(--c-200); border-radius: 0; background: transparent; box-shadow: none; }
 .teamList .teamPortrait { grid-row: 1; }
 .teamList .teamPortrait > * { width: 48px !important; height: 48px !important; font-size: 15px !important; }
 .teamList .teamIdentity { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 2px 12px; }
@@ -315,7 +320,7 @@ button.ticket { cursor: pointer; }
   .teamIdentity > strong { font-size: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .toolbarMapAction, .shareAction, .tabs > button, .tabCount, .tabIndicator, .tabHover, .tabHover[data-visible], .searchClear, .indexList a, .indexMarker, .serviceIndexMobile > summary > svg, .addAction, .ticketBody::before, .ticketBody::after, .ticketStub::before, .ticketStub::after, .viewSwitch > button, .teamCard { transition: none; }
+  .toolbarMapAction, .shareAction, .tabs > button, .tabCount, .tabIndicator, .tabHover, .tabHover[data-visible], .searchClear, .indexList a, .indexMarker, .serviceIndexMobile > summary > svg, .addAction, .ticketBody::before, .ticketBody::after, .ticketStub::before, .ticketStub::after, .viewSwitch::before, .viewSwitch > button, .teamCard { transition: none; }
   .teamCard:hover, .teamCard:active, .teamCard:hover .profileLink > svg { transform: none; }
   .profileLink > svg { transition: none; }
 }

@@ -1,6 +1,7 @@
 .mc-gallery-section[data-gallery="index"] {
   --mc-bg: #0b0a09;
   --mc-fg: #fbfaf7;
+  --mc-focus: var(--mc-fg);
   --mc-muted: rgba(251, 250, 247, 0.58);
   --mc-line: rgba(251, 250, 247, 0.2);
   --mc-soft: #161311;
@@ -120,7 +121,7 @@
 
 .mc-galmosaic-tile:focus-visible {
   z-index: 2;
-  outline: 3px solid var(--mc-accent);
+  outline: 3px solid var(--mc-focus, var(--mc-fg));
   outline-offset: -3px;
 }
 

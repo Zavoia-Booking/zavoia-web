@@ -62,6 +62,7 @@ import {
   NAME_MIN_LENGTH,
   PASSWORD_MIN_LENGTH,
   PASSWORD_REGEX,
+  isValidEmail,
   isValidPersonName,
   isValidPhone,
   normalizePhone,
@@ -1359,8 +1360,6 @@ function PasswordForm({
 // is gated off when the account has no password (hasPassword === false).
 // ─────────────────────────────────────────────
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 type AuthErrorsDict = Dictionary["auth"]["errors"];
 type SharedErrorsDict = Dictionary["errors"];
 
@@ -1604,7 +1603,7 @@ function GoogleConnectionRow({
 // ─────────────────────────────────────────────
 // Change email row — lives in Personal info and mirrors the admin-dashboard
 // flow: the user retypes the CURRENT address alongside the new one, both
-// validated with the shared EMAIL_RE before anything leaves the browser.
+// validated with the shared email rule before anything leaves the browser.
 // The backend (POST /marketplace/auth/change-email) swaps the address
 // instantly, mails BOTH the old and the new address, and revokes every OTHER
 // session — this one survives. Backend codes land on the field they belong to:
@@ -1667,8 +1666,8 @@ function ChangeEmailRow({
     // Validate both fields in one pass so the user sees every problem at once
     // instead of one server round-trip at a time.
     const local: { current?: string; next?: string } = {};
-    if (!EMAIL_RE.test(current)) local.current = c.invalidEmail;
-    if (!EMAIL_RE.test(next)) {
+    if (!isValidEmail(current)) local.current = c.invalidEmail;
+    if (!isValidEmail(next)) {
       local.next = c.invalidEmail;
     } else if (!local.current && next.toLowerCase() === current.toLowerCase()) {
       local.next = authErrors.sameEmail;
@@ -2927,7 +2926,7 @@ function MobileHub({
         </div>
       )}
 
-      <div style={{ marginBottom: 26 }}>
+      <div style={{ marginBottom: 12 }}>
         <SectionLabel>{t.hubGroupLabel}</SectionLabel>
         <Card>
           {NAV_ITEMS.map((it, i) => (
@@ -2956,7 +2955,7 @@ function MobileHub({
           justifyContent: "flex-start",
           gap: 10,
           width: "100%",
-          padding: "16px 4px",
+          padding: "16px 18px",
           borderRadius: 0,
           background: "transparent",
           border: 0,
@@ -2967,14 +2966,13 @@ function MobileHub({
           letterSpacing: "-0.01em",
           fontFamily: "inherit",
           opacity: loggingOut ? 0.7 : 1,
-          borderTop: "1px solid rgba(28,28,26,0.10)",
         }}
       >
         <span
           aria-hidden={loggingOut || undefined}
-          style={{ display: "inline-flex", alignItems: "center", gap: 10, visibility: loggingOut ? "hidden" : undefined }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 14, visibility: loggingOut ? "hidden" : undefined }}
         >
-          <Icon name="logout" size={17} color="currentColor" />
+          <Icon name="logout" size={20} color="currentColor" />
           {t.logout}
         </span>
         {loggingOut && (
@@ -3017,7 +3015,7 @@ function LoadingState({ t, locale }: { t: AcctDict; locale: Locale }) {
         </div>
       </div>
       <div className={`zw-container ${styles.mobile} ${styles.mobilePage}`}>
-        <div inert className={styles.mobileWorkspace}>
+        <div inert className={styles.mobileWorkspace} data-section="hub">
           <MobileHub t={t} locale={locale} profile={null} profilePending profileRetrying={false} onRetryProfile={noop} summary={null} summaryLoading summaryError={false} onRetrySummary={noop} uploadingPhoto={false} onPickPhoto={noop} setActive={noop} onLogout={noop} loggingOut={false} />
         </div>
       </div>

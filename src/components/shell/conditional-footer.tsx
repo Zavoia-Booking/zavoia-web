@@ -7,7 +7,7 @@ import { Footer } from "@/components/shell/footer";
 import { routeKey, isFullBleedPath } from "@/components/shell/active-route";
 
 // The search route is a full-bleed, viewport-height map experience: the shared
-// footer (and the mobile tab-bar spacer) would push it off-screen / introduce
+// footer would push it off-screen / introduce
 // page scroll. A nested layout can't remove the parent layout's footer, so this
 // client wrapper suppresses both chrome elements on the `search` route only.
 // Search keeps language navigation in the shared header.
@@ -21,9 +21,7 @@ export function ConditionalFooter({ locale }: { locale: Locale }) {
   return (
     <>
       <Footer locale={locale} showWordmark={!isSignInPage} />
-      {/* Spacer so content clears the fixed mobile tab bar (and, on the
-          business page, the fixed booking bar stacked above it — see the
-          `.zw-footer-spacer` rule in globals.css). */}
+      {/* Only pages with a fixed booking bar need clearance. */}
       <div data-marketplace-chrome className="zw-only-mobile zw-footer-spacer" />
     </>
   );

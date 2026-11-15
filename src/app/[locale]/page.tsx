@@ -8,8 +8,11 @@ import {
 } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
-import { SITE_URL, defaultSocialImage } from "@/lib/site";
+import { defaultSocialImage } from "@/lib/site";
+import { siteEntities } from "@/lib/seo/site-identity";
+import { serializeJsonLd } from "@/lib/seo/json-ld";
 import { HomeContent, type FeedResult } from "@/app/_components/home-content";
+import { ApiError } from "@/lib/api/http";
 import {
   getBrands,
   getIndustries,
@@ -18,15 +21,44 @@ import {
 
 import { DISCOVERY_TAG, TAXONOMY_TAG, DISCOVERY_REVALIDATE_SECONDS, LISTING_REVALIDATE_SECONDS } from "@/lib/cache/tags";
 
-// Reduces a feed promise to a FeedResult instead of collapsing success and
-// failure into the same `[]` — see FeedResult's doc comment in home-content.
-// Attached at promise creation (like the old bare `.catch()`), so this is
-// still handled before HomeContent's Suspense boundaries ever await it.
-function settle<T>(promise: Promise<T>): Promise<FeedResult<T>> {
-  return promise.then(
-    (data): FeedResult<T> => ({ ok: true, data }),
-    (): FeedResult<T> => ({ ok: false }),
-  );
+const HOME_FEED_TIMEOUT_MS = 15_000;
+
+// Bound the whole exchange, including the body, without dropping Next's cache
+// hints. A deadline also settles an abort-ignoring transport. Keep failed data
+// distinct from an honest empty array and reject malformed list envelopes here,
+// before a streamed section tries to render them.
+async function settle<T>(
+  endpoint: string,
+  request: (signal: AbortSignal) => Promise<T[]>,
+): Promise<FeedResult<T[]>> {
+  const controller = new AbortController();
+  let reason: "request_failed" | "timeout" | "invalid_response" = "request_failed";
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reason = "timeout";
+        controller.abort();
+        reject(new Error("Home feed deadline exceeded"));
+      }, HOME_FEED_TIMEOUT_MS);
+    });
+    const data = await Promise.race([request(controller.signal), deadline]);
+    if (!Array.isArray(data) || data.some((row) => !row || typeof row !== "object" || Array.isArray(row))) {
+      reason = "invalid_response";
+      throw new Error("Invalid home feed response");
+    }
+    return { ok: true, data };
+  } catch (error) {
+    // Never log response bodies, customer data, tokens, or raw backend messages.
+    console.warn("[home-feed] Request failed", {
+      endpoint,
+      reason,
+      ...(error instanceof ApiError ? { status: error.status } : {}),
+    });
+    return { ok: false, failureId: Date.now() };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // The home fetches live marketplace data, so it must NOT be statically
@@ -46,27 +78,10 @@ const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
   ro: "ro_RO",
 };
 
-// Both locale homepages describe the same site and organization. Stable IDs
-// keep these entities connected without inventing country coverage or contacts.
+// Every page describes the same verified publisher and website with stable IDs.
 const homeStructuredData = {
   "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      "@id": `${SITE_URL}/#organization`,
-      name: "Zavoia",
-      url: `${SITE_URL}/`,
-      logo: `${SITE_URL}/brand/wordmark-cropped.png`,
-    },
-    {
-      "@type": "WebSite",
-      "@id": `${SITE_URL}/#website`,
-      name: "Zavoia",
-      url: `${SITE_URL}/`,
-      inLanguage: [...LOCALES],
-      publisher: { "@id": `${SITE_URL}/#organization` },
-    },
-  ],
+  "@graph": siteEntities(),
 };
 
 export async function generateMetadata({
@@ -115,15 +130,13 @@ export default async function Home({ params }: Props) {
   // each one streams into its own <Suspense> boundary, so the hero and the
   // editorial bands reach the browser without waiting on admin-api at all.
   //
-  // Build-safety: `settle()` at creation doubles as the failure fallback (a
-  // failed/absent backend never crashes the render — it resolves to
-  // `{ ok: false }` instead of rejecting) and ensures the promise is already
-  // handled before its consumer awaits it. Unlike the old bare `.catch(() =>
-  // [])`, failure and a genuine empty result no longer collapse into the same
-  // value — see FeedResult.
+  // `settle()` gives each request a deadline and handles rejection immediately,
+  // before its streamed consumer awaits it. Failure remains distinct from an
+  // honest empty result so the shared discovery recovery can choose its state.
   // Keep the page dynamic while reusing anonymous, locale-independent data.
   // The existing backend webhook expires discovery data on listing changes.
-  const industries = settle(getIndustries({
+  const industries = settle("/marketplace/public/industries", (signal) => getIndustries({
+    signal,
     revalidate: LISTING_REVALIDATE_SECONDS,
     tags: [TAXONOMY_TAG],
   }));
@@ -134,16 +147,20 @@ export default async function Home({ params }: Props) {
   // Website publication changes already expire the discovery tag. The API
   // applies the same publication and entitlement gates as the website route.
   const websites = settle(
-    getWebsiteShowcase(discoveryCache).then((res) => res.data),
+    "/marketplace/public/websites",
+    (signal) => getWebsiteShowcase({ ...discoveryCache, signal }).then((res) => res.data),
   );
-  const brands = settle(getBrands({ limit: 10 }, discoveryCache).then((res) => res.data));
+  const brands = settle(
+    "/marketplace/public/brands",
+    (signal) => getBrands({ limit: 10 }, { ...discoveryCache, signal }).then((res) => res.data),
+  );
 
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(homeStructuredData).replace(/</g, "\\u003c"),
+          __html: serializeJsonLd(homeStructuredData),
         }}
       />
       <HomeContent

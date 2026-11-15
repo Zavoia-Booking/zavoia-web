@@ -25,6 +25,7 @@ import type { Industry } from "@/lib/api/marketplace/types";
 import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { routeKey } from "./active-route";
 import { AccountMenu } from "./account-menu";
+import { MobileNavigation } from "./mobile-navigation";
 import { NotifPanel } from "./notif-panel";
 import { useUnreadBadge } from "@/lib/notifications/use-notifications";
 import styles from "./site-header.module.css";
@@ -215,8 +216,19 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const notificationsTriggerId = useId();
   const [pastHero, setPastHero] = useState(false);
 
-  // On the homepage the pill stays hidden until the hero search scrolls away,
-  // then pops into the nav. On other routes it's always shown. The scroll
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 920px)");
+    const closeDesktopPanels = () => {
+      if (!mobile.matches) return;
+      setAcctOpen(false);
+      setNotifOpen(false);
+    };
+    mobile.addEventListener("change", closeDesktopPanels);
+    return () => mobile.removeEventListener("change", closeDesktopPanels);
+  }, []);
+
+  // On the homepage header search stays hidden until the hero search scrolls
+  // away, then appears on desktop and mobile. Other routes always show it. The scroll
   // listener (and the rAF-deferred initial read) keep setState out of the
   // synchronous effect body.
   useEffect(() => {
@@ -314,6 +326,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         }}
       >
         <Link
+          data-marketplace-header-brand
           href={localeHref(locale)}
           aria-label={dict.nav.homeAria}
           title={dict.nav.homeAria}
@@ -395,7 +408,10 @@ export function SiteHeader({ locale }: { locale: Locale }) {
 
         <div className={styles.phoneSpacer} />
 
+        <MobileNavigation key={`${locale}:${pathname}`} locale={locale} onSearch={() => open("what")} showSearch={showPill} />
+
         <div
+          className={styles.desktopControls}
           style={{
             display: "flex",
             alignItems: "center",
@@ -405,7 +421,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         >
           {/* Web Studio sits beside For business — both are the business-facing
               side of the site, grouped the same way the account menu groups
-              them. Desktop only; mobile reaches it through the account menu. */}
+              them. Mobile reaches both through the Underlay navigation. */}
           <Link
             href={localeHref(locale, "web-studio")}
             title={dict.nav.webStudio}

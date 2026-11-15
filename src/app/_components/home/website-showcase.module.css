@@ -1,0 +1,127 @@
+.layout {
+  --intro-inset: calc(1px + clamp(20px, 2.2vw, 32px));
+  position: relative;
+  display: grid;
+  grid-template-columns: clamp(360px, 40%, 540px) minmax(0, 1fr);
+  grid-template-rows: 1fr auto auto auto 1fr;
+  column-gap: clamp(28px, 4vw, 60px);
+  padding-block: clamp(48px, 6vw, 92px);
+  min-height: 70vh;
+}
+
+.intro,
+.actions,
+.controls {
+  grid-column: 1;
+  min-width: 0;
+  margin-left: var(--intro-inset);
+}
+
+.intro { grid-row: 2; }
+.actions { grid-row: 3; }
+.controls { grid-row: 4; }
+
+.stepper {
+  grid-column: 1;
+  grid-row: 2 / 5;
+  position: relative;
+  width: 1px;
+  background: rgba(255, 255, 255, .2);
+}
+
+.description { margin: 20px 0 30px; }
+.pager { margin-top: clamp(30px, 3.2vw, 44px); }
+.progress { max-width: 240px; }
+.primary { padding: 15px 28px; font-size: 16px; }
+.demoArrow { display: inline-flex; }
+
+.preview {
+  --edge-width: clamp(14px, 1.6vw, 24px);
+  --edge-start-width: 0px;
+  --edge-end-width: 0px;
+  grid-column: 2;
+  grid-row: 1 / 6;
+  min-width: 0;
+  overflow: hidden;
+  /* A light, eased falloff softens the cut without a visible blurred strip. */
+  mask-image: linear-gradient(
+    90deg,
+    rgb(0 0 0 / .92),
+    rgb(0 0 0 / .965) calc(var(--edge-start-width) * .35),
+    rgb(0 0 0 / .99) calc(var(--edge-start-width) * .7),
+    #000 var(--edge-start-width),
+    #000 calc(100% - var(--edge-end-width)),
+    rgb(0 0 0 / .99) calc(100% - var(--edge-end-width) * .7),
+    rgb(0 0 0 / .965) calc(100% - var(--edge-end-width) * .35),
+    rgb(0 0 0 / .92)
+  );
+}
+
+.preview[data-edge-start="true"] {
+  --edge-start-width: var(--edge-width);
+}
+
+.preview[data-edge-end="true"] {
+  --edge-end-width: var(--edge-width);
+}
+
+.rail[data-scrollable="true"] {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.rail[data-scrollable="true"] a { cursor: inherit; }
+.rail[data-dragging="true"] { cursor: grabbing; }
+
+@media (max-width: 920px) {
+  .layout { --intro-inset: 0px; }
+}
+
+@media (max-width: 880px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    row-gap: 24px;
+    min-height: 0;
+  }
+
+  .intro { grid-row: 1; }
+  .preview {
+    --edge-width: clamp(6px, 2.2vw, 10px);
+    grid-column: 1;
+    grid-row: 2;
+    overflow: visible;
+  }
+  .controls { grid-row: 3; width: 100%; }
+  .actions { grid-row: 4; }
+  .pager { margin-top: 0; justify-content: space-between; }
+  .progress { max-width: none; }
+  .description { margin-bottom: 0; }
+
+  .layout .rail > .railCard { flex: 0 0 100%; }
+
+  .layout > .actions {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .actions .primary {
+    padding: 13px clamp(12px, 3.2vw, 20px);
+    font-size: clamp(13px, 3.5vw, 15px);
+  }
+
+  .actions .secondary {
+    gap: 6px;
+    font-size: clamp(13px, 3.5vw, 14px);
+  }
+
+  .controls[data-scrollable="false"] { display: none; }
+  .controls[data-scrollable="false"] + .actions { grid-row: 3; }
+}
+
+@media (max-width: 359px) {
+  .demoArrow { display: none; }
+}
+

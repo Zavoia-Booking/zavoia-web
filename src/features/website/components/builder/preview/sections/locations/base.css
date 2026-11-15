@@ -35,7 +35,7 @@
 
 .mc-locations button:focus-visible,
 .mc-locations a:focus-visible {
-  outline: 2px solid var(--mc-accent);
+  outline: 2px solid var(--mc-focus, var(--mc-fg));
   outline-offset: 3px;
 }
 

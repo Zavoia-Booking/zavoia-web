@@ -15,6 +15,7 @@ import { authFlowHref, authRedirectTarget } from "@/lib/auth/redirects";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 import { AuthField } from "./auth-field";
 import { InlineError } from "@/components/ui/inline-error";
+import { isValidEmail } from "@/lib/validation";
 
 type Errors = Partial<Record<"email" | "password" | "form", string>>;
 
@@ -64,7 +65,7 @@ export function LoginForm({
   function validateField(key: "email" | "password", value: string) {
     if (key === "email") {
       if (!value.trim()) return dict.errors.emailRequired;
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+      if (!isValidEmail(value)) {
         return dict.errors.emailInvalid;
       }
     } else if (!value) return dict.errors.passwordRequired;

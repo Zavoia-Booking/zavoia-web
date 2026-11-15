@@ -6,10 +6,11 @@ export const companyInfo: LegalDocument = {
   title: { en: "Company Information", ro: "Informații despre companie" },
   shortTitle: { en: "Company info", ro: "Date companie" },
   description: {
-    en: "The legal identity of the company operating Zavoia, as required by Romanian law (Legea 365/2002 art. 5).",
+    en: "The legal identity of the company operating Zavoia, as required by Romanian law (Law 365/2002 art. 5).",
     ro: "Identitatea juridică a societății care operează Zavoia, conform Legii 365/2002 art. 5.",
   },
-  status: "draft",
+  status: "published",
+  effectiveDate: "2026-11-15",
   sections: [
     {
       id: "identity",
@@ -32,27 +33,20 @@ export const companyInfo: LegalDocument = {
           items: {
             en: [
               "Legal name: TNT VENTURES SRL",
-              "Trade Register number: [J__/____/____]",
-              "Tax identification code (CUI): 48718430",
-              "VAT registration: [RO________ / not VAT-registered]",
-              "Registered office: [full address]",
-              "Share capital: [amount] RON",
+              "Trade Register number: J4/1369/2023",
+              "Fiscal code: 48718430",
+              "VAT registration: not registered for VAT",
+              "Registered office: Mun. București, Sectorul 6, Str. Splaiul Independenței, Nr. 202 B, Camera 42",
+              "Share capital: 200 RON",
             ],
             ro: [
               "Denumire: TNT VENTURES SRL",
-              "Număr de ordine în Registrul Comerțului: [J__/____/____]",
+              "Număr de ordine în Registrul Comerțului: J4/1369/2023",
               "Cod unic de înregistrare (CUI): 48718430",
-              "Înregistrare în scopuri de TVA: [RO________ / neînregistrată în scopuri de TVA]",
-              "Sediu social: [adresa completă]",
-              "Capital social: [suma] RON",
+              "Înregistrare în scopuri de TVA: neînregistrată",
+              "Sediu social: Mun. București, Sectorul 6, Str. Splaiul Independenței, Nr. 202 B, Camera 42",
+              "Capital social: 200 lei",
             ],
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "GATE D1 (updated 11 Nov 2026): legal name and CUI confirmed (TNT VENTURES SRL, 48718430). Still to complete before publication: Trade Register number, VAT status, registered office and share capital — Legea 365/2002 art. 5 makes the company's identification details mandatory for an information-society service provider.",
-            ro: "GATE D1 (actualizat 11 nov. 2026): denumirea și CUI-ul sunt confirmate (TNT VENTURES SRL, 48718430). De completat înainte de publicare: numărul de la Registrul Comerțului, statutul de TVA, sediul social și capitalul social — Legea 365/2002 art. 5 face obligatorii datele de identificare ale societății pentru un furnizor de servicii ale societății informaționale.",
           },
         },
       ],
@@ -70,13 +64,17 @@ export const companyInfo: LegalDocument = {
           items: {
             en: [
               "Email: support@zavoia.com",
+              "Phone: +40 767 893 122",
               "Support: the Help Centre at zavoia.com/help, available to visitors and account holders",
               "Postal address: the registered office listed above",
+              "Single point of contact for authorities and users (Articles 11 and 12 of the Digital Services Act, Regulation (EU) 2022/2065): support@zavoia.com, in Romanian or English",
             ],
             ro: [
               "Email: support@zavoia.com",
+              "Telefon: +40 767 893 122",
               "Asistență: Centrul de ajutor la zavoia.com/help, disponibil vizitatorilor și deținătorilor de cont",
               "Adresă poștală: sediul social menționat mai sus",
+              "Punct unic de contact pentru autorități și utilizatori (art. 11 și 12 din Regulamentul (UE) 2022/2065 privind serviciile digitale): support@zavoia.com, în limba română sau engleză",
             ],
           },
         },
@@ -84,7 +82,7 @@ export const companyInfo: LegalDocument = {
           kind: "p",
           text: {
             en: "We aim to answer support requests within a reasonable time. Requests that concern a specific booking or a specific business should include the booking reference so we can help faster.",
-            ro: "Ne propunem să răspundem solicitărilor de asistență într-un termen rezonabil. Solicitările care privesc o programare sau o afacere anume ar trebui să includă referința programării, pentru a vă putea ajuta mai repede.",
+            ro: "Ne propunem să răspundem solicitărilor de asistență într-un termen rezonabil. Solicitările care privesc o programare sau o afacere anume ar trebui să includă referința programării, ca să vă putem ajuta mai repede.",
           },
         },
       ],
@@ -104,7 +102,7 @@ export const companyInfo: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "If you are a consumer and have a complaint, please contact our support first — most issues are resolved there. If we cannot resolve your complaint, you may address the National Authority for Consumer Protection (ANPC) or use the alternative dispute resolution (SAL) mechanism.",
+            en: "If you are a consumer and have a complaint, please contact our support first — most issues are resolved there. If we cannot resolve your complaint, you may contact the National Authority for Consumer Protection (ANPC) or use ANPC's alternative dispute resolution service.",
             ro: "Dacă sunteți consumator și aveți o reclamație, contactați mai întâi echipa noastră de asistență — majoritatea problemelor se rezolvă acolo. Dacă nu vă putem soluționa reclamația, vă puteți adresa Autorității Naționale pentru Protecția Consumatorilor (ANPC) sau puteți folosi mecanismul de soluționare alternativă a litigiilor (SAL).",
           },
         },
@@ -113,19 +111,12 @@ export const companyInfo: LegalDocument = {
           items: {
             en: [
               "ANPC — National Authority for Consumer Protection: anpc.ro",
-              "SAL — alternative dispute resolution: reclamatiisal.anpc.ro",
+              "ANPC's alternative dispute resolution service: reclamatiisal.anpc.ro",
             ],
             ro: [
               "ANPC — Autoritatea Națională pentru Protecția Consumatorilor: anpc.ro",
               "SAL — soluționarea alternativă a litigiilor: reclamatiisal.anpc.ro",
             ],
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "Per blueprint B9: display the ANPC/SAL links and pictograms in the site footer following the eMAG pattern; do not reference the discontinued EU ODR platform. Whether the SAL pictogram order (Ordin ANPC 449/2022 as amended) applies directly to Zavoia is a pending question for counsel.",
-            ro: "Conform blueprint B9: afișați linkurile și pictogramele ANPC/SAL în subsolul site-ului după modelul eMAG; nu faceți referire la platforma ODR a UE, care a fost desființată. Dacă ordinul privind pictograma SAL (Ordin ANPC 449/2022, modificat) se aplică direct Zavoia este o întrebare în curs pentru avocați.",
           },
         },
       ],

@@ -12,7 +12,8 @@ export const dac7: LegalDocument = {
     en: "What the EU platform-reporting rules (DAC7) are, what data they require, and what they mean for businesses listed on the Zavoia marketplace.",
     ro: "Ce sunt regulile UE de raportare a platformelor (DAC7), ce date presupun și ce înseamnă pentru afacerile listate în marketplace-ul Zavoia.",
   },
-  status: "draft",
+  status: "published",
+  effectiveDate: "2026-11-14",
   sections: [
     {
       id: "what-is-dac7",
@@ -26,7 +27,7 @@ export const dac7: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "DAC7 is Council Directive (EU) 2021/514, transposed into Romanian law by OG 16/2023 into the Fiscal Procedure Code (Legea 207/2015). It requires online platforms that connect sellers with users to identify those sellers and report their activity annually to the tax authority — in Romania, ANAF, which then exchanges the information with other EU tax authorities.",
+            en: "DAC7 is Council Directive (EU) 2021/514, transposed into Romanian law by Government Ordinance 16/2023 into the Fiscal Procedure Code (Law 207/2015). It requires online platforms that connect sellers with users to identify those sellers and report their activity annually to the tax authority — in Romania, the National Agency for Fiscal Administration (ANAF), which then exchanges the information with other EU tax authorities.",
             ro: "DAC7 este Directiva (UE) 2021/514 a Consiliului, transpusă în legislația română prin OG 16/2023 în Codul de procedură fiscală (Legea 207/2015). Impune platformelor online care pun în legătură vânzători cu utilizatori să identifice acei vânzători și să le raporteze anual activitatea către autoritatea fiscală — în România, ANAF, care apoi face schimb de informații cu celelalte autorități fiscale din UE.",
           },
         },
@@ -54,29 +55,15 @@ export const dac7: LegalDocument = {
         ro: "Se aplică pentru Zavoia?",
       },
       summary: {
-        en: "Being in scope does not depend on the platform handling payments — the test is different.",
-        ro: "Intrarea în domeniul de aplicare nu depinde de gestionarea plăților de către platformă — testul este altul.",
+        en: "Yes, for bookings made through Zavoia, even though customers pay at your venue.",
+        ro: "Da, pentru programările făcute prin Zavoia, chiar dacă clienții plătesc la sediul dumneavoastră.",
       },
       body: [
         {
           kind: "p",
           text: {
-            en: "Zavoia does not process any customer payments — you are paid directly, at your venue. That alone does not settle the question: DAC7 excludes software that exclusively processes payments, exclusively lists or advertises, or exclusively redirects users, and it defines reportable amounts as consideration whose value is “known or reasonably knowable” by the platform. A booking platform that shows listed prices and records completed appointments is not automatically outside that definition.",
-            ro: "Zavoia nu procesează nicio plată de la clienți — sunteți plătit direct, la sediul dumneavoastră. Acest lucru, în sine, nu tranșează întrebarea: DAC7 exclude software-ul care exclusiv procesează plăți, exclusiv listează sau promovează, ori exclusiv redirecționează utilizatori, și definește sumele raportabile drept contraprestație a cărei valoare este „cunoscută sau ar putea fi, în mod rezonabil, cunoscută” de platformă. O platformă de programări care afișează prețuri listate și înregistrează programări finalizate nu se află automat în afara acestei definiții.",
-          },
-        },
-        {
-          kind: "p",
-          text: {
-            en: "We are confirming Zavoia's exact position with tax counsel. This page describes what applies if and to the extent Zavoia is a reporting platform operator; we will publish the outcome here and notify listed businesses before any first reporting period.",
-            ro: "Confirmăm poziția exactă a Zavoia cu un consultant fiscal. Această pagină descrie ce se aplică dacă și în măsura în care Zavoia este operator de platformă cu obligație de raportare; vom publica rezultatul aici și vom notifica afacerile listate înainte de orice prim an de raportare.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "GATE D12 (decisions doc §6): DAC7 applicability is an open tax-classification question — a memo from Romanian tax counsel is required. Do not publish this page stating that Zavoia reports, or that it does not, until the memo lands. Supporting research from the 1 Aug 2026 session: OECD Model Rules FAQ 14 (a listed price is knowable consideration where the operator knows the transaction was executed) and Finnish tax-administration guidance (where payment is not facilitated via the platform, the price quoted/agreed on the platform is treated as the known price) both point toward scope; Treatwell (same pay-at-venue model) reports under DAC7, while Fresha reports only Fresha-Payments activity and applies the goods thresholds to services — an aggressive position not to copy.",
-            ro: "GATE D12 (documentul de decizii §6): aplicabilitatea DAC7 este o întrebare deschisă de clasificare fiscală — este necesar un memo de la un consultant fiscal român. Nu publicați această pagină afirmând că Zavoia raportează sau că nu raportează, până la primirea memo-ului. Cercetarea suport din sesiunea 1 aug. 2026: OECD Model Rules FAQ 14 (un preț listat este contraprestație cunoscută atunci când operatorul știe că tranzacția a fost executată) și ghidul administrației fiscale finlandeze (când plata nu este intermediată prin platformă, prețul cotat/convenit pe platformă este tratat drept prețul cunoscut) indică ambele spre includere; Treatwell (același model de plată la sediu) raportează conform DAC7, în timp ce Fresha raportează doar activitatea prin Fresha Payments și aplică pragurile pentru bunuri la servicii — o poziție agresivă care nu trebuie copiată.",
+            en: "Yes, for appointments customers book through Zavoia. You are paid directly at your venue, but DAC7 doesn't depend on who handles the payment: it covers platforms that connect sellers with customers for a service, not ones that only list or advertise, and the price of each booking is known to us. So Zavoia is a reporting platform operator and reports this activity to ANAF.",
+            ro: "Da, pentru programările pe care clienții le fac prin Zavoia. Sunteți plătit direct, la sediul dumneavoastră, dar DAC7 nu depinde de cine gestionează plata: se aplică platformelor care pun în legătură vânzători cu clienți pentru un serviciu, nu celor care doar listează sau promovează, iar prețul fiecărei programări ne este cunoscut. Prin urmare, Zavoia este operator de platformă cu obligație de raportare și raportează această activitate la ANAF.",
           },
         },
       ],
@@ -96,14 +83,14 @@ export const dac7: LegalDocument = {
           kind: "p",
           text: {
             en: "You may have seen other platforms mention a threshold of 30 transactions or EUR 2,000 per year. That exclusion exists in DAC7 only for sellers of goods. For personal services there is no minimum volume or value: a business that provided at least one reportable appointment in a calendar year is reportable for that year.",
-            ro: "Este posibil să fi văzut alte platforme menționând un prag de 30 de tranzacții sau 2.000 EUR pe an. Acea excludere există în DAC7 doar pentru vânzătorii de bunuri. Pentru serviciile personale nu există un volum sau o valoare minimă: o afacere care a prestat cel puțin o programare raportabilă într-un an calendaristic este raportabilă pentru acel an.",
+            ro: "Este posibil să fi văzut alte platforme menționând un prag de 30 de tranzacții sau 2.000 EUR pe an. Acea excludere există în DAC7 doar pentru vânzătorii de bunuri. Pentru serviciile personale nu există un volum sau o valoare minimă: o afacere care a avut cel puțin o programare raportabilă într-un an calendaristic este raportabilă pentru acel an.",
           },
         },
         {
           kind: "p",
           text: {
-            en: "Reporting is also activity-based, not subscription-based: a Zavoia subscription alone does not make you reportable. What counts is marketplace activity — appointments booked by customers through the Zavoia marketplace. Appointments you create yourself in your calendar, walk-ins and clients who book with you directly are not platform-facilitated and are outside the platform's reporting.",
-            ro: "Raportarea este bazată pe activitate, nu pe abonament: un abonament Zavoia, în sine, nu vă face raportabil. Contează activitatea din marketplace — programările făcute de clienți prin marketplace-ul Zavoia. Programările pe care le creați dumneavoastră în calendar, clienții veniți direct și cei care se programează direct la dumneavoastră nu sunt intermediate de platformă și rămân în afara raportării platformei.",
+            en: "Reporting is also activity-based, not subscription-based: a Zavoia subscription alone does not make you reportable. What counts is appointments customers book through Zavoia — on the marketplace or on your Web Studio website, which uses the same booking system. Appointments you add to your calendar yourself, walk-ins and clients who book by phone are not reported.",
+            ro: "Raportarea este bazată pe activitate, nu pe abonament: un abonament Zavoia, în sine, nu vă face raportabil. Contează programările făcute de clienți prin Zavoia — în marketplace sau pe site-ul dumneavoastră Web Studio, care folosește același sistem de programare. Programările pe care le adăugați chiar dumneavoastră în calendar, clienții veniți direct și cei care se programează telefonic nu sunt raportate.",
           },
         },
       ],
@@ -111,8 +98,8 @@ export const dac7: LegalDocument = {
     {
       id: "what-is-reported",
       title: {
-        en: "What information would be reported",
-        ro: "Ce informații ar fi raportate",
+        en: "What information is reported",
+        ro: "Ce informații sunt raportate",
       },
       summary: {
         en: "Identification data about your business, plus quarterly marketplace activity.",
@@ -122,7 +109,7 @@ export const dac7: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "The regime prescribes exactly what a platform collects and reports. For a business organised as a legal entity (for example an SRL):",
+            en: "The regime prescribes exactly what a platform collects and reports. For a business organised as a legal entity (for example a limited liability company):",
             ro: "Regimul prevede exact ce colectează și raportează o platformă. Pentru o afacere organizată ca persoană juridică (de exemplu un SRL):",
           },
         },
@@ -130,7 +117,7 @@ export const dac7: LegalDocument = {
           kind: "list",
           items: {
             en: [
-              "legal name, primary address and tax identification code (CUI), plus VAT number where you have one;",
+              "legal name, primary address and fiscal code, plus VAT number where you have one;",
               "the Trade Register registration number;",
               "the identifier of the financial account used for payments, where the platform holds one;",
               "the consideration attributable to your marketplace activity, broken down per calendar quarter, and the number of activities;",
@@ -148,22 +135,15 @@ export const dac7: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "If you operate as an individual professional (for example a PFA or întreprindere individuală), the regime treats you as a natural person, so the identification set is: first and last name, primary address, tax identification number (in Romania, the CNP), date of birth, and VAT number where you have one — plus the same activity and fee information.",
-            ro: "Dacă activați ca profesionist individual (de exemplu PFA sau întreprindere individuală), regimul vă tratează ca persoană fizică, astfel că setul de identificare este: nume și prenume, adresa principală, numărul de identificare fiscală (în România, CNP-ul), data nașterii și codul de TVA, dacă aveți — plus aceleași informații despre activitate și onorarii.",
+            en: "If you operate as an authorised sole trader or a private individual, the regime treats you as a natural person, so the identification set is: first and last name, primary address, tax identification number (the fiscal code for an authorised sole trader, the personal numeric code for a private individual), date of birth, and VAT number where you have one — plus the same activity and fee information.",
+            ro: "Dacă activați ca PFA sau ca persoană fizică neautorizată, regimul vă tratează ca persoană fizică, astfel că setul de identificare este: nume și prenume, adresa principală, codul de identificare fiscală (CUI-ul pentru PFA, CNP-ul pentru persoana fizică neautorizată), data nașterii și codul de TVA, dacă aveți — plus aceleași informații despre activitate și onorarii.",
           },
         },
         {
           kind: "p",
           text: {
-            en: "Because Zavoia does not handle your money, the activity figure would be based on the prices listed and recorded for appointments booked through the marketplace — not on amounts actually collected by you at the venue. It is therefore an indication of platform-facilitated activity, not a statement of your income, and it is not a substitute for your own accounting.",
-            ro: "Deoarece Zavoia nu vă gestionează banii, cifra de activitate s-ar baza pe prețurile listate și înregistrate pentru programările făcute prin marketplace — nu pe sumele efectiv încasate de dumneavoastră la sediu. Prin urmare, este o indicație a activității intermediate de platformă, nu o declarație a veniturilor dumneavoastră, și nu înlocuiește propria contabilitate.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "Re-verified 11 Nov 2026: the code (since 6 Aug 2026) already uses one basis — the booked list prices of marketplace appointments marked COMPLETED, one row per service with the price split across services, voided if the status is reversed, grouped by quarter, demo businesses excluded (dac7.service.ts). The tax memo must confirm this basis and the reliability of the manual COMPLETED status (decisions doc §6.4) before this page states a methodology. Not built yet: the F7000 file for ANAF, the annual statement to sellers, data-request reminders and the retention job.",
-            ro: "Re-verificat 11 nov. 2026: codul (din 6 aug. 2026) folosește deja o singură bază — prețurile de listă ale programărilor din marketplace marcate ca FINALIZATE, un rând per serviciu, cu prețul împărțit între servicii, anulat dacă statusul este inversat, grupat pe trimestre, fără afacerile demo (dac7.service.ts). Memo-ul fiscal trebuie să confirme această bază și fiabilitatea statusului manual FINALIZAT (documentul de decizii §6.4) înainte ca această pagină să descrie o metodologie. Nu sunt construite încă: fișierul F7000 pentru ANAF, declarația anuală către vânzători, mementourile pentru solicitarea datelor și procesul de păstrare/ștergere.",
+            en: "Because Zavoia doesn't handle your money, the amounts we report are the prices recorded for the bookings made through Zavoia that you mark as completed. Each service counts as one activity, a bundle's price is split across its services, and each amount counts in the quarter of the appointment date. These are not the amounts you actually collected at the venue, so they are not a statement of your income and don't replace your own accounting.",
+            ro: "Deoarece Zavoia nu vă gestionează banii, sumele raportate sunt prețurile înregistrate pentru programările făcute prin Zavoia pe care le marcați ca finalizate. Fiecare serviciu contează ca o activitate, prețul unui pachet se împarte între serviciile sale, iar fiecare sumă intră în trimestrul datei programării. Acestea nu sunt sumele încasate efectiv de dumneavoastră la sediu, deci nu reprezintă o declarație a veniturilor și nu înlocuiesc propria contabilitate.",
           },
         },
       ],
@@ -182,15 +162,15 @@ export const dac7: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "Reporting is annual, not continuous. A reporting platform operator established in Romania files with ANAF (form F7000, electronically signed) by 31 January for the preceding calendar year, and ANAF exchanges the relevant information with the tax authorities of other member states where a seller is resident there.",
-            ro: "Raportarea este anuală, nu continuă. Un operator de platformă cu obligație de raportare, stabilit în România, depune la ANAF (formularul F7000, semnat electronic) până la 31 ianuarie pentru anul calendaristic anterior, iar ANAF face schimb de informații relevante cu autoritățile fiscale din alte state membre, când vânzătorul este rezident acolo.",
+            en: "Reporting is annual, not continuous. By 31 January, we file form F7000 with ANAF, electronically signed, for the previous calendar year, and ANAF shares the information with the tax authority of any other EU country where a seller is resident. By the same date, we send you the information we reported about your business.",
+            ro: "Raportarea este anuală, nu continuă. Până la 31 ianuarie depunem la ANAF formularul F7000, semnat electronic, pentru anul calendaristic anterior, iar ANAF transmite informațiile autorității fiscale din orice alt stat membru UE în care un vânzător este rezident. Până la aceeași dată vă trimitem informațiile raportate despre afacerea dumneavoastră.",
           },
         },
         {
           kind: "p",
           text: {
-            en: "Collecting and verifying the identification data, by contrast, happens continuously — at listing activation and whenever your details change.",
-            ro: "În schimb, colectarea și verificarea datelor de identificare au loc continuu — la activarea listării și ori de câte ori datele dumneavoastră se modifică.",
+            en: "The details we report are the billing details in your Zavoia dashboard, under Billing & Subscription. We have to check them by 31 December of the year we report on, so please keep them up to date.",
+            ro: "Datele raportate sunt datele de facturare din panoul Zavoia, la Facturare și abonament. Trebuie să le verificăm până la 31 decembrie a anului pentru care raportăm, așa că vă rugăm să le țineți la zi.",
           },
         },
       ],
@@ -210,16 +190,16 @@ export const dac7: LegalDocument = {
           kind: "list",
           items: {
             en: [
-              "Provide accurate identification data when you activate your listing, and update it promptly when anything changes (legal form, name, address, registration, VAT status).",
+              "Keep your billing details accurate and update them when anything changes (legal form, name, address, registration, VAT status). If you invoice as a private individual, also fill in your personal numeric code and date of birth, which this reporting needs.",
               "Keep declaring your income and issuing fiscal receipts and invoices exactly as you do now — DAC7 changes none of this. The reported figure is not a tax return and is not calculated as one.",
-              "If you do not provide the required data, the regime obliges the platform to remind you twice and, after 60 days, to restrict your listing or withhold amounts until you do. We would always tell you what is missing before that point.",
+              "If required details are missing, we will ask you for them. If they are still missing after two reminders and at least 60 days, the law requires us to take your business off the marketplace until you provide them.",
               "You can ask us at any time what data about your business we hold for this purpose, and receive a copy.",
               "If you think a reported figure is wrong, contact us — we will check it and, where a correction is warranted, file a corrected report.",
             ],
             ro: [
-              "Furnizați date de identificare corecte la activarea listării și actualizați-le prompt la orice schimbare (formă juridică, denumire, adresă, înregistrare, statut TVA).",
+              "Țineți corecte datele de facturare și actualizați-le la orice schimbare (formă juridică, denumire, adresă, înregistrare, statut TVA). Dacă facturați ca persoană fizică neautorizată, completați și CNP-ul și data nașterii, de care această raportare are nevoie.",
               "Continuați să vă declarați veniturile și să emiteți bonuri fiscale și facturi exact ca până acum — DAC7 nu schimbă nimic din toate acestea. Cifra raportată nu este o declarație fiscală și nu se calculează ca atare.",
-              "Dacă nu furnizați datele necesare, regimul obligă platforma să vă reamintească de două ori și, după 60 de zile, să vă restricționeze listarea sau să rețină sume până când le furnizați. V-am comunica întotdeauna ce lipsește înainte de acel moment.",
+              "Dacă lipsesc date obligatorii, vi le vom cere. Dacă lipsesc în continuare după două reamintiri și cel puțin 60 de zile, legea ne obligă să vă scoatem afacerea din marketplace până când le furnizați.",
               "Ne puteți întreba oricând ce date despre afacerea dumneavoastră deținem în acest scop și puteți primi o copie.",
               "Dacă apreciați că o cifră raportată este greșită, contactați-ne — o verificăm și, unde se justifică o corecție, depunem un raport rectificativ.",
             ],
@@ -234,22 +214,15 @@ export const dac7: LegalDocument = {
         ro: "Confidențialitatea acestor date",
       },
       summary: {
-        en: "Collected for a legal purpose, used only for it.",
-        ro: "Colectate pentru un scop legal, folosite doar pentru acesta.",
+        en: "Used for this reporting and your Zavoia invoices, never for marketing.",
+        ro: "Folosite pentru această raportare și pentru facturile Zavoia, niciodată pentru marketing.",
       },
       body: [
         {
           kind: "p",
           text: {
-            en: "Where this reporting applies, the identification data is collected because the law requires it, and it is used only for that purpose — identifying you as a seller and filing the annual report. It is not used for marketing, ranking or any commercial purpose. Personal identifiers of individual professionals (such as the CNP) are handled with restricted access and the retention the tax rules require. Your rights and our contact details are in the Privacy Notice.",
-            ro: "Acolo unde această raportare se aplică, datele de identificare sunt colectate pentru că legea o cere și sunt folosite doar în acest scop — identificarea dumneavoastră ca vânzător și depunerea raportului anual. Nu sunt folosite pentru marketing, ierarhizare sau vreun scop comercial. Identificatorii personali ai profesioniștilor individuali (precum CNP-ul) sunt gestionați cu acces restricționat și cu perioada de păstrare cerută de regulile fiscale. Drepturile dumneavoastră și datele noastre de contact sunt în Politica de confidențialitate.",
-          },
-        },
-        {
-          kind: "note",
-          text: {
-            en: "Updated 11 Nov 2026: the Privacy Notice §purposes-legal-bases now lists DAC7, because the collection already runs — the dashboard asks for CNP and date of birth as optional fields, and the seller and activity records survive account deletion (dac7.service.ts). Its legal basis stays bracketed until the tax memo; Legea 190/2018 permits CNP processing on a legal-obligation basis, scoped to this purpose only. Before publishing the text above, confirm that access to CNP and date of birth really is restricted, and build the retention/deletion job, which does not exist yet.",
-            ro: "Actualizat 11 nov. 2026: Politica de confidențialitate §scopuri-și-temeiuri listează acum DAC7, pentru că colectarea are deja loc — panoul cere CNP-ul și data nașterii ca date opționale, iar evidențele despre vânzător și activitate rămân după ștergerea contului (dac7.service.ts). Temeiul legal rămâne între paranteze până la memo-ul fiscal; Legea 190/2018 permite prelucrarea CNP pe temei de obligație legală, limitată strict la acest scop. Înainte de publicarea textului de mai sus, confirmați că accesul la CNP și data nașterii este într-adevăr restricționat și construiți procesul de păstrare/ștergere, care nu există încă.",
+            en: "Your name, address and fiscal code are the details we also use for your Zavoia invoices. Your date of birth and personal numeric code are used only for this reporting, and none of these details is used for marketing or ranking. In the dashboard only the business owner can see them, and at Zavoia only the staff who handle the reporting. We keep DAC7 records, even after you delete your account, for the period required by tax law. Your rights and our contact details are in the Privacy Notice.",
+            ro: "Numele, adresa și CUI-ul sunt datele pe care le folosim și pentru facturile Zavoia. Data nașterii și CNP-ul sunt folosite doar pentru această raportare, iar niciuna dintre aceste date nu este folosită pentru marketing sau ierarhizare. În panou le poate vedea doar proprietarul afacerii, iar la Zavoia doar personalul care se ocupă de raportare. Păstrăm evidențele DAC7, inclusiv după ștergerea contului, pe perioada impusă de legislația fiscală. Drepturile dumneavoastră și datele noastre de contact sunt în Politica de confidențialitate.",
           },
         },
       ],

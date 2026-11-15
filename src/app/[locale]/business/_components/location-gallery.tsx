@@ -50,10 +50,9 @@ export function LocationGallery({ listing, cat }: Props) {
     const bottom = Math.min(rect.bottom, bounds.bottom, window.innerHeight);
     return right > left && bottom > top ? { left, top, width: right - left, height: bottom - top } : null;
   }, []);
-  const getSource = useCallback((photoIndex: number) => {
-    const source = photoTriggers.current[photoIndex];
-    return source && sourceRect(source) ? source : null;
-  }, [sourceRect]);
+  // Loaded previews remain useful even offscreen. sourceRect separately decides
+  // whether their geometry is visible enough for the opening/return animation.
+  const getSource = useCallback((photoIndex: number) => photoTriggers.current[photoIndex] ?? null, []);
   const getReturnFocus = useCallback(() => opener.current, []);
 
   function photoLabel(photoIndex: number) {

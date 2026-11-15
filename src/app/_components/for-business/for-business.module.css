@@ -3,6 +3,7 @@
 
 /* One continuous dark paper surface connects the business app and Web Studio. */
 .toolsRegion {
+  --focus-ring-color: var(--c-canvas);
   position: relative;
   isolation: isolate;
   overflow: clip;
@@ -287,7 +288,7 @@
 }
 
 .streetSpot[data-active="true"] .streetPin { box-shadow: var(--sh-md); }
-.streetSpot:focus-visible .streetPin { outline: 2px solid var(--p-500); outline-offset: 4px; }
+.streetSpot:focus-visible .streetPin { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 4px; }
 
 .streetLabel {
   position: absolute;
