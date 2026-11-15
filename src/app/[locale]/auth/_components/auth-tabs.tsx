@@ -11,6 +11,7 @@ import { localeHref, localizedPathname } from "@/i18n/routes";
 import type { AccountLinkNeededDetails } from "@/lib/auth/types";
 import { GOOGLE_CLIENT_ID } from "@/lib/env";
 import { appleErrorMessage } from "@/lib/api/auth-error-messages";
+import { ApiError } from "@/lib/api/http";
 import {
   isAppleSignInConfigured,
   type AppleWebCredential,
@@ -54,6 +55,8 @@ export function AuthTabs({ locale }: { locale: Locale }) {
   const view = isForgotPassword ? "forgot-password" : mode;
   // Set by /auth/callback when Google sign-in found no account for the email.
   const googleNoAccount = mode === "register" && searchParams.get("notice") === "google-no-account";
+  // Set by handleAppleCredential below when Apple sign-in found no account for the Apple ID.
+  const appleNoAccount = mode === "register" && searchParams.get("notice") === "apple-no-account";
 
   const entryKey = authEntryKey(searchParams);
   const [linkFlow, setLinkFlow] = useRetainedAuthState<AccessFlow>(entryKey);
@@ -87,6 +90,19 @@ export function AuthTabs({ locale }: { locale: Locale }) {
       router.replace(redirect);
     } catch (error) {
       setSubmitting(false);
+      // Signing in never creates an account: an unknown Apple ID goes to
+      // sign-up, where the terms box comes before the account exists.
+      if (
+        mode === "login" &&
+        error instanceof ApiError &&
+        error.status === 404 &&
+        error.code === "account_not_found"
+      ) {
+        if (isCurrentEntry(entryKey)) {
+          router.replace(`${authFlowHref(locale, "register", searchParams)}&notice=apple-no-account`);
+        }
+        return;
+      }
       const outcome = appleOutcomeFromError(error);
       if (outcome) {
         if (isCurrentEntry(entryKey)) {
@@ -187,9 +203,9 @@ export function AuthTabs({ locale }: { locale: Locale }) {
               />
             ) : (
               <>
-              {googleNoAccount && (
+              {(googleNoAccount || appleNoAccount) && (
                 <div role="status" className="rounded-[10px] bg-shade p-4 text-sm text-c-700">
-                  {dict.googleNoAccount}
+                  {googleNoAccount ? dict.googleNoAccount : dict.appleNoAccount}
                 </div>
               )}
               <RegisterForm

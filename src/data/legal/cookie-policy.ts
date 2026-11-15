@@ -13,7 +13,7 @@ export const cookiePolicy: LegalDocument = {
     ro: "Cookie-urile, stocarea locală și stocarea din aplicații folosite de Zavoia, și cum acceptați sau refuzați cookie-urile de analiză.",
   },
   status: "published",
-  effectiveDate: "2026-11-14",
+  effectiveDate: "2026-11-15",
   sections: [
     {
       id: "what-we-use",
@@ -79,6 +79,7 @@ export const cookiePolicy: LegalDocument = {
               "customerCsrfToken · cookie · Zavoia · protects your account against cross-site request forgery · 1 day, renewed while you stay signed in",
               "googleOAuth · session storage · Zavoia · secures a Google sign-in while you go to Google and back · until the sign-in finishes, or you close the tab",
               "Google sign-in cookies · cookies on accounts.google.com · Google · set by Google only when you sign in with Google, under Google's privacy policy · as set by Google",
+              "Apple sign-in cookies · cookies on appleid.apple.com · Apple · set by Apple only when you sign in with Apple, under Apple's privacy policy · as set by Apple",
             ],
             ro: [
               "zw-consent · cookie · Zavoia · reține dacă ați acceptat sau ați refuzat analiza · 12 luni",
@@ -86,6 +87,7 @@ export const cookiePolicy: LegalDocument = {
               "customerCsrfToken · cookie · Zavoia · vă protejează contul împotriva falsificării cererilor (CSRF) · 1 zi, reînnoit cât timp rămâneți autentificat",
               "googleOAuth · stocare de sesiune · Zavoia · securizează autentificarea cu Google cât timp mergeți la Google și înapoi · până se finalizează autentificarea sau până închideți fila",
               "Cookie-uri de autentificare Google · cookie-uri pe accounts.google.com · Google · plasate de Google doar când vă autentificați cu Google, conform politicii de confidențialitate Google · cât stabilește Google",
+              "Cookie-uri de autentificare Apple · cookie-uri pe appleid.apple.com · Apple · plasate de Apple doar când vă autentificați cu Apple, conform politicii de confidențialitate Apple · cât stabilește Apple",
             ],
           },
         },
@@ -104,12 +106,14 @@ export const cookiePolicy: LegalDocument = {
               "csrfToken · cookie · Zavoia · protects your account against cross-site request forgery · 1 day, renewed while you stay signed in",
               "oauthCodeProcessed, oauthLastCode, oauthRedirected, oauthContext, oauthMode, oauthReturnTo, linkContext, googleLoginNoAccount, postLinkToast, postLinkToastType · session storage · Zavoia · completes a Google sign-in or account link exactly once and shows its result · until you close the tab",
               "Google sign-in cookies · cookies on accounts.google.com · Google · as on www.zavoia.com",
+              "Apple sign-in cookies · cookies on appleid.apple.com · Apple · as on www.zavoia.com",
             ],
             ro: [
               "refreshToken · cookie inaccesibil scripturilor · Zavoia · vă menține autentificat · 1 zi, reînnoit cât timp rămâneți autentificat",
               "csrfToken · cookie · Zavoia · vă protejează contul împotriva falsificării cererilor (CSRF) · 1 zi, reînnoit cât timp rămâneți autentificat",
               "oauthCodeProcessed, oauthLastCode, oauthRedirected, oauthContext, oauthMode, oauthReturnTo, linkContext, googleLoginNoAccount, postLinkToast, postLinkToastType · stocare de sesiune · Zavoia · finalizează o singură dată autentificarea sau conectarea contului cu Google și afișează rezultatul · până închideți fila",
               "Cookie-uri de autentificare Google · cookie-uri pe accounts.google.com · Google · la fel ca pe www.zavoia.com",
+              "Cookie-uri de autentificare Apple · cookie-uri pe appleid.apple.com · Apple · la fel ca pe www.zavoia.com",
             ],
           },
         },

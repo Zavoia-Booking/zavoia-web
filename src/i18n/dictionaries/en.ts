@@ -255,6 +255,7 @@ export const en: {
       signUp: string;
     };
     googleNoAccount: string;
+    appleNoAccount: string;
     businessSignIn: {
       title: string;
       description: string;
@@ -2186,6 +2187,7 @@ export const en: {
       signUp: "Sign up with Apple",
     },
     googleNoAccount: "There's no Zavoia account for this Google address yet. Tick the box below to create one.",
+    appleNoAccount: "There's no Zavoia account for this Apple ID yet. Tick the box below to create one.",
     businessSignIn: {
       title: "Zavoia Business",
       description: "Manage your appointments, clients and team.",

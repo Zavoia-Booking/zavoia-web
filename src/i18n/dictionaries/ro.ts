@@ -306,6 +306,7 @@ export const ro: Dictionary = {
       signUp: "Înregistrează-te cu Apple",
     },
     googleNoAccount: "Nu există încă un cont Zavoia pentru această adresă Google. Bifează căsuța de mai jos ca să-ți creezi unul.",
+    appleNoAccount: "Nu există încă un cont Zavoia pentru acest ID Apple. Bifează căsuța de mai jos ca să-ți creezi unul.",
     businessSignIn: {
       title: "Zavoia Business",
       description: "Gestionează programările, clienții și echipa.",

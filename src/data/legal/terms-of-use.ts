@@ -59,8 +59,8 @@ export const termsOfUse: LegalDocument = {
         {
           kind: "p",
           text: {
-            en: "How the account contract is concluded (Law 365/2002 art. 8): you enter your details or continue with Google, tick the box accepting these terms, and create the account. Before you create it, you can review and correct what you have entered; afterwards, you can change your details in your account settings. The current version of these terms is always on this page, where you can print or save it, and we send you the version you accepted on request.",
-            ro: "Cum se încheie contractul pentru cont (Legea 365/2002 art. 8): vă introduceți datele sau continuați cu Google, bifați căsuța prin care acceptați acești termeni și creați contul. Înainte de a-l crea, puteți verifica și corecta ce ați introdus; ulterior, vă puteți modifica datele din setările contului. Versiunea în vigoare a acestor termeni este mereu pe această pagină, de unde o puteți tipări sau salva, iar la cerere vă trimitem versiunea pe care ați acceptat-o.",
+            en: "How the account contract is concluded (Law 365/2002 art. 8): you enter your details or continue with Google or Apple, tick the box accepting these terms, and create the account. Before you create it, you can review and correct what you have entered; afterwards, you can change your details in your account settings. The current version of these terms is always on this page, where you can print or save it, and we send you the version you accepted on request.",
+            ro: "Cum se încheie contractul pentru cont (Legea 365/2002 art. 8): vă introduceți datele sau continuați cu Google ori cu Apple, bifați căsuța prin care acceptați acești termeni și creați contul. Înainte de a-l crea, puteți verifica și corecta ce ați introdus; ulterior, vă puteți modifica datele din setările contului. Versiunea în vigoare a acestor termeni este mereu pe această pagină, de unde o puteți tipări sau salva, iar la cerere vă trimitem versiunea pe care ați acceptat-o.",
           },
         },
         {
