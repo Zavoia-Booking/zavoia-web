@@ -149,8 +149,8 @@
 }
 
 @media (max-width: 920px) {
-  .overlay { align-items: flex-end; padding: 0; background: rgb(28 28 26 / 28%); backdrop-filter: none; }
-  .dialog { width: 100%; height: calc(100dvh - max(24px, env(safe-area-inset-top))); max-height: none; border-bottom: 0; border-radius: 24px 24px 0 0; box-shadow: var(--sh-up); }
+  .overlay { top: var(--drawer-viewport-top, 0px); bottom: auto; height: var(--drawer-viewport-height, 100dvh); align-items: flex-end; padding: 0; background: rgb(28 28 26 / 28%); backdrop-filter: none; }
+  .dialog { width: 100%; height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top))); max-height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top))); border-bottom: 0; border-radius: 24px 24px 0 0; box-shadow: var(--sh-up); }
   .header { padding: 0 20px 10px; }
   .overlay[data-state], .dialog[data-state] { animation: none; }
 }

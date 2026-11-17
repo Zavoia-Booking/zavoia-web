@@ -1,0 +1,8 @@
+.dialog { --action-modal-title-size: 22px; }
+.copy { margin: 0; color: var(--c-700); font-size: 15px; line-height: 1.6; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; width: 100%; }
+.actions button { min-height: 44px; }
+
+@media (max-width: 360px) {
+  .actions button { flex: 1; }
+}

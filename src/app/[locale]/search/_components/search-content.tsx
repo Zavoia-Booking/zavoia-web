@@ -94,9 +94,41 @@ const PANEL_VW = 0.36;
 /** Gap between the viewport edge and the panel. */
 const PANEL_EDGE_PX = 16;
 
-// localStorage flag remembering a previous "Not now" so the priming modal
-// doesn't reappear on later visits.
+// localStorage flags remembering the visitor's answer to the priming modal, so
+// it doesn't reappear on later visits. "Allow" needs its own flag: Chrome on
+// iPhone (WebKit without a permission-query hook) reports geolocation as
+// "prompt" even after a grant, so the browser can't say it was allowed.
 const LOC_SKIP_KEY = "zv-loc-skip";
+const LOC_ALLOW_KEY = "zv-loc-allow";
+
+type LocationChoice = "allow" | "skip";
+
+function readLocationChoice(): LocationChoice | null {
+  try {
+    if (localStorage.getItem(LOC_ALLOW_KEY) === "1") return "allow";
+    if (localStorage.getItem(LOC_SKIP_KEY) === "1") return "skip";
+  } catch {
+    // localStorage unavailable (private mode / blocked) — nothing remembered.
+  }
+  return null;
+}
+
+/** Store an answer (replacing the other one), or forget a remembered "Allow". */
+function rememberLocationChoice(choice: LocationChoice | null): void {
+  try {
+    if (choice === "skip") {
+      localStorage.setItem(LOC_SKIP_KEY, "1");
+      localStorage.removeItem(LOC_ALLOW_KEY);
+    } else if (choice === "allow") {
+      localStorage.setItem(LOC_ALLOW_KEY, "1");
+      localStorage.removeItem(LOC_SKIP_KEY);
+    } else {
+      localStorage.removeItem(LOC_ALLOW_KEY);
+    }
+  } catch {
+    // localStorage unavailable (private mode / blocked) — non-fatal.
+  }
+}
 
 /**
  * The shape of the search request derived from URL params.
@@ -670,10 +702,11 @@ export function SearchContent({
   // Resolve an anchor: optionally try device geolocation → IP fallback →
   // Bucharest. The user DOT only shows the real device/IP position (not the
   // Bucharest fallback). `tryGeo=false` skips the native prompt entirely.
+  // Resolves true only when the device position was used.
   const resolveAndApply = useCallback(
-    async (tryGeo: boolean) => {
-      let loc: GeoPoint | null = null;
-      if (tryGeo) loc = await getBrowserLocation();
+    async (tryGeo: boolean): Promise<boolean> => {
+      const device = tryGeo ? await getBrowserLocation() : null;
+      let loc: GeoPoint | null = device;
       if (!loc) {
         const ip = await ipLocate();
         if (ip) loc = { lat: ip.lat, lng: ip.lng };
@@ -684,16 +717,18 @@ export function SearchContent({
       } else {
         applyAnchor(DEFAULT_ANCHOR);
       }
+      return device !== null;
     },
     [applyAnchor],
   );
 
-  // "Use my location" → geolocation, then IP, then Bucharest. The browser
-  // persists the grant/deny, so the next visit auto-resolves (no modal).
+  // "Use my location" → geolocation, then IP, then Bucharest. A granted
+  // "Allow" is remembered, so later visits skip the modal even where the
+  // browser can't report the grant (Chrome on iPhone).
   const handleAllow = useCallback(async () => {
     setLocationBusy(true);
     try {
-      await resolveAndApply(true);
+      rememberLocationChoice((await resolveAndApply(true)) ? "allow" : null);
     } finally {
       setLocationModalOpen(false);
       setLocationBusy(false);
@@ -704,11 +739,7 @@ export function SearchContent({
   // then Bucharest. No geolocation prompt.
   const handleSkip = useCallback(async () => {
     setLocationBusy(true);
-    try {
-      localStorage.setItem(LOC_SKIP_KEY, "1");
-    } catch {
-      // localStorage unavailable (private mode / blocked) — non-fatal.
-    }
+    rememberLocationChoice("skip");
     try {
       await resolveAndApply(false);
     } finally {
@@ -718,11 +749,11 @@ export function SearchContent({
   }, [resolveAndApply]);
 
   // ── One-shot auto-resolution on a fresh empty landing ────────────────────
-  // Consults the persisted geolocation permission + the "Not now" flag to
-  // decide whether to prime (show modal) or silently resolve. All setState is
-  // post-await inside an async IIFE — no synchronous setState in the effect
-  // body — keeping it lint-clean. The ran-once ref guards React 19 dev
-  // double-invoke.
+  // Consults the persisted geolocation permission + the remembered modal
+  // answer to decide whether to prime (show modal) or silently resolve. All
+  // setState is post-await inside an async IIFE — no synchronous setState in
+  // the effect body — keeping it lint-clean. The ran-once ref guards React 19
+  // dev double-invoke.
   useEffect(() => {
     if (resolvedOnce.current) return;
     resolvedOnce.current = true;
@@ -747,19 +778,23 @@ export function SearchContent({
         return;
       }
       if (perm === "denied") {
+        // Blocked in the browser: a remembered "Allow" no longer applies.
+        rememberLocationChoice(null);
         await resolveAndApply(false);
         return;
       }
-      // "prompt" — honour a previous "Not now", else show the modal.
-      let skipped = false;
-      try {
-        skipped = localStorage.getItem(LOC_SKIP_KEY) === "1";
-      } catch {
-        // localStorage unavailable — treat as not-skipped.
-      }
+      // "prompt" — a first visit, or a browser that can't report a grant
+      // (Chrome on iPhone). Honour a remembered answer, else show the modal.
+      const choice = readLocationChoice();
       if (cancelled) return;
-      if (skipped) {
+      if (choice === "skip") {
         await resolveAndApply(false);
+        return;
+      }
+      if (choice === "allow") {
+        // If the device lookup now fails (blocked, unavailable), forget the
+        // answer so the next visit explains first instead of asking on load.
+        if (!(await resolveAndApply(true))) rememberLocationChoice(null);
         return;
       }
       setLocationModalOpen(true);

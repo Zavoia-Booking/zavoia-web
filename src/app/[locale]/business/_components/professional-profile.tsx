@@ -15,6 +15,7 @@ import { Avatar, Button, HeartButton, Icon, Img, Rating, Stars, useToast } from 
 import { PageError } from "@/components/ui/page-error";
 import { ImageViewer } from "@/components/ui/image-viewer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DrawerHandle } from "@/components/ui/drawer-handle";
 import { useToastContainerRef, type ToastHandle } from "@/components/ui/toast";
 import styles from "./team-member-profile-modal.module.css";
 import disclosure from "@/components/ui/disclosure-motion.module.css";
@@ -175,6 +176,11 @@ export function ProfessionalProfile({
   const isModal = presentation === "modal";
   const openBooking = useBooking().openBooking;
   const cardRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [closing, setClosing] = useState(false);
+  const [entryInput] = useState(() => typeof document !== "undefined"
+    && document.activeElement?.matches(":focus-visible") ? "keyboard" : "pointer");
   const toastContainerRef = useToastContainerRef();
   // Keep the profile's native scroll positions and service/venue selections
   // while booking is active, so an explicit return resumes this same profile.
@@ -360,6 +366,26 @@ export function ProfessionalProfile({
     };
   }, [member.id, syncUrl, bookingActive, locationTab]);
 
+  // Follow the existing modal exit contract. Handle dragging already performs
+  // its shared release animation, so DrawerHandle calls onClose directly.
+  const requestClose = useCallback((input: "pointer" | "keyboard") => {
+    if (closeTimerRef.current) {
+      if (input === "pointer") return;
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    const animate = input === "pointer"
+      && window.matchMedia("(max-width: 920px)").matches
+      && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!animate) { onClose(); return; }
+    setClosing(true);
+    closeTimerRef.current = setTimeout(onClose, 180);
+  }, [onClose]);
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  }, []);
+
   // Lock the page scroll behind the dialog.
   useEffect(() => {
     if (!isModal || bookingActive) return;
@@ -403,11 +429,11 @@ export function ProfessionalProfile({
     if (!isModal || bookingActive) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented || portfolioIndexRef.current >= 0) return;
-      onClose();
+      requestClose("keyboard");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, bookingActive, isModal]);
+  }, [requestClose, bookingActive, isModal]);
 
   // Keep Tab cycling inside the dialog (aria-modal alone doesn't trap focus).
   // The gallery suspends this trap and owns its separate portal. Disabled controls
@@ -755,11 +781,15 @@ export function ProfessionalProfile({
       onKeyDown={isModal ? onTrapTab : undefined}
     >
       {isModal && <div
-        className="zv-sheet-backdrop"
-        onClick={onClose}
-        style={{ position: "absolute", inset: 0, background: "rgba(28,28,26,0.34)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", cursor: "pointer" }}
+        ref={backdropRef}
+        className={`zv-sheet-backdrop ${styles.backdrop}`}
+        data-state={closing ? "closed" : "open"}
+        data-entry={entryInput}
+        onClick={() => requestClose("pointer")}
       />}
-      <div ref={setCardRef} tabIndex={isModal ? -1 : undefined} className={isModal ? `zw-member-card zw-modal-in ${styles.card}` : `zw-container ${styles.pageCard}`} style={{ outline: "none" }}>
+      <div ref={setCardRef} tabIndex={isModal ? -1 : undefined} className={isModal ? `zw-member-card zw-modal-in ${styles.card}` : `zw-container ${styles.pageCard}`} style={{ outline: "none" }}
+        data-state={isModal ? closing ? "closed" : "open" : undefined} data-entry={isModal ? entryInput : undefined}>
+        {isModal && <DrawerHandle contentRef={cardRef} overlayRef={backdropRef} onClose={onClose} label={t.close} />}
         <div className={styles.toolbar}>
           {!isModal && <Link className={styles.pageBack} href={localeHref(locale, "search")}>
             <Icon name="chevL" size={16} />{t.browseBusinesses}
@@ -784,7 +814,7 @@ export function ProfessionalProfile({
             type="button"
             className={`tap ${styles.close}`}
             aria-label={t.close}
-            onClick={onClose}
+            onClick={event => requestClose(event.detail === 0 ? "keyboard" : "pointer")}
           >
             <Icon name="x" size={18} color="var(--c-800)" />
           </button>}
@@ -895,7 +925,7 @@ export function ProfessionalProfile({
                     ? dict.notFound.page.description
                     : errorMessage(profileError, dict.errors, dict.errors.pageRecovery.body)}
                   primary={profileUnavailable ? (isModal
-                    ? { label: t.close, onClick: onClose }
+                    ? { label: t.close, onClick: () => requestClose("keyboard") }
                     : { label: t.browseBusinesses, href: localeHref(locale, "search") }) : {
                     label: t.memberRetry,
                     loading: requesting,

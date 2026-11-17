@@ -65,7 +65,7 @@ export function LocationImage({
       }}
       ref={(node) => {
         if (node?.complete && node.naturalWidth > 0 && !loaded) setLoaded(true);
-        if (node?.complete && node.naturalWidth === 0 && node.currentSrc) responsive.retryOriginal();
+        responsive.props.ref(node);
       }}
     />
   );

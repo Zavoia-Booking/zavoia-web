@@ -1,0 +1,95 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(28, 28, 26, .34);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(var(--action-modal-width, 480px), 100%);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--c-canvas);
+  box-shadow: var(--sh-xl);
+  cursor: default;
+}
+
+.header {
+  padding: var(--action-modal-header-padding, 20px 22px 16px);
+  align-items: flex-start;
+}
+
+@media (max-width: 920px) {
+  .overlay[data-mobile-drawer] {
+    top: var(--drawer-viewport-top, 0px);
+    bottom: auto;
+    height: var(--drawer-viewport-height, 100dvh);
+    padding: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    animation: none;
+  }
+
+  .dialog[data-mobile-drawer] {
+    position: fixed;
+    inset: auto 0 var(--drawer-viewport-bottom, 0px);
+    width: 100%;
+    height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top)));
+    max-height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top)));
+    border-radius: 24px 24px 0 0;
+    box-shadow: var(--sh-up);
+    transform: none;
+    animation: none;
+    --action-modal-footer-padding: 14px 18px max(14px, env(safe-area-inset-bottom));
+  }
+
+  .dialog[data-mobile-drawer] > .header {
+    padding-top: 0;
+    align-items: center;
+  }
+
+  .dialog[data-mobile-drawer="content"] {
+    height: auto;
+  }
+}
+
+@media (max-width: 920px) and (prefers-reduced-motion: no-preference) {
+  .overlay[data-mobile-drawer]:not([data-entry="keyboard"]):not([data-closing]) {
+    animation: backdrop-in 160ms var(--ease-out) both;
+  }
+  .dialog[data-mobile-drawer]:not([data-entry="keyboard"]):not([data-closing]) {
+    animation: drawer-in 240ms var(--ease-out) both;
+  }
+  .overlay[data-mobile-drawer][data-closing] {
+    animation: backdrop-out 180ms var(--ease-out) both;
+  }
+  .dialog[data-mobile-drawer][data-closing] {
+    animation: drawer-out 180ms var(--ease-out) both;
+  }
+}
+
+@keyframes backdrop-in {
+  from { background-color: transparent; }
+  to { background-color: rgba(28, 28, 26, .34); }
+}
+@keyframes backdrop-out {
+  from { background-color: rgba(28, 28, 26, .34); }
+  to { background-color: transparent; }
+}
+@keyframes drawer-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes drawer-out {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}

@@ -28,8 +28,6 @@
   border-radius: inherit;
   background: var(--c-shade);
   box-shadow:
-    inset 0 1px 0 rgba(250, 250, 247, .95),
-    inset 0 0 0 1px rgba(250, 250, 247, .52),
     0 3px 5px -2px rgba(28, 28, 26, .12),
     4px 18px 28px -14px rgba(28, 28, 26, .13),
     10px 36px 58px -24px rgba(28, 28, 26, .12);
@@ -50,7 +48,7 @@
 
 .desktopDots { position: absolute; left: 8px; display: flex; gap: 5px; }
 .desktopDots > i { width: 6px; height: 6px; border: 1px solid rgba(28, 28, 26, .22); border-radius: 50%; }
-.desktopScreen { overflow: hidden; border: 1px solid rgba(28, 28, 26, .1); border-radius: 5px 5px 13px 13px; background: var(--c-canvas); }
+.desktopScreen { overflow: hidden; border-radius: 5px 5px 12px 12px; background: var(--c-canvas); }
 .desktopScreen > img { display: block; width: 100%; height: auto; }
 
 .phoneMount {
@@ -62,8 +60,9 @@
 }
 
 .phone {
+  --phone-radius: 42px;
   position: relative;
-  border-radius: 42px;
+  border-radius: var(--phone-radius);
 }
 
 .phoneEdge { position: absolute; inset: 0; border-radius: inherit; background: oklch(37% .008 70); transform: translateX(-2px); }
@@ -71,12 +70,10 @@
 .phoneFace {
   position: relative;
   padding: 5px;
-  border: 1px solid oklch(57% .008 70);
+  border: 1px solid oklch(45% .008 70);
   border-radius: inherit;
   background: oklch(20% .004 70);
   box-shadow:
-    inset 0 0 0 1px oklch(38% .008 70),
-    inset 0 1px 0 rgba(250, 250, 247, .35),
     0 2px 3px -1px rgba(28, 28, 26, .18),
     8px 20px 28px -14px rgba(28, 28, 26, .19),
     18px 38px 60px -24px rgba(28, 28, 26, .17);
@@ -85,8 +82,8 @@
 .phoneFace::before, .phoneFace::after { content: ""; position: absolute; width: 2px; background: oklch(46% .008 70); }
 .phoneFace::before { right: -3px; top: 125px; height: 42px; border-radius: 0 2px 2px 0; }
 .phoneFace::after { left: -3px; top: 106px; height: 32px; border-radius: 2px 0 0 2px; }
-.phoneScreen { position: relative; overflow: hidden; border-radius: 35px; background: var(--c-canvas); }
-.phoneScreen > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.phoneScreen { position: relative; overflow: hidden; border-radius: calc(var(--phone-radius) - 6px); background: var(--c-canvas); }
+.phoneScreen > img { display: block; width: 100%; height: auto; aspect-ratio: inherit; object-fit: fill; }
 
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .phoneMount[data-calendar-phone], .desktopMount { transition: transform 260ms var(--ease-out); }
@@ -101,8 +98,7 @@
   .desktopDots { left: 5px; gap: 4px; }
   .desktopDots > i { width: 5px; height: 5px; }
   .desktopScreen { border-radius: 4px 4px 8px 8px; }
-  .phone { border-radius: 36px; }
-  .phoneScreen { border-radius: 29px; }
+  .phone { --phone-radius: 36px; }
   .phoneFace::before { top: 104px; height: 36px; }
   .phoneFace::after { top: 88px; height: 28px; }
 }

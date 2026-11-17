@@ -1,11 +1,16 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import type { SectionEntry } from "@/features/website/types";
 import type { PreviewData } from "@/features/website/components/builder/preview/shared/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StaticPreviewContext } from "@/features/website/components/builder/preview/shared/hooks";
+import { PreviewImageSizesContext } from "@/features/website/components/builder/preview/shared/useResponsivePublicImage";
+import { displayFontFor, previewVars } from "@/features/website/components/builder/theme";
+import { createWebsiteT } from "@/features/website/i18n/translate";
+import "@/features/website/components/builder/preview/shared/animations.css";
+import styles from "./specimen-plate.module.css";
 
 const LivePreview = dynamic(
   () => import("@/features/website/components/builder/preview/Microsite").then(
@@ -13,6 +18,13 @@ const LivePreview = dynamic(
   ),
   // Keep renderer/CSS loading inside the plate so it cannot hide the page or
   // steal focus from a mockup link. The reserved frame below owns the Skeleton.
+  { loading: () => null },
+);
+
+const WebsiteHeroSnapshot = dynamic(
+  () => import("@/features/website/components/builder/preview/WebsiteHeroSnapshot").then(
+    (module) => module.WebsiteHeroSnapshot,
+  ),
   { loading: () => null },
 );
 
@@ -41,6 +53,8 @@ export function SpecimenPlate({
   frameRatio,
   responsive = true,
   deviceViewport = false,
+  heroOnly = false,
+  onReady,
 }: {
   layout: SectionEntry[];
   data: PreviewData;
@@ -55,13 +69,32 @@ export function SpecimenPlate({
   responsive?: boolean;
   /** Website heroes use this viewport height inside fixed hardware mockups. */
   deviceViewport?: boolean;
+  /** Keep the full layout for navigation, but render only the visible hero. */
+  heroOnly?: boolean;
+  onReady?: () => void;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
+  const [active, setActive] = useState(false);
+  const [assetsReady, setAssetsReady] = useState(false);
+  const translate = useMemo(() => createWebsiteT(data.locale), [data.locale]);
+  const hero = layout.find((section) => section.type === "hero" && section.visible);
   // Server-render as desktop; the phone arrangement resolves on mount.
   const [phone, setPhone] = useState(false);
+
+  useEffect(() => {
+    const frame = outerRef.current;
+    if (!frame) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      setActive(true);
+      observer.disconnect();
+    }, { rootMargin: "400px 0px" });
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
 
   useLayoutEffect(() => {
     const query = window.matchMedia("(max-width: 600px)");
@@ -70,6 +103,67 @@ export function SpecimenPlate({
     query.addEventListener("change", sync);
     return () => query.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    const frame = outerRef.current;
+    const content = innerRef.current;
+    if (!active || pending || width <= 0 || assetsReady || !frame || !content) return;
+    let cancelled = false;
+    let fontReady = false;
+    let timedOut = false;
+    let animationFrame = 0;
+    const decoded = new WeakMap<HTMLImageElement, string>();
+    const decoding = new WeakMap<HTMLImageElement, string>();
+    const check = () => {
+      if (cancelled || !content.querySelector(".mc-root") || !content.offsetHeight) return;
+      const viewport = frame.getBoundingClientRect();
+      const images = Array.from(content.querySelectorAll("img")).filter((image) => {
+        const rect = image.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && rect.bottom > viewport.top && rect.top < viewport.bottom
+          && rect.right > viewport.left && rect.left < viewport.right;
+      });
+      const imagesReady = images.map((image) => {
+        const source = image.currentSrc;
+        if (!source || !image.complete) return false;
+        if (!image.naturalWidth || decoded.get(image) === source) return true;
+        if (decoding.get(image) !== source) {
+          decoding.set(image, source);
+          void image.decode().catch(() => undefined).then(() => {
+            decoded.set(image, source);
+            scheduleCheck();
+          });
+        }
+        return false;
+      }).every(Boolean);
+      if (timedOut || (fontReady && imagesReady)) {
+        setAssetsReady(true);
+        onReady?.();
+      }
+    };
+    const scheduleCheck = () => {
+      if (cancelled) return;
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(check);
+    };
+    const font = displayFontFor(data.fontKey);
+    // Fonts and the renderer's actual responsive image requests start together.
+    void document.fonts.load(`${font.weight} 32px ${font.stack}`, data.businessName)
+      .catch(() => undefined).then(() => { fontReady = true; scheduleCheck(); });
+    const observer = new MutationObserver(scheduleCheck);
+    observer.observe(content, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset"] });
+    content.addEventListener("load", scheduleCheck, true);
+    content.addEventListener("error", scheduleCheck, true);
+    const timer = window.setTimeout(() => { timedOut = true; scheduleCheck(); }, 5000);
+    scheduleCheck();
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      content.removeEventListener("load", scheduleCheck, true);
+      content.removeEventListener("error", scheduleCheck, true);
+      window.clearTimeout(timer);
+      cancelAnimationFrame(animationFrame);
+    };
+  }, [active, pending, width, assetsReady, data.fontKey, data.businessName, onReady]);
 
   useLayoutEffect(() => {
     const el = outerRef.current;
@@ -105,7 +199,7 @@ export function SpecimenPlate({
   const ratio = frameRatio ?? (compact ? 8 : 1.6);
   const height = Math.min(Math.max(width / ratio, minHeight), maxHeight);
   const cropped = natural > height + 1;
-  const ready = !pending && width > 0 && contentHeight > 0;
+  const ready = !pending && width > 0 && contentHeight > 0 && assetsReady;
 
   return (
     <div
@@ -118,7 +212,7 @@ export function SpecimenPlate({
         minHeight,
         maxHeight,
         overflow: "hidden",
-        background: deviceViewport ? "var(--c-canvas)" : "var(--c-shade)",
+        background: deviceViewport ? "transparent" : "var(--c-shade)",
       }}
     >
       <div
@@ -141,7 +235,20 @@ export function SpecimenPlate({
           ...(deviceViewport ? { "--mc-vph": `${Math.round(effectiveWidth / ratio)}px` } : {}),
         } as CSSProperties}
       >
-        {!pending && <StaticPreviewContext.Provider value={true}><LivePreview layout={layout} data={data} chrome={chrome} /></StaticPreviewContext.Provider>}
+        {active && !pending && width > 0 && (
+          <PreviewImageSizesContext.Provider value={`${Math.ceil(width)}px`}>
+            <StaticPreviewContext.Provider value={true}>
+              {heroOnly && hero ? (
+                <div
+                  className={`mc-root ${styles.heroSnapshot}`}
+                  style={{ ...previewVars(data.brandColor, data.fontKey), containerType: "inline-size" } as CSSProperties}
+                >
+                  <WebsiteHeroSnapshot entry={hero} layout={layout} data={data} t={translate} />
+                </div>
+              ) : <LivePreview layout={layout} data={data} chrome={chrome} />}
+            </StaticPreviewContext.Provider>
+          </PreviewImageSizesContext.Provider>
+        )}
       </div>
       {!ready && <Skeleton h="100%" r={0} style={{ position: "absolute", inset: 0 }} />}
       {ready && cropped && !deviceViewport && (

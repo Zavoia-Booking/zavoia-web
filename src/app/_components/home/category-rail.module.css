@@ -16,9 +16,13 @@
   min-width: 0;
 }
 
+.mobileAll {
+  display: none;
+}
+
 /* Keep See all visible while adapting the number of discoveries to the
-   available content width. The server-selected order never changes. */
-.grid > li:nth-child(n + 8):not(:last-child) {
+   available content width. The first slot is reserved for its mobile version. */
+.grid > li:nth-child(n + 9):not(:last-child) {
   display: none;
 }
 
@@ -27,7 +31,7 @@
     grid-template-columns: repeat(10, minmax(0, 1fr));
   }
 
-  .grid > li:nth-child(n + 8):nth-child(-n + 9) {
+  .grid > li:nth-child(n + 9):nth-child(-n + 10) {
     display: list-item;
   }
 }
@@ -38,7 +42,7 @@
     gap: 12px;
   }
 
-  .grid > li:nth-child(n + 8):not(:last-child) {
+  .grid > li:nth-child(n + 9):nth-child(-n + 12) {
     display: list-item;
   }
 }
@@ -105,10 +109,31 @@
   }
 }
 
-@container industry-rail (max-width: 920px) {
+@media (max-width: 1024px), (hover: none) and (pointer: coarse) {
   .grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 20px 12px;
+    display: flex;
+    gap: 12px;
+    margin-inline: -6px;
+    padding: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 6px;
+    overscroll-behavior-x: contain;
+  }
+
+  .grid > li {
+    flex: 0 0 clamp(120px, 16vw, 136px);
+    scroll-snap-align: start;
+  }
+
+  .grid > li:nth-child(n + 9):not(:last-child),
+  .grid > .mobileAll {
+    display: list-item;
+  }
+
+  .grid > li.desktopAll:last-child {
+    display: none;
   }
 }
 
@@ -119,15 +144,6 @@
 }
 
 @container industry-rail (max-width: 560px) {
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px 12px;
-  }
-
-  .grid > li:nth-child(n + 6):not(:last-child) {
-    display: none;
-  }
-
   .label {
     font-size: 13px;
   }

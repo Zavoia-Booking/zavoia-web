@@ -1,5 +1,7 @@
 import { expect, test, type APIRequestContext, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import type { ListingDetail, PublicWebsite, TeamMemberBookingContext } from '../../src/lib/api/marketplace/types';
+import { en } from '../../src/i18n/dictionaries/en';
+import { ro } from '../../src/i18n/dictionaries/ro';
 import { ABOUT, IMAGE, PERSON, UUID, contextFixture, listingFixture, profileFixture, websiteFixture } from './fixtures.mjs';
 
 const api = `http://127.0.0.1:${process.env.PROFESSIONALS_FIXTURE_PORT || '4317'}`;
@@ -1189,6 +1191,59 @@ test('sign-in returns to the public page and resumes the same booking selection'
   await expect(drawer).toContainText(PERSON);
   expect((await inspect(request)).requests.filter(item => item.path === '/marketplace/appointments/book')).toHaveLength(0);
 });
+
+for (const screen of ['desktop', 'mobile'] as const) {
+  for (const from of ['en', 'ro'] as const) {
+    const to = from === 'en' ? 'ro' : 'en';
+    const source = from === 'en' ? en : ro;
+    const target = to === 'en' ? en : ro;
+    test(`${screen} professional sign-in keeps an explicit ${from.toUpperCase()} to ${to.toUpperCase()} language change and the return URL`, async ({ page, request, baseURL }) => {
+      const runtimeErrors: string[] = [];
+      page.on('pageerror', error => runtimeErrors.push(error.message));
+      await page.setViewportSize(screen === 'mobile' ? { width: 390, height: 844 } : { width: 1440, height: 1000 });
+      const suffix = '?utm_source=profile&return=%2Fhelp%3Fa%3D1#reviews';
+      const sourcePath = `${from === 'ro' ? '/ro' : ''}${path}`;
+      const targetPath = `${to === 'ro' ? '/ro' : ''}${path}`;
+      await page.goto(`${sourcePath}${suffix}`);
+      await expect(publicProfile(page).getByRole('heading', { name: PERSON, exact: true, level: 1 })).toBeVisible();
+      const header = page.locator('header[data-marketplace-chrome]');
+      if (screen === 'mobile') {
+        await header.getByRole('button', { name: source.nav.openMenu, exact: true }).click();
+        const menu = page.getByRole('dialog', { name: source.nav.navigation, exact: true });
+        await menu.getByRole('link').filter({ hasText: source.accountMenu.loginOrSignUp }).click();
+      } else {
+        await header.getByRole('button', { name: source.nav.account, exact: true }).click();
+        const menu = page.getByRole('dialog', { name: source.nav.account, exact: true });
+        await menu.getByRole('link', { name: source.accountMenu.login, exact: true }).click();
+      }
+      await expect(page).toHaveURL(url => url.pathname === `${from === 'ro' ? '/ro' : ''}/auth`);
+      expect(new URL(page.url()).searchParams.get('redirect')).toBe(`${sourcePath}${suffix}`);
+      const languageName = `${source.language.label}: ${source.localeNames[from]}`;
+      if (screen === 'mobile') {
+        await header.getByRole('button', { name: source.nav.openMenu, exact: true }).click();
+        await page.getByRole('dialog', { name: source.nav.navigation, exact: true })
+          .getByRole('button', { name: languageName, exact: true }).click();
+        await page.getByRole('dialog', { name: source.language.label, exact: true })
+          .getByRole('link', { name: source.localeNames[to], exact: true }).click();
+      } else {
+        await header.locator('summary').filter({ hasText: source.localeNames[from] }).click();
+        await header.getByRole('navigation', { name: source.language.label, exact: true })
+          .getByRole('link', { name: source.localeNames[to], exact: true }).click();
+      }
+      await expect(page).toHaveURL(url => url.pathname === `${to === 'ro' ? '/ro' : ''}/auth`);
+      await expect(page.locator('html')).toHaveAttribute('lang', to);
+      expect(new URL(page.url()).searchParams.get('redirect')).toBe(`${sourcePath}${suffix}`);
+      await page.getByLabel(target.auth.fields.email, { exact: true }).fill('share-fixture@example.invalid');
+      await page.getByLabel(target.auth.fields.password, { exact: true }).fill('Fixture-password-123!');
+      await page.getByRole('button', { name: target.auth.loginSubmit, exact: true }).click();
+      await expect(page).toHaveURL(`${baseURL}${targetPath}${suffix}`);
+      await expect(page.locator('html')).toHaveAttribute('lang', to);
+      await expect(publicProfile(page).getByRole('heading', { name: PERSON, exact: true, level: 1 })).toBeVisible();
+      expect((await inspect(request)).requests.filter(item => item.path === '/marketplace/auth/login')).toHaveLength(1);
+      expect(runtimeErrors).toEqual([]);
+    });
+  }
+}
 
 test('the public profile fits desktop and mobile widths and lets the document scroll', async ({ page }) => {
   const profile = await openProfile(page);

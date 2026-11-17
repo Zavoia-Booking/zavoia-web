@@ -130,7 +130,7 @@
   /* Web layout */
   --nav-h: 68px;
   --content-max: 1400px; /* Usable content width; gutters are added outside. */
-  --gutter: 28px;
+  --gutter: clamp(40px, 5vw, 80px);
 }
 
 /* ─────────────────────────────────────────────
@@ -444,12 +444,9 @@ img.zw-img.zv-skel { border-radius: inherit; color: transparent; }
 }
 .zv-ring-pulse { animation: zv-ring-pulse 1.6s ease-out 3; }
 
-/* Neutral keyboard focus for actions; dark surfaces override the color token. */
+/* Neutral keyboard focus for controls; dark surfaces override the color token. */
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 2px; border-radius: 6px; }
-/* Native fields keep their existing field-focus color. Component field rules
-   (including neutral textareas and auth halos) still take precedence. */
-:where(input:not([type="button"], [type="submit"], [type="reset"]), select, textarea):focus-visible { outline-color: var(--p-500); }
 
 /* Scroll-reveal — sections rise + fade on first viewport entry. */
 @media (prefers-reduced-motion: no-preference) {

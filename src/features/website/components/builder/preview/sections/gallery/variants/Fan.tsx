@@ -42,7 +42,8 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
     const root = stage.closest<HTMLElement>(".mc-root") ?? stage;
     const measure = () => {
       const width = root.clientWidth || stage.clientWidth || 1000;
-      const stageHeight = stage.getBoundingClientRect().height;
+      // Match the logical width: transformed preview bounds would scale the cards twice.
+      const stageHeight = stage.clientHeight;
       setGeometry((current) =>
         current.width === width && current.stageHeight === stageHeight ? current : { width, stageHeight },
       );

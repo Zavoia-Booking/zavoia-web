@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { ABOUT, UUID, availabilityFixture, contextFixture, favoritesFixture, listingFixture, profileFixture, websiteFixture } from './fixtures.mjs';
+import { structuredDataFixtures } from '../structured-data/fixtures.mjs';
 
 // A dedicated in-memory API serves both Next's server render and the browser.
 // It never opens a database connection or forwards an application mutation.
@@ -8,6 +9,7 @@ const defaultState = () => ({
   profile: profileFixture(), listing: listingFixture(), bookingContext: contextFixture(), favorites: favoritesFixture(), signedIn: false,
   profileStatus: 200, contextStatus: 200, listingStatus: 200, sitemapStatus: 200,
   sitemap: { locations: [], brands: [], websites: [], professionals: [{ uuid: UUID }] },
+  ...(process.env.STRUCTURED_DATA_FIXTURES === '1' ? structuredDataFixtures() : {}),
   requests: [], blockedMutations: [],
 });
 let state = defaultState();
@@ -103,6 +105,14 @@ const server = createServer(async (request, response) => {
   const website = path.match(/^\/marketplace\/public\/website\/share-team-(portraits|roster|columns|carousel)$/);
   if (website && method === 'GET') return json(websiteFixture(website[1]));
   if (path === '/marketplace/public/website/demo-atelier-glow' && method === 'GET') return json(websiteFixture());
+  if (path === '/marketplace/public/website/schema-merchant' && method === 'GET' && state.schemaWebsite) return json(state.schemaWebsite);
+  if (path === '/marketplace/public/brand/share-studio' && method === 'GET' && state.brand) return json(state.brand);
+  if (path === '/marketplace/public/listings' && method === 'GET' && state.searchResult) return json(state.searchResult);
+  if (path === '/marketplace/public/brands' && method === 'GET' && state.searchResult) return json({ data: [], total: 0, offset: 0, limit: 10 });
+  if (path === '/marketplace/public/websites' && method === 'GET' && state.searchResult) return json({ data: [] });
+  if (path === '/marketplace/public/nearby-locations' && method === 'POST' && state.searchResult) {
+    return json({ data: state.searchResult.locations, total: state.searchResult.total, limit: 10, offset: 0, fallback: state.searchResult.fallback });
+  }
   if (path === '/marketplace/public/booking/calendar' && method === 'POST') {
     return json({ data: availabilityFixture(body?.locationId).calendar });
   }
@@ -125,7 +135,7 @@ const server = createServer(async (request, response) => {
   if (path === '/marketplace/customer/favorite/professionals' && method === 'GET') return json(state.favorites.professionals);
   if (path === '/marketplace/customer/favorite/locations' && method === 'GET') return json([]);
   if (path === '/marketplace/notifications/unread-count' && method === 'GET') return json({ data: { count: 0 } });
-  if (path === '/marketplace/public/industries' && method === 'GET') return json([]);
+  if (path === '/marketplace/public/industries' && method === 'GET') return json(state.industries ?? []);
   if (path === '/marketplace/public/venue-tags' && method === 'GET') return json([]);
   if (path === '/marketplace/public/sitemap' && method === 'GET') {
     return state.sitemapStatus === 200

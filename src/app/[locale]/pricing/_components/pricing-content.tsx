@@ -5,11 +5,10 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { Icon } from "@/components/ui/icon";
-import { formatPrice, getPlanPricing } from "@/lib/marketing/pricing";
+import { getPlanPricing } from "@/lib/marketing/pricing";
 import type { MarketingFaqItem } from "@/lib/marketing/page-content";
 import { preloadSignatureFont } from "@/app/_components/for-business/signature-font";
 import { PlanCards } from "@/app/_components/for-business/plan-cards";
-import { TeamSeatPrice } from "@/app/_components/for-business/team-seat-price";
 import { MarketingFaq } from "@/app/_components/for-business/faq-section";
 import { StudioFeatureArt } from "@/app/_components/for-business/studio-feature-art";
 import m from "@/app/_components/for-business/marketing.module.css";
@@ -21,7 +20,6 @@ import styles from "./pricing.module.css";
 export function PricingContent({ locale, faqItems }: { locale: Locale; faqItems: readonly MarketingFaqItem[] }) {
   const dict = dictionaries[locale];
   const t = dict.pricing;
-  const b = dict.businessMarketing;
   const pricing = getPlanPricing(locale);
   preloadSignatureFont();
 
@@ -35,15 +33,6 @@ export function PricingContent({ locale, faqItems }: { locale: Locale; faqItems:
               <span>{t.hero.titlePre}<span className={clsx(m.signature, styles.signature)}>{t.hero.titleAccent}</span></span>
             </h1>
             <p className={styles.lead}>{t.hero.lead}</p>
-            <nav className={styles.planShortcuts} aria-label={t.plansLabel}>
-              {(["base", "plus"] as const).map(id => (
-                <a key={id} href={`#pricing-plan-${id}`}>
-                  <strong>{b.plans[id].name}</strong>
-                  <span>{formatPrice(pricing.plans[id].monthly, pricing.currency)} <span>{b.plans.perMonth}</span></span>
-                </a>
-              ))}
-              <TeamSeatPrice locale={locale} className={styles.shortcutSeatPrice} />
-            </nav>
           </header>
           <div className={styles.plans} id="pricing-plans" tabIndex={-1} aria-label={t.plansLabel}>
             <PlanCards locale={locale} headingLevel={2} idPrefix="pricing-plan" source="pricing" />
@@ -89,6 +78,7 @@ export function PricingContent({ locale, faqItems }: { locale: Locale; faqItems:
         helpPrompt={t.faq.helpPrompt}
         helpLink={t.faq.helpLink}
         items={faqItems}
+        footerAdjacent
       />
     </main>
   );

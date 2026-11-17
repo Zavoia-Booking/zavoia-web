@@ -83,6 +83,52 @@ function openingHours(location: ListingLocation) {
   });
 }
 
+/**
+ * The public menu offers services, not retail Products. A staff-dependent
+ * "from" figure is a lower bound, never a promise that every professional
+ * charges that price. Do not expose the unshown upper bound or hidden prices.
+ */
+function serviceCatalog(listing: ListingDetail, locationId: string, url: string) {
+  const showPricing = !(listing.additionalSettings && typeof listing.additionalSettings === "object"
+    && "showPricing" in listing.additionalSettings && listing.additionalSettings.showPricing === false);
+  const currency = text(listing.businessCurrency)?.toUpperCase();
+  const items = [
+    ...listing.bundles.map(item => ({ item, kind: "bundle" })),
+    ...listing.services.map(item => ({ item, kind: "service" })),
+  ].flatMap(({ item, kind }) => {
+    const name = text(item.name);
+    if (!name) return [];
+    const serviceId = `${locationId}-${kind}-${encodeURIComponent(text(item.uuid) || String(item.id))}`;
+    const description = text(item.description);
+    // Match formatServiceSpread: an equal staff override remains authoritative
+    // even when priceVariesByStaff is false and the base price is different.
+    const minor = item.priceFromMinor ?? item.priceAmountMinor;
+    const price = showPricing && currency && /^[A-Z]{3}$/.test(currency)
+      && Number.isSafeInteger(minor) && minor >= 0 ? minor / 100 : undefined;
+    return [{
+      "@type": "Offer",
+      "@id": `${serviceId}-offer`,
+      url,
+      seller: { "@id": locationId },
+      itemOffered: {
+        "@type": "Service",
+        "@id": serviceId,
+        name,
+        ...(description && { description }),
+        provider: { "@id": locationId },
+      },
+      ...(price !== undefined && (item.priceVariesByStaff === true ? {
+        priceSpecification: { "@type": "PriceSpecification", minPrice: price, priceCurrency: currency },
+      } : { price, priceCurrency: currency })),
+    }];
+  });
+  return items.length ? {
+    "@type": "OfferCatalog",
+    "@id": `${locationId}-catalog`,
+    itemListElement: items,
+  } : undefined;
+}
+
 /** Pages above this location, root first, as their own headings name them. */
 export type LocationBreadcrumb = ReadonlyArray<{ name: string; href: string }>;
 
@@ -93,7 +139,7 @@ export type LocationPageContext = {
   title?: string;
 };
 
-/** Factual public entities only: ratings, offers and inferred subtypes are excluded. */
+/** Factual public entities only: mixed ratings and inferred business subtypes are excluded. */
 export function locationStructuredData(
   listing: ListingDetail,
   locale: Locale,
@@ -126,6 +172,7 @@ export function locationStructuredData(
   const telephone = text(listing.location.phone);
   const email = text(listing.location.email);
   const hours = openingHours(listing.location);
+  const catalog = serviceCatalog(listing, locationId, canonicalLocationUrl);
   // These brand contacts are rendered only when the branch has no own value.
   const merchantTelephone = !telephone ? text(listing.phone) : undefined;
   const merchantEmail = !email ? text(listing.email) : undefined;
@@ -166,6 +213,7 @@ export function locationStructuredData(
         ...(telephone && { telephone }),
         ...(email && { email }),
         ...(hours.length > 0 && { openingHoursSpecification: hours }),
+        ...(catalog && { hasOfferCatalog: catalog }),
       },
       {
         "@type": "WebPage",

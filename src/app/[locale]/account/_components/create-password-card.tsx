@@ -108,10 +108,10 @@ export function CreatePasswordCard({
         aria-describedby={invalid ? ERROR_ID : undefined}
         style={{
           width: "100%",
-          maxWidth: 360,
+          maxWidth: "var(--account-input-max, 360px)",
           boxSizing: "border-box",
-          padding: "10px 12px",
-          borderRadius: 10,
+          padding: "var(--account-input-padding, 10px 12px)",
+          borderRadius: "var(--account-input-radius, 10px)",
           border: invalid
             ? "1px solid var(--s-error-600)"
             : "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
@@ -129,7 +129,7 @@ export function CreatePasswordCard({
     <div className={styles.settingsGroup}>
       <button
         type="button"
-        className="tap zw-hover-row"
+        className={`tap zw-hover-row ${styles.securityTrigger}`}
         onClick={() => onOpenChange(!open)}
         aria-expanded={open}
         aria-controls="account-create-password-fields"
@@ -193,7 +193,8 @@ export function CreatePasswordCard({
             <div style={{ padding: "20px 0", borderTop: "1px solid rgba(28,28,26,0.06)" }}>
               <form
                 onSubmit={submit}
-                style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 360 }}
+                className={styles.accountForm}
+                style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: "var(--account-form-max, 360px)" }}
               >
                 {field("create-password-new", c.new, next, setNext, nextRef, invalidField === "next")}
                 {field(
@@ -210,7 +211,7 @@ export function CreatePasswordCard({
                     {error}
                   </InlineError>
                 )}
-                <div>
+                <div className={styles.formActions}>
                   <Button
                     loading={saving}
                     kind="primary"

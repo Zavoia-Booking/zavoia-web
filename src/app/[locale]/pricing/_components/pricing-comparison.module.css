@@ -18,7 +18,7 @@
 .limit { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 5px 10px; color: var(--c-600); font-size: .9375rem; line-height: 1.5; }
 .limit strong, .unlimited { color: var(--c-900); font-size: 2.25rem; font-weight: 550; line-height: 1.15; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .unlimited { font-size: 2rem; }
-.mobilePlan { display: none; }
+.phoneFeature { display: none; }
 .notes { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 8px 32px; padding-top: 18px; }
 .notes p { max-width: 72ch; margin: 0; color: var(--c-600); font-size: .875rem; line-height: 1.6; text-wrap: pretty; }
 .helpLink { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--c-900); font-weight: 500; text-decoration: none; }
@@ -63,16 +63,28 @@
 @media (max-width: 600px) {
   .section { padding-top: 24px; }
   .lead { margin-top: 14px; font-size: 1rem; }
-  .table { display: block; position: relative; margin-top: 28px; }
-  .table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .table tbody { display: block; border-top: 1px solid var(--c-300); }
-  .table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid var(--c-300); padding-block: 22px; column-gap: 24px; }
-  .table tbody th:first-child { grid-column: 1 / -1; width: auto; padding: 0 0 18px; border: 0; font-size: 1.0625rem; }
-  .table tbody td { display: block; min-width: 0; padding: 0; border: 0; font-size: .9375rem; }
+  /* Phones fold the table into Base and Plus columns. The first feature's title sits above the plan
+     header (the table keeps it as a hidden row header); the other titles span above their values. */
+  .phoneFeature { display: block; margin: 28px 0 0; color: var(--c-900); font-size: 1rem; font-weight: 550; line-height: 1.45; letter-spacing: -.015em; text-wrap: pretty; }
+  .table { display: block; position: relative; isolation: isolate; margin-top: 14px; }
+  .table::before { content: ""; position: absolute; z-index: -1; inset: 0 0 0 50%; border-radius: 18px; background: oklch(96.5% .014 78); }
+  .table thead, .table tbody { display: block; }
+  .table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .table thead tr { border-bottom: 1px solid var(--c-400); }
+  .table tbody tr { border-bottom: 1px solid var(--c-300); }
+  .table tbody tr:last-child { border-bottom: 0; }
+  .table thead th, .table tbody th, .table tbody td { display: block; min-width: 0; border: 0; }
+  .table thead th { padding: 18px 12px 16px 0; }
+  .table thead th:first-child { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .table .plusColumn { padding-inline: 16px; background: transparent; }
+  .planName { gap: 6px; font-size: 1.375rem; }
+  .planName svg { width: 20px; height: 20px; }
+  .planSummary { margin-top: 6px; }
+  .table tbody th:first-child { grid-column: 1 / -1; width: auto; padding: 18px 0 0; }
+  .table tbody td { padding: 8px 12px 18px 0; }
+  .table tbody tr:first-child th { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .table tbody tr:first-child td { padding-top: 16px; }
   .table tbody tr:last-child td:last-child { border-radius: 0; }
-  .table .plusColumn { background: transparent; }
-  .mobilePlan { display: block; margin-bottom: 8px; color: var(--c-900); font-size: .875rem; font-weight: 600; }
-  .plusColumn .mobilePlan { color: var(--p-600); }
   .limit { gap: 3px 8px; font-size: .875rem; }
   .limit strong { font-size: 2rem; }
   .unlimited { font-size: 1.625rem; }

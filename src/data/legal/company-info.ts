@@ -36,7 +36,7 @@ export const companyInfo: LegalDocument = {
               "Trade Register number: J4/1369/2023",
               "Fiscal code: 48718430",
               "VAT registration: not registered for VAT",
-              "Registered office: Mun. București, Sectorul 6, Str. Splaiul Independenței, Nr. 202 B, Camera 42",
+              "Registered office: Mun. București, Sectorul 6, Str. Splaiul Independenței, Nr. 202 B, Camera 42, postal code 060023",
               "Share capital: 200 RON",
             ],
             ro: [
@@ -44,7 +44,7 @@ export const companyInfo: LegalDocument = {
               "Număr de ordine în Registrul Comerțului: J4/1369/2023",
               "Cod unic de înregistrare (CUI): 48718430",
               "Înregistrare în scopuri de TVA: neînregistrată",
-              "Sediu social: Mun. București, Sectorul 6, Str. Splaiul Independenței, Nr. 202 B, Camera 42",
+              "Sediu social: Mun. București, Sectorul 6, Str. Splaiul Independenței, Nr. 202 B, Camera 42, cod poștal 060023",
               "Capital social: 200 lei",
             ],
           },

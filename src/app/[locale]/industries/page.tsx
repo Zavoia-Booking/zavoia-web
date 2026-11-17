@@ -17,8 +17,8 @@ import { industryVisual } from "@/lib/marketplace/industry-visuals";
 import { getCategoryDiscoveryGroups } from "@/lib/seo/category-discovery";
 import { getOptionalSitemapFeed } from "@/lib/seo/sitemap-feed.server";
 import { serializeJsonLd } from "@/lib/seo/json-ld";
-import { websiteId } from "@/lib/seo/site-identity";
-import { OPEN_GRAPH_LOCALES, SITE_URL, defaultSocialImage } from "@/lib/site";
+import { discoveryStructuredData } from "@/lib/seo/discovery-structured-data";
+import { OPEN_GRAPH_LOCALES, defaultSocialImage } from "@/lib/site";
 import { IndustryBrowser } from "./industry-browser";
 import styles from "./page.module.css";
 
@@ -128,36 +128,15 @@ export default async function IndustriesPage({ params }: Props) {
         return entries.length > 0 ? [{ city, entries }] : [];
       })
     : [];
-  const pageUrl = `${SITE_URL}${localeHref(locale, "industries")}`;
-  const breadcrumb = {
-    "@type": "BreadcrumbList",
-    "@id": `${pageUrl}#breadcrumb`,
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: dict.header.home,
-        item: `${SITE_URL}${localeHref(locale)}`,
-      },
-      { "@type": "ListItem", position: 2, name: t.heading, item: pageUrl },
-    ],
-  };
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      breadcrumb,
-      {
-        "@type": "CollectionPage",
-        "@id": pageUrl,
-        url: pageUrl,
-        name: t.heading,
-        description: t.pageDescription,
-        inLanguage: locale,
-        isPartOf: { "@id": websiteId },
-        breadcrumb: { "@id": breadcrumb["@id"] },
-      },
-    ],
-  };
+  const jsonLd = discoveryStructuredData({
+    locale,
+    path: localeHref(locale, "industries"),
+    name: t.heading,
+    description: t.pageDescription,
+    breadcrumbs: [{ name: dict.header.home, path: localeHref(locale) }, { name: t.heading }],
+    // These are the directory's actual top-level destinations in display order.
+    items: directory.map((industry) => ({ name: industry.label, path: industry.href })),
+  });
 
   return (
     <main className={`zw-container ${styles.page}`}>

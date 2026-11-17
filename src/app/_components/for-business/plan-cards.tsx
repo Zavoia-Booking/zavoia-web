@@ -8,7 +8,6 @@ import { localeHref } from "@/i18n/routes";
 import { formatPrice, getPlanPricing, type PlanId } from "@/lib/marketing/pricing";
 import { registrationHref, TrialLink } from "./links";
 import { PricingSignupLink } from "./pricing-signup-link";
-import { PlanArtwork } from "./plan-artwork";
 import { TeamSeatPrice } from "./team-seat-price";
 import m from "./marketing.module.css";
 import styles from "./plans-section.module.css";
@@ -71,7 +70,6 @@ export function PlanCards({
                 </div>
                 <p className={styles.description}>{id === "plus" ? t.plusDescription : t.baseDescription}</p>
               </div>
-              {id === "plus" && <div className={styles.planArt} aria-hidden="true"><PlanArtwork plan="plus" /></div>}
             </div>
             <p className={styles.price}>
               <strong data-plan-price={id}>{formatPrice(plan.monthly, pricing.currency)}</strong>{" "}

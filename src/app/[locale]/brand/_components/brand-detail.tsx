@@ -63,9 +63,9 @@ function locationImageSizes(count: number): string {
     "(max-width: 600px) calc(100vw - 32px)",
     "(max-width: 657px) calc(100vw - 40px)",
     "(max-width: 920px) calc((100vw - 58px) / 2)",
-    ...[[991, 2], [1309, 3], [1456, 4]].map(([width, capacity]) => {
+    ...[[1039, 2], [1393, 3], [1556, 4]].map(([width, capacity]) => {
       const visibleColumns = Math.min(columns, capacity);
-      return `(max-width: ${width}px) calc((100vw - ${56 + 18 * (visibleColumns - 1)}px) / ${visibleColumns})`;
+      return `(max-width: ${width}px) calc((90vw - ${18 * (visibleColumns - 1)}px) / ${visibleColumns})`;
     }),
     `${(1400 - 18 * (columns - 1)) / columns}px`,
   ].join(", ");

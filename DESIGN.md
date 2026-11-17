@@ -112,7 +112,7 @@ Zavoia's marketplace reads like an editorial magazine laid on warm paper. The
 canvas is a warm off-white (`--c-canvas`), the entire neutral text ramp is a
 warm gray built in OKLCH at hue 70, and every hard surface is either white
 card stock or near-black ink (`--c-ink`). Terracotta is the single brand
-accent — it marks ratings, active states, input-focus feedback, and the "book" action,
+accent — it marks ratings, active states, and the "book" action,
 and it stays rare enough that ink does most of the talking. Photography does
 the selling: business cards are photo-forward (full-bleed images with gradient
 scrims, or white cards with 16:10 photo headers), and the chrome around them
@@ -145,10 +145,10 @@ A warm two-pole palette — paper to ink — with terracotta as the lone voice o
 brand and a small status quartet that whispers through 6px dots.
 
 ### Primary
-- **Terracotta** (`--p-500`, {colors.terracotta}): the brand accent. Star icons, input-focus feedback, reading-progress fills, active TOC markers, the "accent" button (the book action), radar/pulse rings, hero underline draws.
+- **Terracotta** (`--p-500`, {colors.terracotta}): the brand accent. Star icons, reading-progress fills, active TOC markers, the "accent" button (the book action), radar/pulse rings, hero underline draws.
 - **Terracotta Deep** (`--p-600`, {colors.terracotta-deep}): drop caps, kicker default color, hover-darkened accent.
 - **Terracotta Text** (`--p-700`, {colors.terracotta-text}): terracotta used *as text* on the canvas (inline links, hover color on question titles, "full link" affordances) — dark enough to pass contrast at small sizes.
-- **Terracotta Tint** (`--p-100`, {colors.terracotta-tint}): focus glow halo (`box-shadow: 0 0 0 4px`), soft washes. Column highlights use `color-mix(in oklch, var(--p-500) 7–12%, transparent)`.
+- **Terracotta Tint** (`--p-100`, {colors.terracotta-tint}): soft washes. Column highlights use `color-mix(in oklch, var(--p-500) 7–12%, transparent)`.
 
 ### Neutral
 - **Canvas** ({colors.canvas}): the page background, always. White never backs the page itself.
@@ -177,7 +177,7 @@ against its actual background, including gradients; body text must meet 4.5:1.
 
 **The One Voice Rule.** Terracotta is the only brand accent and it stays
 scarce. Structure and state are carried by ink; terracotta marks *the* action
-or *the* live thing on a screen — stars, book, input focus, progress.
+or *the* live thing on a screen — stars, book, progress. Focus indicators stay neutral.
 
 **The Dot-Not-Wash Rule.** Status and category color arrive as a 6px dot next
 to neutral text, never as a tinted background behind content (warning callouts
@@ -198,7 +198,19 @@ indices, counts, and reading-time tags. Fonts load via `next/font` in
 `src/styles/fonts.ts` — the single place fonts are declared.
 
 ### Hierarchy
-- **Display** (600, clamp(48px, 6.6vw, 88px), lh 0.93, ls −0.052em): the home hero and the business pages' heroes. Its second line uses `--c-600` to retain contrast against the hero gradient on home; the business pages end on one handwritten signature word instead (see Business marketing pages).
+- **Display** (600, clamp(48px, 6.6vw, 88px), lh 0.93, ls −0.052em): the home hero and the business pages' heroes. Home keeps a muted `--c-600` second-line prefix and ends on one terracotta handwritten word, reusing the business pages' signature style and font preload. The words are “schedule.” in English and “când.” in Romanian; keep the full heading copy unchanged. Its warm paper and shared grain carry a broad, low-opacity terracotta haze behind the copy and search.
+  Keep the decorative ZAVOIA wordmark inset from the side edges and slightly lower
+  on desktop. Use neutral letter spacing so the characters remain separate, with
+  quiet contrast and the established mobile vertical placement.
+  On desktop, size the hero's vertical spacing against the viewport height so the
+  full industry shortcuts remain in the first screen. Compact the heading only
+  for short windows and the narrow desktop range with two industry rows. At the
+  tablet/mobile breakpoint (920px and below), and on touch-first tablets at wider
+  sizes, fill the viewport below the header and center the content within its
+  established spacing, with industries below the first screen. Let the hero grow
+  if its content needs more room. Above phone widths, use a larger tablet headline
+  and description, with height-responsive gaps that move the headline higher and
+  the search lower rather than clustering everything at the center.
 - **Headline** (700, clamp(22px, 2.4vw, 30px), lh 1.06, ls −0.03em): SectionTitle's `h2`, always `txt-balance`, always `--c-900`, usually preceded by a Kicker with 8px gap.
 - **Title** (600, 16–18px, lh 1.15–1.35, ls −0.016 to −0.022em): card names, row titles, question titles. Card titles truncate with ellipsis on one line.
 - **Body** (400, 13.5–15.5px, lh 1.4–1.75, ls −0.003 to −0.005em, `--c-700`): prose at 15.5/1.75 in reading columns (58ch measure), card blurbs at 13.5/1.4. Reading columns cap at ~58ch/720px.
@@ -214,9 +226,11 @@ sentence. It labels, indexes, and counts; the sans speaks.
 ## Layout
 
 A single centered container with **1400px of usable content** (`--content-max`),
-applied via `.zw-container`. Its border-box maximum adds the two `28px` gutters
+applied via `.zw-container`. Its border-box maximum adds two fluid desktop gutters
 (`max-width: calc(var(--content-max) + 2 * var(--gutter))`). The gutter
-compresses responsively (20px ≤920px, 16px ≤600px) and the sticky opaque nav is
+uses `clamp(40px, 5vw, 80px)` above 920px, leaving 64px per side at 1280px and
+72px at 1440px. Homepage editorial frames share that inset. The gutter compresses
+responsively (20px ≤920px, 16px ≤600px) and the sticky opaque nav is
 `68px` tall (`--nav-h`, 56px ≤920px); sticky elements offset against
 `calc(var(--nav-h) + N)`.
 
@@ -232,18 +246,33 @@ for a fixed booking action bar at the viewport bottom. Other observed breakpoint
 4→2→1), 1024px (post/legal TOC rails drop), 980/640px (masonry and carousel
 column counts), 880px (split spotlight stacks).
 
-Horizontal rhythm on the home page comes from contained rails, not the page:
+Horizontal rhythm on the home page comes from contained rails, not the page.
+
+The industry shortcuts show every available industry in one native horizontal
+row at widths up to 1024px and on touch tablets, including landscape. Keep the
+daily server-selected industry order with Other last. Put See all industries
+first in the scrolling row and last in the desktop grid, with matching focus order.
+Use 120–136px tiles, proximity snapping, the shared hidden scrollbar utility,
+and enough inset for shadows and keyboard focus. Desktop retains its existing
+responsive subset and grid. The loading placeholder uses the same row geometry.
+
 `.zw-carousel-rail` scrolls 3-up cards (2-up ≤980px, 86%-wide ≤640px) with
 snap-proximity and hidden scrollbars; the split-spotlight rail scrolls within
 the same 1400px content boundary. Up to 640px, the homepage's In your city and
 Brands feeds share a native swipe rail with a visible next-card preview. Their
 photo cards are 248–320px wide and 280–320px tall, with two-line primary names,
-single-line business names and their existing metadata and actions. Keep their
-desktop grids, feed ordering and View all destinations. Brand cards have no save
-action. Show more is a desktop action for In your city and Nearby; mobile uses
-View all to continue browsing.
-Loading skeletons use the same track and card geometry; retain horizontal
-position during pagination and locale navigation. Offer grids are explicit 3→2→1 so a third
+single-line business names and their existing metadata and actions. Above 640px,
+In your city uses two columns on tablets, with an odd final tile spanning the row.
+At 1100px, use a twelve-column bento with compact rows of three, four and three
+cards. Vary their widths within each row; keep tile heights between 248px and
+280px, with no tiles spanning two rows. Rebalance short final rows without dense
+placement, isolated cards or changing feed order. Keep image crops, two-line
+location names, single-line business names, ratings and favorite controls inside
+each tile; request image sizes that match the larger spans. Brands retains its
+existing desktop grid and has no save action. Keep View all destinations.
+Show more is a desktop action for In your city and Nearby; mobile uses View all
+to continue browsing. Loading skeletons use the same spans and card geometry;
+retain horizontal position during pagination and locale navigation. Offer grids are explicit 3→2→1 so a third
 card never orphans. Recently viewed uses native horizontal scrolling up to 640px,
 preserving its existing card design and image ratio. Mobile cards use the same
 248–320px widths as the other discovery rails, with a next-card preview. Loading
@@ -274,6 +303,17 @@ stagger via `.zw-stagger` (0.06s steps, 8 children deep). Both are gated behind
 
 - Zavoia page shells, headers and footers share the 1400px content limit. Smaller
   prose columns, forms, dialogs and cards stay readable inside that boundary.
+- The site header, mobile menu, standalone 404 and publisher identity share
+  `/brand/zavoia-logo.png`, a transparent lossless export from the clean vector
+  wordmark. Serve it directly to retain its smooth edges and keep the normal
+  header mark 34px tall. The opaque, padded email logo is a separate export.
+- At 920px and below, the shared footer starts at its own top divider without
+  additional top padding. Page endings own the content gap; terminal marketing
+  FAQs, Help and Industries use 24px, as does the phone homepage closing section.
+  When the footer supplies the boundary, omit the preceding final row's bottom
+  divider while keeping internal separators. Marketing FAQs followed by another
+  section retain their own spacing and closing border. Preserve fixed booking
+  action clearance after the footer and the discovery footer's warm surface.
 - Full-bleed backgrounds, the search map and Sanity Studio retain their own
   layout. Customer websites use the shared Studio content-width contract below;
   do not wrap their entire renderer in a marketplace container.
@@ -352,7 +392,7 @@ carries `.tap` (scale 0.97 + slight fade on press); buttons add `.zw-btn`
 - **Secondary:** white fill, `--c-900` text, `rgba(28,28,26,0.14)` hairline border.
 - **Ghost:** transparent, `--c-800` text, no visible border.
 - **Hover / Press:** translateY(−1px) + hover shadow + brightness(1.05); press scales to 0.975 and drops the shadow. Disabled = 45% opacity, no lift.
-- **Focus:** use a visible neutral `:focus-visible` outline for buttons, button-style links and navigation controls. The global default is 2px `--c-700` with a 2px offset; scoped controls may retain their existing offset. Dark surfaces set `--focus-ring-color` to `--c-canvas`. Do not use terracotta for action focus rings or remove keyboard focus indicators. Input fields retain their existing focus treatment. Generated websites use a neutral foreground appropriate to each light/dark section.
+- **Focus:** use a visible neutral `:focus-visible` outline for buttons, button-style links and navigation controls. The global default is 2px `--c-700` with a 2px offset; scoped controls may retain their existing offset. Dark surfaces set `--focus-ring-color` to `--c-canvas`. Do not use terracotta for focus rings or remove keyboard focus indicators. Input fields follow the neutral field-focus rule below. Generated websites use a neutral foreground appropriate to each light/dark section.
 
 ### Chips
 - **Style:** white pill, hairline border (12% ink), 13.5px/600, optional leading 14px icon; `whiteSpace: nowrap`.
@@ -390,7 +430,7 @@ zero result; a failed request must offer recovery instead of claiming either.
 
 ### Inputs / Fields
 - **Style:** white, 12%-ink hairline, 14px radius, sh-sm; icon leading inside `6px 6px 6px 16px` padding (help search).
-- **Focus:** container `:focus-within` — border warms to `--p-400`, glow `0 0 0 4px var(--p-100)`. Range sliders: 6px `--c-200` track, 26px ink circular thumb.
+- **Focus:** use a single ink border (`--c-ink`) for styled inputs, without a colored halo or another outline. Preserve the field's radius and validation error colors. Native fields without a component focus treatment use the shared neutral keyboard outline. Range sliders: 6px `--c-200` track, 26px ink circular thumb.
 - **Switch:** 46×28px pill, `--c-300` off / ink on, white knob springs 18px (`--ease-spring`).
 - **Error feedback:** use `PageError` when a failure prevents the page from being used, including initial loading, session-verification and render failures. Reuse its centered illustration, heading and description; choose actions from the actual failure. Retry transient failures, offer navigation out, and never offer Retry for a confirmed missing appointment. Keep successful data visible after background or action failures and announce those through the shared error toast. Repeated automatic failures in one outage must not queue duplicate notifications; explicit retries must report their result. Clear stale notifications after recovery or leaving the page. Appointment dialogs provide room for the shared toast below their controls, inside the keyboard focus scope, so feedback never covers an action or dismisses the form when clicked. Keep field validation inline rather than replacing it with a toast.
 - **Homepage discovery failures:** keep the hero, search, navigation and editorial content usable. Omit an optional band after an initial failure, with no leftover skeleton, empty section spacing or individual error row. Preserve the distinction between an unavailable feed and a successful empty result. If primary place discovery fails and there are no usable discovery cards, show one contained recovery state for the discovery area with a shared Retry action; never replace the whole homepage or stack one warning per feed. Preserve already loaded cards during refresh, pagination and explicit retries. Report background and action failures through the shared error toast, deduplicated across the affected homepage feeds for the same outage; report a failed explicit retry again, and clear stale feedback after recovery or leaving home. Initial optional-band failures do not create toast notifications. Coordinate homepage retries as one shared attempt: repeated clicks and focus events must not start overlapping requests. Bound the complete retry and location-resolution operations, as well as server feed requests, so skeletons and action spinners always settle. After consecutive failed explicit retries, disable Retry for 15 seconds, then 30 seconds, then 60 seconds, capped at 60 seconds; show the localized remaining wait and reset the failure streak after recovery. A failed-retry toast reports the result without offering another immediate retry action. Preserve existing server cache hints and log only sanitized endpoint/failure metadata.
@@ -398,10 +438,39 @@ zero result; a failed request must offer recovery instead of claiming either.
 - **Email validation:** reuse `isValidEmail` from `src/lib/validation.ts` in authentication, account editing and guest support. Keep required/invalid messages localized and untouched required fields silent.
 - **Textareas:** use `TextareaField` for every multiline plain-text field. Disable manual resizing, keep a fixed height with internal vertical scrolling, and show the localized character counter even at zero. Use a single 1px ink border on focus without another outline or ring. Require a visible associated label, a field-specific length cap, and `aria-describedby`/`aria-invalid` associations for errors. Reject HTML tags, script/iframe fragments, executable URI schemes, inline event assignments and unsupported control characters through `validatePlainText`, mirrored in API DTO validation. Preserve ordinary punctuation, diacritics, tabs and line breaks; never silently strip input. Show content/length errors immediately and missing required text after blur or a submit attempt. Revalidate at submission boundaries, retain drafts after failed requests, and use translated `InlineError` messages without an empty reserved error row.
 
+### Authentication
+
+At widths up to 920px, auth cards fit their content, including loading and short
+confirmation states. Keep the normal inner padding below the final action;
+do not reserve the registration form's height beneath sign-in or recovery.
+Desktop retains its shared minimum beside the artwork. Inline errors grow the
+card naturally on mobile and add to the shared desktop minimum.
+
 ### Navigation
+
+Mobile bottom drawers (Search, Service catalog, Filters, Language and Booking)
+share downward touch dragging across their headers and content, while retaining
+the visible, keyboard-operable handle. Content dragging starts only on a fresh
+downward pull when all touched vertical scroll panes are at the top. A gesture
+starting in a scrolled list stays native scrolling. Keep horizontal swipes, text
+editing, selection and multi-touch native; ordinary buttons and links retain taps,
+and a recognized drag suppresses its resulting click. Short pulls cancel with the
+shared 320ms snap-back. Committed dismissal follows the same close/pending-work
+contract as the close button, including when resizing to desktop during release.
+Restore only gesture-owned styles, preserving live viewport geometry.
+
+Size these drawers to the mobile visual viewport, including keyboard height and
+vertical offset, while preserving safe areas and native pinch zoom. Focus the
+shell on opening; fields require intentional focus and use at least 16px text on
+mobile. Search normally scrolls its active section; with a keyboard or short
+viewport, its body becomes the single scroller so section headers, inputs, Close
+and Search remain reachable. Keep Radix as the owner of modal focus and body
+scroll locking. Map results use the same content-gesture arbitration but retain
+their down/mid/top snap positions and visible collapsed peek.
+
 - **Top bar:** sticky at the viewport top with no top gap, `--nav-h` (68px on desktop, 56px up to 920px), with an opaque `--c-canvas` background and a subtle bottom hairline. Preserve 44px mobile action targets. The background stays solid before and after scrolling, on desktop and mobile. Text links (`.zw-navlink`) are 14px/600 at `--c-600`; hover and active simply darken to `--c-900` — color alone carries the state, no underline or pill.
-- **Header search:** a 52px segmented pill at viewport widths of 1200px and above, with a viewport-based width of 400–480px that stays consistent across English, Romanian and active query values. Three equal fields use 10px mono labels, 14px values, visible focus rings and ellipsis for long selections. The terracotta search action is 44px square. At 921–1199px, a compact labelled control (180–220px) opens the same search flow; up to 920px the mobile header uses a 44px search icon beside the menu toggle. On home, desktop and mobile header search stay hidden until scrolling past 440px, after the hero search scrolls away; other routes always show header search. Desktop retains its short 180ms rise/fade when reduced motion is off. Field hover uses a faint inset highlight, without changing the outer shadow or showing native tooltips. Press feedback stays subtle; widths never animate. Styles live in `site-header.module.css`.
-- **Mobile navigation:** up to 920px, the header contains the wordmark, search icon when applicable and an icon-only menu toggle with an accessible name. Reuse Web Studio's Underlay composition with a full-viewport paper menu: shift both the page and site header fully left by 100% of the viewport width, leaving no exposed page strip when open. Give the menu its own opaque 56px header with the wordmark linking to the localized homepage and a close icon above a separate scrolling body. Reuse `zw-noscrollbar` to hide the body's scrollbar while retaining scrolling. Start the body with the account identity/sign-in row, followed by Search linking to the map, then Appointments, Saved and Profile & settings for signed-in visitors; omit the separate Explore row. Use compact left-aligned 16px destination rows, shared icon columns, at least 44px targets and subtle rules between groups. Reuse the desktop account inventory for the remaining groups: Journal and Help; For business, Web Studio and Pricing; Privacy, Terms and Cookie settings; language; then Sign out or Sign in. Preserve optimistic session visibility without activating private links before verification, and retain session-error retry. Re-selecting Search on the map closes the menu without resetting its query, results or camera. Opening takes 360ms and closing 180ms, reversing from the current position during interruptions. The original header, wordmark and search return with the page, without separate fades. Keyboard and reduced-motion changes are immediate. Trap focus, make the page inert, lock background scrolling, support outside dismissal and Escape, and return focus to the menu toggle when dismissed. An open language drawer handles the first Escape. Remove page and header transforms completely after closing so fixed action bars retain viewport positioning.
+- **Header search:** a 52px segmented pill at viewport widths of 1280px and above, with a viewport-based width of 400–480px that stays consistent across English, Romanian and active query values and leaves room for fluid desktop gutters. Three equal fields use 10px mono labels, 14px values, visible focus rings and ellipsis for long selections. The terracotta search action is 44px square. At 921–1279px, a compact labelled control opens the same search flow and shrinks with available header space; up to 920px the mobile header uses a 44px search icon beside the menu toggle. On home, desktop and mobile header search stay hidden until scrolling past 440px, after the hero search scrolls away; other routes always show header search. Desktop retains its short 180ms rise/fade when reduced motion is off. Field hover uses a faint inset highlight, without changing the outer shadow or showing native tooltips. Press feedback stays subtle; widths never animate. Styles live in `site-header.module.css`.
+- **Mobile navigation:** up to 920px, the header contains the wordmark, search icon when applicable and an icon-only menu toggle with an accessible name. Reuse Web Studio's Underlay composition with a full-viewport paper menu: shift both the page and site header fully left by 100% of the viewport width, leaving no exposed page strip when open. Give the menu its own opaque 56px header with the wordmark linking to the localized homepage and a close icon above a separate scrolling body. Reuse `zw-noscrollbar` to hide the body's scrollbar while retaining scrolling. Start the body with the account identity/sign-in row, followed by Search linking to the map, then Appointments, Saved and Profile & settings for signed-in visitors; omit the separate Explore row. Use compact left-aligned 16px destination rows, shared icon columns, at least 44px targets and subtle rules between groups. Reuse the desktop account inventory for the remaining groups: Journal and Help; For business, Web Studio and Pricing; Privacy, Terms and Cookie settings; language; then Sign out for signed-in visitors. Signed-out visitors use only the top welcome/sign-in row; do not repeat Log in at the bottom. Preserve optimistic session visibility without activating private links before verification, and retain session-error retry. Re-selecting Search on the map closes the menu without resetting its query, results or camera. Opening takes 360ms and closing 180ms, reversing from the current position during interruptions. The original header, wordmark and search return with the page, without separate fades. Keyboard and reduced-motion changes are immediate. Trap focus, make the page inert, lock background scrolling, support outside dismissal and Escape, and return focus to the menu toggle when dismissed. An open language drawer handles the first Escape. Remove page and header transforms completely after closing so fixed action bars retain viewport positioning.
 - **Mobile bottom clearance:** there is no fixed bottom navigation. Pages and the Explore map use the viewport below the header. Booking actions sit at the viewport bottom with safe-area padding; appointment-detail actions stay in the page. Only pages with a fixed action bar retain footer clearance. Cookie consent sits 16px above the bottom safe area.
 - **Language navigation:** reuse `LanguageSwitcher` beside the desktop account controls and in the mobile Underlay. Desktop keeps its current-language trigger and popover. Up to 920px, show the current language in an aligned menu row and open a modal bottom drawer with a heading, close action, full-width language choices and safe-area padding. Trap focus within the drawer, dismiss it before the Underlay on Escape and restore focus to its language trigger. Preserve the existing route, query, hash, translated destinations and unavailable/pending states. Search shares this navigation; the standalone 404 uses its own header. The footer's trailing slot holds the existing 250 × 50px ANPC/SAL badge, on a separate row on narrow screens.
 - **Tabs** (detail pages): quiet text above a hairline rail, with an ink indicator between tabs. Tab panels enter with `.zv-tab-in` (6px rise + fade, 0.32s). Journal categories are separate pages and use the destination links described below, without a tab indicator or filter counts.
@@ -611,8 +680,10 @@ with a compact avatar, quiet inline statistics and a ruled navigation rail. Keep
 900px hub-to-section breakpoint. Use the shared page container and the same
 available content-column width for every account section. Keep narrower limits
 on individual form fields and conversation text, not on the section shell.
-Reserve a 680px minimum desktop content height (growing with the viewport) and
-an 820px minimum mobile drill-in height; longer content expands naturally.
+Reserve a 680px minimum desktop content height (growing with the viewport).
+Mobile Personal info, Preferences and Login & security use the available viewport
+as their minimum height and grow naturally, without a fixed 820px floor; Support
+retains its existing drill-in height.
 Let the mobile account hub fit its content, including while it loads, without a
 viewport-based minimum height. Use one divider above logout, supplied by the
 settings list's bottom rule, with a compact gap before the action. Match logout's
@@ -630,11 +701,37 @@ until navigation commits. Do not flash the signed-out account gate or retain pri
 profile data during this exit. Direct guest visits and involuntary session expiry
 still use the normal gate; header-menu logout retains its current-page behavior.
 
+Up to 900px, all account drill-ins use the quiet labelled Back action, 16px top
+padding and the same 34px heading scale (30px on the narrowest phones). Personal
+fields use clear rules, 48px inputs and 14px corners. Expanded editors fill the
+column, with Save/Cancel below on phones and tablets. Address uses one column
+through 600px and two equal columns above that, with full-width notes and actions.
+Email, password creation/change and provider-disconnect forms share the available
+mobile width; keep desktop input/form caps unchanged. Group actions together,
+allowing long translated labels to wrap the action row. Provider details and their
+action use deliberate columns; below 360px, place the action below the full-width
+caption so Apple relay addresses remain readable.
+
+Mobile Preferences uses flat groups with 18px headings, 14px descriptions and
+three full-width, labelled switch rows. Each row has its existing channel icon,
+a trailing switch and at least a 52px target. Preserve the desktop notification
+matrix, switch names/payloads, optimistic updates and rollback. Delete-account
+confirmation uses the shared compact drawer only in the mobile account branch,
+retaining Cancel, drag/Escape dismissal, pending locking and the synchronous
+dismissal guard. Preserve the existing desktop confirmation and deletion flow.
+
 Support has one Contact support action, a single ticket list and All / Active / Closed
 filters. Active includes Open, In progress and Reopened. Show the first-message
 preview, ticket ID/category, labelled status dot and updated date in aligned
-desktop columns; stack metadata on phones. Use 16px subjects, 13px metadata and
-44px filter targets. Preserve list order, unread state and all ticket operations.
+desktop columns. Up to 900px, use a quiet labelled Back action, a full-width
+Support heading with the Help centre link beside it, then the introduction and
+a full-width 48px Contact support action. Match Appointments' underlined filter
+controls with count badges and 48px targets. Keep ticket rows flat with clear
+hairlines, 17px subjects, a trailing chevron and wrapping 13px metadata beneath.
+Shorten current-year dates on phones while preserving the full updated date in
+the accessible label and title; retain the year for older tickets. Use 16px
+subjects and 44px filter targets on desktop. Preserve list order, unread state
+and all ticket operations.
 An explicitly selected conversation expands immediately below its ticket row at
 every screen size. Only one conversation is expanded at a time. Use the shared
 280ms disclosure rhythm, a rotating chevron and Radix Collapsible presence for
@@ -649,21 +746,42 @@ Unsent replies remain temporary per-ticket UI state while switching conversation
 Move focus to the form or loaded conversation heading; returning restores the
 originating ticket button. Contact support opens the existing ActionModal shell
 used by appointment actions, with a 620px maximum width, standard header/close
-control, shared textarea and fixed action footer. Keep the page list and contact
+control, shared textarea and fixed action footer. Up to 920px, opt into its
+full-width bottom drawer with 24px top clearance, top-only rounded corners,
+safe-area footer padding and the shared `DrawerHandle`. Keep the header and
+actions fixed while the form body scrolls. Reuse visual-viewport sizing, native
+content scrolling and the shared drag/snap-back behavior. Focus the shell on
+opening so the keyboard appears only after selecting the textarea. Pointer
+opening takes 240ms and ordinary closing takes 180ms; keyboard and reduced-motion
+changes are immediate. Keep the handle and viewport tracking mounted but disable
+all dismissal gestures during submission. Keep the page list and contact
 opener mounted behind it. Use its focus trap, exit animation, scroll lock and
 focus restoration; prevent dismissal while submitting, and synchronously guard
 submission once dismissal starts. Contact categories use human labels while
 retaining the existing API values. Keep the Help centre link near the introduction.
-Show messages as a flat transcript on the page canvas: customer messages align
-right and Zavoia Support replies align left, matching the native support flow.
-Use a visible 14px/600 author label and user/reply icon above each 16px message,
-with hairlines between entries. Keep full message bodies left-aligned for reading.
-Do not use
-chat bubbles, coloured message backgrounds, nested rounded cards or a minimum
-message-area height that creates a blank block for short messages. Keep the
-transcript and shared textarea/composer at a readable 760px maximum, with message
-text capped at 640px and 86% of the transcript (94% on phones). The existing Close
-ticket action sits beside Send as a quiet secondary action. The document is the
+Close-ticket confirmation reuses `ActionModal` with a content-height mobile
+drawer, keeping the shared maximum height, handle, viewport sizing, motion and
+pending-dismissal lock. Desktop remains a 420px centered confirmation, initially
+focused on Cancel. Guard confirmation synchronously once dismissal starts;
+Cancel, Escape and dragging preserve the reply draft. After successful closure
+removes the composer, restore focus to the conversation heading.
+Show messages as a flat transcript on the page canvas. Desktop keeps customer
+messages aligned right and support replies aligned left, with user/reply icons
+and hairlines between entries. On mobile, use one left-aligned reading column
+with a shared 32px decorative Avatar, the real customer name/photo or Zavoia
+initial, a visible 14px/600 author label and 16px message text. Keep 24px between
+messages and one top boundary for the thread; omit repeated message dividers and
+the small author icons beside avatars. Short messages must not float on the right.
+Do not use chat bubbles, coloured message backgrounds, nested ticket cards or a
+minimum message-area height that creates a blank block for short messages. Keep
+the transcript at a readable 760px maximum; desktop message text stays capped at
+640px and 86% of the transcript, while mobile text fills the column beside its
+avatar. On mobile, group the shared reply field, visible counter, inline errors
+and Close ticket / Send footer into one outlined editor. Use one ink border on
+focus and a red border for invalid text, without a second nested field border or
+ring. The 72px textarea scrolls internally; error messages grow the editor without
+reserved space. Keep the existing Close ticket action quiet beside the primary
+Send action, with small lock/send icons. The document is the
 only transcript scroller: do not cap message-history height or contain its
 overscroll, which traps wheel input at the history boundary. Do not auto-scroll
 history to its bottom on expansion. Closed rows use a lock icon and stronger
@@ -673,23 +791,35 @@ Settings groups use flat rules, 18px headings, readable
 15–16px values and 13–14px helper text. Keep labels/value groups aligned with their
 editing actions, allow long values to wrap, and place expanded-form actions at
 the bottom of their field group. Text, phone, email and password fields use a
-single ink border on focus; invalid fields retain their error border. Do not clip
+single ink border on focus; invalid fields retain their error border. On mobile,
+the email value, verification notice and explanation span the full settings width;
+only the label shares its row with Edit. Do not reserve an Edit column beside the
+notice or explanatory copy. Do not clip
 keyboard focus outlines at settings-group boundaries. Notification channel labels
 use the normal UI font and casing. Security rows supply their own titles, without
 repeating Password or the page title above the same rows.
+On mobile, align the Delete account icon with its title and keep its description
+under the title. Let Security fit its content, without a viewport minimum height,
+and use the account overview's compact 24px footer lead-in.
 Email, password and Google-disconnect forms use the shared 280ms disclosure
 rhythm with Radix presence; closing content becomes inert immediately. Simple
 inline field editors enter with a short, restrained fade. The birthday calendar
 uses the same shared MonthCalendar presentation as Search: round month navigation,
-weekday labels, selected dates and hover/focus states. Keep its compact popover
-transition and choose months/years inside that panel, with a paged 12-year grid
-for birth dates rather than operating-system select menus. Search retains its
-future-date/query rules; Account retains ISO values, its 110-year picker range,
-future-date disabling and explicit Save behavior.
-Birthday popovers use the room above or below their trigger, avoiding the sticky
-header and phone navigation. Month/year choices return focus to their caption;
-date selection and Escape return focus to the field. On narrow phones, keep the
-field full width with Save/Cancel below, and keep month names on one line.
+weekday labels, selected dates and hover/focus states. On desktop, keep its compact
+popover transition and position above or below the trigger to fit the viewport.
+At 920px and below, the shared DatePicker uses a content-height Radix drawer with
+the existing DrawerHandle, viewport/safe-area handling, dismissal gestures and
+reduced-motion behavior. Keep its heading and close action fixed, scroll the
+calendar body on short screens, and center the calendar within a 480px maximum
+width with 44px day rows. Choose months/years inside the calendar, with a paged
+12-year grid for birth dates rather than operating-system select menus.
+Month/year choices return focus to their caption; date selection and dismissal
+return focus to the field. On phones and tablets using the mobile account layout,
+keep the field full width with Save/Cancel below, and keep month names on one line.
+Search and Booking retain their existing drawers and date/query rules;
+Reschedule uses the shared ActionModal mobile drawer around its availability
+calendar. Account retains ISO values, its 110-year picker range, future-date
+disabling and explicit Save behavior.
 Respect reduced motion for all these transitions.
 Match skeletons to these same layouts. Never invent
 per-message timestamps or response-time promises. Hover feedback stays subtle,
@@ -796,6 +926,15 @@ explicit choice for multiple venues, and clear service picks when that choice
 changes. Missing currency/timezone blocks booking instead of guessing. Carry the
 effective pricing visibility policy through the profile and booking drawer;
 hidden amounts use the existing Request quote wording.
+
+Contextual professional profiles use the shared mobile drawer presentation up
+to 920px: full width, flush with the bottom, 24px top-only corners and at least
+24px clearance respecting the top safe area. Reuse `DrawerHandle` for viewport
+sizing, touch arbitration and the shared 320ms release motion. Keep the toolbar
+and booking action fixed while the profile body scrolls. Pointer entry takes
+240ms and close-button/backdrop dismissal 180ms; keyboard and reduced-motion
+changes are immediate. Preserve the profile's existing focus, gallery and booking
+handoffs and its centered desktop modal.
 
 ### Appointments
 
@@ -1366,6 +1505,21 @@ Explicitly pending mockups do not preload their finished images or fonts.
 Reserve responsive phone hardware and its screen ratio through CSS before
 hydration; fixed browser examples retain their browser frames. Keep the frame
 busy until the renderer is measurable, including while its chunk loads.
+Start live mockups as they approach the viewport. Load their renderer, fonts and
+actual responsive images together; do not download an original cover as a gate
+before requesting its optimized version. Reuse `WebsiteHeroSnapshot` for a
+header-and-hero window, retaining the full layout as navigation metadata without
+mounting the hidden website sections. Gallery and service windows render only
+their selected sections. Pass the measured screen width to the shared responsive
+image helper. Keep the reserved skeleton until visible images decode and the
+display font settles, with bounded recovery for failed assets.
+The live screen and its scaled plate have transparent underpainting. Composite
+the content with a solid mask inside the rounded screen before rotating the
+device, so light backing layers cannot bleed through the antialiased edge.
+Hero snapshots also clear the renderer's root, content and page-flow backing
+layers. Back the plate-style cover photo with the dark bezel colour, preserving
+its paper surface and information card. Scope these treatments to the marketing
+snapshot; preserve genuine backgrounds on the published website.
 The demo has its own route fallback, also selected by the parent boundary during
 demo navigation: the full viewport canvas with the same 420px expanded controls
 on desktop and bottom pill below 1024px. Match its default tablet frame at
@@ -1440,7 +1594,8 @@ one short sentence. Keep the artwork and its copy close, the website dominant,
 and all benefits visible. Do not gather the benefits into a text-heavy side column,
 reinstate three equal artwork/caption columns, or split heading and lead across a
 row. Below 1000px, pair each scene with its copy; below 700px each scene sits above
-its copy. These are illustrations, not editor controls or screenshots.
+its centered copy. Use a 32px section heading on mobile. These are illustrations,
+not editor controls or screenshots.
 Only the artwork has a finite 10px entrance, respecting reduced motion and locale
 navigation. Keep the background light and the shared content width. Distinguish
 current business information from design/copy drafts that need republishing; do
@@ -1459,7 +1614,11 @@ Use the detail capture on narrow screens so the actual design controls remain
 readable; do not shrink the whole desktop workspace into a phone viewport. Reuse
 the established graphite bezel for the phone, without adding white status bars.
 Keep the three brief benefits visible near the screens: arrange content, choose a
-look, and preview on desktop and phone. Do not reinstate a long numbered sidebar
+look, and preview on desktop and phone. At 700px and below, place the preview
+caption at full width above a centered 260px phone with a 22px gap. Use a centered
+32px section heading on mobile, with the introduction, benefit captions, draft
+note and demo action left-aligned. Keep the draft note text-only on all screen
+sizes; retain the 19px/15px caption hierarchy on small phones. Do not reinstate a long numbered sidebar
 or duplicate the publishing/Plus/link/QR explanation from the next section. Put
 the draft reassurance and a quiet demo link below the composition. Only the
 screens have a finite 8px entrance; skip it for reduced motion and locale changes,
@@ -1858,7 +2017,7 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   state. Use the actual service-page capture and verified native map screenshot.
   The app phone is the larger foreground subject; the browser recedes behind it
   while keeping service names exposed. Match the homepage's device construction:
-  narrow graphite edge planes, rim highlights, side buttons, shallow opposing
+  one graphite rear plane, one subdued outer rim, side buttons, shallow opposing
   angles and layered contact shadows. Keep native screen content intact and record
   example-data provenance with the assets. Select actual English/Romanian captures
   from `src/lib/marketing/mockups.ts` using the page locale. Capture both the
@@ -1980,7 +2139,18 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   explicit EN/RO masters, including all consumer, business and Studio scenes.
   Generate responsive derivatives with Next Image or `getImageProps`; preserve
   each pair's intrinsic dimensions, framing and accessible descriptions. The
-  website language control must switch the pixels inside the devices as well as
+  device scene must fit its own column at laptop, tablet and phone widths;
+  scale the hardware, screen, offsets and reserved stage together. Use one quiet
+  outer stroke and exterior shadows, with the screen radius derived from the
+  outer radius minus its padding and border. Do not add inset rim strokes or a
+  second border at the screenshot edge. Keep screenshots in normal flow with
+  `width: 100%`, `height: auto` and an explicit capture aspect ratio so rounded
+  optimizer dimensions cannot expose a strip of the screen background. When
+  a verified capture artifact is clipped, exclude only those source columns and
+  retain the complete useful image height. Do not use a cover crop for device
+  screenshots. Next Image chooses the responsive resource; CSS owns the rendered
+  frame size. Keep `sizes` aligned with that rendered width.
+  The website language control must switch the pixels inside the devices as well as
   surrounding text. Localize synthetic demo services, categories, descriptions,
   reviews and tags while preserving identities, prices, dates and geography.
   Real merchant-authored content remains unchanged. Finished captures live under
@@ -1988,6 +2158,20 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   through `src/lib/marketing/mockups.ts`. Run `node scripts/check-marketing-mockups.mjs`
   and `node scripts/check-marketing-locales.mjs`, then visually inspect the actual
   image text in both languages. A correct filename is not sufficient.
+- **Responsive device artwork:** build positioned device frames with ordinary
+  HTML and a reserved, proportional CSS canvas. Do not put positioned HTML inside
+  SVG `foreignObject`: WebKit can paint it without the SVG viewBox scale even
+  when its DOM measurements look correct. Scale frame details together with the
+  screen and preserve responsive sources, loading behavior and descriptions.
+  Size preview content in logical layout pixels (`clientWidth`/`clientHeight` or
+  ResizeObserver content bounds); transformed bounding rectangles are only for
+  visual coordinates, with an explicit conversion when needed.
+  In intrinsic-ratio phone screens, use `width: 100%; height: auto` for captures
+  whose ratio matches the screen, rather than relying on percentage-height
+  resolution. Shared image fallbacks must preserve their original frame geometry
+  through optimized-source, original-source and error states. Validate painted
+  output in WebKit as well as Chromium; phone emulation alone does not change
+  the rendering engine.
 - **For Business plan comparison:** Base and Plus are static, server-rendered
   receipt tickets using the shared 1400px content width. `PlanCards` shares this
   presentation and copy with `/pricing`; section wrappers own their headings
@@ -1997,7 +2181,8 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   inclusion and the monthly paid-seat rate on each ticket, above its tear seam.
   Emphasize the seat amount below the subscription price, with a readable label;
   do not repeat a fee-only paragraph above the cards. Reuse `TeamSeatPrice` in
-  Web Studio's Plus summary and beneath the compact mobile pricing links.
+  Web Studio's Plus summary. On `/pricing`, go directly from the introduction
+  to the plan tickets; do not add a compact mobile plan/seat-price summary.
   Base supports 20 additional members besides the owner; Plus has no
   customer-facing team-size limit. State these differences in the benefits, and
   charge each additional member on either plan. Capacity applies across the
@@ -2014,7 +2199,7 @@ pieces live in `src/app/_components/for-business/` (`marketing.module.css`).
   scale its action to 1.015 over 240ms with the shared ease-out; return smoothly
   on exit. Keyboard focus uses the same emphasis; pressing retains the shared
   press feedback. Respect reduced motion and avoid hover scaling on touch.
-  Base uses warm paper, no artwork and an
+  Plan card headings use the full content width without artwork. Base uses warm paper and an
   outline action labelled with the free-trial duration. Plus uses warm ink, a broad
   terracotta glow, pronounced static paper grain and ivory pricing. Its flat ivory action has no
   dimensional rim or shadow and a 40px terracotta arrow well (36px on short
@@ -2180,7 +2365,7 @@ reduce` via a global clamp.
 - **Do** put every user-facing string in both dictionaries (`src/i18n/dictionaries/en.ts` and `ro.ts`); the `Dictionary` type enforces key parity — English first, then mirror in Romanian.
 - **Do** keep secondary text at `var(--c-600)` or darker on the canvas (the c-600 Floor Rule); reserve `--c-500`/`--c-400` for decoration and verify large meaningful text meets 3:1 against its background.
 - **Do** join meta segments with `--c-400` "·" separators, interleaving only the segments that exist (use the `joinDot` pattern), and keep each separator fused in a `nowrap` span with the item that follows it.
-- **Do** use ink for structure and state (active chips/tabs/pagination invert to ink + white), neutral action focus outlines, and terracotta for the accent action, ratings, input focus and live signals.
+- **Do** use ink for structure and state (active chips/tabs/pagination invert to ink + white), neutral focus indicators, and terracotta for the accent action, ratings and live signals.
 - **Do** give every card `var(--card-r, 18px)`, `.zw-hover-lift`, and a `.zw-zoom-wrap` around its image so hover = 3px rise + sh-lg + 1.045× zoom, together.
 - **Do** set `tabular-nums` on every mutable number and use Geist Mono (≤13px, 600, wide-tracked uppercase) for kickers, indices, and counts.
 - **Do** use non-enumerable slugs for detail routes (`/business/<locationSlug>`, `/brand/<businessSlug>`, numeric-id fallback) — never sequential IDs in URLs.

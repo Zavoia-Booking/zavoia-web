@@ -14,6 +14,14 @@ function timestamp(value: string): number {
   return Date.parse(value);
 }
 
+/** A publication claim must be a complete, valid timestamp that has elapsed. */
+export function getPostPublishedAt({ publishedAt }: Pick<PostDates, "publishedAt">): string | undefined {
+  const published = timestamp(publishedAt);
+  return Number.isFinite(published) && published <= Date.now()
+    ? new Date(published).toISOString()
+    : undefined;
+}
+
 /** Only a real, already-published substantive edit may claim an update date. */
 export function getPostModifiedAt({ publishedAt, modifiedAt }: PostDates): string | undefined {
   if (!modifiedAt) return undefined;

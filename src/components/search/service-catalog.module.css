@@ -71,8 +71,8 @@
 }
 
 @media (max-width: 920px) {
-  .overlay { background: rgb(28 28 26 / 28%); }
-  .dialog { inset: auto 0 0; width: 100%; height: calc(100dvh - max(24px, env(safe-area-inset-top))); transform: none; border-bottom: 0; border-radius: 24px 24px 0 0; box-shadow: var(--sh-up); }
+  .overlay { top: var(--drawer-viewport-top, 0px); bottom: auto; height: var(--drawer-viewport-height, 100dvh); background: rgb(28 28 26 / 28%); }
+  .dialog { inset: auto 0 var(--drawer-viewport-bottom, 0px); width: 100%; height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top))); max-height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top))); transform: none; border-bottom: 0; border-radius: 24px 24px 0 0; box-shadow: var(--sh-up); }
   .header { padding: 0 18px 16px; }
   .title { font-size: 24px; line-height: 28px; }
   .body { display: flex; flex-direction: column; }

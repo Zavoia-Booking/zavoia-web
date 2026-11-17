@@ -3,6 +3,36 @@
   aspect-ratio: 4 / 5;
 }
 
+.bento .name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.bento .businessName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholderLabel {
+  position: absolute;
+  top: 22px;
+  left: var(--overlay-card-inset, 18px);
+  right: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  line-height: 1.5;
+}
+
+@media (min-width: 641px) {
+  .bento { height: 100%; aspect-ratio: auto; }
+}
+
 @media (max-width: 640px) {
   .compactOnMobile {
     aspect-ratio: 1;

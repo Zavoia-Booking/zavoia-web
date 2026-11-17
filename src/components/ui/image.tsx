@@ -30,12 +30,18 @@ function ImageSource({ src, alt = "", title, label, className, style, onLoad, on
   const [ok, setOk] = useState(false);
   const [useOriginal, setUseOriginal] = useState(false);
   const placeholderLabel = label ?? dict.common.photo;
+  // Frame geometry belongs to this image mode, even when the optimizer fails
+  // and the original source or placeholder replaces its responsive request.
+  const framed = src && sizes && !rest.srcSet && canOptimizePublicImage(src)
+    ? getImageProps({ src, alt, fill: true, sizes, loading, fetchPriority }).props
+    : null;
+  const optimized = !useOriginal ? framed : null;
 
   if (err || !src) {
     return (
       <div
         className={["zv-stripe", className].filter(Boolean).join(" ")}
-        style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center" }}
+        style={{ ...framed?.style, ...style, display: "flex", alignItems: "center", justifyContent: "center" }}
       >
         <span
           style={{
@@ -51,11 +57,6 @@ function ImageSource({ src, alt = "", title, label, className, style, onLoad, on
       </div>
     );
   }
-  // Card containers already reserve their aspect ratio. Opt in with their actual
-  // display sizes and keep the shared skeleton/error treatment around the img.
-  const optimized = !useOriginal && sizes && !rest.srcSet && canOptimizePublicImage(src)
-    ? getImageProps({ src, alt, fill: true, sizes, loading, fetchPriority }).props
-    : null;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -93,7 +94,7 @@ function ImageSource({ src, alt = "", title, label, className, style, onLoad, on
       loading={loading}
       fetchPriority={fetchPriority}
       decoding="async"
-      style={{ ...optimized?.style, display: "block", objectFit: "cover", ...style }}
+      style={{ ...framed?.style, display: "block", objectFit: "cover", ...style }}
       {...rest}
     />
   );

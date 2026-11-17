@@ -31,7 +31,7 @@ import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
 import { errorMessage, mapBackendCode } from "@/lib/api/error-messages";
 import { useTranslation } from "@/i18n/useTranslation";
-import { Button, Icon, InlineError, Skeleton, useToast } from "@/components/ui";
+import { Avatar, Button, Icon, InlineError, Skeleton, useToast } from "@/components/ui";
 import { TextareaField } from "@/components/ui/textarea-field";
 import {
   getPlainTextApiError,
@@ -129,9 +129,15 @@ function TicketRow({
   onClick: (button: HTMLButtonElement) => void;
   selected?: boolean;
 }) {
+  const updatedAt = new Date(ticket.updatedAt);
   const updated = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
-  }).format(new Date(ticket.updatedAt));
+  }).format(updatedAt);
+  const compactUpdated = new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    ...(updatedAt.getFullYear() !== new Date().getFullYear() ? { year: "numeric" as const } : {}),
+  }).format(updatedAt);
   const text = preview(ticket) || categoryLabel(t, ticket.category);
 
   return (
@@ -142,12 +148,15 @@ function TicketRow({
           {ticket.hasUnread && <span role="img" className={styles.unread} aria-label={t.unreadAria} />}
           <span>{text}</span>
         </span>
-        <span className={styles.ticketMeta}>#{ticket.id} · {categoryLabel(t, ticket.category)}</span>
       </span>
-      <TicketStatusBadge status={ticket.status} t={t} />
-      <time className={styles.ticketDate} dateTime={ticket.updatedAt} aria-label={format(t.updated, { date: updated })}>
-        {updated}
-      </time>
+      <span className={styles.ticketDetails}>
+        <span className={styles.ticketMeta}>#{ticket.id} · {categoryLabel(t, ticket.category)}</span>
+        <TicketStatusBadge status={ticket.status} t={t} />
+        <time className={styles.ticketDate} dateTime={ticket.updatedAt} aria-label={format(t.updated, { date: updated })} title={updated}>
+          <span className={styles.fullDate}>{updated}</span>
+          <span className={styles.compactDate} aria-hidden="true">{compactUpdated}</span>
+        </time>
+      </span>
       <span className={styles.rowArrow} aria-hidden="true"><Icon name="chevD" size={18} /></span>
     </button>
     </Collapsible.Trigger></h3>
@@ -162,14 +171,20 @@ function MessageEntry({
   mine,
   label,
   text,
+  profile,
 }: {
   mine: boolean;
   label: string;
   text: string;
+  profile: CustomerProfile;
 }) {
   return (
     <article className={styles.message} data-mine={mine || undefined} aria-label={label}>
-      <div className={styles.messageAuthor}><Icon name={mine ? "user" : "reply"} size={17} aria-hidden="true" /><span>{label}</span></div>
+      <div className={styles.messageAvatar} aria-hidden="true">
+        <Avatar size={32} decorative name={mine ? [profile.firstName, profile.lastName].filter(Boolean).join(" ") || label : "Zavoia"}
+          src={mine ? profile.profileImage ?? undefined : undefined} />
+      </div>
+      <div className={styles.messageAuthor}><span className={styles.authorIcon} aria-hidden="true"><Icon name={mine ? "user" : "reply"} size={17} /></span><span>{label}</span></div>
       <div className={styles.messageText}>{text}</div>
     </article>
   );
@@ -260,6 +275,7 @@ function NewTicketForm({
   return (
     <ActionModal
       title={t.new.title}
+      mobileDrawer
       width={620}
       className={styles.contactModal}
       dismissible={!submitting}
@@ -363,6 +379,8 @@ function TicketDetailView({
   // button only after a re-render, and a fast double click on the modal can
   // still fire closeTicket() twice before that render happens.
   const submitLockRef = useRef(false);
+  const closeDismissed = useRef(false);
+  const closeCancelRef = useRef<HTMLButtonElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
 
   useEffect(() => {
@@ -436,7 +454,7 @@ function TicketDetailView({
   };
 
   const doClose = async () => {
-    if (!ticket || submitLockRef.current) return;
+    if (!ticket || submitLockRef.current || closeDismissed.current) return;
     submitLockRef.current = true;
     setClosing(true);
     try {
@@ -445,6 +463,8 @@ function TicketDetailView({
       onUpdated(updated);
       toast(t.toasts.closed, "check");
       setConfirmingClose(false);
+      // Closing removes the composer and its opener; retain focus in this thread.
+      requestAnimationFrame(() => headingRef.current?.focus({ preventScroll: true }));
     } catch {
       toast(t.toasts.error, "warn", undefined, "error");
     } finally {
@@ -458,11 +478,17 @@ function TicketDetailView({
       <section className={styles.detailView} aria-label={t.thread.label}>
         <div aria-busy="true" className={styles.thread}>
           <div aria-hidden="true" className={styles.messages}>
-            {[0, 1].map((index) => <div key={index} className={styles.message}><Skeleton w={index === 0 ? 42 : 110} h={14} r={4} /><Skeleton w={index === 0 ? "72%" : "86%"} h={44} r={4} /></div>)}
+            {[0, 1].map((index) => <div key={index} className={styles.message}>
+              <span className={styles.messageAvatar}><Skeleton w={32} h={32} r={999} /></span>
+              <span className={styles.messageAuthor}><Skeleton w={index === 0 ? 42 : 110} h={14} r={4} /></span>
+              <span className={styles.messageText}><Skeleton w={index === 0 ? "72%" : "86%"} h={44} r={4} /></span>
+            </div>)}
           </div>
-          <div aria-hidden="true" className={styles.composer} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Skeleton w={88} h={16} /><Skeleton h={100} r={14} />
-            <div className={styles.replyActions}><Skeleton w={88} h={16} /><Skeleton w={78} h={44} r={999} /></div>
+          <div aria-hidden="true" className={styles.composer}>
+            <div className={styles.replyForm}>
+              <Skeleton w={88} h={16} /><Skeleton h={100} r={14} />
+              <div className={styles.replyActions}><Skeleton w={88} h={16} /><Skeleton w={78} h={44} r={999} /></div>
+            </div>
           </div>
           <span role="status" className="sr-only">{dict.account.loading}</span>
         </div>
@@ -514,6 +540,7 @@ function TicketDetailView({
                   mine={mine}
                   label={mine ? t.thread.you : t.thread.support}
                   text={entry.message}
+                  profile={profile}
                 />
               );
             })
@@ -521,8 +548,9 @@ function TicketDetailView({
         </div>
 
         {canReply && <div className={styles.composer}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className={styles.replyForm}>
               <TextareaField
+                className={styles.replyField}
                 key={replyVersion}
                 ref={replyRef}
                 label={dict.textarea.replyLabel}
@@ -547,7 +575,7 @@ function TicketDetailView({
               />
               {replyError && <InlineError>{replyError}</InlineError>}
               <div className={styles.replyActions}>
-              <button type="button" className={styles.closeAction} onClick={() => setConfirmingClose(true)}>{t.close.action}</button>
+              <button type="button" className={styles.closeAction} aria-haspopup="dialog" onClick={() => { closeDismissed.current = false; setConfirmingClose(true); }}><span className={styles.closeIcon} aria-hidden="true"><Icon name="lock" size={15} /></span>{t.close.action}</button>
               <Button
                 loading={sending}
                 kind="primary"
@@ -556,6 +584,7 @@ function TicketDetailView({
                 disabled={sending || validatePlainText(draft, { required: true, maxLength: SUPPORT_MESSAGE_MAX_LENGTH }) !== null}
               >
                 {t.composer.send}
+                <span className={styles.sendIcon} aria-hidden="true"><Icon name="arrowU" size={16} /></span>
               </Button>
               </div>
             </div>
@@ -563,75 +592,30 @@ function TicketDetailView({
       </div>
 
       {confirmingClose && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="zw-close-ticket-title"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 500,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-            background: "rgba(28,28,26,0.42)",
-            cursor: closing ? "default" : "pointer",
-          }}
-          onClick={() => {
-            if (!closing) setConfirmingClose(false);
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "#fff",
-              cursor: "default",
-              borderRadius: 18,
-              boxShadow: "var(--sh-lg)",
-              padding: "24px 24px 20px",
-              maxWidth: 420,
-              width: "100%",
-            }}
-          >
-            <h2
-              id="zw-close-ticket-title"
-              style={{
-                margin: 0,
-                fontSize: 20,
-                fontWeight: 600,
-                letterSpacing: "-0.02em",
-                color: "var(--c-900)",
-              }}
-            >
-              {t.close.confirmTitle}
-            </h2>
-            <p
-              className="txt-pretty"
-              style={{
-                margin: "10px 0 22px",
-                fontSize: 14.5,
-                lineHeight: 1.5,
-                color: "var(--c-600)",
-              }}
-            >
-              {t.close.confirmBody}
-            </p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <Button
-                kind="secondary"
-                size="md"
-                onClick={() => setConfirmingClose(false)}
-                disabled={closing}
-              >
+        <ActionModal
+          title={t.close.confirmTitle}
+          width={420}
+          className={styles.closeConfirmation}
+          mobileDrawer="content"
+          initialFocusRef={closeCancelRef}
+          dismissible={!closing}
+          onClosing={() => { closeDismissed.current = true; }}
+          onClose={() => setConfirmingClose(false)}
+          footer={<div className={styles.contactActions}>
+            <DialogClose ref={closeCancelRef} asChild>
+              <Button kind="secondary" size="md" disabled={closing}
+                style={{ paddingInline: "var(--support-action-padding, 20px)" }}>
                 {t.close.cancel}
               </Button>
-              <Button loading={closing} kind="primary" size="md" onClick={doClose} disabled={closing}>
-                {t.close.confirm}
-              </Button>
-            </div>
-          </div>
-        </div>
+            </DialogClose>
+            <Button loading={closing} kind="primary" size="md" onClick={doClose} disabled={closing}
+              style={{ paddingInline: "var(--support-action-padding, 20px)" }}>
+              {t.close.confirm}
+            </Button>
+          </div>}
+        >
+          <p className={styles.confirmationCopy}>{t.close.confirmBody}</p>
+        </ActionModal>
       )}
     </section>
   );
@@ -761,8 +745,12 @@ export function SupportSection({
           <div aria-hidden="true">
             {[0, 1, 2].map((i) => (
               <div key={i} className={styles.ticketRow}>
-                <span className={styles.ticketSubject}><Skeleton w="76%" h={18} r={4} /><Skeleton w={110} h={14} r={4} /></span>
-                <span className={styles.status}><Skeleton w={88} h={16} r={4} /></span><span className={styles.ticketDate}><Skeleton w={98} h={14} r={4} /></span>
+                <span className={styles.ticketSubject}><span className={styles.ticketTitle}><Skeleton w="76%" h={18} r={4} /></span></span>
+                <span className={styles.ticketDetails}>
+                  <span className={styles.ticketMeta}><Skeleton w={88} h={14} r={4} /></span>
+                  <span className={styles.status}><Skeleton w={72} h={14} r={4} /></span>
+                  <span className={styles.ticketDate}><Skeleton w={66} h={14} r={4} /></span>
+                </span>
               </div>
             ))}
           </div>

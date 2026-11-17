@@ -14,6 +14,7 @@
     "test:e2e:explore": "playwright test --config=playwright.explore.config.ts",
     "test:e2e:locations-ui": "playwright test --config=playwright.locations-ui.config.ts",
     "test:e2e:locations-seo": "playwright test --config=playwright.locations-seo.config.ts",
+    "test:e2e:structured-data": "playwright test --config=playwright.structured-data.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report"
@@ -21,7 +22,7 @@
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
-    "@next/third-parties": "16.4.1",
+    "@next/third-parties": "16.4.6",
     "@portabletext/react": "^6.0.3",
     "@radix-ui/react-collapsible": "^1.1.20",
     "@radix-ui/react-dialog": "^1.1.23",
@@ -31,7 +32,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.31.0",
     "mapbox-gl": "^3.25.0",
-    "next": "16.4.1",
+    "next": "16.4.6",
     "next-sanity": "^12.3.0",
     "patch-package": "8.0.1",
     "react": "19.2.4",
@@ -50,7 +51,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.1",
+    "eslint-config-next": "16.4.6",
     "pg": "^8.23.0",
     "tailwindcss": "^4",
     "typescript": "^5"

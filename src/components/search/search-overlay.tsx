@@ -342,7 +342,24 @@ function SearchPreviewBlock({
   );
 }
 
-// The active card owns scrolling; collapsed headers never shrink or clip.
+function revealInScrollPane(target: HTMLElement, start: HTMLElement) {
+  let container: HTMLElement | null = start;
+  while (container && container.getAttribute("role") !== "dialog") {
+    if (/^(auto|scroll|overlay)$/.test(getComputedStyle(container).overflowY)) {
+      const frame = container.getBoundingClientRect();
+      const item = target.getBoundingClientRect();
+      const field = container.querySelector<HTMLElement>('[data-search-what-field-shell]');
+      const activeField = field?.closest('[data-search-section]')?.getAttribute("data-open") === "true";
+      const inset = field && activeField && !field.contains(target) ? field.getBoundingClientRect().height + 8 : 8;
+      if (item.top < frame.top + inset) container.scrollBy({ top: item.top - frame.top - inset, behavior: "instant" });
+      else if (item.bottom > frame.bottom - 8) container.scrollBy({ top: item.bottom - frame.bottom + 8, behavior: "instant" });
+      return;
+    }
+    container = container.parentElement;
+  }
+}
+
+// The active card owns scrolling; cramped keyboard layouts use the whole body.
 function Section({ label, summary, open, showSummaryWhenOpen = false, onToggle, children }: {
   label: string;
   summary: string;
@@ -355,7 +372,10 @@ function Section({ label, summary, open, showSummaryWhenOpen = false, onToggle, 
   const headerRef = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(open);
   useEffect(() => {
-    if (open && !wasOpen.current) headerRef.current?.focus({ preventScroll: true });
+    if (open && !wasOpen.current && headerRef.current) {
+      headerRef.current.focus({ preventScroll: true });
+      if (headerRef.current.parentElement) revealInScrollPane(headerRef.current, headerRef.current.parentElement);
+    }
     wasOpen.current = open;
   }, [open]);
   return (
@@ -378,13 +398,7 @@ function Section({ label, summary, open, showSummaryWhenOpen = false, onToggle, 
           <div className={styles.sectionScroll} data-search-section-scroll="" onFocusCapture={event => {
             const target = event.target;
             if (!(target instanceof HTMLElement) || !target.matches(':focus-visible')) return;
-            const container = event.currentTarget;
-            const frame = container.getBoundingClientRect();
-            const item = target.getBoundingClientRect();
-            const field = container.querySelector<HTMLElement>('[data-search-what-field-shell]');
-            const inset = field && !field.contains(target) ? field.getBoundingClientRect().height + 8 : 8;
-            if (item.top < frame.top + inset) container.scrollBy({ top: item.top - frame.top - inset, behavior: "instant" });
-            else if (item.bottom > frame.bottom - 8) container.scrollBy({ top: item.bottom - frame.bottom + 8, behavior: "instant" });
+            revealInScrollPane(target, event.currentTarget);
           }}>{children}</div>
         </div>
       </div>

@@ -36,14 +36,16 @@ interface MarketingFaqProps {
   helpLink: string;
   /** Answers are formatted by the page; blank lines separate paragraphs. */
   items: readonly MarketingFaqItem[];
+  /** The shared footer supplies the next divider when this ends the page. */
+  footerAdjacent?: boolean;
 }
 
 /** The shared disclosure presentation keeps each page's questions and wording. */
 export function MarketingFaq({
-  locale, headingId, title, lead, helpPrompt, helpLink, items,
+  locale, headingId, title, lead, helpPrompt, helpLink, items, footerAdjacent = false,
 }: MarketingFaqProps) {
   return (
-    <section className={styles.section} aria-labelledby={headingId} data-business-faq="">
+    <section className={styles.section} aria-labelledby={headingId} data-business-faq="" data-footer-adjacent={footerAdjacent || undefined}>
       <div className={`zw-container ${styles.layout}`}>
         <div className={styles.intro}>
           <div className={styles.copy}>

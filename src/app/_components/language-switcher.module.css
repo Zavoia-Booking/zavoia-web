@@ -151,6 +151,10 @@
 .drawer .option { min-height: 52px; font-size: 16px; }
 .drawer .check { color: var(--c-ink); }
 .drawerClose:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; }
+@media (max-width: 920px) {
+  .drawerOverlay { top: var(--drawer-viewport-top, 0px); bottom: auto; height: var(--drawer-viewport-height, 100dvh); }
+  .drawer { bottom: var(--drawer-viewport-bottom, 0px); max-height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top))); }
+}
 @media (prefers-reduced-motion: no-preference) {
   .drawerOverlay[data-state="open"]:not([data-entry="keyboard"]) { animation: drawer-backdrop-in 160ms var(--ease-out); }
   .drawerOverlay[data-state="closed"]:not([data-input="keyboard"]) { animation: drawer-backdrop-out 120ms var(--ease-out); }

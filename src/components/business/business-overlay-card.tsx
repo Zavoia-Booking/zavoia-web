@@ -17,6 +17,9 @@ export interface BusinessOverlayCardProps {
   onFavorite?: (id: BusinessCardData["id"]) => void;
   /** Shorter photo treatment for mobile discovery rails; desktop stays portrait. */
   compactOnMobile?: boolean;
+  /** Fill a responsive city-grid tile; phones retain the compact swipe card. */
+  bento?: boolean;
+  imageSizes?: string;
 }
 
 const ROOT_STYLE: CSSProperties = {
@@ -43,7 +46,7 @@ const ACTION_STYLE: CSSProperties = {
 // Photo-forward card: full-bleed image, dual gradient scrims, magazine-bold
 // name, and a confident rating block (big number + fractional stars).
 // Ported from ZwBusinessOverlayCard.
-export function BusinessOverlayCard({ b, onClick, favorited, onFavorite, compactOnMobile = false }: BusinessOverlayCardProps) {
+export function BusinessOverlayCard({ b, onClick, favorited, onFavorite, compactOnMobile = false, bento = false, imageSizes }: BusinessOverlayCardProps) {
   const { dict } = useTranslation();
   const locationName = b.locationName?.trim() || b.name;
   const businessName = b.businessName?.trim();
@@ -56,10 +59,10 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite, compact
         <Img
           src={b.image}
           alt={imageName}
-          label={b.cat}
-          sizes={compactOnMobile
+          label={bento ? <span className={styles.placeholderLabel}>{b.cat}</span> : b.cat}
+          sizes={imageSizes ?? (compactOnMobile
             ? "(max-width: 320px) 248px, (max-width: 404px) calc(86vw - 27.52px), (max-width: 640px) 320px, (max-width: 920px) 50vw, 320px"
-            : "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) 50vw, 320px"}
+            : "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) 50vw, 320px")}
           style={{ width: "100%", height: "100%" }}
         />
       </div>
@@ -87,12 +90,12 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite, compact
       />
 
       <div
-        style={{ position: "absolute", left: 18, right: 18, bottom: 18, color: "#fff", textAlign: "left" }}
+        style={{ position: "absolute", left: "var(--overlay-card-inset, 18px)", right: "var(--overlay-card-inset, 18px)", bottom: "var(--overlay-card-inset, 18px)", color: "#fff", textAlign: "left" }}
       >
         <div
           className={`txt-balance ${styles.name}`}
           style={{
-            fontSize: "clamp(20px, 1.5vw, 25px)",
+            fontSize: "var(--overlay-card-name-size, clamp(20px, 1.5vw, 25px))",
             fontWeight: 700,
             lineHeight: 1.04,
             letterSpacing: "-0.03em",
@@ -194,7 +197,7 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite, compact
 
   return (
     <div
-      className={`zw-hover-lift zw-zoom-parent ${styles.card}${compactOnMobile ? ` ${styles.compactOnMobile}` : ""}`}
+      className={`zw-hover-lift zw-zoom-parent ${styles.card}${compactOnMobile ? ` ${styles.compactOnMobile}` : ""}${bento ? ` ${styles.bento}` : ""}`}
       style={{ ...ROOT_STYLE, cursor: b.href || onClick ? "pointer" : "default" }}
     >
       {b.href ? (

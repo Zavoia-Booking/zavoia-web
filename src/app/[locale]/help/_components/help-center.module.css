@@ -41,6 +41,7 @@
   .searchClear { transition: background-color 160ms var(--ease-soft), color 160ms var(--ease-soft); }
 }
 @media (max-width: 920px) {
+  .page { padding-bottom: 24px; }
   .layout { grid-template-areas: "sidebar" "main" "resources"; row-gap: 36px; }
   .sidebar { position: static; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
   .support { margin-top: 0; padding: 4px 0 0; border: 0; }
@@ -48,7 +49,7 @@
   .page[data-locale="ro"] .title { font-size: 48px; }
 }
 @media (max-width: 600px) {
-  .page { padding-block: 32px 72px; }
+  .page { padding-block: 32px 24px; }
   .layout { row-gap: 28px; }
   .sidebar { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .title { font-size: 40px; line-height: 1.1; }
@@ -62,6 +63,7 @@
   .support { padding-top: 24px; border-top: 1px solid var(--c-300); }
   .resources { padding-top: 28px; }
   .resourceList { grid-template-columns: minmax(0, 1fr); }
+  .resourceLink:last-child { border-bottom: 0; }
 }
 @media (max-width: 360px) {
   .searchRow { grid-template-columns: minmax(0, 1fr) 108px; gap: 12px; }

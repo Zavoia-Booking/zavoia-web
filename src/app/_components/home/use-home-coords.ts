@@ -39,6 +39,16 @@ async function withTimeout<T>(request: (signal: AbortSignal) => Promise<T>): Pro
   return withHomeDeadline(request, { timeoutMs: 8000 });
 }
 
+/** Device coordinates first, then their locality once reverse-geocoded. */
+async function publishDevice(coords: BrowserCoords): Promise<void> {
+  publish({ coords, city: null, countryCode: null, resolving: false });
+  const match = await withTimeout((signal) => reverseGeocode(coords.lat, coords.lng, signal));
+  if (match) publish({
+    coords, city: match.city || null,
+    countryCode: match.countryCode ?? null, resolving: false,
+  });
+}
+
 /**
  * One geolocation → IP lookup per document, shared by both home feeds. Publish
  * coordinates before reverse-geocoding; the directory can reuse the same
@@ -47,22 +57,29 @@ async function withTimeout<T>(request: (signal: AbortSignal) => Promise<T>): Pro
  * locale remounts the same resolved location instead of restarting their spinner.
  */
 async function resolve(): Promise<void> {
+  // A native geolocation timeout does not guarantee the browser invokes a
+  // callback (for example, while a permission prompt remains unanswered), so
+  // the feeds stop waiting at the deadline. The request itself stays open.
+  const device = getBrowserLocation({ timeout: 8000, maximumAge: 5 * 60_000 });
+  let deviceLate = false;
   try {
-    // A native geolocation timeout does not guarantee the browser invokes a
-    // callback (for example, while a permission prompt remains unanswered).
-    const coords = await withTimeout(() => getBrowserLocation({
-      timeout: 8000, maximumAge: 5 * 60_000,
-    })).catch(() => null);
+    const coords = await withTimeout(() => device).catch(() => null);
     if (coords) {
-      publish({ coords, city: null, countryCode: null, resolving: false });
-      const match = await withTimeout((signal) => reverseGeocode(coords.lat, coords.lng, signal));
-      if (match) publish({
-        coords, city: match.city || null,
-        countryCode: match.countryCode ?? null, resolving: false,
-      });
+      await publishDevice(coords);
       return;
     }
+    // An "Allow" given after the deadline still settles that same request:
+    // the real position then replaces the IP estimate, and a slower IP answer
+    // must not overwrite it.
+    void device.then((late) => {
+      if (!late) return;
+      deviceLate = true;
+      return publishDevice(late);
+    }).catch(() => {
+      // The position is already published; only its locality lookup failed.
+    });
     const ip = await withTimeout(ipLocate);
+    if (deviceLate) return;
     publish({
       coords: ip ? { lat: ip.lat, lng: ip.lng } : null,
       city: ip?.city || null,

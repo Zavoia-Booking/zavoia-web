@@ -18,6 +18,7 @@ import { BrandsSection } from "@/app/_components/home/brands-section";
 import { NearYouSection } from "@/app/_components/home/near-you-section";
 import { RecentlyViewed } from "@/app/_components/home/recently-viewed";
 import { WebsiteShowcase } from "@/app/_components/home/editors-pick";
+import { preloadSignatureFont } from "@/app/_components/for-business/signature-font";
 import { DiscoveryProvider, DiscoveryRecovery, ServerDiscoveryFeed } from "@/app/_components/home/discovery-feedback";
 import {
   BrandsSkeleton,
@@ -74,6 +75,8 @@ export function HomeContent({
   websites,
   brands,
 }: HomeContentProps) {
+  preloadSignatureFont();
+
   return (
     <DiscoveryProvider><main>
       <Hero />
@@ -120,15 +123,14 @@ async function CategorySection({
   if (!result.ok) return <ServerDiscoveryFeed id="categories" failed failureId={result.failureId} count={0} />;
   // Resolve discovery order on the server so refreshes and locale changes
   // share the same daily order without a client-side shuffle after hydration.
-  // Keep Other last before taking the responsive discovery subset.
-  const featuredIndustryIds = otherIndustryLast(
+  // Keep Other last; the responsive rail decides how many tiles fit on desktop.
+  const orderedIndustryIds = otherIndustryLast(
     seededShuffle(result.data, currentDaySeed()),
     (industry) => industry.slug,
   )
-    .slice(0, 11)
     .map((industry) => industry.id);
   return <ServerDiscoveryFeed id="categories" failed={false} count={result.data.length}>
-    <CategoryRail locale={locale} industries={result.data} featuredIndustryIds={featuredIndustryIds} />
+    <CategoryRail locale={locale} industries={result.data} orderedIndustryIds={orderedIndustryIds} />
   </ServerDiscoveryFeed>;
 }
 

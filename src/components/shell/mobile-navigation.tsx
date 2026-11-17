@@ -189,7 +189,7 @@ export function MobileNavigation({ locale, onSearch, showSearch = true }: { loca
           <Dialog.Title className="sr-only">{dict.nav.navigation}</Dialog.Title>
           <Link href={localeHref(locale)} className={styles.homeLink} aria-label={dict.nav.homeAria}
             aria-current={key === "" ? "page" : undefined} onNavigate={navigate}>
-            <Image src="/brand/wordmark-cropped.png" alt="Zavoia" width={440} height={145} sizes="104px" className={styles.wordmark} />
+            <Image src="/brand/zavoia-logo.png" alt="Zavoia" width={440} height={145} unoptimized className={styles.wordmark} />
           </Link>
           <button type="button" className={styles.toggle} aria-label={expanded ? dict.nav.closeMenu : dict.nav.openMenu}
             aria-expanded={expanded} onClick={event => toggle(event.detail)}>
@@ -238,12 +238,10 @@ export function MobileNavigation({ locale, onSearch, showSearch = true }: { loca
           <div className={styles.group}>
             <LanguageSwitcher currentLocale={locale} triggerClassName={styles.languageTrigger} />
           </div>
-          {status !== "error" && <div className={styles.group}>
+          {status !== "error" && (signedIn || pendingSession) && <div className={styles.group}>
             {pendingSession
               ? <span role="button" aria-disabled="true" className={styles.row}><span className={styles.leading}><Icon name="logout" size={17} color="var(--c-600)" /></span><span className={styles.rowLabel}>{t.logout}</span></span>
-              : signedIn
-                ? <button type="button" className={styles.row} onClick={() => void onLogout()}><span className={styles.leading}><Icon name="logout" size={17} color="var(--c-600)" /></span><span className={styles.rowLabel}>{t.logout}</span></button>
-                : <Link href={accountHref} className={styles.row} onNavigate={navigate}><span className={styles.leading}><Icon name="user" size={17} color="var(--c-600)" /></span><span className={styles.rowLabel}>{t.login}</span></Link>}
+              : <button type="button" className={styles.row} onClick={() => void onLogout()}><span className={styles.leading}><Icon name="logout" size={17} color="var(--c-600)" /></span><span className={styles.rowLabel}>{t.logout}</span></button>}
           </div>}
         </div>
       </Dialog.Content>

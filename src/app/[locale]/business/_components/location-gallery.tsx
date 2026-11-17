@@ -93,7 +93,7 @@ export function LocationGallery({ listing, cat }: Props) {
                 // Tall phone crops need source pixels for their height as well
                 // as their width, especially with landscape venue photography.
                 sizes={total === 1
-                  ? "(max-width: 600px) 480px, (max-width: 920px) calc(100vw - 80px), (max-width: 1100px) calc(100vw - 408px), (max-width: 1440px) calc(100vw - 472px), (max-width: 1456px) calc(100vw - 528px), 928px"
+                  ? "(max-width: 600px) 480px, (max-width: 920px) calc(100vw - 80px), (max-width: 1100px) calc(90vw - 364px), (max-width: 1440px) calc(90vw - 440px), (max-width: 1556px) calc(90vw - 472px), 928px"
                   : photoIndex === 0
                     ? total === 2
                       ? "(max-width: 600px) 400px, (max-width: 920px) 58vw, (max-width: 1440px) 46vw, 545px"

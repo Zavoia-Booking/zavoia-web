@@ -9,7 +9,7 @@ import {
 import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import { defaultSocialImage } from "@/lib/site";
-import { siteEntities } from "@/lib/seo/site-identity";
+import { homeStructuredData } from "@/lib/seo/discovery-structured-data";
 import { serializeJsonLd } from "@/lib/seo/json-ld";
 import { HomeContent, type FeedResult } from "@/app/_components/home-content";
 import { ApiError } from "@/lib/api/http";
@@ -76,12 +76,6 @@ type Props = { params: Promise<{ locale: string }> };
 const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
   en: "en_US",
   ro: "ro_RO",
-};
-
-// Every page describes the same verified publisher and website with stable IDs.
-const homeStructuredData = {
-  "@context": "https://schema.org",
-  "@graph": siteEntities(),
 };
 
 export async function generateMetadata({
@@ -160,7 +154,7 @@ export default async function Home({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: serializeJsonLd(homeStructuredData),
+          __html: serializeJsonLd(homeStructuredData(localeParam)),
         }}
       />
       <HomeContent

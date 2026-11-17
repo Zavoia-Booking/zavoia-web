@@ -38,12 +38,13 @@ export function Footer({ locale, showWordmark = true }: {
           <div className={styles.markBand}>
             <Link href={localeHref(locale)} title={dict.nav.homeAria} className={styles.mark}>
               <Image
-                src="/brand/zavoia_logo_full_transparent.png"
+                src="/brand/zavoia-footer-wordmark.png"
                 alt="Zavoia"
                 title="Zavoia"
-                width={957}
-                height={300}
-                sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1456px) calc(100vw - 56px), 1400px"
+                width={5600}
+                height={1755}
+                unoptimized
+                sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1556px) 90vw, 1400px"
                 className={styles.logo}
               />
             </Link>

@@ -45,17 +45,18 @@ export const ro: Dictionary = {
     },
     hero: {
       headlineLead: "Servicii locale.",
-      headlineAccent: "Tu alegi când.",
+      headlinePre: "Tu alegi ",
+      headlineAccent: "când.",
       subcopy:
-        "Zavoia aduce afacerile locale și programările online în același loc. De la tuns la ITP, găsește un serviciu și alege ora potrivită.",
+        "La tuns după serviciu sau la chitară sâmbătă? Găsește serviciul potrivit și programează-te online.",
       searchTryPrefix: "Încearcă",
       searchAria: "Caută",
       prompts: [
-        "balayage lângă mine",
-        "un masaj de relaxare diseară",
-        "cel mai bun frizer din oraș",
-        "unghii cu gel weekendul acesta",
-        "un control stomatologic lângă mine",
+        "ITP",
+        "lecții de chitară",
+        "tuns",
+        "masaj",
+        "tuns câini",
       ],
     },
     categories: {

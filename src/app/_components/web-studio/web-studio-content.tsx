@@ -92,7 +92,7 @@ export function WebStudioContent({ locale, faqItems, pending = false }: { locale
         </div>
       </section>
 
-      <MarketingFaq locale={locale} headingId="studio-faq-title" title={t.faq.title} lead={t.faq.lead} helpPrompt={t.faq.helpPrompt} helpLink={t.faq.helpLink} items={faqItems} />
+      <MarketingFaq locale={locale} headingId="studio-faq-title" title={t.faq.title} lead={t.faq.lead} helpPrompt={t.faq.helpPrompt} helpLink={t.faq.helpLink} items={faqItems} footerAdjacent />
     </div>
   );
 }

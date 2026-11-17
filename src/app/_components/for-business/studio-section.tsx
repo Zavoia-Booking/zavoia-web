@@ -15,6 +15,14 @@ const featureArtwork = ["content", "design", "publish"] as const;
 /** Two genuine website examples, with the publishing benefits always visible. */
 export function StudioSection({ locale }: { locale: Locale }) {
   const t = dictionaries[locale].forBusiness.studio;
+  const desktopMockup = getMarketingMockup("studioBeauty", locale);
+  const phoneMockup = getMarketingMockup("studioPet", locale);
+  // The final source column contains a brighter capture fringe. Keep it just
+  // outside the screen without changing the asset or trimming useful content.
+  const phoneScreenStyle = {
+    "--phone-capture-ratio": `${phoneMockup.width} / ${phoneMockup.height}`,
+    "--phone-capture-scale": phoneMockup.width / (phoneMockup.width - 1),
+  } as CSSProperties;
 
   return (
     <section id="web-studio" className={styles.section} aria-labelledby="studio-title">
@@ -36,13 +44,13 @@ export function StudioSection({ locale }: { locale: Locale }) {
                     <span className={styles.browserDots}><i /><i /><i /></span>
                     <span>zavoia.com/lumi-beauty</span>
                   </div>
-                  <div className={styles.browserScreen}>
+                  <div className={styles.browserScreen} style={{ aspectRatio: `${desktopMockup.width} / ${desktopMockup.height}` }}>
                     <Image
-                      {...getMarketingMockup("studioBeauty", locale)}
+                      {...desktopMockup}
                       data-product-scene="studioBeauty"
                       data-product-locale={locale}
                       alt={t.desktopAlt}
-                      sizes="(max-width: 600px) 92vw, (max-width: 920px) 640px, (max-width: 1200px) 49vw, 640px"
+                      sizes="(max-width: 600px) min(calc(89.5vw - 30.64px), 356px), (max-width: 920px) min(calc(85.05vw - 36.02px), 624px), (max-width: 1484px) calc(42.17vw - 2px), 624px"
                     />
                   </div>
                 </div>
@@ -51,17 +59,15 @@ export function StudioSection({ locale }: { locale: Locale }) {
 
             <div className={styles.phoneMount} data-studio-phone="">
               <div className={styles.phone}>
-                {[-9, -6, -3, -1.5].map(depth => (
-                  <i key={depth} className={styles.phoneEdge} style={{ "--depth": `${depth}px` } as CSSProperties} aria-hidden="true" />
-                ))}
+                <i className={styles.phoneEdge} aria-hidden="true" />
                 <div className={styles.phoneFace}>
-                  <div className={styles.phoneScreen}>
+                  <div className={styles.phoneScreen} style={phoneScreenStyle}>
                     <Image
-                      {...getMarketingMockup("studioPet", locale)}
+                      {...phoneMockup}
                       data-product-scene="studioPet"
                       data-product-locale={locale}
                       alt={t.phoneAlt}
-                      sizes="(max-width: 600px) 240px, (max-width: 1200px) 260px, 288px"
+                      sizes="(max-width: 600px) min(calc(57.57vw - 20.43px), 229px), (max-width: 920px) min(calc(37.82vw - 17.13px), 277px), (max-width: 1484px) calc(18.75vw - 2px), 277px"
                     />
                   </div>
                 </div>

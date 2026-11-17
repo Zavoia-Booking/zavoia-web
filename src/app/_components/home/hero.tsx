@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Icon } from "@/components/ui/icon";
 import { useSearchOverlay } from "@/components/search/search-overlay-provider";
+import marketing from "../for-business/marketing.module.css";
 import styles from "./hero.module.css";
 
 const motionQuery = "(prefers-reduced-motion: reduce)";
@@ -90,8 +91,6 @@ export function Hero() {
           className={styles.wordmark}
           style={{
             fontWeight: 700,
-            letterSpacing: "-0.05em",
-            color: "rgba(28,28,26,0.027)",
             whiteSpace: "nowrap",
             lineHeight: 1,
             userSelect: "none",
@@ -111,10 +110,9 @@ export function Hero() {
         }}
       >
         <h1
-          className="txt-balance zw-rise zw-hero-h1"
+          className={`txt-balance zw-rise zw-hero-h1 ${styles.heading}`}
           style={{
             margin: 0,
-            fontSize: "clamp(48px, 6.6vw, 88px)",
             fontWeight: 600,
             letterSpacing: "-0.052em",
             lineHeight: 0.93,
@@ -124,15 +122,16 @@ export function Hero() {
         >
           {h.headlineLead}{" "}
           <br />
-          <span style={{ color: "var(--c-600)" }}>{h.headlineAccent}</span>
+          <span className={styles.accentLine}>
+            {h.headlinePre}<span className={`${marketing.signature} ${styles.signature}`}>{h.headlineAccent}</span>
+          </span>
         </h1>
         <p
           className={`txt-pretty zw-rise ${styles.subcopy}`}
           data-d="1"
           style={{
-            fontSize: "clamp(16px, 1.5vw, 19px)",
             lineHeight: 1.55,
-            color: "var(--c-600)",
+            color: "var(--c-ink)",
             maxWidth: 540,
           }}
         >

@@ -5,9 +5,11 @@ import type { BrandDetail, TeamMemberBookingBusiness, TeamMemberProfile } from "
 import { webUrl } from "@/lib/locations/structured-data";
 import { professionalHref } from "@/lib/professionals/urls";
 import { professionalLanguageLabels } from "@/lib/professionals/languages";
+import { getPostModifiedAt, getPostPublishedAt } from "@/lib/blog/dates";
 import { SITE_URL } from "@/lib/site";
 import { organizationId, siteEntities, websiteId } from "@/lib/seo/site-identity";
 import { merchantId, webPageId, webPageNode, type FaqItem } from "./entities";
+import { collectionItemList } from "./collection-structured-data";
 
 export { siteEntities, websiteId } from "@/lib/seo/site-identity";
 export { serializeJsonLd } from "./json-ld";
@@ -28,6 +30,15 @@ export function brandStructuredData(brand: BrandDetail, locale: Locale, pagePath
   const description = text(brand.description);
   const logo = webUrl(brand.logo, true);
   const key = encodeURIComponent(text(brand.slug) || String(brand.businessId));
+  // Branch cards link to real pages. This payload lacks each location UUID,
+  // so the list identifies their pages rather than inventing competing venues.
+  const locations = collectionItemList(pagePath, brand.locations.flatMap(location => {
+    const locationName = text(location.name);
+    return locationName ? [{
+      name: locationName,
+      path: localeHref(locale, "business", encodeURIComponent(text(location.slug) || String(location.id))),
+    }] : [];
+  }));
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -41,7 +52,7 @@ export function brandStructuredData(brand: BrandDetail, locale: Locale, pagePath
         ...(logo && { logo }),
       },
       {
-        "@type": "WebPage",
+        "@type": locations ? "CollectionPage" : "WebPage",
         "@id": `${pageUrl}#webpage`,
         url: pageUrl,
         name,
@@ -49,8 +60,10 @@ export function brandStructuredData(brand: BrandDetail, locale: Locale, pagePath
         isPartOf: { "@id": websiteId },
         publisher: { "@id": organizationId },
         about: { "@id": merchantId(brand.businessId) },
-        mainEntity: { "@id": merchantId(brand.businessId) },
+        mainEntity: { "@id": locations?.["@id"] ?? merchantId(brand.businessId) },
+        ...(description && { description }),
       },
+      ...(locations ? [locations] : []),
     ],
   };
 }
@@ -83,9 +96,12 @@ export function professionalStructuredData(
     const url = value ? webUrl(/^https?:\/\//i.test(value) ? value : `https://${value}`) : undefined;
     return url ? [url] : [];
   }))];
+  const seenBusinesses = new Set<number>();
   const worksFor = businesses.flatMap((business) => {
     const businessName = text(business.name);
-    return businessName ? [{ "@type": "Organization", "@id": merchantId(business.id), name: businessName }] : [];
+    if (!businessName || seenBusinesses.has(business.id)) return [];
+    seenBusinesses.add(business.id);
+    return [{ "@type": "Organization", "@id": merchantId(business.id), name: businessName }];
   });
   return {
     "@context": "https://schema.org",
@@ -96,6 +112,7 @@ export function professionalStructuredData(
         "@id": personId,
         name,
         url: `${SITE_URL}${professionalHref(DEFAULT_LOCALE, profile.uuid)}`,
+        mainEntityOfPage: { "@id": `${pageUrl}#webpage` },
         ...(jobTitle && { jobTitle }),
         ...(description && { description }),
         ...(image && { image }),
@@ -112,6 +129,7 @@ export function professionalStructuredData(
         isPartOf: { "@id": websiteId },
         publisher: { "@id": organizationId },
         mainEntity: { "@id": personId },
+        ...(description && { description }),
       },
     ],
   };
@@ -127,6 +145,7 @@ export function blogPostStructuredData(post: {
   path: string;
   headline: string;
   description?: string;
+  articleSection?: string;
   datePublished: string;
   dateModified?: string;
   image?: string | string[];
@@ -138,9 +157,16 @@ export function blogPostStructuredData(post: {
   if (!headline) return null;
   const pageUrl = `${SITE_URL}${post.path}`;
   const description = text(post.description);
+  const articleSection = text(post.articleSection);
+  const datePublished = getPostPublishedAt({ publishedAt: post.datePublished });
+  const dateModified = datePublished ? getPostModifiedAt({
+    publishedAt: post.datePublished, modifiedAt: post.dateModified,
+  }) : undefined;
   const images = (Array.isArray(post.image) ? post.image : [post.image])
     .map((image) => webUrl(image)).filter((image): image is string => Boolean(image));
   const author = typeof post.author === "string" ? { name: post.author } : post.author;
+  const authorName = text(author.name);
+  const authorUrl = webUrl(author.url);
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -155,13 +181,14 @@ export function blogPostStructuredData(post: {
         "@id": `${pageUrl}#article`,
         headline,
         ...(description && { description }),
-        author: {
+        ...(articleSection && { articleSection }),
+        ...(authorName && { author: {
           "@type": "Person",
-          name: author.name,
-          ...(author.url && { url: author.url }),
-        },
-        datePublished: post.datePublished,
-        ...(post.dateModified && { dateModified: post.dateModified }),
+          name: authorName,
+          ...(authorUrl && { url: authorUrl }),
+        } }),
+        ...(datePublished && { datePublished }),
+        ...(dateModified && { dateModified }),
         ...(images.length > 0 && { image: [...new Set(images)] }),
         inLanguage: post.locale,
         url: pageUrl,

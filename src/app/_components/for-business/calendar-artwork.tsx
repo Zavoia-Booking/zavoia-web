@@ -26,7 +26,7 @@ export function CalendarDesktopArtwork({ locale, className }: BusinessMockupProp
               data-product-scene="businessCalendarDesktop"
               data-product-locale={locale}
               alt={t.desktopAlt}
-              sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1096px) calc(100vw - 56px), (max-width: 1176px) 1040px, (max-width: 1428px) calc(100vw - 388px), 1040px"
+              sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1155px) 90vw, (max-width: 1176px) 1040px, (max-width: 1524px) calc(90vw - 332px), 1040px"
             />
           </div>
         </div>

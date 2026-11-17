@@ -97,6 +97,7 @@ export function BlogPost({
         path: postPath,
         headline: title,
         description: excerpt,
+        articleSection: categoryLabel,
         datePublished: post.publishedAt,
         dateModified: modifiedAt,
         image: articleImages,

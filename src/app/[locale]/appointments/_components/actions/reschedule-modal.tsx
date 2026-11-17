@@ -432,6 +432,7 @@ function RescheduleSession({
   return (
     <ActionModal
       title={t.title}
+      mobileDrawer
       onClose={onClose}
       width={540}
       className={styles.modal}

@@ -42,6 +42,7 @@ export const en: {
     };
     hero: {
       headlineLead: string;
+      headlinePre: string;
       headlineAccent: string;
       subcopy: string;
       searchTryPrefix: string;
@@ -1918,17 +1919,18 @@ export const en: {
   homeSections: {
     hero: {
       headlineLead: "Local services.",
-      headlineAccent: "On your schedule.",
+      headlinePre: "On your ",
+      headlineAccent: "schedule.",
       subcopy:
-        "Zavoia brings local businesses and online booking together. From haircuts to car inspections, find a service and choose your time.",
+        "A haircut after work or a guitar lesson on Saturday? Find local services and book online.",
       searchTryPrefix: "Try",
       searchAria: "Search",
       prompts: [
-        "balayage near me",
-        "a deep-tissue massage tonight",
-        "the best barber in town",
-        "gel nails this weekend",
-        "a dental check-up near me",
+        "car inspection",
+        "guitar lessons",
+        "haircut",
+        "massage",
+        "dog grooming",
       ],
     },
     categories: {
@@ -2666,7 +2668,7 @@ export const en: {
         body: "Run into a problem or have a question? Let us know and we'll get back to you here.",
       },
       category: {
-        bug: "Bug",
+        bug: "Problem",
         question: "Question",
       },
       status: {

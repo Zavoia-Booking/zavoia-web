@@ -37,11 +37,21 @@
 
 .phoneStory { display: flex; flex-direction: column; align-items: start; gap: 26px; padding-bottom: 16px; }
 .phoneFigure { width: 100%; max-width: 240px; }
-.phoneFigure img { display: block; width: 100%; height: auto; }
+.phoneCapture {
+  /* Both 780px captures include a 2px left preview rail. Keep it outside the screen. */
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: block;
+  width: calc(100% * 780 / 778);
+  max-width: none;
+  height: auto;
+  aspect-ratio: 780 / 1598;
+  object-fit: fill;
+}
 
 .footer { display: flex; justify-content: space-between; align-items: center; gap: 12px 28px; max-width: 1340px; margin: 18px auto 0; }
-.note { display: flex; align-items: start; gap: 9px; margin: 0; color: var(--c-700); font-size: 14px; line-height: 1.55; text-wrap: pretty; }
-.note svg { flex-shrink: 0; margin-top: 2px; color: oklch(47% .11 158); }
+.note { margin: 0; color: var(--c-700); font-size: 14px; line-height: 1.55; text-wrap: pretty; }
 .demoLink { display: inline-flex; flex-shrink: 0; align-items: center; gap: 12px; min-height: 44px; padding-block: 8px; color: var(--c-ink); font-size: 15px; font-weight: 500; line-height: 1.4; text-decoration: underline; text-decoration-color: color-mix(in oklch, currentColor 35%, transparent); text-underline-offset: 5px; text-decoration-thickness: 1px; transition: text-decoration-color 160ms var(--ease-out); }
 .demoLink:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 5px; border-radius: 2px; }
 @media (hover: hover) and (pointer: fine) { .demoLink:hover { text-decoration-color: currentColor; } }
@@ -55,23 +65,17 @@
 }
 
 @media (max-width: 700px) {
-  .header > h2 { max-width: 20ch; }
-  .header > p { margin-top: 14px; font-size: 16px; }
+  .header > h2 { max-width: 20ch; margin-inline: auto; font-size: 32px; text-align: center; }
+  .header > p { margin: 14px 0 0; font-size: 16px; }
   .composition { grid-template-columns: minmax(0, 1fr); gap: 32px; max-width: 460px; }
   .controlsCopy { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 22px; }
   .caption h3 { font-size: 19px; }
-  .caption p { max-width: 38ch; margin-top: 5px; }
+  .caption p { max-width: 38ch; margin: 5px 0 0; }
   .editor { padding: 4px; border-radius: 12px; }
-  .phoneStory { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 52%); align-items: center; gap: 18px; padding: 0; }
-  .phoneFigure { max-width: 220px; justify-self: end; }
+  .phoneStory { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 0; }
+  .phoneFigure { max-width: 260px; justify-self: center; }
   .footer { flex-direction: column; align-items: start; gap: 12px; max-width: 460px; margin-top: 28px; }
   .note { font-size: 13px; }
-}
-
-@media (max-width: 360px) {
-  .phoneStory { grid-template-columns: minmax(0, 1fr) 150px; gap: 16px; }
-  .phoneStory .caption h3 { font-size: 18px; }
-  .phoneStory .caption p { font-size: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) { .demoLink { transition: none; } }

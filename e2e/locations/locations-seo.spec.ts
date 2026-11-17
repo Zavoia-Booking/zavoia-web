@@ -77,7 +77,18 @@ async function expectPublished(response: APIResponse, listing: ListingDetail, pa
     url: `${publicOrigin}${prefix}/business/${listing.slug}`,
     inLanguage: prefix ? 'ro' : 'en', mainEntity: { '@id': location?.['@id'] },
   });
-  expect(JSON.stringify(schema)).not.toMatch(/"(?:aggregateRating|reviewCount|ratingCount|offers|priceRange)":/);
+  // The listing's aggregate combines venue and professional reviews, and the
+  // location has no published overall price range. Menu offers describe the
+  // services themselves; they must not become location/product-level offers.
+  expect(JSON.stringify(schema)).not.toMatch(/"(?:aggregateRating|review|reviewCount|ratingCount|priceRange)":/);
+  expect(location).not.toHaveProperty('offers');
+  const catalog = location?.hasOfferCatalog as { itemListElement: Array<Record<string, unknown>> } | undefined;
+  expect(catalog?.itemListElement).toHaveLength(listing.bundles.length + listing.services.length);
+  for (const offer of catalog?.itemListElement ?? []) {
+    expect(offer).toMatchObject({ '@type': 'Offer', seller: { '@id': location?.['@id'] } });
+    expect(offer.itemOffered).toMatchObject({ '@type': 'Service', provider: { '@id': location?.['@id'] } });
+    expect(offer).not.toHaveProperty('availability');
+  }
 }
 
 async function expectUnavailable(response: APIResponse) {

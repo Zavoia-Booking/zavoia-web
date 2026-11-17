@@ -63,7 +63,7 @@ export function GalleryImage({
       ref={(node) => {
         if (node && !node.complete) node.setAttribute("data-fade-pending", "true");
         if (node?.complete && node.naturalWidth > 0 && !loaded) setLoaded(true);
-        if (node?.complete && node.naturalWidth === 0 && node.currentSrc) responsive.retryOriginal();
+        responsive.props.ref(node);
       }}
     />
   );

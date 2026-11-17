@@ -1,0 +1,1482 @@
+{
+  "summary": {
+    "auditedAt": "2026-11-17T06:06:11.820327+00:00",
+    "sourceSitemap": "https://www.zavoia.com/sitemap.xml",
+    "sitemapUrlCount": 26,
+    "attemptedCount": 26,
+    "httpStatusCounts": {
+      "200": 18,
+      "404": 8
+    },
+    "http200Count": 18,
+    "fetchErrorCount": 0,
+    "jsonErrorCount": 0,
+    "pageWithJsonLdCount": 18,
+    "schemaErrorPageCount": 4,
+    "schemaErrorCount": 6,
+    "schemaWarningCount": 38,
+    "canonicalMismatchCount": 0,
+    "entityTypeCounts": {
+      "Organization": 16,
+      "PostalAddress": 16,
+      "ContactPoint": 16,
+      "WebSite": 16,
+      "BreadcrumbList": 6,
+      "ListItem": 12,
+      "CollectionPage": 8,
+      "FAQPage": 8,
+      "Question": 84,
+      "Answer": 84,
+      "SoftwareApplication": 6,
+      "Offer": 8,
+      "UnitPriceSpecification": 8,
+      "QuantitativeValue": 8,
+      "WebApplication": 2
+    },
+    "seconds": 0.72,
+    "limitations": [
+      "Read-only source HTML retrieval; not Google Rich Results or Schema.org validator execution.",
+      "Software minimum field-group finding follows the supplied Rich Results screenshot; actual eligibility also depends on Google feature requirements and policy.",
+      "Optional field warnings are data gaps, not proof that invalid facts should be invented.",
+      "Cross-page @id references are valid JSON-LD and recorded as informational notes, not vocabulary errors."
+    ],
+    "unavailableSitemapUrlCount": 8,
+    "vocabularyCheckCounts": {
+      "typeChecks": 298,
+      "propertyChecks": 860,
+      "typedRangeChecks": 320
+    },
+    "vocabularyIssueCounts": {},
+    "vocabularySource": "https://schema.org/version/latest/schemaorg-current-https.jsonld",
+    "externalGraphReferenceCount": 10,
+    "deploymentState": "Before the source changes in this audit; no deployment performed.",
+    "checkMethod": "HTTP source HTML and official Schema.org vocabulary checks; not a Google Rich Results Test run."
+  },
+  "pages": [
+    {
+      "url": "https://www.zavoia.com/",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/",
+      "title": "Zavoia — Discover Local Services & Book Online",
+      "h1": [
+        "Local services. On your schedule."
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 4,
+          "propertyChecks": 18,
+          "typedRangeChecks": 3
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/ro",
+      "title": "Zavoia — Descoperă servicii și programează-te online",
+      "h1": [
+        "Servicii locale. Tu alegi când."
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/ro"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 4,
+          "propertyChecks": 18,
+          "typedRangeChecks": 3
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/industries",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/industries",
+      "title": "Browse local services by category | Zavoia",
+      "h1": [
+        "All industries"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/industries"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "BreadcrumbList": 1,
+        "ListItem": 2,
+        "CollectionPage": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 4,
+          "propertyChecks": 13,
+          "typedRangeChecks": 3
+        },
+        "issues": [],
+        "referenceNotes": [
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/#website",
+            "path": "$.@graph[1].isPartOf",
+            "isError": false
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/industries",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/ro/industries",
+      "title": "Categorii de servicii locale | Zavoia",
+      "h1": [
+        "Toate domeniile"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/ro/industries"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "BreadcrumbList": 1,
+        "ListItem": 2,
+        "CollectionPage": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 4,
+          "propertyChecks": 13,
+          "typedRangeChecks": 3
+        },
+        "issues": [],
+        "referenceNotes": [
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/#website",
+            "path": "$.@graph[1].isPartOf",
+            "isError": false
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/for-business",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/for-business",
+      "title": "Online booking software for local businesses | Zavoia",
+      "h1": [
+        "Get found. Get booked."
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/for-business"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "FAQPage": 1,
+        "Question": 10,
+        "Answer": 10,
+        "SoftwareApplication": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity has fewer than two fields from offers/aggregateRating/applicationCategory/operatingSystem (matches supplied Google test failure)"
+        }
+      ],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing offers"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing aggregateRating"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing operatingSystem"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 26,
+          "propertyChecks": 63,
+          "typedRangeChecks": 28
+        },
+        "issues": [],
+        "referenceNotes": [
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/help#webpage",
+            "path": "$.@graph[3].softwareHelp",
+            "isError": false
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/for-business",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/ro/for-business",
+      "title": "Programări online pentru afacerea ta | Zavoia",
+      "h1": [
+        "Atrage clienți. Primește programări."
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/ro/for-business"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "FAQPage": 1,
+        "Question": 10,
+        "Answer": 10,
+        "SoftwareApplication": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity has fewer than two fields from offers/aggregateRating/applicationCategory/operatingSystem (matches supplied Google test failure)"
+        }
+      ],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing offers"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing aggregateRating"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing operatingSystem"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 26,
+          "propertyChecks": 63,
+          "typedRangeChecks": 28
+        },
+        "issues": [],
+        "referenceNotes": [
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/ro/help#webpage",
+            "path": "$.@graph[3].softwareHelp",
+            "isError": false
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/pricing",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/pricing",
+      "title": "Pricing: two plans, no booking commission | Zavoia",
+      "h1": [
+        "Simple plans. No booking commission."
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/pricing"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "FAQPage": 1,
+        "Question": 8,
+        "Answer": 8,
+        "SoftwareApplication": 1,
+        "Offer": 4,
+        "UnitPriceSpecification": 4,
+        "QuantitativeValue": 4
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing aggregateRating"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing operatingSystem"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 34,
+          "propertyChecks": 110,
+          "typedRangeChecks": 42
+        },
+        "issues": [],
+        "referenceNotes": [
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/help#webpage",
+            "path": "$.@graph[3].softwareHelp",
+            "isError": false
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/pricing",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/ro/pricing",
+      "title": "Prețuri: două abonamente, fără comision la programări | Zavoia",
+      "h1": [
+        "Abonamente simple. Fără comision la programări."
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/ro/pricing"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "FAQPage": 1,
+        "Question": 8,
+        "Answer": 8,
+        "SoftwareApplication": 1,
+        "Offer": 4,
+        "UnitPriceSpecification": 4,
+        "QuantitativeValue": 4
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing aggregateRating"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing operatingSystem"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 34,
+          "propertyChecks": 110,
+          "typedRangeChecks": 42
+        },
+        "issues": [],
+        "referenceNotes": [
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/ro/help#webpage",
+            "path": "$.@graph[3].softwareHelp",
+            "isError": false
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/web-studio",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/web-studio",
+      "title": "Web Studio: a website builder for your business | Zavoia",
+      "h1": [
+        "A website that feels like your business."
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/web-studio"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "FAQPage": 1,
+        "Question": 7,
+        "Answer": 7,
+        "WebApplication": 1,
+        "SoftwareApplication": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [
+        {
+          "entity": "Zavoia Web Studio",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity has fewer than two fields from offers/aggregateRating/applicationCategory/operatingSystem (matches supplied Google test failure)"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[4]",
+          "message": "Software entity has fewer than two fields from offers/aggregateRating/applicationCategory/operatingSystem (matches supplied Google test failure)"
+        }
+      ],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        },
+        {
+          "entity": "Zavoia Web Studio",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing offers"
+        },
+        {
+          "entity": "Zavoia Web Studio",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing aggregateRating"
+        },
+        {
+          "entity": "Zavoia Web Studio",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing operatingSystem"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[4]",
+          "message": "Software entity missing offers"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[4]",
+          "message": "Software entity missing aggregateRating"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[4]",
+          "message": "Software entity missing operatingSystem"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 21,
+          "propertyChecks": 62,
+          "typedRangeChecks": 24
+        },
+        "issues": [],
+        "referenceNotes": [
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/help#webpage",
+            "path": "$.@graph[3].softwareHelp",
+            "isError": false
+          },
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/help#webpage",
+            "path": "$.@graph[4].softwareHelp",
+            "isError": false
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/web-studio",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/ro/web-studio",
+      "title": "Web Studio: creează site-ul afacerii tale | Zavoia",
+      "h1": [
+        "Un site care îți reprezintă afacerea."
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/ro/web-studio"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "FAQPage": 1,
+        "Question": 7,
+        "Answer": 7,
+        "WebApplication": 1,
+        "SoftwareApplication": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [
+        {
+          "entity": "Zavoia Web Studio",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity has fewer than two fields from offers/aggregateRating/applicationCategory/operatingSystem (matches supplied Google test failure)"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[4]",
+          "message": "Software entity has fewer than two fields from offers/aggregateRating/applicationCategory/operatingSystem (matches supplied Google test failure)"
+        }
+      ],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        },
+        {
+          "entity": "Zavoia Web Studio",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing offers"
+        },
+        {
+          "entity": "Zavoia Web Studio",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing aggregateRating"
+        },
+        {
+          "entity": "Zavoia Web Studio",
+          "path": "script[0]$.@graph[3]",
+          "message": "Software entity missing operatingSystem"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[4]",
+          "message": "Software entity missing offers"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[4]",
+          "message": "Software entity missing aggregateRating"
+        },
+        {
+          "entity": "Zavoia",
+          "path": "script[0]$.@graph[4]",
+          "message": "Software entity missing operatingSystem"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 21,
+          "propertyChecks": 62,
+          "typedRangeChecks": 24
+        },
+        "issues": [],
+        "referenceNotes": [
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/ro/help#webpage",
+            "path": "$.@graph[3].softwareHelp",
+            "isError": false
+          },
+          {
+            "kind": "externalGraphReference",
+            "id": "https://www.zavoia.com/ro/help#webpage",
+            "path": "$.@graph[4].softwareHelp",
+            "isError": false
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/help",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/help",
+      "title": "Help with bookings, payments and accounts | Zavoia",
+      "h1": [
+        "How can we help?"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/help"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "FAQPage": 1,
+        "Question": 17,
+        "Answer": 17
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 39,
+          "propertyChecks": 76,
+          "typedRangeChecks": 39
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/help",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/ro/help",
+      "title": "Ajutor pentru programări, plăți și cont | Zavoia",
+      "h1": [
+        "Cu ce te putem ajuta?"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/ro/help"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "FAQPage": 1,
+        "Question": 17,
+        "Answer": 17
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 39,
+          "propertyChecks": 76,
+          "typedRangeChecks": 39
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/blog",
+      "title": "Booking guides, business advice and news | Zavoia Journal",
+      "h1": [
+        "The Zavoia Journal"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/blog"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "CollectionPage": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 5,
+          "propertyChecks": 24,
+          "typedRangeChecks": 5
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/ro/blog",
+      "title": "Ghiduri pentru programări, afaceri și noutăți | Jurnalul Zavoia",
+      "h1": [
+        "Jurnalul Zavoia"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/ro/blog"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "max-image-preview:large"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "CollectionPage": 1
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 5,
+          "propertyChecks": 24,
+          "typedRangeChecks": 5
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog/guides",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/blog/guides",
+      "title": "Booking and local service guides | Zavoia Journal",
+      "h1": [
+        "Guides for your next booking"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/blog/guides"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex, follow"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "CollectionPage": 1,
+        "BreadcrumbList": 1,
+        "ListItem": 2
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 32,
+          "typedRangeChecks": 8
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog/ghiduri",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/ro/blog/ghiduri",
+      "title": "Ghiduri pentru programări și servicii locale | Jurnalul Zavoia",
+      "h1": [
+        "Ghiduri pentru următoarea programare"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/ro/blog/ghiduri"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex, follow"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "CollectionPage": 1,
+        "BreadcrumbList": 1,
+        "ListItem": 2
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 32,
+          "typedRangeChecks": 8
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog/for-business",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/blog/for-business",
+      "title": "Guides for service businesses | Zavoia Journal",
+      "h1": [
+        "Guides for service businesses"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/blog/for-business"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex, follow"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "CollectionPage": 1,
+        "BreadcrumbList": 1,
+        "ListItem": 2
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 32,
+          "typedRangeChecks": 8
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog/pentru-afaceri",
+      "status": 200,
+      "finalUrl": "https://www.zavoia.com/ro/blog/pentru-afaceri",
+      "title": "Ghiduri pentru afaceri de servicii | Jurnalul Zavoia",
+      "h1": [
+        "Ghiduri pentru afacerea ta"
+      ],
+      "canonicalUrls": [
+        "https://www.zavoia.com/ro/blog/pentru-afaceri"
+      ],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex, follow"
+        }
+      ],
+      "scriptCount": 1,
+      "types": {
+        "Organization": 1,
+        "PostalAddress": 1,
+        "ContactPoint": 1,
+        "WebSite": 1,
+        "CollectionPage": 1,
+        "BreadcrumbList": 1,
+        "ListItem": 2
+      },
+      "canonicalMatchesSitemap": true,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [
+        {
+          "entity": null,
+          "path": "script[0]$.@graph[0].address",
+          "message": "PostalAddress missing optional postalCode"
+        }
+      ],
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 32,
+          "typedRangeChecks": 8
+        },
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog/test2",
+      "status": 404,
+      "finalUrl": "https://www.zavoia.com/blog/test2",
+      "title": "404 — This page isn’t available. | Zavoia",
+      "h1": [],
+      "canonicalUrls": [],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex"
+        },
+        {
+          "name": "robots",
+          "content": "noindex, nofollow"
+        }
+      ],
+      "scriptCount": 0,
+      "types": {},
+      "canonicalMatchesSitemap": false,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {},
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog/test2",
+      "status": 404,
+      "finalUrl": "https://www.zavoia.com/ro/blog/test2",
+      "title": "404 — Această pagină nu este disponibilă. | Zavoia",
+      "h1": [],
+      "canonicalUrls": [],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex"
+        },
+        {
+          "name": "robots",
+          "content": "noindex, nofollow"
+        }
+      ],
+      "scriptCount": 0,
+      "types": {},
+      "canonicalMatchesSitemap": false,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {},
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog/test23",
+      "status": 404,
+      "finalUrl": "https://www.zavoia.com/blog/test23",
+      "title": "404 — This page isn’t available. | Zavoia",
+      "h1": [],
+      "canonicalUrls": [],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex"
+        },
+        {
+          "name": "robots",
+          "content": "noindex, nofollow"
+        }
+      ],
+      "scriptCount": 0,
+      "types": {},
+      "canonicalMatchesSitemap": false,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {},
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog/test23",
+      "status": 404,
+      "finalUrl": "https://www.zavoia.com/ro/blog/test23",
+      "title": "404 — Această pagină nu este disponibilă. | Zavoia",
+      "h1": [],
+      "canonicalUrls": [],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex"
+        },
+        {
+          "name": "robots",
+          "content": "noindex, nofollow"
+        }
+      ],
+      "scriptCount": 0,
+      "types": {},
+      "canonicalMatchesSitemap": false,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {},
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog/before-booking-a-local-service",
+      "status": 404,
+      "finalUrl": "https://www.zavoia.com/blog/before-booking-a-local-service",
+      "title": "404 — This page isn’t available. | Zavoia",
+      "h1": [],
+      "canonicalUrls": [],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex"
+        },
+        {
+          "name": "robots",
+          "content": "noindex, nofollow"
+        }
+      ],
+      "scriptCount": 0,
+      "types": {},
+      "canonicalMatchesSitemap": false,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {},
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog/inainte-sa-rezervi-un-serviciu-local",
+      "status": 404,
+      "finalUrl": "https://www.zavoia.com/ro/blog/inainte-sa-rezervi-un-serviciu-local",
+      "title": "404 — Această pagină nu este disponibilă. | Zavoia",
+      "h1": [],
+      "canonicalUrls": [],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex"
+        },
+        {
+          "name": "robots",
+          "content": "noindex, nofollow"
+        }
+      ],
+      "scriptCount": 0,
+      "types": {},
+      "canonicalMatchesSitemap": false,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {},
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog/test1",
+      "status": 404,
+      "finalUrl": "https://www.zavoia.com/blog/test1",
+      "title": "404 — This page isn’t available. | Zavoia",
+      "h1": [],
+      "canonicalUrls": [],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex"
+        },
+        {
+          "name": "robots",
+          "content": "noindex, nofollow"
+        }
+      ],
+      "scriptCount": 0,
+      "types": {},
+      "canonicalMatchesSitemap": false,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {},
+        "issues": [],
+        "referenceNotes": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog/test1",
+      "status": 404,
+      "finalUrl": "https://www.zavoia.com/ro/blog/test1",
+      "title": "404 — Această pagină nu este disponibilă. | Zavoia",
+      "h1": [],
+      "canonicalUrls": [],
+      "robots": [
+        {
+          "name": "robots",
+          "content": "noindex"
+        },
+        {
+          "name": "robots",
+          "content": "noindex, nofollow"
+        }
+      ],
+      "scriptCount": 0,
+      "types": {},
+      "canonicalMatchesSitemap": false,
+      "jsonErrors": [],
+      "errors": [],
+      "warnings": [],
+      "vocabularyChecks": {
+        "counts": {},
+        "issues": [],
+        "referenceNotes": []
+      }
+    }
+  ],
+  "followUpReview": {
+    "auditedAt": "2026-11-17T06:30:59.826662+00:00",
+    "method": "Repeat read-only HTTP source HTML crawl; not a Google Rich Results Test run.",
+    "sitemapUrlCount": 26,
+    "httpStatusCounts": {
+      "200": 18,
+      "404": 8
+    },
+    "schemaErrorPageCount": 4,
+    "schemaErrorCount": 6,
+    "comparedFields": [
+      "status",
+      "canonicalUrls",
+      "jsonErrors",
+      "errors",
+      "warnings",
+      "types"
+    ],
+    "pages": [
+      {
+        "url": "https://www.zavoia.com/",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/industries",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/industries",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/for-business",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/for-business",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/pricing",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/pricing",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/web-studio",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/web-studio",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/help",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/help",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/blog",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/blog",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/blog/guides",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/blog/ghiduri",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/blog/for-business",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/blog/pentru-afaceri",
+        "status": 200,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/blog/test2",
+        "status": 404,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/blog/test2",
+        "status": 404,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/blog/test23",
+        "status": 404,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/blog/test23",
+        "status": 404,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/blog/before-booking-a-local-service",
+        "status": 404,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/blog/inainte-sa-rezervi-un-serviciu-local",
+        "status": 404,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/blog/test1",
+        "status": 404,
+        "baselineFindingsUnchanged": true
+      },
+      {
+        "url": "https://www.zavoia.com/ro/blog/test1",
+        "status": 404,
+        "baselineFindingsUnchanged": true
+      }
+    ]
+  }
+}

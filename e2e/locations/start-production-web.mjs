@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { rm } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 
 const port = process.env.LOCATIONS_SEO_WEB_PORT || '3016';
 const apiPort = process.env.PROFESSIONALS_FIXTURE_PORT || '4321';
@@ -44,9 +44,23 @@ function run(args) {
 }
 
 try {
+  // Next's documented one-time upgrade-notice retry is stored under distDir.
+  // Preserve only those receipts; removing them makes every clean retry stop
+  // on the same notice. Application fetch/build caches are still discarded.
+  const retryDir = `${distDir}/cache/next-agentic-upgrade-retries`;
+  const retryNames = await readdir(retryDir).catch(error => {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  });
+  const retryReceipts = await Promise.all(retryNames.filter(name => /^[a-f0-9]{64}\.json$/.test(name))
+    .map(async name => [name, await readFile(`${retryDir}/${name}`)]));
   // Fetch-cache entries survive rebuilds. Each run must start from its own
   // empty cache so a previous test cannot pre-populate a new lifecycle case.
   await rm(distDir, { recursive: true, force: true });
+  if (retryReceipts.length) {
+    await mkdir(retryDir, { recursive: true });
+    await Promise.all(retryReceipts.map(([name, content]) => writeFile(`${retryDir}/${name}`, content, { mode: 0o600 })));
+  }
   await run(['build']);
   // Next normalizes loopback URLs to localhost. Binding that same hostname
   // keeps the locale rewrite internal instead of proxying it back over HTTP.

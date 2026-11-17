@@ -2,9 +2,11 @@
 
 Source audit of the public marketplace, including shared booking, account and appointment flows. Merchant website builders and preview controls are outside this scope.
 
-Search, Service catalog, Map filters, Language and Booking are the dismissible bottom drawers. They receive the shared top `DrawerHandle` and downward drag-to-close behavior. Dragging belongs to the dedicated handle; drawer content retains native scrolling and its existing controls. Handle dismissal and snap-back share the map's 320ms `cubic-bezier(.2, .7, .3, 1)` release motion from `src/components/ui/sheet-motion.ts`. During handle dismissal, fade the backdrop background color rather than overlay opacity so the drawer paper stays opaque; some drawers nest their content inside the overlay. Keep the close buttons, Escape, focus restoration and nested-dialog behavior. Keyboard dismissal and reduced-motion closing remain immediate.
+Search, Service catalog, Map filters, Language and Booking are the dismissible bottom drawers. They share `DrawerHandle` plus downward touch dragging across their headers and eligible content. A fresh pull from the scroll top moves the drawer; a gesture starting in a scrolled pane remains native scrolling. Inputs, selections, horizontal swipes and pinch gestures keep their native behavior. Dragged buttons and links suppress the ensuing click. Dismissal and snap-back share the map's 320ms `cubic-bezier(.2, .7, .3, 1)` release motion from `src/components/ui/sheet-motion.ts`. Fade the backdrop background color rather than overlay opacity so the paper stays opaque. Keep close buttons, Escape, focus restoration, pending-work rules and nested-dialog behavior. Keyboard dismissal and reduced-motion closing remain immediate. See the [16 November interaction audit](2026-11-16-mobile-drawer-audit.md) for implementation and validation details.
 
 Mobile Search must open without immediately raising the software keyboard: focus the drawer shell, and focus an input only after the visitor deliberately selects it. Preserve desktop autofocus and category-entry focus behavior.
+
+All five modal drawers follow the visible viewport above the keyboard. Search uses one body scroller in cramped layouts; its focused controls and fixed actions remain reachable. Gesture cleanup preserves viewport properties rather than restoring an obsolete complete inline style.
 
 | Surface | Breakpoint and presentation | Source |
 | --- | --- | --- |
@@ -17,7 +19,7 @@ Mobile Search must open without immediately raising the software keyboard: focus
 
 Map-filter changes remain private until Show places applies the draft. Dismissing without applying discards the draft on reopening. Reset continues to apply the default filters and close the drawer.
 
-Map results retains its existing handle and keyboard/pointer snap semantics: header dragging, directional flicks, Home/End and arrow keys, plus promotion to the top snap when navigating or scrolling results. Its collapsed position remains available over the map; dragging down does not dismiss the results. Do not add a second handle or replace snapping with drag-to-close.
+Map results retains its handle and keyboard/pointer snap semantics: header dragging, directional flicks, Home/End and arrow keys, plus promotion to the top snap when navigating or scrolling results. Fresh downward content pulls at the scroll top also move to lower snaps. Its collapsed position remains available over the map; dragging down does not dismiss the results. Do not add a second handle or replace snapping with drag-to-close.
 
 These surfaces are excluded because their current presentation is not a bottom drawer:
 

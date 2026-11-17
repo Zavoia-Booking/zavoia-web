@@ -72,6 +72,8 @@ button.stat { border-radius: 10px; cursor: pointer; }
   min-height: max(680px, calc(100svh - var(--nav-h) - 140px));
 }
 .mobilePage { width: 100%; padding-top: 32px; padding-bottom: 24px; }
+.mobilePage[data-section="support"] { padding-top: 16px; }
+.notificationIcon { display: none; }
 .mobileWorkspace { max-width: 560px; min-height: 0; margin-inline: auto; }
 .mobileWorkspace[data-section]:not([data-section="hub"]) { min-height: max(820px, calc(100svh - var(--nav-h) - 56px)); }
 
@@ -90,6 +92,75 @@ button.stat { border-radius: 10px; cursor: pointer; }
 @media (max-width: 900px) {
   .desktop { display: none; }
   .mobile { display: block; }
+  .mobilePage {
+    --account-heading-size: 34px;
+    --account-input-max: 100%;
+    --account-form-max: 100%;
+    --account-input-padding: 12px 14px;
+    --account-input-radius: 14px;
+    --account-row-padding: 20px 0;
+    --account-row-border: var(--c-300);
+    --account-sub-label-color: var(--c-700);
+    --account-address-columns: minmax(0, 1fr);
+    --account-connection-layout: grid;
+  }
+  .mobilePage[data-section]:not([data-section="hub"]) { padding-top: 16px; }
+  .mobilePage .mobileWorkspace:is([data-section="personal"], [data-section="preferences"]) {
+    min-height: max(0px, calc(100svh - var(--nav-h) - 40px));
+  }
+  .mobilePage .mobileWorkspace[data-section="security"] { min-height: 0; }
+  .sectionHeader h1 { text-wrap: balance; }
+  .sectionHeader p { max-width: 44ch; }
+  .mobileWorkspace[data-section="personal"] .settingsSection { border-top: 1px solid var(--c-300); }
+  .mobilePage .settingsGroup { border-color: var(--c-300); }
+  .mobilePage .groupHeading h2 { font-size: 20px; line-height: 1.4; }
+  .mobilePage .fieldRow > div:first-child { min-width: 0; }
+  .fieldRow[data-editing] { --account-field-row-display: grid; grid-template-columns: minmax(0, 1fr); }
+  .fieldRow[data-editing] > .fieldActions { width: 100%; }
+  .fieldActions > button { flex: 1; }
+  .fieldEditor > div:has(> button[aria-haspopup="dialog"]) { max-width: 100%; }
+  .mobilePage .settingsSection input:is([type="text"], [type="tel"], [type="email"], [type="password"]) { min-height: 48px; }
+  .accountForm { width: 100%; }
+  .accountForm label { min-width: 0; }
+  .mobilePage .emailRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "heading edit" "address address" "status status" "caption caption"; row-gap: 0; }
+  .mobilePage .emailDetails { display: contents; }
+  .emailHeading { grid-area: heading; align-self: center; }
+  .emailCurrent { grid-area: address; }
+  .emailStatus { grid-area: status; }
+  .emailCaption { grid-area: caption; }
+  .emailRow > .editAction { grid-area: edit; }
+  .formActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .formActions > button { flex: 1 1 auto; }
+  .connectionHead { grid-template-columns: minmax(0, 1fr) auto; }
+  .connectionHead:not([data-connected]) { grid-template-columns: minmax(0, 1fr); }
+  .connectionInfo { line-height: 1.55; }
+  .connectionAction { min-width: 0; align-self: start; }
+  .connectionHead:not([data-connected]) .connectionAction { padding-left: 34px; }
+  .mobilePage .deleteAccountRow { display: grid; grid-template-columns: 20px minmax(0, 1fr) 16px; grid-template-areas: "icon title chevron" ". caption chevron"; row-gap: 0; }
+  .deleteAccountCopy { display: contents; }
+  .deleteAccountRow > svg:first-child { grid-area: icon; }
+  .deleteAccountTitle { grid-area: title; }
+  .deleteAccountCaption { grid-area: caption; }
+  .deleteAccountRow > svg:last-child { grid-area: chevron; }
+  .mobilePage .notifications :global(.zw-notif-head) { display: none; }
+  .mobilePage .notifications :global(.zw-notif-group) { display: block; padding: 24px 0; }
+  .mobilePage .notifications :global(.zw-notif-group + .zw-notif-group) { border-color: var(--c-300); }
+  .mobilePage .notifications :global(.zw-notif-desc) { padding: 0 0 18px; gap: 6px; }
+  .mobilePage .notifications :global(.zw-notif-title) { font-size: 18px; line-height: 1.4; }
+  .mobilePage .notifications :global(.zw-notif-caption) { max-width: 44ch; font-size: 14px; line-height: 1.6; }
+  .mobilePage .notifications :global(.zw-notif-cell) { flex-direction: row; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; padding: 12px 0; border: 0; border-top: 1px solid var(--c-300); border-radius: 0; background: transparent; }
+  .mobilePage .notifications :global(.zw-notif-cell-label) { display: block; flex: 1; color: var(--c-900); font-family: inherit; font-size: 15px; font-weight: 500; letter-spacing: 0; text-align: left; text-transform: none; }
+  .notificationIcon { display: inline-flex; flex: none; color: var(--c-600); }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .mobilePage { --account-address-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 360px) {
+  .mobilePage { --account-heading-size: 30px; }
+  .connectionHead { grid-template-columns: minmax(0, 1fr); }
+  .connectionAction { padding-left: 34px; }
 }
 
 
@@ -112,6 +183,8 @@ button.stat { border-radius: 10px; cursor: pointer; }
 .fieldRow[data-editing] { align-items: flex-start; }
 .fieldRow[data-editing] > span { align-self: flex-end; }
 .fieldRow > div:first-child { flex: 1; min-width: 0; }
+.emailRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.deleteAccountRow { display: flex; align-items: center; gap: 14px; }
 .settingsSection .editAction {
   text-underline-offset: 3px;
   transition: color 160ms var(--ease-soft);

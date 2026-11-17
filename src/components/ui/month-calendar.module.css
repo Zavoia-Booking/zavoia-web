@@ -15,8 +15,8 @@
 .day[aria-pressed="true"] { border-color: transparent; background: var(--p-500); color: #fff; font-weight: 700; }
 .nav:focus-visible, .day:focus-visible { outline: 2px solid var(--c-700); outline-offset: 3px; }
 .calendar[data-density="compact"] { flex: none; }
-.calendar[data-density="compact"] .days { flex: none; grid-template-rows: repeat(6, 40px); }
-.calendar[data-density="compact"] .day { min-height: 40px; }
+.calendar[data-density="compact"] .days { flex: none; grid-template-rows: repeat(6, var(--calendar-compact-day-size, 40px)); }
+.calendar[data-density="compact"] .day { min-height: var(--calendar-compact-day-size, 40px); }
 @media (hover: hover) and (pointer: fine) {
   .day:not(:disabled)[aria-pressed="false"]:hover { background: var(--c-200); }
   .day:not(:disabled)[aria-pressed="true"]:hover { background: var(--p-600); }

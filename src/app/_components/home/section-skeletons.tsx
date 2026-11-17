@@ -13,9 +13,9 @@ import discoveryStyles from "./discovery-rail.module.css";
 export function CategoryRailSkeleton() {
   return (
     <section className={`zw-container ${categoryStyles.section}`} aria-hidden="true">
-      <ul className={categoryStyles.grid}>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <li key={i}>
+      <ul className={`zw-noscrollbar ${categoryStyles.grid}`}>
+        {Array.from({ length: 13 }).map((_, i) => (
+          <li key={i} className={i === 0 ? categoryStyles.mobileAll : i === 12 ? categoryStyles.desktopAll : undefined}>
             <div className={categoryStyles.tile}>
               <Skeleton w={56} h={56} r="50%" />
               <div className={categoryStyles.label}><Skeleton w={64} h="1em" style={{ marginTop: ".2em" }} /></div>

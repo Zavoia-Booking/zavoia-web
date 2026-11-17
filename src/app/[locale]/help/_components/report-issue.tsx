@@ -29,7 +29,7 @@ const GUEST_MESSAGE_MAX_LENGTH = 10000;
 
 function isDismissalTarget(target: EventTarget | null): boolean {
   return target instanceof Element &&
-    target.closest("[data-action-modal-close], [data-report-dismiss]") !== null;
+    target.closest("[data-action-modal-close], [data-report-dismiss], [data-drawer-handle]") !== null;
 }
 
 /** Guest reporting for the help centre and contextual listing reports. */
@@ -184,6 +184,7 @@ export function ReportIssue({ t, locale, context, triggerLabel, className }: {
           title={sent ? t.modal.success.title : t.modal.title}
           subtitle={sent ? undefined : t.modal.intro}
           width={sent ? 520 : 620}
+          mobileDrawer
           className={styles.modal}
           initialFocusRef={titleRef}
           dismissible={!submitting}

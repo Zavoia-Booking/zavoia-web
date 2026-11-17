@@ -42,10 +42,23 @@
   .recentsAction:hover { color: var(--c-900); }
 }
 @media (max-width: 920px) {
-  .overlay { place-items: end stretch; padding: 0; background: rgb(28 28 26 / 28%); backdrop-filter: none; }
-  .dialog { width: 100%; height: calc(100dvh - max(24px, env(safe-area-inset-top))); border-bottom: 0; border-radius: 24px 24px 0 0; box-shadow: var(--sh-up); }
+  .overlay { top: var(--drawer-viewport-top, 0px); bottom: auto; height: var(--drawer-viewport-height, 100dvh); place-items: end stretch; padding: 0; background: rgb(28 28 26 / 28%); backdrop-filter: none; }
+  .dialog { width: 100%; height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top))); max-height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top))); border-bottom: 0; border-radius: 24px 24px 0 0; box-shadow: var(--sh-up); }
+  .dialog input { font-size: 16px !important; }
   .overlay[data-state], .dialog[data-state] { animation: none; }
   .footer { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .dialog[data-drawer-keyboard] .body { overflow-y: auto; overscroll-behavior: contain; }
+  .dialog[data-drawer-keyboard] .section[data-open="true"] { flex: none; }
+  .dialog[data-drawer-keyboard] .section[data-open="true"] .sectionReveal { flex: none; }
+  .dialog[data-drawer-keyboard] .sectionScroll { height: auto; overflow: visible; }
+  .dialog[data-drawer-keyboard] .when { min-height: 0; }
+}
+/* A short visible drawer needs one body scroller instead of a collapsed step. */
+@media (max-width: 920px) and (max-height: 560px) {
+  .body { overflow-y: auto; overscroll-behavior: contain; }
+  .section[data-open="true"], .section[data-open="true"] .sectionReveal { flex: none; }
+  .sectionScroll { height: auto; overflow: visible; }
+  .when { min-height: 0; }
 }
 @media (max-width: 760px) {
   .header { padding: 12px 16px; }

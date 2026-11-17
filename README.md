@@ -5,23 +5,23 @@ Next.js App Router marketplace, business pages and published Website Builder sit
 ## Local development
 
 ```bash
-npm ci
-npm run dev
+yarn install --frozen-lockfile
+yarn dev
 ```
 
-Next.js, its ESLint configuration and `@next/third-parties` are pinned to stable 16.4.1. This release includes the upstream [request-driven server HMR change](https://github.com/vercel/next.js/pull/96566) and [persistent HMR state fix](https://github.com/vercel/next.js/pull/97146).
+Next.js, its ESLint configuration and `@next/third-parties` are pinned to stable 16.4.6. This release includes the upstream [request-driven server HMR change](https://github.com/vercel/next.js/pull/96566) and [persistent HMR state fix](https://github.com/vercel/next.js/pull/97146).
 
-The tracked `patches/next+16.4.1.patch` backports the Next.js maintainers' [development manifest race fix](https://github.com/vercel/next.js/pull/100521). Concurrent route generation previously could corrupt `.next/dev/prerender-manifest.json` or lose routes. The fix completes each read/update/write synchronously, before another request can update that shared file. It changes development-server code only; routing, prefetching, and production rendering retain their normal behavior.
+The tracked `patches/next+16.4.6.patch` backports the Next.js maintainers' [development manifest race fix](https://github.com/vercel/next.js/pull/100521). Concurrent route generation previously could corrupt `.next/dev/prerender-manifest.json` or lose routes. The fix completes each read/update/write synchronously, before another request can update that shared file. It changes development-server code only; routing, prefetching, and production rendering retain their normal behavior.
 
-`npm ci` and `npm install` apply the patch through `postinstall` and fail if it cannot apply or the Next version no longer matches. Do not skip install scripts for a development checkout. `patch-package` is a regular dependency so the install hook also works with `npm ci --omit=dev`. When upgrading Next, verify the installed release includes the upstream fix, run `npm run test:framework`, then remove the patch, install hook, and patch tool if no other patches remain. Stable 16.4.5 was also inspected on 6 November 2026 and still contained the faulty asynchronous writer.
+`yarn install` applies the patch through `postinstall` and fails if it cannot apply or the Next version no longer matches. Do not skip install scripts for a development checkout. `patch-package` is a regular dependency so the install hook also works with `yarn install --production`. When upgrading Next, verify the installed release includes the upstream fix, run `yarn test:framework`, then remove the patch, install hook, and patch tool if no other patches remain. If the release does not include it yet, rename the patch file to the new version before installing: `patch-package` reports a version mismatch as a warning, and `--error-on-warn` fails the install. Stable 16.4.6 was inspected on 17 November 2026 and still contains the faulty asynchronous writer.
 
 The app runs at http://localhost:3001. Set `NEXT_PUBLIC_API_URL` in `.env.local` for your API; the default is http://localhost:3000. See `src/lib/env.ts` for optional map, Google OAuth, Sign in with Apple (`NEXT_PUBLIC_APPLE_SERVICES_ID`, `NEXT_PUBLIC_APPLE_REDIRECT_URI`) and business-dashboard configuration. `REVALIDATE_SECRET` is server-only and must match the backend's cache-invalidation integration. Never put it in a `NEXT_PUBLIC_` variable.
 
 ```bash
-npm run build
-npm run start
-npm run lint
-npx tsc --noEmit --incremental false
+yarn build
+yarn start
+yarn lint
+yarn tsc --noEmit --incremental false
 ```
 
 ## Tests
@@ -29,8 +29,8 @@ npx tsc --noEmit --incremental false
 Run the unit regressions with Node 22.22.2, the version used to verify this setup. They use Node's built-in test runner and TypeScript support, without starting the app or accessing the database:
 
 ```bash
-npm run test:unit
-npm run test:framework
+yarn test:unit
+yarn test:framework
 ```
 
 The framework regression invokes the installed Next development server's route-generation method with concurrent requests and temporary files. It checks both valid manifest JSON and retention of every generated route, including the old `/try` and current `/web-studio/demo` paths. It does not start the app or access the database.
@@ -38,17 +38,17 @@ The framework regression invokes the installed Next development server's route-g
 Run browser UI suites through their dedicated configurations:
 
 ```bash
-npx playwright test --config=playwright.appointments-ui.config.ts
-npx playwright test --config=playwright.saved.config.ts
-npx playwright test --config=playwright.auth-ui.config.ts
-npx playwright test --config=playwright.forms-ui.config.ts
-npx playwright test --config=playwright.gallery-ui.config.ts
-npx playwright test --config=playwright.professionals-ui.config.ts
+yarn playwright test --config=playwright.appointments-ui.config.ts
+yarn playwright test --config=playwright.saved.config.ts
+yarn playwright test --config=playwright.auth-ui.config.ts
+yarn playwright test --config=playwright.forms-ui.config.ts
+yarn playwright test --config=playwright.gallery-ui.config.ts
+yarn playwright test --config=playwright.professionals-ui.config.ts
 ```
 
 The first five use an already-running web server (localhost:3001 by default) and mock their API traffic. The professional suite starts its own web server on port 3012 and in-memory API on port 4317, including server-rendered requests. These configurations have no database seed/reset setup. Failure screenshots and traces go to ignored `test-results/` directories.
 
-`npm run test:e2e` uses `playwright.config.ts` with a real test API and truncates/reseeds the configured test database. Read its setup before running it; its API port 3001 also conflicts with the normal web development port. Explore and the dedicated UI suites are excluded from that run. Use `--list` to inspect test discovery without starting servers or running setup.
+`yarn test:e2e` uses `playwright.config.ts` with a real test API and truncates/reseeds the configured test database. Read its setup before running it; its API port 3001 also conflicts with the normal web development port. Explore and the dedicated UI suites are excluded from that run. Use `--list` to inspect test discovery without starting servers or running setup.
 
 ## Routes and language
 

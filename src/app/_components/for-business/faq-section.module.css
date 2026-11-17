@@ -12,6 +12,7 @@
 .helpLink span { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; text-decoration-color: var(--c-400); }
 .list { min-width: 0; border-top: 1px solid var(--c-300); }
 .item { min-width: 0; border-bottom: 1px solid var(--c-300); }
+.section[data-footer-adjacent] .item:last-child { border-bottom: 0; }
 .question { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 76px; padding: 22px 0; list-style: none; cursor: pointer; scroll-margin-top: calc(var(--nav-h) + 16px); }
 .question::-webkit-details-marker { display: none; }
 .question h3 { margin: 0; color: var(--c-900); font-size: 1.25rem; font-weight: 550; line-height: 1.4; letter-spacing: -.02em; text-wrap: pretty; }
@@ -53,6 +54,7 @@
   .help { margin-top: 16px; padding-top: 16px; }
 }
 @media (max-width: 920px) {
+  .section[data-footer-adjacent] { padding-bottom: 24px; }
   .layout { grid-template-columns: minmax(0, 1fr); gap: 36px; }
   .intro { position: static; grid-template-columns: minmax(0, 1fr) 180px; grid-template-areas: "copy art" "help art"; column-gap: 28px; row-gap: 16px; align-items: center; }
   .copy { grid-area: copy; }

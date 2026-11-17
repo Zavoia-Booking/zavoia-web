@@ -332,14 +332,14 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           title={dict.nav.homeAria}
           style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
         >
-          {/* 34px tall is about 104px wide, so screens fetch a copy at that size, not the 440px file. */}
+          {/* Serve the small lossless export directly to retain clean edges. */}
           <Image
-            src="/brand/wordmark-cropped.png"
+            src="/brand/zavoia-logo.png"
             alt="Zavoia"
             title="Zavoia"
             width={440}
             height={145}
-            sizes="104px"
+            unoptimized
             loading="eager"
             style={{ height: 34, width: "auto" }}
           />

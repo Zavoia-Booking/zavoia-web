@@ -6,14 +6,17 @@ import {
   useId,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
   type RefObject,
 } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Icon } from "@/components/ui";
 import { useToastContainerRef } from "@/components/ui/toast";
+import { DrawerHandle } from "@/components/ui/drawer-handle";
 import { useTranslation } from "@/i18n/useTranslation";
 import styles from "./action-fields.module.css";
+import shell from "./action-modal.module.css";
 
 export interface ActionModalProps {
   title: string;
@@ -21,7 +24,7 @@ export interface ActionModalProps {
   subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
-  /** Called once the close-out animation completes (~220ms after a close). */
+  /** Called once dismissal completes, including any exit animation. */
   onClose: () => void;
   /** Prevent user dismissal while the action is being submitted. */
   dismissible?: boolean;
@@ -33,10 +36,12 @@ export interface ActionModalProps {
   className?: string;
   /** Optional first field for form dialogs; other actions keep Radix's default. */
   initialFocusRef?: RefObject<HTMLElement | null>;
+  /** Use the shared bottom drawer up to 920px; "content" fits short confirmations. */
+  mobileDrawer?: boolean | "content";
 }
 
 /**
- * Shared centered-modal shell for the appointment action dialogs.
+ * Shared action dialog, with an optional mobile bottom-drawer presentation.
  *
  * Ports `ZwModal` from `docs/web-appointment-actions.jsx:14-69`: a centered card
  * over a blurred backdrop, scale-in on open (`zw-modal-in`) and scale-out on
@@ -59,6 +64,7 @@ export function ActionModal({
   width = 480,
   className,
   initialFocusRef,
+  mobileDrawer = false,
 }: ActionModalProps) {
   const { dict } = useTranslation();
   const toastContainerRef = useToastContainerRef();
@@ -66,14 +72,43 @@ export function ActionModal({
   const [closing, setClosing] = useState(false);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const dismissalStarted = useRef(false);
+  const [entryInput] = useState(() =>
+    typeof document !== "undefined" && document.activeElement?.matches(":focus-visible") ? "keyboard" : "pointer",
+  );
+  const setContentRef = useCallback((element: HTMLDivElement | null) => {
+    contentRef.current = element;
+    toastContainerRef?.(element);
+  }, [toastContainerRef]);
+
+  const beginDismissal = useCallback(() => {
+    if (!dismissible || dismissalStarted.current) return false;
+    dismissalStarted.current = true;
+    onClosing?.();
+    return true;
+  }, [dismissible, onClosing]);
+
+  // The shared handle has already animated a committed drag before this runs.
+  const finishHandleDismissal = useCallback(() => {
+    if (!dismissible) return;
+    if (!dismissalStarted.current) beginDismissal();
+    onClose();
+  }, [beginDismissal, dismissible, onClose]);
 
   // Animate out, then close the action that requested dismissal.
-  const requestClose = useCallback(() => {
-    if (!dismissible || closeTimerRef.current) return;
-    onClosing?.();
+  const requestClose = useCallback((input?: "pointer" | "keyboard") => {
+    if (!beginDismissal()) return;
+    const drawer = mobileDrawer && window.matchMedia("(max-width: 920px)").matches;
+    const keyboard = input === "keyboard" || (!input && document.activeElement?.matches(":focus-visible"));
+    if (drawer && (keyboard || window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+      onClose();
+      return;
+    }
     setClosing(true);
-    closeTimerRef.current = setTimeout(onClose, CLOSE_ANIM_MS);
-  }, [dismissible, onClose, onClosing]);
+    closeTimerRef.current = setTimeout(onClose, drawer ? 180 : CLOSE_ANIM_MS);
+  }, [beginDismissal, mobileDrawer, onClose]);
 
   useEffect(() => {
     const timer = closeTimerRef;
@@ -91,25 +126,20 @@ export function ActionModal({
     >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
-          className="zv-sheet-backdrop"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 300,
-            background: "rgba(28,28,26,0.34)",
-            cursor: dismissible ? "pointer" : "default",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-          }}
+          ref={overlayRef}
+          className={`zv-sheet-backdrop ${shell.overlay}`}
+          data-mobile-drawer={mobileDrawer || undefined}
+          data-closing={closing || undefined}
+          data-entry={entryInput}
+          style={{ cursor: dismissible ? "pointer" : "default" }}
         >
           <DialogPrimitive.Content
-            ref={toastContainerRef}
+            ref={setContentRef}
             data-toast-scope="dialog"
-            className={[closing ? "zw-modal-out" : "zw-modal-in", className].filter(Boolean).join(" ")}
+            data-mobile-drawer={mobileDrawer || undefined}
+            data-closing={closing || undefined}
+            data-entry={entryInput}
+            className={[shell.dialog, closing ? "zw-modal-out" : "zw-modal-in", className].filter(Boolean).join(" ")}
             role="dialog"
             aria-describedby={subtitle ? descriptionId : undefined}
             onOpenAutoFocus={(event) => {
@@ -118,7 +148,10 @@ export function ActionModal({
                 document.activeElement instanceof HTMLElement
                   ? document.activeElement
                   : null;
-              if (initialFocusRef?.current) {
+              if (mobileDrawer && window.matchMedia("(max-width: 920px)").matches) {
+                event.preventDefault();
+                contentRef.current?.focus({ preventScroll: true });
+              } else if (initialFocusRef?.current) {
                 event.preventDefault();
                 initialFocusRef.current.focus({ preventScroll: true });
               }
@@ -130,31 +163,24 @@ export function ActionModal({
               }
             }}
             onEscapeKeyDown={(event) => {
-              if (!dismissible) event.preventDefault();
+              event.preventDefault();
+              requestClose("keyboard");
             }}
             onPointerDownOutside={(event) => {
               // Dismissing a notification must not also discard this form.
               const target = event.target;
               if (!dismissible || target instanceof Element && target.closest("[data-toast-host]")) event.preventDefault();
             }}
-            style={{
-              width: `min(${width}px, 100%)`,
-              cursor: "default",
-              maxHeight: "calc(100dvh - 40px)",
-              background: "var(--c-canvas)",
-              borderRadius: 24,
-              boxShadow: "var(--sh-xl)",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-            }}
+            style={{ "--action-modal-width": `${width}px` } as CSSProperties}
           >
+            {mobileDrawer && <DrawerHandle contentRef={contentRef} overlayRef={overlayRef}
+              onClose={finishHandleDismissal} onDismissStart={beginDismissal}
+              disabled={!dismissible || closing} label={dict.booking.close} />}
             {/* Header */}
             <div
+              className={shell.header}
               style={{
-                padding: "var(--action-modal-header-padding, 20px 22px 16px)",
                 display: "flex",
-                alignItems: "flex-start",
                 gap: 12,
                 borderBottom: "1px solid rgba(28,28,26,0.07)",
                 background: "#fff",
@@ -194,7 +220,7 @@ export function ActionModal({
                 type="button"
                 data-action-modal-close=""
                 className="tap"
-                onClick={requestClose}
+                onClick={event => requestClose(event.detail === 0 ? "keyboard" : "pointer")}
                 disabled={!dismissible}
                 aria-label={dict.booking.close}
                 style={{

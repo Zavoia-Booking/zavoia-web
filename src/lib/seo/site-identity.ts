@@ -12,10 +12,11 @@ export const SITE_IDENTITY = {
     "@type": "PostalAddress",
     streetAddress: "Sectorul 6, Str. Splaiul Independenței, Nr. 202 B, Camera 42",
     addressLocality: "București",
+    postalCode: "060023",
     addressCountry: "RO",
   },
   url: `${SITE_URL}/`,
-  logo: `${SITE_URL}/brand/wordmark-cropped.png`,
+  logo: `${SITE_URL}/brand/zavoia-logo.png`,
 } as const;
 
 export const organizationId = `${SITE_IDENTITY.url}#organization`;

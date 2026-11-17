@@ -1,0 +1,13 @@
+/* A hero snapshot has no page/footer surface to back. Light wrapper layers
+   otherwise bleed into the image edge when the device is scaled and rotated. */
+.heroSnapshot,
+.heroSnapshot :global(.mc-content),
+.heroSnapshot :global(.mc-page-flow) {
+  background: transparent;
+}
+
+/* Back the cover photo with the bezel colour, while preserving the template's
+   paper surface and information card below it. No image overscan or cropping. */
+.heroSnapshot :global(.mc-plate-photo) {
+  background: var(--c-ink);
+}

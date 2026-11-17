@@ -12,6 +12,7 @@ import {
   type Ref,
 } from "react";
 import { SHEET_SETTLE_MS as SNAP_MS, SHEET_SETTLE_EASE as SNAP_EASE } from "@/components/ui/sheet-motion";
+import { useSheetTouchGesture } from "@/components/ui/use-sheet-touch-gesture";
 
 /**
  * The mobile results sheet — an Apple/Airbnb-style drawer over the map.
@@ -24,10 +25,9 @@ import { SHEET_SETTLE_MS as SNAP_MS, SHEET_SETTLE_EASE as SNAP_EASE } from "@/co
  *   mid   about half the screen — browse and glance at the map together
  *   top   the list, pinned just below the page's own chrome
  *
- * Dragging is confined to the header. Handing the whole surface to the drag
- * would mean arbitrating between "the sheet is moving" and "the list is
- * scrolling" on every touch, and getting that wrong strands people mid-list;
- * a grab area they can see is honest about what moves.
+ * The header remains directly draggable. Downward body gestures can move the
+ * sheet when their native scroll container is at its top; ordinary list
+ * scrolling, upward promotion and control taps keep their own behavior.
  */
 
 export type SheetPosition = "down" | "mid" | "top";
@@ -161,6 +161,7 @@ export function BottomSheet({
     lastT: number;
     velocity: number;
   } | null>(null);
+  const bodyGesture = useRef<{ baseY: number } | null>(null);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     // Filter/sort controls own their taps; capturing them here swallows clicks.
@@ -193,22 +194,15 @@ export function BottomSheet({
     setDrag(Math.min(down, Math.max(topOffset, g.baseY + (e.clientY - g.startY))));
   };
 
-  const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const g = gesture.current;
-    if (!g) return;
-    gesture.current = null;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-    const y = drag ?? snapY(position);
+  const finishDrag = (y: number, velocity: number) => {
     setDrag(null);
 
     const order: SheetPosition[] = ["top", "mid", "down"];
     // A flick moves one step in the direction it was thrown, whatever the
     // finger ended over — the gesture people expect from every other sheet.
-    if (Math.abs(g.velocity) > FLICK_VELOCITY) {
+    if (Math.abs(velocity) > FLICK_VELOCITY) {
       const i = order.indexOf(position);
-      const next = order[Math.min(order.length - 1, Math.max(0, i + (g.velocity > 0 ? 1 : -1)))];
+      const next = order[Math.min(order.length - 1, Math.max(0, i + (velocity > 0 ? 1 : -1)))];
       setAndReport(next);
       return;
     }
@@ -224,6 +218,16 @@ export function BottomSheet({
     setAndReport(best);
   };
 
+  const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const g = gesture.current;
+    if (!g) return;
+    gesture.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    finishDrag(drag ?? snapY(position), g.velocity);
+  };
+
   const cancelDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!gesture.current) return;
     // Interrupted gestures return to the resting snap, without using the
@@ -234,6 +238,35 @@ export function BottomSheet({
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
   };
+
+  useSheetTouchGesture({
+    contentRef: rootRef,
+    exclude: target => !!headerRef.current?.contains(target),
+    enabled: () => containerH > 0 && !gesture.current,
+    onStart: point => {
+      inputModeRef.current = "pointer";
+      touchStartRef.current = null;
+      const baseY = snapY(position);
+      bodyGesture.current = { baseY };
+      setDrag(Math.min(Math.max(topOffset, containerH - peekH), Math.max(topOffset, baseY + point.deltaY)));
+    },
+    onMove: point => {
+      const current = bodyGesture.current;
+      if (!current) return;
+      setDrag(Math.min(Math.max(topOffset, containerH - peekH), Math.max(topOffset, current.baseY + point.deltaY)));
+    },
+    onEnd: point => {
+      const current = bodyGesture.current;
+      bodyGesture.current = null;
+      if (!current) return;
+      if (point.cancelled) {
+        setDrag(null);
+        return;
+      }
+      const y = Math.min(Math.max(topOffset, containerH - peekH), Math.max(topOffset, current.baseY + point.deltaY));
+      finishDrag(y, point.velocity);
+    },
+  });
 
   const y = drag ?? snapY(position);
   const dragging = drag != null;

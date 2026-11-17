@@ -52,12 +52,12 @@
 }
 @media (max-width: 700px) {
   .intro { margin-bottom: 26px; }
-  .intro > h2 { max-width: 22ch; }
+  .intro > h2 { max-width: 22ch; font-size: 32px; }
   .story { gap: 36px; }
   .chapter { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .chapter:nth-child(n) .scene { grid-area: auto; max-width: 300px; }
   .chapter:nth-child(2) .scene { max-width: 350px; }
-  .chapter:nth-child(n) .copy { grid-area: auto; max-width: 32ch; justify-self: center; width: 100%; }
+  .chapter:nth-child(n) .copy { grid-area: auto; max-width: 32ch; justify-self: center; width: 100%; text-align: center; }
   .copy h3 { font-size: 22px; }
   .copy p { margin-top: 6px; font-size: 15px; line-height: 1.55; }
 }

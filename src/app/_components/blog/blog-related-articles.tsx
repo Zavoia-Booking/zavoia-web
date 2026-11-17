@@ -29,10 +29,10 @@ export function BlogRelatedArticles({ locale, posts }: { locale: Locale; posts: 
             const square = compact && index === 1;
             const imageRatio = compact ? (square ? 1 : 4 / 3) : 3 / 2;
             const sizes = compact
-              ? "(max-width: 600px) 112px, (max-width: 920px) calc(50vw - 34px), (max-width: 1024px) calc(50vw - 42px), (max-width: 1456px) calc(25vw - 38px), 326px"
+              ? "(max-width: 600px) 112px, (max-width: 920px) calc(50vw - 34px), (max-width: 1024px) calc(45vw - 14px), (max-width: 1556px) calc(22.5vw - 24px), 326px"
               : posts.length > 2
-                ? "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(52.381vw - 35.62px), (max-width: 1024px) calc(52.381vw - 44px), (max-width: 1456px) calc(50vw - 44px), 684px"
-                : "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(50vw - 34px), (max-width: 1024px) calc(50vw - 42px), (max-width: 1456px) calc(50vw - 44px), 684px";
+                ? "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(52.381vw - 35.62px), (max-width: 1024px) calc(47.143vw - 14.667px), (max-width: 1556px) calc(45vw - 16px), 684px"
+                : "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(50vw - 34px), (max-width: 1024px) calc(45vw - 14px), (max-width: 1556px) calc(45vw - 16px), 684px";
             const category = post.category
               ? blog[categoryLabelKey(post.category)]
               : "";

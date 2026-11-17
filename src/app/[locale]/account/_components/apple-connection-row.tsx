@@ -123,20 +123,21 @@ export function AppleConnectionRow({ t, last }: { t: AcctDict; last?: boolean })
   return (
     <div
       style={{
-        padding: "16px 0",
-        borderBottom: last ? 0 : "1px solid rgba(28,28,26,0.06)",
+        padding: "var(--account-row-padding, 16px 0)",
+        borderBottom: last ? 0 : "1px solid var(--account-row-border, rgba(28,28,26,0.06))",
       }}
     >
       <div
         className={styles.connectionHead}
+        data-connected={isLinked || undefined}
         style={{
-          display: "flex",
+          display: "var(--account-connection-layout, flex)",
           alignItems: "flex-start",
           justifyContent: "space-between",
           gap: 16,
         }}
       >
-        <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+        <div className={styles.connectionInfo} style={{ flex: "1 1 240px", minWidth: 0 }}>
           <div
             style={{
               display: "flex",
@@ -181,7 +182,7 @@ export function AppleConnectionRow({ t, last }: { t: AcctDict; last?: boolean })
           )}
         </div>
 
-        <div style={{ flexShrink: 0 }}>
+        <div className={styles.connectionAction} style={{ flexShrink: 0 }}>
           {isLinked ? (
             <button
               type="button"
@@ -228,12 +229,13 @@ export function AppleConnectionRow({ t, last }: { t: AcctDict; last?: boolean })
       <Reveal open={isLinked && promptOpen}>
         <form
           onSubmit={submitDisconnect}
+          className={styles.accountForm}
           style={{
             marginTop: 14,
             display: "flex",
             flexDirection: "column",
             gap: 10,
-            maxWidth: 360,
+            maxWidth: "var(--account-form-max, 360px)",
           }}
         >
           {hasPassword ? (
@@ -263,8 +265,8 @@ export function AppleConnectionRow({ t, last }: { t: AcctDict; last?: boolean })
                 style={{
                   width: "100%",
                   boxSizing: "border-box",
-                  padding: "10px 12px",
-                  borderRadius: 10,
+                  padding: "var(--account-input-padding, 10px 12px)",
+                  borderRadius: "var(--account-input-radius, 10px)",
                   border: "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
                   fontSize: 16,
                   color: "var(--c-900)",
@@ -280,7 +282,7 @@ export function AppleConnectionRow({ t, last }: { t: AcctDict; last?: boolean })
             </p>
           )}
           {isLinked && errorNode}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className={styles.formActions} style={{ display: "flex", gap: 8 }}>
             <Button
               loading={busy}
               kind="primary"

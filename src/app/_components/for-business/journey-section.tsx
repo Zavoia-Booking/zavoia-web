@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import Image from "next/image";
 import { dictionaries } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
@@ -25,9 +24,7 @@ export function JourneySection({ locale }: { locale: Locale }) {
             <span className={styles.contactShadow} aria-hidden="true" />
             <div className={styles.phoneMount} data-journey-phone="">
               <div className={styles.phone}>
-                {[-9, -6, -3, -1.5].map(depth => (
-                  <i key={depth} className={styles.phoneEdge} style={{ "--depth": `${depth}px` } as CSSProperties} aria-hidden="true" />
-                ))}
+                <span className={styles.phoneEdge} aria-hidden="true" />
                 <div className={styles.phoneFace}>
                   <div className={styles.phoneScreen}>
                     <Image

@@ -239,6 +239,7 @@ function createBrowserSession() {
       if (accessToken) scheduleRefresh(accessToken);
     }
     expiryAnnounced = false;
+    retryAttempt = 0; // A loaded profile ends any recovery.
     cacheIdentity(user);
     update({
       status: "authenticated",
@@ -283,8 +284,13 @@ function createBrowserSession() {
     }
     const request = (async () => {
       try {
+        const attempt = retryAttempt;
         await refreshSession();
         if (owner !== revision) return;
+        // The new token reset the backoff (setToken), yet this attempt has not
+        // succeeded until /me loads. Keep the count so a failing /me backs off
+        // instead of retrying every 5 s.
+        retryAttempt = attempt;
         const user = await getCurrentUser();
         if (owner === revision) establish(user);
       } catch (error) {
@@ -552,8 +558,10 @@ function createBrowserSession() {
     async refresh() {
       const owner = revision;
       try {
+        const attempt = retryAttempt;
         await refreshSession();
         if (owner !== revision) return;
+        retryAttempt = attempt; // Only /me completes the attempt (checkSession).
         const user = await getCurrentUser();
         if (owner === revision) establish(user);
       } catch (error) {

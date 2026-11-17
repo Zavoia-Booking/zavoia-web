@@ -1,0 +1,351 @@
+{
+  "summary": {
+    "auditedAt": "2026-11-17T06:35:58.070041+00:00",
+    "nextVersion": "16.4.6",
+    "documentCount": 30,
+    "source": "Production HTML schema regression suite, isolated fixture API; follow-up run after the Marque footer correction",
+    "limitations": [
+      "Populated CMS article pages are not included in this rendering suite.",
+      "Custom vocabulary checks are not a Google Rich Results Test or official validator certification."
+    ],
+    "vocabularyCheckCounts": {
+      "typeChecks": 472,
+      "propertyChecks": 1602,
+      "typedRangeChecks": 512
+    },
+    "vocabularyIssueCounts": {},
+    "vocabularySource": "https://schema.org/version/latest/schemaorg-current-https.jsonld"
+  },
+  "pages": [
+    {
+      "url": "https://www.zavoia.com/for-business",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 38,
+          "propertyChecks": 117,
+          "typedRangeChecks": 44
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/pricing",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 34,
+          "propertyChecks": 111,
+          "typedRangeChecks": 40
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/web-studio",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 26,
+          "propertyChecks": 84,
+          "typedRangeChecks": 30
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog/for-business",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 33,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog/guides",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 33,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog/product-news",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 33,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/blog",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 5,
+          "propertyChecks": 25,
+          "typedRangeChecks": 5
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 5,
+          "propertyChecks": 25,
+          "typedRangeChecks": 5
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/help",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 39,
+          "propertyChecks": 77,
+          "typedRangeChecks": 39
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/bucharest/hair-salon",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 12,
+          "propertyChecks": 45,
+          "typedRangeChecks": 12
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/industries",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 10,
+          "propertyChecks": 39,
+          "typedRangeChecks": 10
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/brand/share-studio",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 9,
+          "propertyChecks": 38,
+          "typedRangeChecks": 9
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/business/share-old-town",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 19,
+          "propertyChecks": 73,
+          "typedRangeChecks": 22
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/professionals/share-professional-fixture",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 7,
+          "propertyChecks": 35,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/schema-merchant",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 33,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/for-business",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 38,
+          "propertyChecks": 117,
+          "typedRangeChecks": 44
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/pricing",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 34,
+          "propertyChecks": 111,
+          "typedRangeChecks": 40
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/web-studio",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 26,
+          "propertyChecks": 84,
+          "typedRangeChecks": 30
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog/ghiduri",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 33,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog/noutati-produs",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 33,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog/pentru-afaceri",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 33,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/blog",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 5,
+          "propertyChecks": 25,
+          "typedRangeChecks": 5
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/help",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 39,
+          "propertyChecks": 77,
+          "typedRangeChecks": 39
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 5,
+          "propertyChecks": 25,
+          "typedRangeChecks": 5
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/bucuresti/salon-de-coafura",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 12,
+          "propertyChecks": 45,
+          "typedRangeChecks": 12
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/industries",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 10,
+          "propertyChecks": 39,
+          "typedRangeChecks": 10
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/brand/share-studio",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 9,
+          "propertyChecks": 38,
+          "typedRangeChecks": 9
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/business/share-old-town",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 19,
+          "propertyChecks": 73,
+          "typedRangeChecks": 22
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/professionals/share-professional-fixture",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 7,
+          "propertyChecks": 35,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    },
+    {
+      "url": "https://www.zavoia.com/ro/schema-merchant",
+      "vocabularyChecks": {
+        "counts": {
+          "typeChecks": 8,
+          "propertyChecks": 33,
+          "typedRangeChecks": 8
+        },
+        "issues": []
+      }
+    }
+  ]
+}

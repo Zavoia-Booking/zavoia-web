@@ -12,6 +12,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import * as Collapsible from "@radix-ui/react-collapsible";
+import { Close as DialogClose } from "@radix-ui/react-dialog";
+import { ActionModal } from "@/app/[locale]/appointments/_components/actions/action-modal";
 import type { Locale } from "@/i18n/locales";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
@@ -56,6 +58,7 @@ import { AppleConnectionRow } from "./apple-connection-row";
 import { CreatePasswordCard } from "./create-password-card";
 import { isAppleSignInConfigured } from "@/lib/auth/apple-signin";
 import styles from "./account-content.module.css";
+import confirmation from "./account-confirmation.module.css";
 import disclosure from "@/components/ui/disclosure-motion.module.css";
 import {
   NAME_MAX_LENGTH,
@@ -268,15 +271,15 @@ function EditableRow({
   return (
     <div
       style={{
-        padding: "16px 0",
-        borderBottom: last ? 0 : "1px solid rgba(28,28,26,0.06)",
+        padding: "var(--account-row-padding, 16px 0)",
+        borderBottom: last ? 0 : "1px solid var(--account-row-border, rgba(28,28,26,0.06))",
       }}
     >
       <div
         className={styles.fieldRow}
         data-editing={editing || undefined}
         style={{
-          display: "flex",
+          display: "var(--account-field-row-display, flex)",
           justifyContent: "space-between",
           gap: 16,
         }}
@@ -297,6 +300,7 @@ function EditableRow({
             <div className={styles.fieldEditor}>{type === "date" ? (
               <DatePicker
                 aria-labelledby={labelId}
+                title={label}
                 value={draft}
                 onChange={setDraft}
                 locale={locale}
@@ -326,10 +330,10 @@ function EditableRow({
                   style={{
                     marginTop: 8,
                     width: "100%",
-                    maxWidth: 340,
+                    maxWidth: "var(--account-input-max, 340px)",
                     boxSizing: "border-box",
-                    padding: "9px 12px",
-                    borderRadius: 10,
+                    padding: "var(--account-input-padding, 9px 12px)",
+                    borderRadius: "var(--account-input-radius, 10px)",
                     border: error
                       ? "1px solid var(--s-error-600)"
                       : "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
@@ -345,7 +349,7 @@ function EditableRow({
                     id={errorId}
                     style={{
                       marginTop: 4,
-                      maxWidth: 340,
+                      maxWidth: "var(--account-input-max, 340px)",
                     }}
                   >
                     {error}
@@ -366,7 +370,7 @@ function EditableRow({
           )}
         </div>
         {editing ? (
-          <span style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
+          <span className={styles.fieldActions} style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
             <Button loading={saving} spinnerSize={14}
               type="button"
               className="tap"
@@ -574,8 +578,8 @@ function AddressRow({
   const inputStyle: CSSProperties = {
     width: "100%",
     boxSizing: "border-box",
-    padding: "9px 12px",
-    borderRadius: 10,
+    padding: "var(--account-input-padding, 9px 12px)",
+    borderRadius: "var(--account-input-radius, 10px)",
     border: "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
     fontSize: 16,
     color: "var(--c-900)",
@@ -587,7 +591,7 @@ function AddressRow({
     display: "block",
     fontSize: 13.5,
     fontWeight: 600,
-    color: "var(--c-500)",
+    color: "var(--account-sub-label-color, var(--c-500))",
     marginBottom: 4,
   };
   const errorTextStyle: CSSProperties = {
@@ -641,15 +645,15 @@ function AddressRow({
   return (
     <div
       style={{
-        padding: "16px 0",
-        borderBottom: last ? 0 : "1px solid rgba(28,28,26,0.06)",
+        padding: "var(--account-row-padding, 16px 0)",
+        borderBottom: last ? 0 : "1px solid var(--account-row-border, rgba(28,28,26,0.06))",
       }}
     >
       <div
         className={styles.fieldRow}
         data-editing={editing || undefined}
         style={{
-          display: "flex",
+          display: "var(--account-field-row-display, flex)",
           justifyContent: "space-between",
           gap: 16,
         }}
@@ -670,9 +674,9 @@ function AddressRow({
               className={styles.fieldEditor}
               style={{
                 marginTop: 10,
-                maxWidth: 480,
+                maxWidth: "var(--account-form-max, 480px)",
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: "var(--account-address-columns, 1fr 1fr)",
                 gap: 12,
               }}
             >
@@ -704,7 +708,7 @@ function AddressRow({
           )}
         </div>
         {editing ? (
-          <span style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
+          <span className={styles.fieldActions} style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
             <Button loading={saving} spinnerSize={14}
               type="button"
               className="tap"
@@ -1115,9 +1119,9 @@ function NotificationsSection({
         ))}
       </div>
       {NOTIF_GROUPS.map((g) => (
-        <div key={g} className="zw-notif-grid zw-notif-group">
+        <div key={g} className="zw-notif-grid zw-notif-group" role="group" aria-labelledby={`account-notif-${g}`}>
           <div className="zw-notif-desc">
-            <span className="zw-notif-title">{t.notif[g]}</span>
+            <span id={`account-notif-${g}`} className="zw-notif-title">{t.notif[g]}</span>
             <span className="zw-notif-caption txt-pretty">
               {g === "marketing"
                 ? t.notif.marketingCaption
@@ -1135,6 +1139,7 @@ function NotificationsSection({
               onClick={() => toggle(g, c.id)}
               className="zw-notif-cell tap"
             >
+              <span className={styles.notificationIcon} aria-hidden="true"><Icon name={c.icon} size={18} /></span>
               <span className="zw-notif-cell-label">{t.notif[c.id]}</span>
               {prefs ? <span
                 className="zw-switch"
@@ -1215,10 +1220,10 @@ function PasswordForm({
         aria-describedby={invalid ? ERROR_ID : undefined}
         style={{
           width: "100%",
-          maxWidth: 360,
+          maxWidth: "var(--account-input-max, 360px)",
           boxSizing: "border-box",
-          padding: "10px 12px",
-          borderRadius: 10,
+          padding: "var(--account-input-padding, 10px 12px)",
+          borderRadius: "var(--account-input-radius, 10px)",
           border: invalid
             ? "1px solid var(--s-error-600)"
             : "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
@@ -1298,7 +1303,8 @@ function PasswordForm({
   return (
     <form
       onSubmit={submit}
-      style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 360 }}
+      className={styles.accountForm}
+      style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: "var(--account-form-max, 360px)" }}
     >
       {field(
         "password-current",
@@ -1338,7 +1344,7 @@ function PasswordForm({
           {error}
         </InlineError>
       )}
-      <div>
+      <div className={styles.formActions}>
         <Button
           loading={saving}
           kind="primary"
@@ -1428,20 +1434,21 @@ function GoogleConnectionRow({
   return (
     <div
       style={{
-        padding: "16px 0",
-        borderBottom: last ? 0 : "1px solid rgba(28,28,26,0.06)",
+        padding: "var(--account-row-padding, 16px 0)",
+        borderBottom: last ? 0 : "1px solid var(--account-row-border, rgba(28,28,26,0.06))",
       }}
     >
       <div
         className={styles.connectionHead}
+        data-connected={isLinked || undefined}
         style={{
-          display: "flex",
+          display: "var(--account-connection-layout, flex)",
           alignItems: "flex-start",
           justifyContent: "space-between",
           gap: 16,
         }}
       >
-        <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+        <div className={styles.connectionInfo} style={{ flex: "1 1 240px", minWidth: 0 }}>
           <div
             style={{
               display: "flex",
@@ -1478,7 +1485,7 @@ function GoogleConnectionRow({
           </div>
         </div>
 
-        <div style={{ flexShrink: 0 }}>
+        <div className={styles.connectionAction} style={{ flexShrink: 0 }}>
           {isLinked ? (
             <button
               type="button"
@@ -1517,12 +1524,13 @@ function GoogleConnectionRow({
       <FormReveal open={isLinked && promptOpen && hasPassword}>
         <form
           onSubmit={submitDisconnect}
+          className={styles.accountForm}
           style={{
             marginTop: 14,
             display: "flex",
             flexDirection: "column",
             gap: 10,
-            maxWidth: 360,
+            maxWidth: "var(--account-form-max, 360px)",
           }}
         >
           <label htmlFor="google-disconnect-password" style={{ display: "block" }}>
@@ -1551,8 +1559,8 @@ function GoogleConnectionRow({
               style={{
                 width: "100%",
                 boxSizing: "border-box",
-                padding: "10px 12px",
-                borderRadius: 10,
+                padding: "var(--account-input-padding, 10px 12px)",
+                borderRadius: "var(--account-input-radius, 10px)",
                 border: "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
                 fontSize: 16,
                 color: "var(--c-900)",
@@ -1570,7 +1578,7 @@ function GoogleConnectionRow({
               {error}
             </InlineError>
           )}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className={styles.formActions} style={{ display: "flex", gap: 8 }}>
             <Button
               loading={busy}
           kind="primary"
@@ -1712,10 +1720,10 @@ function ChangeEmailRow({
   const inputStyle: CSSProperties = {
     marginTop: 8,
     width: "100%",
-    maxWidth: 340,
+    maxWidth: "var(--account-input-max, 340px)",
     boxSizing: "border-box",
-    padding: "9px 12px",
-    borderRadius: 10,
+    padding: "var(--account-input-padding, 9px 12px)",
+    borderRadius: "var(--account-input-radius, 10px)",
     border: "1px solid var(--account-field-border, rgba(28,28,26,0.18))",
     fontSize: 16,
     color: "var(--c-900)",
@@ -1732,26 +1740,20 @@ function ChangeEmailRow({
   };
   const errorStyle: CSSProperties = {
     marginTop: 4,
-    maxWidth: 340,
+    maxWidth: "var(--account-input-max, 340px)",
   };
 
   return (
     <div
       style={{
-        padding: "16px 0",
-        borderBottom: last ? 0 : "1px solid rgba(28,28,26,0.06)",
+        padding: "var(--account-row-padding, 16px 0)",
+        borderBottom: last ? 0 : "1px solid var(--account-row-border, rgba(28,28,26,0.06))",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 16,
-        }}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
+      <div className={styles.emailRow}>
+        <div className={styles.emailDetails} style={{ flex: 1, minWidth: 0 }}>
           <div
+            className={styles.emailHeading}
             style={{
               fontSize: 15,
               fontWeight: 600,
@@ -1762,6 +1764,7 @@ function ChangeEmailRow({
             {t.fields.email}
           </div>
           <div
+            className={styles.emailCurrent}
             style={{
               fontSize: 16,
               color: "var(--c-600)",
@@ -1777,6 +1780,7 @@ function ChangeEmailRow({
               shown as unverified. */}
           {emailVerified === false && (
             <div
+              className={styles.emailStatus}
               style={{
                 marginTop: 10,
                 padding: "12px 14px",
@@ -1814,6 +1818,7 @@ function ChangeEmailRow({
           )}
           {emailVerified === true && (
             <div
+              className={styles.emailStatus}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -1829,7 +1834,7 @@ function ChangeEmailRow({
             </div>
           )}
           <div
-            className="txt-pretty"
+            className={`txt-pretty ${styles.emailCaption}`}
             style={{ fontSize: 13.5, color: "var(--c-600)", marginTop: 6 }}
           >
             {c.caption}
@@ -1863,12 +1868,13 @@ function ChangeEmailRow({
       <FormReveal open={open}>
         <form
           onSubmit={submit}
+          className={styles.accountForm}
           style={{
             marginTop: 14,
             display: "flex",
             flexDirection: "column",
             gap: 12,
-            maxWidth: 420,
+            maxWidth: "var(--account-form-max, 420px)",
           }}
         >
           <label htmlFor="change-email-current" style={{ display: "block" }}>
@@ -1936,7 +1942,7 @@ function ChangeEmailRow({
               </InlineError>
             )}
           </label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className={styles.formActions} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <Button
               loading={saving}
           kind="primary"
@@ -1969,9 +1975,11 @@ function ChangeEmailRow({
 function DangerZone({
   t,
   onDeleted,
+  mobile = false,
 }: {
   t: AcctDict;
   onDeleted: () => Promise<void>;
+  mobile?: boolean;
 }) {
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
@@ -1981,9 +1989,11 @@ function DangerZone({
   // button only after a re-render, and a fast double Enter/click on the modal
   // can still fire deleteAccount() twice before that render happens.
   const submitLockRef = useRef(false);
+  const dismissedRef = useRef(false);
+  const cancelRef = useRef<HTMLButtonElement | null>(null);
 
   const doDelete = async () => {
-    if (submitLockRef.current) return;
+    if (submitLockRef.current || dismissedRef.current) return;
     submitLockRef.current = true;
     setDeleting(true);
     try {
@@ -2005,12 +2015,9 @@ function DangerZone({
       <Card>
         <button
           type="button"
-          className="tap zw-hover-row"
-          onClick={() => setConfirming(true)}
+          className={`tap zw-hover-row ${styles.deleteAccountRow}`}
+          onClick={() => { dismissedRef.current = false; setConfirming(true); }}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
             width: "100%",
             textAlign: "left",
             padding: "20px 0",
@@ -2021,8 +2028,9 @@ function DangerZone({
           }}
         >
           <Icon name="trash" size={20} color="var(--s-error-600)" />
-          <span style={{ flex: 1, minWidth: 0 }}>
+          <span className={styles.deleteAccountCopy} style={{ flex: 1, minWidth: 0 }}>
             <span
+              className={styles.deleteAccountTitle}
               style={{
                 display: "block",
                 fontSize: 15,
@@ -2033,6 +2041,7 @@ function DangerZone({
               {t.buttons.deleteAccount}
             </span>
             <span
+              className={styles.deleteAccountCaption}
               style={{
                 display: "block",
                 fontSize: 13.5,
@@ -2047,7 +2056,28 @@ function DangerZone({
         </button>
       </Card>
 
-      {confirming && (
+      {confirming && (mobile ? (
+        <ActionModal
+          title={t.danger.confirmTitle}
+          width={420}
+          className={confirmation.dialog}
+          mobileDrawer="content"
+          initialFocusRef={cancelRef}
+          dismissible={!deleting}
+          onClosing={() => { dismissedRef.current = true; }}
+          onClose={() => setConfirming(false)}
+          footer={<div className={confirmation.actions}>
+            <DialogClose ref={cancelRef} asChild>
+              <Button kind="secondary" size="md" disabled={deleting}>{t.danger.cancel}</Button>
+            </DialogClose>
+            <Button loading={deleting} kind="primary" size="md" onClick={doDelete} disabled={deleting}>
+              {t.danger.confirm}
+            </Button>
+          </div>}
+        >
+          <p className={confirmation.copy}>{t.danger.confirmBody}</p>
+        </ActionModal>
+      ) : (
         <div
           role="dialog"
           aria-modal="true"
@@ -2125,7 +2155,7 @@ function DangerZone({
             </div>
           </div>
         </div>
-      )}
+      ))}
     </>
   );
 }
@@ -2152,6 +2182,7 @@ function SectionBody({
   saveAddress,
   onEmailChanged,
   onDeleted,
+  mobile = false,
 }: {
   id: SectionId;
   t: AcctDict;
@@ -2169,6 +2200,7 @@ function SectionBody({
   saveAddress: (patch: Partial<UpdateProfileBody>) => Promise<boolean>;
   onEmailChanged: (email: string) => void;
   onDeleted: () => Promise<void>;
+  mobile?: boolean;
 }) {
   const dictionary = useTranslation().dict;
   const [pwOpen, setPwOpen] = useState(false);
@@ -2300,6 +2332,7 @@ function SectionBody({
       pwOpen={pwOpen}
       setPwOpen={setPwOpen}
       onDeleted={onDeleted}
+      mobile={mobile}
     />
   );
 }
@@ -2316,12 +2349,14 @@ function SecuritySection({
   pwOpen,
   setPwOpen,
   onDeleted,
+  mobile = false,
 }: {
   t: AcctDict;
   locale: Locale;
   pwOpen: boolean;
   setPwOpen: React.Dispatch<React.SetStateAction<boolean>>;
   onDeleted: () => Promise<void>;
+  mobile?: boolean;
 }) {
   const dictionary = useTranslation().dict;
   const { refreshUser, user } = useAuth();
@@ -2434,15 +2469,14 @@ function SecuritySection({
 
       <div>
         <SectionLabel>{t.sections.dangerZone}</SectionLabel>
-        <DangerZone t={t} onDeleted={onDeleted} />
+        <DangerZone t={t} onDeleted={onDeleted} mobile={mobile} />
       </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────
-// Section header — title + optional sub. On mobile drill-in a round back
-// button sits above the title and clears the active section.
+// Section header — desktop title and a quiet labelled mobile Back action.
 // ─────────────────────────────────────────────
 
 function SectionHeader({
@@ -2460,7 +2494,7 @@ function SectionHeader({
 }) {
   const sub = id === "preferences" ? t.preferencesSub : null;
   return (
-    <div style={{ marginBottom: hideTitle ? 12 : 24 }}>
+    <div className={styles.sectionHeader} style={{ marginBottom: hideTitle ? 8 : 24 }}>
       {showBack && (
         <button
           type="button"
@@ -2471,16 +2505,22 @@ function SectionHeader({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 44,
+            width: showBack ? "auto" : 44,
             height: 44,
             borderRadius: "50%",
-            background: "#fff",
-            border: "1px solid rgba(28,28,26,0.10)",
+            background: showBack ? "transparent" : "#fff",
+            border: showBack ? 0 : "1px solid rgba(28,28,26,0.10)",
+            padding: showBack ? "0 4px 0 0" : undefined,
+            gap: showBack ? 7 : undefined,
+            color: "var(--c-700)",
+            font: "inherit",
+            fontSize: 14,
             cursor: "pointer",
-            marginBottom: hideTitle ? 0 : 16,
+            marginBottom: hideTitle ? 0 : 12,
           }}
         >
           <Icon name="back" size={16} color="var(--c-900)" />
+          {showBack && <span>{t.backAria}</span>}
         </button>
       )}
       {!hideTitle && <h1
@@ -3295,6 +3335,7 @@ function AccountSessionContent({ locale, onLeaveHome: goHome }: { locale: Locale
     return (
       <div
         className={`zw-container ${styles.mobilePage}`}
+        data-section={active ?? "hub"}
       >
         <div className={styles.mobileWorkspace} data-section={active ?? "hub"}>
           {active === null ? (
@@ -3326,6 +3367,7 @@ function AccountSessionContent({ locale, onLeaveHome: goHome }: { locale: Locale
               />
               <SectionBody
                 id={active}
+                mobile
                 t={t}
                 locale={locale}
                 profile={profile}

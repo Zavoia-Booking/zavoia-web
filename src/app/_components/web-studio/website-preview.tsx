@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import type { Locale } from "@/i18n/locales";
 import type { SectionEntry, SectionType } from "@/features/website/types";
-import { displayFontFor } from "@/features/website/components/builder/theme";
 import { demoExampleData, type DemoExampleId } from "./demo-examples";
 import { withDemoSectionCopy } from "./demo-catalog";
 import { SpecimenPlate } from "./specimen-plate";
@@ -43,29 +42,9 @@ export function WebsitePreview({ locale, example, variant, font, accent, portrai
       ? authored.map(entry => ({ ...entry, visible: entry.type === section || entry.type === "nav" }))
       : authored;
   }, [layout, example, section]);
-  const assetKey = `${locale}:${font}:${data.heroImageUrl}`;
+  const assetKey = `${locale}:${font}:${accent}:${example}:${variant}:${section ?? "hero"}:${phone}`;
   const [loadedAssets, setLoadedAssets] = useState("");
-
-  useEffect(() => {
-    if (pending) return;
-    let active = true;
-    const fontReady = async () => {
-      const display = displayFontFor(font);
-      await document.fonts.load(`${display.weight} 32px ${display.stack}`, data.businessName).catch(() => undefined);
-    };
-    const cover = new Image();
-    const coverReady = !data.heroImageUrl || variant === "poster" ? Promise.resolve() : new Promise<void>(resolve => {
-      cover.onload = () => { void cover.decode().catch(() => undefined).then(resolve); };
-      cover.onerror = () => resolve();
-      cover.src = data.heroImageUrl!;
-    });
-    const timer = window.setTimeout(() => { if (active) setLoadedAssets(assetKey); }, 5000);
-    void Promise.all([fontReady(), coverReady]).then(() => {
-      window.clearTimeout(timer);
-      if (active) setLoadedAssets(assetKey);
-    });
-    return () => { active = false; window.clearTimeout(timer); cover.onload = null; cover.onerror = null; };
-  }, [assetKey, font, data.businessName, data.heroImageUrl, variant, pending]);
+  const onReady = useCallback(() => setLoadedAssets(assetKey), [assetKey]);
 
   return (
     <figure className={styles.preview} aria-label={label} aria-busy={pending || loadedAssets !== assetKey} data-studio-preview="" data-device={phone ? "phone" : "desktop"} data-responsive-phone={!browser && !portrait ? "" : undefined}>
@@ -73,6 +52,7 @@ export function WebsitePreview({ locale, example, variant, font, accent, portrai
         {!phone && <div className={styles.browserBar} aria-hidden="true"><span className={styles.browserDots}><i /><i /><i /></span></div>}
         <div className={styles.glass}>
           <SpecimenPlate
+            key={assetKey}
             layout={previewLayout}
             data={data}
             chrome
@@ -80,9 +60,11 @@ export function WebsitePreview({ locale, example, variant, font, accent, portrai
             frameRatio={frameRatio ?? (phone ? 430 / 840 : 1.75)}
             responsive={false}
             deviceViewport
+            heroOnly={!section || section === "hero"}
+            onReady={onReady}
             minHeight={100}
             maxHeight={900}
-            pending={pending || loadedAssets !== assetKey}
+            pending={pending}
           />
         </div>
       </div>

@@ -205,3 +205,68 @@ test("the address country is the ISO code for any country, however the business 
   ]) assert.equal(country(typed), code, typed);
   assert.equal(country("Atlantis"), "Atlantis", "A name that matches no country is kept as written");
 });
+
+test("service offers describe the venue menu and authoritative visible staff prices", () => {
+  const listing = listingFixture();
+  const service = listing.services[0];
+  service.name = "  Haircut  ";
+  service.description = "  Wash and cut.  ";
+  service.priceAmountMinor = 12000;
+  service.priceFromMinor = 14550;
+  service.priceToMinor = 14550;
+  const graph = locationStructuredData(listing, "ro");
+  const catalog = venue(graph).hasOfferCatalog;
+  const offer = catalog.itemListElement[0];
+  assert.equal(catalog["@type"], "OfferCatalog");
+  assert.equal(offer["@type"], "Offer");
+  assert.equal(offer.itemOffered["@type"], "Service");
+  assert.equal(offer.itemOffered.name, "Haircut");
+  assert.equal(offer.itemOffered.description, "Wash and cut.");
+  assert.deepEqual(offer.itemOffered.provider, { "@id": venue(graph)["@id"] });
+  assert.deepEqual(offer.seller, offer.itemOffered.provider);
+  assert.equal(offer.price, 145.5, "Equal staff overrides win over the base, matching the menu");
+  assert.equal(offer.priceCurrency, "RON");
+  assert.equal(offer.url, venue(graph).url);
+  assert.equal(offer.availability, undefined, "A published menu makes no real-time capacity promise");
+  assert.equal(offer.itemOffered.duration, undefined, "duration is not a Service property");
+  assert.equal(offer["@id"], venue(locationStructuredData(listing, "en")).hasOfferCatalog.itemListElement[0]["@id"]);
+
+  service.priceVariesByStaff = true;
+  service.priceToMinor = 20000;
+  const from = venue(locationStructuredData(listing, "en")).hasOfferCatalog.itemListElement[0];
+  assert.equal(from.price, undefined, "A from figure must not become an exact price");
+  assert.deepEqual(from.priceSpecification, { "@type": "PriceSpecification", minPrice: 145.5, priceCurrency: "RON" });
+  assert.equal(from.priceSpecification.maxPrice, undefined, "The upper staff price is not shown in the menu");
+});
+
+test("hidden, malformed and missing menu prices never leak into structured offers", () => {
+  const listing = listingFixture();
+  const firstOffer = () => venue(locationStructuredData(listing, "en")).hasOfferCatalog.itemListElement[0];
+  listing.additionalSettings = { showPricing: false };
+  const hidden = firstOffer();
+  for (const field of ["price", "priceCurrency", "priceSpecification"]) assert.equal(hidden[field], undefined, field);
+  assert.equal(hidden.itemOffered.name, listing.services[0].name, "The visible service name remains useful without a price");
+  listing.additionalSettings = null;
+  for (const price of [-1, NaN, Infinity, 12000.5, "12000"]) {
+    listing.services[0].priceFromMinor = price;
+    assert.equal(firstOffer().price, undefined, String(price));
+  }
+  listing.services[0].priceFromMinor = 0;
+  assert.equal(firstOffer().price, 0, "A real published free service remains valid");
+  listing.businessCurrency = "not a currency";
+  assert.equal(firstOffer().price, undefined);
+  listing.services = [];
+  listing.bundles = [];
+  assert.equal(venue(locationStructuredData(listing, "en")).hasOfferCatalog, undefined);
+});
+
+test("package offers keep their own identity and do not inherit standalone service pricing", () => {
+  const listing = listingFixture();
+  const service = listing.services[0];
+  listing.bundles = [{ ...service, name: "Cut and style package", priceAmountMinor: 9000, priceFromMinor: 9000, priceType: "fixed", services: [service] }];
+  const offers = venue(locationStructuredData(listing, "en")).hasOfferCatalog.itemListElement;
+  assert.equal(offers[0].itemOffered.name, "Cut and style package");
+  assert.equal(offers[0].price, 90);
+  assert.equal(offers[1].price, 120);
+  assert.notEqual(offers[0]["@id"], offers[1]["@id"], "A service and package with the same numeric/UUID value stay distinct");
+});

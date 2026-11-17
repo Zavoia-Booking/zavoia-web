@@ -1,4 +1,4 @@
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { parseBody } from "next-sanity/webhook";
 import { revalidateSecret } from "@/sanity/env";
@@ -36,16 +36,24 @@ export async function POST(req: NextRequest) {
     return new NextResponse("Invalid signature", { status: 401 });
   }
 
-  if (!body?._type) {
+  if (typeof body?._type !== "string" || !body._type.trim()) {
     return new NextResponse("Bad request", { status: 400 });
   }
 
-  revalidateTag("post", "max");
+  if (body._type !== "post") {
+    return NextResponse.json({ revalidated: false, type: body._type });
+  }
+
+  // Publish, unpublish and delete events change both article markup and URL
+  // inventory. Expire immediately: serving an old post collection while its
+  // replacement loads can keep removed articles in an otherwise fresh sitemap.
+  revalidateTag("post", { expire: 0 });
 
   for (const slugEntry of Object.values(body.slug ?? {})) {
     const current = slugEntry?.current;
-    if (current) revalidateTag(`post:${current}`, "max");
+    if (current) revalidateTag(`post:${current}`, { expire: 0 });
   }
+  revalidatePath("/sitemap.xml");
 
   return NextResponse.json({ revalidated: true, type: body._type });
 }

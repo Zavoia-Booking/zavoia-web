@@ -117,7 +117,7 @@ export function AuthField({
           } ${
             error
               ? "border-[var(--s-error-600)] bg-[var(--s-error-100)] focus:border-[var(--s-error-600)]"
-              : "border-c-500 bg-white enabled:hover:border-c-600 focus:border-primary"
+              : "border-c-500 bg-white enabled:hover:border-c-600"
           }`}
         />
         {isEmail && (

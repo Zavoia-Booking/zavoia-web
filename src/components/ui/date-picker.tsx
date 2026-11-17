@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
+import * as Dialog from "@radix-ui/react-dialog";
 import { Icon } from "./icon";
+import { DrawerHandle } from "./drawer-handle";
 import { CalendarDay, MonthCalendar } from "./month-calendar";
 import { useTranslation } from "@/i18n/useTranslation";
 import styles from "./date-picker.module.css";
 
 /**
- * Popover calendar date picker (replaces the bare native `<input
+ * Responsive calendar date picker (replaces the bare native `<input
  * type="date">`). Value in/out is an ISO date string ("YYYY-MM-DD") or ""
  * when unset. Reuses Search's calendar presentation, with inline month/year
  * choices for birth dates. Future dates remain disabled; names localize via Intl.
@@ -34,8 +36,17 @@ function mondayIndex(y: number, m: number, d: number): number {
   return (new Date(y, m, d).getDay() + 6) % 7;
 }
 
+function subscribeMobile(notify: () => void) {
+  const media = window.matchMedia("(max-width: 920px)");
+  media.addEventListener("change", notify);
+  return () => media.removeEventListener("change", notify);
+}
+const getMobile = () => window.matchMedia("(max-width: 920px)").matches;
+const getServerMobile = () => false;
+
 export function DatePicker({
   "aria-labelledby": labelledBy,
+  title,
   value,
   onChange,
   locale = "en",
@@ -44,6 +55,8 @@ export function DatePicker({
   yearsBack = 110,
 }: {
   "aria-labelledby"?: string;
+  /** Localized field name for the mobile drawer heading. */
+  title?: string;
   value: string;
   onChange: (iso: string) => void;
   locale?: string;
@@ -55,12 +68,17 @@ export function DatePicker({
   const valueId = useId();
   const { dict } = useTranslation();
   const copy = dict.datePicker;
+  const mobile = useSyncExternalStore(subscribeMobile, getMobile, getServerMobile);
   const [open, setOpen] = useState(false);
+  const [input, setInput] = useState<"pointer" | "keyboard">("pointer");
+  const [entryInput, setEntryInput] = useState<"pointer" | "keyboard">("pointer");
   const [panel, setPanel] = useState<"days" | "months" | "years">("days");
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const captionRef = useRef<HTMLButtonElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
 
   const today = new Date();
   const todayY = today.getFullYear();
@@ -76,16 +94,18 @@ export function DatePicker({
 
   // Re-anchor the visible month on the current value each time the popover
   // opens (the value may have changed since the last open).
-  const openPicker = () => {
+  const openPicker = (source: "pointer" | "keyboard") => {
     const sel = parseIso(value);
     setView({ y: sel?.y ?? todayY, m: sel?.m ?? todayM });
     setPanel("days");
+    setInput(source);
+    setEntryInput(source);
     setOpen(true);
   };
 
   // Outside click / Escape close.
   useEffect(() => {
-    if (!open) return;
+    if (!open || mobile) return;
     const onDown = (e: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -103,10 +123,10 @@ export function DatePicker({
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, mobile]);
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || mobile) return;
     const position = () => {
       const root = rootRef.current;
       const popover = popoverRef.current;
@@ -124,7 +144,7 @@ export function DatePicker({
     position();
     window.addEventListener("resize", position);
     return () => window.removeEventListener("resize", position);
-  }, [open, panel]);
+  }, [open, panel, mobile]);
 
   const monthNames = useMemo(() => {
     const fmt = new Intl.DateTimeFormat(locale, { month: "long" });
@@ -183,39 +203,10 @@ export function DatePicker({
   const caption = panel === "days" ? monthLabel : panel === "months"
     ? String(view.y) : `${pageStart}–${visibleYears.at(-1)}`;
 
-  return (
-    <Collapsible.Root ref={rootRef} open={open && !disabled} className={styles.root}>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-labelledby={labelledBy}
-        aria-describedby={labelledBy ? valueId : undefined}
-        onClick={() => (open ? setOpen(false) : openPicker())}
-        disabled={disabled}
-        aria-haspopup="dialog"
-        aria-expanded={open && !disabled}
-        aria-controls={`${valueId}-calendar`}
-        className={styles.trigger}
-        data-open={open && !disabled}
-        data-empty={!displayLabel || undefined}
-      >
-        <span id={labelledBy ? valueId : undefined} className={styles.value}>
-          {displayLabel || placeholder}
-        </span>
-        <Icon name="cal" size={17} color="var(--c-600)" />
-      </button>
-
-      <Collapsible.Content
-        ref={popoverRef}
-        id={`${valueId}-calendar`}
-        role="dialog"
-        aria-labelledby={labelledBy}
-        className={styles.popover}
-        inert={!open || disabled}
-        aria-hidden={!open || disabled}
-      >
+  const calendar = (
         <MonthCalendar
           density="compact"
+          className={mobile ? styles.drawerCalendar : undefined}
           title={
             <button ref={captionRef} type="button" className={styles.caption}
               aria-label={panel === "days" ? copy.chooseMonth : panel === "months" ? copy.chooseYear : dict.searchOverlay.pickDate}
@@ -255,13 +246,79 @@ export function DatePicker({
             const isToday = view.y === todayY && view.m === todayM && d === todayD;
             return (
               <CalendarDay key={d} disabled={isFuture(d)} aria-pressed={isSelected} data-today={isToday}
-                onClick={() => { onChange(toIso(view.y, view.m, d)); setOpen(false); triggerRef.current?.focus({ preventScroll: true }); }}>
+                onClick={() => {
+                  onChange(toIso(view.y, view.m, d));
+                  setOpen(false);
+                  if (!mobile) triggerRef.current?.focus({ preventScroll: true });
+                }}>
                 {d}
               </CalendarDay>
             );
           })}
         </MonthCalendar>
-      </Collapsible.Content>
+  );
+
+  return (
+    <Collapsible.Root ref={rootRef} open={open && !disabled} className={styles.root}>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-labelledby={labelledBy}
+        aria-describedby={labelledBy ? valueId : undefined}
+        onClick={event => open ? setOpen(false) : openPicker(event.detail === 0 ? "keyboard" : "pointer")}
+        disabled={disabled}
+        aria-haspopup="dialog"
+        aria-expanded={open && !disabled}
+        aria-controls={`${valueId}-calendar`}
+        className={styles.trigger}
+        data-open={open && !disabled}
+        data-empty={!displayLabel || undefined}
+      >
+        <span id={labelledBy ? valueId : undefined} className={styles.value}>
+          {displayLabel || placeholder}
+        </span>
+        <Icon name="cal" size={17} color="var(--c-600)" />
+      </button>
+
+      {mobile ? (
+        <Dialog.Root open={open && !disabled} onOpenChange={setOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay ref={overlayRef} className={styles.drawerOverlay} data-input={input} data-entry={entryInput} />
+            <Dialog.Content ref={drawerRef} id={`${valueId}-calendar`} className={styles.drawer}
+              data-input={input} data-entry={entryInput} aria-describedby={undefined}
+              onPointerDownCapture={() => setInput("pointer")}
+              onPointerDownOutside={() => setInput("pointer")}
+              onKeyDownCapture={() => setInput("keyboard")}
+              onEscapeKeyDown={() => setInput("keyboard")}
+              onOpenAutoFocus={event => {
+                event.preventDefault();
+                drawerRef.current?.focus({ preventScroll: true });
+              }}
+              onCloseAutoFocus={event => {
+                event.preventDefault();
+                if (triggerRef.current?.isConnected) triggerRef.current.focus({ preventScroll: true });
+              }}>
+              <DrawerHandle contentRef={drawerRef} overlayRef={overlayRef} label={dict.booking.close}
+                onClose={() => { setInput("keyboard"); setOpen(false); }} />
+              <div className={styles.drawerHeader}>
+                <Dialog.Title className={styles.drawerTitle}>{title ?? dict.searchOverlay.pickDate}</Dialog.Title>
+                <Dialog.Close asChild>
+                  <button type="button" className={styles.drawerClose} aria-label={dict.booking.close}
+                    onClick={event => setInput(event.detail === 0 ? "keyboard" : "pointer")}>
+                    <Icon name="x" size={18} />
+                  </button>
+                </Dialog.Close>
+              </div>
+              <div className={`zw-scroll-y zw-noscrollbar ${styles.drawerBody}`}>{calendar}</div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      ) : (
+        <Collapsible.Content ref={popoverRef} id={`${valueId}-calendar`} role="dialog"
+          aria-labelledby={labelledBy} className={styles.popover} inert={!open || disabled} aria-hidden={!open || disabled}>
+          {calendar}
+        </Collapsible.Content>
+      )}
     </Collapsible.Root>
   );
 }

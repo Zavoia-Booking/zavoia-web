@@ -13,17 +13,17 @@ import type { Industry, IndustryTag } from "@/lib/api/marketplace/types";
 import { useHomeLocationSnapshot } from "./use-home-coords";
 import styles from "./category-rail.module.css";
 
-export function CategoryRail({ locale, industries, featuredIndustryIds }: {
+export function CategoryRail({ locale, industries, orderedIndustryIds }: {
   locale: Locale;
   industries: Industry[];
-  featuredIndustryIds: number[];
+  orderedIndustryIds: number[];
 }) {
   const { dict } = useTranslation();
   const router = useRouter();
   const { openCatalog } = useServiceCatalog();
   const location = useHomeLocationSnapshot();
   const t = dict.searchOverlay;
-  const featured = featuredIndustryIds.flatMap((id) => {
+  const orderedIndustries = orderedIndustryIds.flatMap((id) => {
     const industry = industries.find((item) => item.id === id);
     return industry ? [industry] : [];
   });
@@ -47,11 +47,30 @@ export function CategoryRail({ locale, industries, featuredIndustryIds }: {
     initialIndustry: industry?.slug,
     onSelect: selectService,
   });
+  const seeAllIndustriesLink = (
+    <Link
+      href={localeHref(locale, "industries")}
+      prefetch={false}
+      title={t.seeAllIndustries}
+      className={styles.tile}
+      aria-haspopup="dialog"
+      onNavigate={(event) => {
+        event.preventDefault();
+        browse();
+      }}
+    >
+      <span className={`${styles.glyph} ${styles.allGlyph}`}>
+        <Icon name="grid" size={23} />
+      </span>
+      <span className={styles.label} title={t.seeAllIndustries}>{t.seeAllIndustries}</span>
+    </Link>
+  );
 
   return (
     <section className={`zw-container ${styles.section}`} aria-label={t.browseByIndustry}>
-      <ul className={styles.grid} role="list">
-        {featured.map((industry) => (
+      <ul className={`zw-noscrollbar ${styles.grid}`} role="list">
+        <li className={styles.mobileAll}>{seeAllIndustriesLink}</li>
+        {orderedIndustries.map((industry) => (
           <li key={industry.id}>
             <Link
               href={`${localeHref(locale, "search")}?industry=${encodeURIComponent(industry.slug)}`}
@@ -74,24 +93,7 @@ export function CategoryRail({ locale, industries, featuredIndustryIds }: {
             </Link>
           </li>
         ))}
-        <li>
-          <Link
-            href={localeHref(locale, "industries")}
-            prefetch={false}
-            title={t.seeAllIndustries}
-            className={styles.tile}
-            aria-haspopup="dialog"
-            onNavigate={(event) => {
-              event.preventDefault();
-              browse();
-            }}
-          >
-            <span className={`${styles.glyph} ${styles.allGlyph}`}>
-              <Icon name="grid" size={23} />
-            </span>
-            <span className={styles.label} title={t.seeAllIndustries}>{t.seeAllIndustries}</span>
-          </Link>
-        </li>
+        <li className={styles.desktopAll}>{seeAllIndustriesLink}</li>
       </ul>
     </section>
   );

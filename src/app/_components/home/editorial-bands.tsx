@@ -1,7 +1,6 @@
-/* eslint-disable @next/next/no-img-element -- Product captures use getImageProps, including images inside the scaled SVG scene. */
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
-import { getImageProps } from "next/image";
+import Image from "next/image";
 import clsx from "clsx";
 import type { Locale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
@@ -24,29 +23,25 @@ function Arrow() {
 
 function AppPhone({ variant, alt, locale }: { variant: "schedule" | "map"; alt: string; locale: Locale }) {
   const map = variant === "map";
-  const image = getImageProps({
-    ...getMarketingMockup(map ? "consumerMap" : "consumerSchedule", locale),
-    alt,
-    sizes: map
-      ? "(max-width: 374px) 220px, (max-width: 900px) 248px, (max-width: 1060px) 212px, (max-width: 1250px) 232px, 246px"
-      : "(max-width: 374px) 198px, (max-width: 900px) 212px, (max-width: 1060px) 248px, (max-width: 1250px) 268px, 284px",
-    loading: "lazy",
-    decoding: "async",
-  }).props;
+  const image = getMarketingMockup(map ? "consumerMap" : "consumerSchedule", locale);
+  const sizes = map
+    ? "(max-width: 374px) 220px, (max-width: 900px) 248px, (max-width: 1060px) 212px, (max-width: 1250px) 232px, 246px"
+    : "(max-width: 374px) 198px, (max-width: 900px) 212px, (max-width: 1060px) 248px, (max-width: 1250px) 268px, 284px";
   return (
     <div className={clsx(styles["device-mount"], styles[map ? "device-secondary" : "device-primary"])}>
       <div className={styles.phone}>
-        {[-8, -6, -4, -2].map(depth => (
-          <i key={depth} className={styles.edge} style={{ "--depth": `${depth}px` } as CSSProperties} aria-hidden="true" />
-        ))}
+        <i className={styles.edge} aria-hidden="true" />
         <div className={styles["phone-face"]}>
           <div className={styles.screen}>
-            <img
+            <Image
               {...image}
               data-product-scene={map ? "consumerMap" : "consumerSchedule"}
               data-product-locale={locale}
               alt={alt}
               title={alt}
+              sizes={sizes}
+              loading="lazy"
+              decoding="async"
             />
             <span className={styles["dynamic-island"]} aria-hidden="true" />
           </div>
@@ -118,20 +113,8 @@ export function TrustBand({ locale }: { locale: Locale }) {
 
 export function WebStudioBand({ locale }: { locale: Locale }) {
   const s = dictionaries[locale].homeSections.webStudio;
-  const desktopImage = getImageProps({
-    ...getMarketingMockup("studioBeauty", locale),
-    alt: s.desktopAlt,
-    sizes: "(max-width: 600px) 80vw, (max-width: 900px) 600px, 700px",
-    loading: "lazy",
-    decoding: "async",
-  }).props;
-  const phoneImage = getImageProps({
-    ...getMarketingMockup("studioPet", locale),
-    alt: "",
-    sizes: "(max-width: 600px) 150px, 280px",
-    loading: "lazy",
-    decoding: "async",
-  }).props;
+  const desktopImage = getMarketingMockup("studioBeauty", locale);
+  const phoneImage = getMarketingMockup("studioPet", locale);
   return (
     <section className={clsx(theme, styles["studio-option"])} id="web-studio" aria-labelledby="web-studio-heading">
       <div className={styles["studio-option-inner"]}>
@@ -142,30 +125,28 @@ export function WebStudioBand({ locale }: { locale: Locale }) {
         <div className={clsx(styles["studio-visual"], styles["sa-scene"])}>
           <div className={styles["sa-hardware-stage"]}>
             <div className={styles["sa-contact"]} aria-hidden="true" />
-            <svg viewBox="0 0 1536 1240" xmlns="http://www.w3.org/2000/svg" focusable="false">
-              <foreignObject width="1536" height="1240">
-                <div className={styles["sa-browser"]} style={{ transform: "matrix(0.81887622,0.04291548,-0.04291548,0.81887622,310,30)" }}>
-                  <div className={styles["sa-browser-bar"]} aria-hidden="true"><span className={styles["sa-browser-dots"]}><i /><i /><i /></span>zavoia.com/lumi-beauty</div>
-                  <img {...desktopImage} alt={s.desktopAlt} title={s.desktopAlt} data-product-scene="studioBeauty" data-product-locale={locale} />
-                </div>
-              </foreignObject>
-              <foreignObject width="1536" height="1240">
-                <div className={styles["sa-phone"]} role="img" aria-label={s.phoneAlt} style={{ transform: "matrix(0.98768834,-0.15643447,0.15643447,0.98768834,55,300)" }}>
-                  <div className={styles["sa-glass"]} aria-hidden="true">
-                    <div className={styles["sa-status"]}>
-                      <span>9:41</span>
-                      <span className={styles["sa-status-symbols"]}>
-                        <svg viewBox="0 0 17 12"><path d="M1 10V8m4 2V6m4 4V3m4 7V1" stroke="currentColor" strokeWidth="2.5" /></svg>
-                        <svg viewBox="0 0 19 12"><rect x="1" y="2" width="14" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.1" /><rect x="3" y="4" width="10" height="4" rx=".7" fill="currentColor" /><path d="M17 5v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
-                      </span>
-                    </div>
-                    <span className={styles["dynamic-island"]} />
-                    <img {...phoneImage} className={styles["sa-screen"]} alt="" title={s.phoneAlt} data-product-scene="studioPet" data-product-locale={locale} />
-                    <span className={styles["sa-home"]} />
+            <div className={styles["sa-canvas"]}>
+              <div className={styles["sa-browser"]}>
+                <div className={styles["sa-browser-bar"]} aria-hidden="true"><span className={styles["sa-browser-dots"]}><i /><i /><i /></span>zavoia.com/lumi-beauty</div>
+                <Image {...desktopImage} alt={s.desktopAlt} title={s.desktopAlt} data-product-scene="studioBeauty" data-product-locale={locale} sizes="(max-width: 600px) 80vw, (max-width: 900px) 600px, 700px" loading="lazy" decoding="async" />
+              </div>
+              <div className={styles["sa-phone"]} role="img" aria-label={s.phoneAlt}>
+                <div className={styles["sa-glass"]} aria-hidden="true">
+                  <div className={styles["sa-status"]}>
+                    <span>9:41</span>
+                    <span className={styles["sa-status-symbols"]}>
+                      <svg viewBox="0 0 17 12"><path d="M1 10V8m4 2V6m4 4V3m4 7V1" stroke="currentColor" strokeWidth="2.5" /></svg>
+                      <svg viewBox="0 0 19 12"><rect x="1" y="2" width="14" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.1" /><rect x="3" y="4" width="10" height="4" rx=".7" fill="currentColor" /><path d="M17 5v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                    </span>
                   </div>
+                  <span className={styles["dynamic-island"]} />
+                  <div className={styles["sa-screen-viewport"]}>
+                    <Image {...phoneImage} className={styles["sa-screen"]} alt="" title={s.phoneAlt} data-product-scene="studioPet" data-product-locale={locale} sizes="(max-width: 600px) 150px, 280px" loading="lazy" decoding="async" />
+                  </div>
+                  <span className={styles["sa-home"]} />
                 </div>
-              </foreignObject>
-            </svg>
+              </div>
+            </div>
           </div>
           <MarketingExampleNote locale={locale} websites className={styles["studio-example-note"]} />
         </div>

@@ -1,5 +1,6 @@
 /* Auth uses the marketplace's content width and gutters.
-   Visible error rows add height above the shared minimum; the document scrolls. */
+   Desktop modes share a minimum; mobile cards fit their content.
+   Visible error rows grow the card, and the document scrolls. */
 .auth-page {
   --auth-page-space: 16px;
   padding-block: var(--auth-page-space);
@@ -139,19 +140,13 @@
     padding-block-end: calc(var(--auth-page-space) + env(safe-area-inset-bottom));
   }
   .auth-shell { max-inline-size: 480px; }
-  .auth-card { grid-template-columns: minmax(0, 1fr); }
+  .auth-card { grid-template-columns: minmax(0, 1fr); min-block-size: 0; }
   .auth-card-form { padding: 16px; }
   .auth-card-hero { display: none; }
   .auth-business-link { min-block-size: 48px; }
 }
 @media (max-width: 600px) {
   .auth-card-form { gap: 20px; }
-}
-@media (width < 768px) {
-  .auth-card { --auth-card-min-size: 48rem; }
-}
-@media (width < 640px) {
-  .auth-card { --auth-card-min-size: 57rem; }
 }
 @media (max-height: 540px) {
   .auth-page { --auth-page-space: 12px; }

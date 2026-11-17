@@ -1,10 +1,13 @@
-/* Keep the field radius stable when the global focus rule applies. A clear
- * border and static halo identify focus without animating control geometry. */
+/* Keep the field radius stable and use its border as the focus indicator. */
 .zv-auth-input:focus,
 .zv-auth-input:focus-visible {
   outline: none;
   border-radius: 10px;
-  box-shadow: 0 0 0 3px var(--p-100);
+  box-shadow: none;
+}
+
+.zv-auth-input:focus:not([aria-invalid="true"]) {
+  border-color: var(--c-ink);
 }
 
 .zv-auth-input,

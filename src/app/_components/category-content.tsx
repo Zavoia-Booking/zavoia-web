@@ -8,10 +8,8 @@ import { localeHref } from "@/i18n/routes";
 import { BusinessCard } from "@/components/business";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { SearchPageContext } from "@/components/search/search-overlay-provider";
-import { SITE_URL } from "@/lib/site";
-import { siteEntities, websiteId } from "@/lib/seo/site-identity";
 import { serializeJsonLd } from "@/lib/seo/json-ld";
-import { collectionItemList } from "@/lib/seo/collection-structured-data";
+import { discoveryStructuredData } from "@/lib/seo/discovery-structured-data";
 import type { CategoryDiscoveryGroup } from "@/lib/seo/category-discovery";
 import { Icon } from "@/components/ui/icon";
 import { locationCardToData } from "@/lib/marketplace/card-mappers";
@@ -64,43 +62,19 @@ export function CategoryContent({
     }] : []),
     { label: parentIndustry ? name : format(t.heading, vars) },
   ];
-  const pageUrl = `${SITE_URL}${pathname}`;
   const cards = listings.map((location) => locationCardToData(location, locale, slugById));
-  const itemList = collectionItemList(pathname, cards.flatMap((card) => card.href ? [{
-    name: card.locationName?.trim() || card.name,
-    // The same destination used by BusinessCard; cards do not carry branch UUIDs.
-    path: card.href,
-  }] : []));
-  const breadcrumb = {
-    "@type": "BreadcrumbList",
-    "@id": `${pageUrl}#breadcrumb`,
-    itemListElement: breadcrumbItems.map((item, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: item.label,
-      item: item.href ? `${SITE_URL}${item.href}` : pageUrl,
-    })),
-  };
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      ...siteEntities(),
-      breadcrumb,
-      {
-        "@type": "CollectionPage",
-        "@id": pageUrl,
-        url: pageUrl,
-        name: format(t.heading, vars),
-        // The meta description, with the same category wording as the title.
-        description: format(t.descriptionTemplate, { ...vars, industry: categorySearchName(entry, industries, locale, dict) }),
-        inLanguage: locale,
-        isPartOf: { "@id": websiteId },
-        breadcrumb: { "@id": breadcrumb["@id"] },
-        ...(itemList && { mainEntity: { "@id": itemList["@id"] } }),
-      },
-      ...(itemList ? [itemList] : []),
-    ],
-  };
+  const jsonLd = discoveryStructuredData({
+    locale,
+    path: pathname,
+    name: format(t.heading, vars),
+    description: format(t.descriptionTemplate, { ...vars, industry: categorySearchName(entry, industries, locale, dict) }),
+    breadcrumbs: breadcrumbItems.map((item) => ({ name: item.label, path: item.href })),
+    items: cards.flatMap((card) => card.href ? [{
+      name: card.locationName?.trim() || card.name,
+      // The same destination used by BusinessCard; cards do not carry branch UUIDs.
+      path: card.href,
+    }] : []),
+  });
   const numbers = new Intl.NumberFormat(locale);
   const plural = new Intl.PluralRules(locale).select(total);
   const resultHeading = t.resultsHeading[plural === "one" ? "one" : plural === "few" ? "few" : "other"];

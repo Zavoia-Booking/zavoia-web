@@ -2,7 +2,7 @@ import { localeHref, localizedPathname } from "@/i18n/routes";
 import { LOCALES, isLocale, type Locale } from "@/i18n/locales";
 
 const LOCAL_ORIGIN = "https://zavoia.invalid";
-const SHARED_DETAIL_ROUTES = new Set(["appointments", "brand", "business", "terms"]);
+const SHARED_DETAIL_ROUTES = new Set(["appointments", "brand", "business", "professionals", "terms"]);
 
 function localUrl(value: string | null): URL | null {
   if (!value?.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(value)) return null;

@@ -73,9 +73,9 @@ export function SetupSection({ locale, copy, pending }: {
             </div>
             <figure className={`${styles.phoneFigure} ${frame.preview}`} data-setup-visual="">
               <div className={frame.phone}>
-                <div className={frame.glass}>
+                <div className={frame.glass} style={{ aspectRatio: `${capture.phone.width - 2} / ${capture.phone.height}` }}>
                   {pending ? <Skeleton h="100%" r={0} style={{ aspectRatio: `${capture.phone.width} / ${capture.phone.height}` }} /> : (
-                    <Image src={capture.phone} alt={copy.phoneAlt} sizes="(max-width: 700px) 220px, 240px" />
+                    <Image className={styles.phoneCapture} src={capture.phone} alt={copy.phoneAlt} sizes="(max-width: 700px) 260px, 240px" />
                   )}
                 </div>
               </div>
@@ -83,7 +83,7 @@ export function SetupSection({ locale, copy, pending }: {
           </div>
         </SetupReveal>
         <div className={styles.footer}>
-          <p className={styles.note}><Icon name="check" size={17} /><span>{copy.note}</span></p>
+          <p className={styles.note}>{copy.note}</p>
           <Link className={styles.demoLink} href={localeHref(locale, "web-studio", "demo")}>
             {copy.demoLink}<Icon name="arrowR" size={17} />
           </Link>

@@ -47,6 +47,30 @@
 .choice { min-width: 0; min-height: 44px; padding: 8px 4px; border: 1px solid var(--c-200); border-radius: 10px; background: transparent; color: var(--c-900); font: inherit; font-size: 14px; font-weight: 500; text-transform: capitalize; cursor: pointer; }
 .choice[aria-pressed="true"] { border-color: var(--c-ink); background: var(--c-ink); color: var(--c-canvas); }
 .caption:focus-visible, .choice:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; }
+
+@media (max-width: 920px) {
+  .drawerOverlay { position: fixed; inset: var(--drawer-viewport-top, 0px) 0 auto; z-index: 400; height: var(--drawer-viewport-height, 100dvh); background: rgba(28, 28, 26, .34); }
+  .drawer { position: fixed; inset: auto 0 var(--drawer-viewport-bottom, 0px); z-index: 400; display: flex; flex-direction: column; width: 100%; max-height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top))); border-radius: 24px 24px 0 0; background: var(--c-canvas); box-shadow: var(--sh-up); outline: none; }
+  .drawerHeader { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 0 18px 16px; border-bottom: 1px solid var(--c-300); }
+  .drawerTitle { margin: 0; color: var(--c-900); font-size: 22px; font-weight: 600; line-height: 1.25; letter-spacing: -.025em; }
+  .drawerClose { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--r-full); background: var(--c-100); color: var(--c-900); cursor: pointer; }
+  .drawerClose:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; }
+  .drawerBody { min-height: 0; padding: 20px 18px max(20px, env(safe-area-inset-bottom)); }
+  .drawerBody .drawerCalendar { --calendar-compact-day-size: 44px; width: 100%; max-width: 480px; margin-inline: auto; padding: 0; border: 0; background: transparent; }
+  .drawerBody .choices { min-height: 304px; }
+}
+
+@media (max-width: 920px) and (prefers-reduced-motion: no-preference) {
+  .drawerOverlay[data-state="open"]:not([data-entry="keyboard"]) { animation: drawer-backdrop-in 160ms var(--ease-out) both; }
+  .drawerOverlay[data-state="closed"][data-input="pointer"] { animation: drawer-backdrop-out 180ms var(--ease-out) both; }
+  .drawer[data-state="open"]:not([data-entry="keyboard"]) { animation: drawer-in 240ms var(--ease-out) both; }
+  .drawer[data-state="closed"][data-input="pointer"] { animation: drawer-out 180ms var(--ease-out) both; }
+}
+@keyframes drawer-backdrop-in { from { background-color: transparent; } to { background-color: rgba(28, 28, 26, .34); } }
+@keyframes drawer-backdrop-out { from { background-color: rgba(28, 28, 26, .34); } to { background-color: transparent; } }
+@keyframes drawer-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes drawer-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
 @media (max-width: 360px) {
   .choices { gap: 6px; }
   .choice { padding-inline: 1px; white-space: nowrap; }

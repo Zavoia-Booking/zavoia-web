@@ -4,11 +4,11 @@ import { urlForImage } from "@/sanity/image";
 
 // Match the shared 1400px content width, page gutters and each editorial grid.
 export const BLOG_IMAGE_SIZES = {
-  feature: "(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 40px), (max-width: 920px) calc(55vw - 44px), (max-width: 1100px) calc(55vw - 52.8px), (max-width: 1456px) calc(55vw - 66px), 735px",
-  card: "(max-width: 600px) calc(100vw - 32px), (max-width: 640px) calc(100vw - 40px), (max-width: 920px) calc(50vw - 34px), (max-width: 980px) calc(50vw - 42px), (max-width: 1456px) calc(33.333vw - 40px), 446px",
-  cover: "(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 40px), (max-width: 920px) calc(50vw - 40px), (max-width: 1100px) calc(50vw - 48px), (max-width: 1456px) calc(50vw - 60px), 668px",
-  body: "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1024px) calc(100vw - 56px), (max-width: 1100px) calc(100vw - 336px), (max-width: 1456px) calc(100vw - 360px), 1096px",
-  full: "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1456px) calc(100vw - 56px), 1400px",
+  feature: "(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 40px), (max-width: 920px) calc(55vw - 44px), (max-width: 1100px) calc(49.5vw - 22px), (max-width: 1556px) calc(49.5vw - 35.2px), 735px",
+  card: "(max-width: 600px) calc(100vw - 32px), (max-width: 640px) calc(100vw - 40px), (max-width: 920px) calc(50vw - 34px), (max-width: 980px) calc(45vw - 14px), (max-width: 1556px) calc(30vw - 21.333px), 446px",
+  cover: "(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 40px), (max-width: 920px) calc(50vw - 40px), (max-width: 1100px) calc(45vw - 20px), (max-width: 1556px) calc(45vw - 32px), 668px",
+  body: "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1024px) 90vw, (max-width: 1100px) calc(90vw - 280px), (max-width: 1556px) calc(90vw - 304px), 1096px",
+  full: "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1556px) 90vw, 1400px",
 } as const;
 
 type ImageOptions = {

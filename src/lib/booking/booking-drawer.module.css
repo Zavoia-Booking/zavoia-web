@@ -1346,6 +1346,9 @@
 
 @media (max-width: 920px) {
   .overlay {
+    top: var(--drawer-viewport-top, 0px);
+    bottom: auto;
+    height: var(--drawer-viewport-height, 100dvh);
     align-items: flex-end;
     padding: 0;
     background: rgb(28 28 26 / 28%);
@@ -1355,11 +1358,13 @@
   .dialog,
   .dialog:focus-visible {
     width: 100%;
-    height: calc(100dvh - max(24px, env(safe-area-inset-top)));
+    height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top)));
+    max-height: calc(var(--drawer-viewport-height, 100dvh) - max(24px, env(safe-area-inset-top)));
     border-radius: 24px 24px 0 0;
     box-shadow: var(--sh-up);
   }
   .header { padding-top: 0; }
+  .dialog input, .dialog textarea, .dialog select { font-size: 16px !important; }
   .overlay[data-state], .dialog[data-state] { animation: none; }
 }
 

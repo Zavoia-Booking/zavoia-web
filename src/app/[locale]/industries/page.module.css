@@ -176,7 +176,7 @@
 
 @media (max-width: 920px) {
   .page {
-    padding-bottom: 64px;
+    padding-bottom: 24px;
   }
   .header {
     padding-block: 32px;
@@ -197,7 +197,7 @@
 @media (max-width: 600px) {
   .page {
     padding-top: 24px;
-    padding-bottom: 48px;
+    padding-bottom: 24px;
   }
   .header {
     padding-block: 24px;

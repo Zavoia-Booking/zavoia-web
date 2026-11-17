@@ -31,7 +31,7 @@ export function NotFoundPage({ locale, pathname, dictionary }: {
       <div className={styles.page}>
         <header className={styles.header}>
           <Link className={styles.logo} href={localeHref(locale)} aria-label={dictionary.nav.homeAria}>
-            <Image src="/brand/wordmark-cropped.png" alt="Zavoia" width={141} height={45} />
+            <Image src="/brand/zavoia-logo.png" alt="Zavoia" width={440} height={145} unoptimized />
           </Link>
           <nav className={styles.headerNav} aria-label={t.navigation}>
             <LanguageSwitcher

@@ -38,6 +38,7 @@ export function PricingComparison({ locale }: { locale: Locale }) {
           <h2 className={m.h2} id="compare-title" tabIndex={-1}>{t.compare.title}</h2>
           <p className={styles.lead}>{t.compare.lead}</p>
         </header>
+        <p className={styles.phoneFeature} aria-hidden="true">{rows[0].label}</p>
         <table className={styles.table} role="table">
           <caption className="sr-only">{t.compare.caption}</caption>
           <thead role="rowgroup">
@@ -57,8 +58,8 @@ export function PricingComparison({ locale }: { locale: Locale }) {
             {rows.map(row => (
               <tr key={row.label} role="row">
                 <th scope="row" role="rowheader">{row.label}</th>
-                <td role="cell"><span className={styles.mobilePlan} aria-hidden="true">Base</span>{row.base}</td>
-                <td role="cell" className={styles.plusColumn}><span className={styles.mobilePlan} aria-hidden="true">Plus</span>{row.plus}</td>
+                <td role="cell">{row.base}</td>
+                <td role="cell" className={styles.plusColumn}>{row.plus}</td>
               </tr>
             ))}
           </tbody>

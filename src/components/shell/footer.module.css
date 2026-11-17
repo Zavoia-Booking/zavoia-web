@@ -12,7 +12,7 @@
 }
 
 .markBand {
-  padding-block: clamp(16px, 2.5cqw, 32px) clamp(20px, 3cqw, 36px);
+  padding-block: 16px 20px;
   border-block: 1px solid var(--footer-line);
 }
 
@@ -203,7 +203,7 @@
 
 @container (max-width: 720px) {
   .markBand {
-    padding-block: 20px 24px;
+    padding-block: 12px 16px;
   }
 
   .intro {
@@ -357,13 +357,7 @@
 
 @media (max-width: 600px) {
   .footer {
-    padding-block: 64px max(20px, env(safe-area-inset-bottom));
-  }
-}
-
-@media (max-width: 900px) {
-  :global(body:has([data-section="hub"])) .footer {
-    padding-top: 24px;
+    padding-block: 0 max(20px, env(safe-area-inset-bottom));
   }
 }
 
@@ -371,6 +365,14 @@
 :global(body:has(main[data-footer-surface="warm"])) .footer {
   padding-top: 24px;
   background: var(--c-shade);
+}
+
+/* Page endings own the mobile gap; the footer starts at its divider. */
+@media (max-width: 920px) {
+  .footer,
+  :global(body:has(main[data-footer-surface="warm"])) .footer {
+    padding-top: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
