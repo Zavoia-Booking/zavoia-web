@@ -32,6 +32,7 @@ import type { BookingSelectionItem } from "@/lib/booking";
 import { pushRecentView } from "@/lib/recent-views";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { SEARCH_RADIUS_KM } from "@/components/search/constants";
+import { getBrowserLocationIfAllowed } from "@/lib/geocoding";
 import { TeamMemberProfileModal } from "./team-member-profile-modal";
 import { professionalHref } from "@/lib/professionals/urls";
 import { locationHref, locationName } from "@/lib/locations/identity";
@@ -607,14 +608,15 @@ function TeamTab({ members, memberId, setMemberId, listing, locale }: { members:
   </div>;
 }
 
+// Only when location is already allowed: this page never shows the browser's
+// location dialog (the map asks), so otherwise the distance is left out.
 function useUserCoords(): { lat: number; lng: number } | null {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   useEffect(() => {
-    if (!navigator.geolocation) return;
     let cancelled = false;
-    navigator.geolocation.getCurrentPosition(position => {
-      if (!cancelled) setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-    }, () => {}, { timeout: 8000, maximumAge: 5 * 60 * 1000 });
+    void getBrowserLocationIfAllowed().then(position => {
+      if (!cancelled && position) setCoords(position);
+    });
     return () => { cancelled = true; };
   }, []);
   return coords;

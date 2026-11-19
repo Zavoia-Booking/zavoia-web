@@ -51,6 +51,9 @@ export default defineConfig({
     // cookie `zw-consent`) for every test. Without this, the banner is a
     // second `role="dialog"` on nearly every page, making any untargeted
     // `getByRole('dialog')` ambiguous — a real failure mode several specs hit.
+    // Likewise pre-answer the map's location question with "Not now"
+    // (`zv-loc-skip`): the map asks whenever it opens, and that dialog would
+    // cover every /search page under test.
     storageState: {
       cookies: [
         {
@@ -64,7 +67,7 @@ export default defineConfig({
           sameSite: 'Lax',
         },
       ],
-      origins: [],
+      origins: [{ origin: APP_URL, localStorage: [{ name: 'zv-loc-skip', value: '1' }] }],
     },
   },
 

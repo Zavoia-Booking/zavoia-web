@@ -8,6 +8,7 @@ import { getListingsBulk } from "@/lib/api/marketplace/public";
 import { ApiError } from "@/lib/api/http";
 import type { ListingLightCard } from "@/lib/api/marketplace/types";
 import { getRecentViews, removeRecentViews } from "@/lib/recent-views";
+import { getBrowserLocationIfAllowed } from "@/lib/geocoding";
 import { RecentlyViewedSkeleton } from "./section-skeletons";
 import { useDiscoveryFeed } from "./discovery-feedback";
 import { HomeRequestTimeoutError, withHomeDeadline } from "./request-deadline";
@@ -214,21 +215,14 @@ export function RecentlyViewed() {
     };
   }, []);
 
-  // Ask for geolocation once. Optional — never blocks render; on
-  // denial/error/unavailable we keep `coords` null and fall back to city.
+  // Distances only when location is already allowed: home never shows the
+  // browser's location dialog (the map asks). Optional — never blocks render;
+  // otherwise `coords` stays null and the cards fall back to the city.
   useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) return;
     let cancelled = false;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (cancelled) return;
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      },
-      () => {
-        /* denied / unavailable → keep city fallback */
-      },
-      { timeout: 8000, maximumAge: 5 * 60 * 1000 },
-    );
+    void getBrowserLocationIfAllowed().then((position) => {
+      if (!cancelled && position) setCoords(position);
+    });
     return () => {
       cancelled = true;
     };

@@ -15,6 +15,14 @@ export function searchRadius(value: string | null): number {
 
 export type SearchQuery = SearchListingsParams & { mapZoom?: number };
 
+/**
+ * Map link flag (`approx=1`): the link's city/coordinates are the visitor's IP estimate,
+ * not a place they chose. Pages that never ask for location (home, industries) add it, so
+ * the map, which does ask, moves the results to the real position once it is allowed.
+ * It doesn't change the search itself.
+ */
+export const ESTIMATE_PARAM = "approx";
+
 export function deriveSearchParams(params: Pick<URLSearchParams, "get">): SearchQuery {
   const lat = numberParam(params.get("lat"));
   const lng = numberParam(params.get("lng"));

@@ -57,7 +57,7 @@ export function InYourCity() {
   const fav = useFavoriteToggle("location");
   const s = dict.homeSections.inCity;
 
-  const { coords, city, resolving } = useHomeCoords();
+  const { coords, city, approximate, resolving } = useHomeCoords();
   const { items, loading, loaded, failed, hasMore, showMore, retry, failureId, failureKind, retryAt } =
     useHomeFeed("city", coords);
   // The API carries both taxonomy labels. Presentation changes with language;
@@ -79,7 +79,7 @@ export function InYourCity() {
       <SectionTitle
         title={s.title}
         action={s.action}
-        href={mapHref(locale, city)}
+        href={mapHref(locale, city, approximate)}
       />
       {busy && visible.length === 0 ? (
         <div

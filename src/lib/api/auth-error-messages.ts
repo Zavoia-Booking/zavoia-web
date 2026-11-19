@@ -1,5 +1,7 @@
 import type { Dictionary } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { backendCode, transportErrorMessage } from "@/lib/api/error-messages";
+import { ApiError } from "@/lib/api/http";
 import { AppleSignInError } from "@/lib/auth/apple-signin";
 
 type AuthErrorsDict = Dictionary["auth"]["errors"];
@@ -131,6 +133,28 @@ const CODE_TO_KEY: Record<string, keyof AuthErrorsDict> = {
 const APPLE_BEFORE_TRANSPORT = new Set(["APPLE_CODE_LIMIT", "APPLE_UNAVAILABLE"]);
 
 /**
+ * 429 from sign-in when the ACCOUNT (not the IP) is in a wait after repeated
+ * wrong passwords (admin-api UsersService.assertLoginNotThrottled). It wins
+ * over the shared rate-limit copy so the person knows the wait is on the
+ * account. The wait is read from the body's `details.retryAfterSeconds`: the
+ * API is cross-origin and doesn't expose `Retry-After` to browser JS, so the
+ * header is only a fallback. It can be up to an hour, so anything past a
+ * minute is shown in minutes.
+ */
+const ACCOUNT_THROTTLED = "LOGIN_ACCOUNT_THROTTLED";
+
+function accountThrottledMessage(error: unknown, dict: AuthErrorsDict): string | null {
+  if (backendCode(error) !== ACCOUNT_THROTTLED) return null;
+  if (!(error instanceof ApiError)) return dict.accountThrottledNoTime;
+  const fromBody = (error.data as { details?: { retryAfterSeconds?: unknown } } | undefined)
+    ?.details?.retryAfterSeconds;
+  const seconds = typeof fromBody === "number" ? fromBody : error.retryAfterSeconds;
+  if (!seconds || seconds <= 0) return dict.accountThrottledNoTime;
+  const wait = seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`;
+  return format(dict.accountThrottled, { wait });
+}
+
+/**
  * The message to show for a failed auth action.
  *
  * `shared` is required rather than optional on purpose: a transport failure
@@ -143,6 +167,9 @@ export function authErrorMessage(
   dict: AuthErrorsDict,
   shared: ErrorsDict,
 ): string {
+  const throttled = accountThrottledMessage(error, dict);
+  if (throttled) return throttled;
+
   const transport = transportErrorMessage(error, shared);
   if (transport) return transport;
 

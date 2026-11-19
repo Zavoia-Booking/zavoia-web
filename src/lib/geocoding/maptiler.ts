@@ -6,6 +6,8 @@
 // Optional location resolution degrades to empty results / null on failure.
 // Autocomplete opts into errors so a failed request cannot look like no matches.
 
+import { API_URL } from "@/lib/env";
+
 const KEY = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
 
 const BASE = "https://api.maptiler.com/geocoding";
@@ -227,42 +229,45 @@ export async function reverseGeocode(
   }
 }
 
-// ── IP-based estimate (fallback when the user denies geolocation) ───────────
+// ── IP-based estimate (when the device position isn't available) ───────────
 
-interface IpWhoResponse {
-  success?: boolean;
-  ip?: string;
-  city?: string;
-  region?: string;
-  country?: string;
-  country_code?: string;
-  latitude?: number;
-  longitude?: number;
+interface ApproximateLocationResponse {
+  location: {
+    lat: number;
+    lng: number;
+    city: string | null;
+    region: string | null;
+    countryCode: string | null;
+  } | null;
 }
 
 /**
- * Estimate the visitor's city from their IP via ipwho.is (free, no API key).
- * Used as a fallback when `navigator.geolocation` is unavailable or denied, so
- * "use my location" can still resolve an approximate city + coordinates.
- * Returns null on failure / unsuccessful response — never throws.
+ * Estimate the visitor's city from their IP. Our API answers from the location
+ * Cloudflare attaches to the request, so the IP goes to no other service.
+ * Used when the device position isn't available, so "use my location" and the
+ * home sections can still resolve an approximate city + coordinates.
+ * Returns null on failure / when there is no estimate — never throws.
  */
 export async function ipLocate(signal?: AbortSignal): Promise<CityResult | null> {
   try {
-    const res = await fetch("https://ipwho.is/", { signal });
+    const res = await fetch(`${API_URL}/marketplace/public/approximate-location`, {
+      signal,
+      credentials: "omit",
+      cache: "no-store",
+    });
     if (!res.ok) return null;
-    const json = (await res.json()) as IpWhoResponse;
-    if (json.success === false) return null;
-    const { latitude: lat, longitude: lng, city } = json;
+    const { location } = (await res.json()) as ApproximateLocationResponse;
+    if (!location) return null;
+    const { lat, lng } = location;
     if (typeof lat !== "number" || typeof lng !== "number"
       || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    const label = city || "Current location";
+    const label = location.city || "Current location";
     return {
-      id: json.ip ? `ip-${json.ip}` : `${lat},${lng}`,
+      id: `ip-${lat},${lng}`,
       label,
       city: label,
-      region: json.region || undefined,
-      country: json.country || undefined,
-      countryCode: countryCode(json.country_code),
+      region: location.region || undefined,
+      countryCode: countryCode(location.countryCode),
       lat,
       lng,
     };

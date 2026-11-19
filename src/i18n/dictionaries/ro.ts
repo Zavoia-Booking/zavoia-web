@@ -335,6 +335,8 @@ export const ro: Dictionary = {
     errors: {
       generic: "Ceva nu a funcționat. Încearcă din nou.",
       invalidCredentials: "Email sau parolă incorecte.",
+      accountThrottled: "Prea multe încercări pentru acest cont. Încearcă din nou peste {wait}.",
+      accountThrottledNoTime: "Prea multe încercări pentru acest cont. Așteaptă câteva minute și încearcă din nou.",
       googleAccountHint:
         "Te-ai înregistrat cu Google sau Apple? Continuă cu acesta mai jos sau alege „Ai uitat parola?” ca să-ți creezi o parolă.",
       emailInvalid: "Introdu o adresă de email validă.",
@@ -1002,6 +1004,7 @@ export const ro: Dictionary = {
     nextDates: "Datele următoare",
     chooseDate: "Alege o dată pentru a vedea orele disponibile.",
     selectServicesEmpty: "Selectează cel puțin un serviciu pentru a continua.",
+    tooManyServices: "Poți rezerva cel mult {max} servicii odată.",
     noAvailability: "Nu sunt ore disponibile în acest interval de date.",
     nextAvailable: "Următoarea disponibilă: {date}",
     jumpToNext: "Sari la următoarea disponibilă",

@@ -163,24 +163,72 @@ test("failed explicit feed actions share an escalating cooldown that resets afte
   assert.equal(entry.state.retryAt, 0, "a successful request resets the backoff");
 });
 
-test("home location settles after bounded native and IP lookups even if neither responds", async () => {
-  const h = harness();
-  let ipCalls = 0;
-  const geo = h.load("./use-home-coords.ts", {
+function loadHomeLocation(h, geocoding) {
+  return h.load("./use-home-coords.ts", {
     react: {},
-    "@/lib/geocoding": {
-      getBrowserLocation: () => new Promise(() => {}),
-      ipLocate: () => { ipCalls++; return new Promise(() => {}); },
-    },
+    "@/lib/geocoding": geocoding,
     "./request-deadline": h.deadline,
   }, "\nexports.audit = { resolve, snapshot };\n").audit;
+}
+
+test("home location never asks: without permission it starts the IP estimate at once and settles even if that never responds", async () => {
+  const h = harness();
+  let ipCalls = 0;
+  let positionRequests = 0;
+  const geo = loadHomeLocation(h, {
+    isLocationAllowed: async () => false,
+    getBrowserLocation: () => { positionRequests++; return new Promise(() => {}); },
+    ipLocate: () => { ipCalls++; return new Promise(() => {}); },
+  });
   const resolving = geo.resolve();
-  await h.advance(8_000);
-  assert.equal(ipCalls, 1);
+  await flush();
+  assert.equal(ipCalls, 1, "the IP estimate starts without waiting");
+  assert.equal(positionRequests, 0, "no position request, so no browser dialog");
   assert.equal(geo.snapshot().resolving, true);
   await h.advance(8_000);
   await resolving;
   assert.equal(geo.snapshot().resolving, false);
   assert.equal(geo.snapshot().coords, null);
+  assert.equal(geo.snapshot().approximate, false);
+  assert.equal(h.timers.size, 0);
+});
+
+test("home location uses an already-allowed position and skips the IP estimate", async () => {
+  const h = harness();
+  let ipCalls = 0;
+  const geo = loadHomeLocation(h, {
+    isLocationAllowed: async () => true,
+    getBrowserLocation: async () => ({ lat: 46.77, lng: 23.6 }),
+    reverseGeocode: async () => ({ city: "Cluj-Napoca", countryCode: "RO" }),
+    ipLocate: () => { ipCalls++; return new Promise(() => {}); },
+  });
+  await geo.resolve();
+  assert.equal(ipCalls, 0);
+  assert.equal(geo.snapshot().coords.lat, 46.77);
+  assert.equal(geo.snapshot().city, "Cluj-Napoca");
+  assert.equal(geo.snapshot().approximate, false);
+  assert.equal(geo.snapshot().resolving, false);
+  assert.equal(h.timers.size, 0);
+});
+
+test("home location falls back to the IP estimate when an allowed position never arrives", async () => {
+  const h = harness();
+  let ipCalls = 0;
+  const geo = loadHomeLocation(h, {
+    isLocationAllowed: async () => true,
+    getBrowserLocation: () => new Promise(() => {}),
+    ipLocate: async () => { ipCalls++; return { lat: 44.43, lng: 26.1, city: "Bucharest", countryCode: "RO" }; },
+  });
+  const resolving = geo.resolve();
+  await flush();
+  await h.advance(7_999);
+  assert.equal(ipCalls, 0);
+  assert.equal(geo.snapshot().resolving, true);
+  await h.advance(1);
+  await resolving;
+  assert.equal(ipCalls, 1);
+  assert.equal(geo.snapshot().city, "Bucharest");
+  assert.equal(geo.snapshot().approximate, true, "an IP estimate is marked for the map links");
+  assert.equal(geo.snapshot().resolving, false);
   assert.equal(h.timers.size, 0);
 });

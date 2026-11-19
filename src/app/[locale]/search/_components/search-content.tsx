@@ -74,7 +74,7 @@ import { LocationPermissionModal } from "@/components/search/location-permission
 import { MapFloatingCard } from "@/components/search/map-floating-card";
 import { getBrowserLocation, ipLocate, resolveCity } from "@/lib/geocoding";
 import { CITY_ENTRIES, slugifyRo } from "@/data/seo";
-import { deriveSearchParams, hasLocationRefinements, numberParam as numParam, patchSearchParams, searchRequestKey, toSearchListingsParams, type SearchQuery } from "@/lib/search/query";
+import { deriveSearchParams, ESTIMATE_PARAM, hasLocationRefinements, numberParam as numParam, patchSearchParams, searchRequestKey, toSearchListingsParams, type SearchQuery } from "@/lib/search/query";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { TagRail } from "@/components/search/tag-rail";
 import {
@@ -102,6 +102,15 @@ const LOC_SKIP_KEY = "zv-loc-skip";
 const LOC_ALLOW_KEY = "zv-loc-allow";
 
 type LocationChoice = "allow" | "skip";
+
+/**
+ * What the map was opened with, which decides what allowing location does:
+ *  - "empty": no place in the link, so the map picks the area (device, else IP, else Bucharest)
+ *  - "estimate": the IP estimate from home or the industries page (ESTIMATE_PARAM), which the
+ *    real position replaces
+ *  - "chosen": a city, point or search the visitor chose, which stays; only the dot is added
+ */
+type Landing = "empty" | "estimate" | "chosen";
 
 function readLocationChoice(): LocationChoice | null {
   try {
@@ -265,7 +274,8 @@ export function SearchContent({
   const venueTagDictionaries = venueTags.dictionaries;
 
   // The resolved device/IP position — drives the pulsing user DOT only. Stays
-  // null for the Bucharest fallback and for shared-link place searches (no dot).
+  // null for the Bucharest fallback, and for a link's place until location is
+  // allowed.
   const [deviceLocation, setDeviceLocation] = useState<GeoPoint | null>(null);
 
   // Location-permission priming modal. Starts CLOSED (SSR-safe, no hydration
@@ -276,6 +286,9 @@ export function SearchContent({
   const [locationBusy, setLocationBusy] = useState(false);
   // Guards the one-shot resolution effect against React 19 dev double-invoke.
   const resolvedOnce = useRef(false);
+  // What the modal's "Use my location" applies to: the landing, or "empty"
+  // when "My location" opens the modal with nowhere else to go.
+  const allowTarget = useRef<Landing>("empty");
 
   const listRef = useRef<HTMLDivElement>(null);
   const measureResultPhotosRef = useRef<(() => void) | null>(null);
@@ -428,6 +441,9 @@ export function SearchContent({
           nextDerived, nextFilters, numParam(next.get("focus")) ?? null,
         );
       }
+      // The estimate flag describes only the link the map was opened with;
+      // anything written here is the page's own state.
+      next.delete(ESTIMATE_PARAM);
       const qs = next.toString();
       router.replace(localeHref(locale, "search") + (qs ? `?${qs}` : ""));
     },
@@ -722,43 +738,63 @@ export function SearchContent({
     [applyAnchor],
   );
 
-  // "Use my location" → geolocation, then IP, then Bucharest. A granted
-  // "Allow" is remembered, so later visits skip the modal even where the
-  // browser can't report the grant (Chrome on iPhone).
+  // Device position for what the map was opened with (see Landing). Resolves
+  // true only when the device position was used.
+  const locateForLanding = useCallback(
+    async (landing: Landing): Promise<boolean> => {
+      if (landing === "empty") return resolveAndApply(true);
+      const device = await getBrowserLocation();
+      if (!device) return false;
+      setDeviceLocation(device);
+      if (landing === "estimate") applyAnchor(device);
+      return true;
+    },
+    [resolveAndApply, applyAnchor],
+  );
+
+  // "Use my location" → the device position (an empty map falls back to IP,
+  // then Bucharest). The outcome is remembered either way, so later visits
+  // skip the modal even where the browser can't report the answer (Chrome on
+  // iPhone): a position as "allow"; a block or any other failure as "skip",
+  // which "My location" can still override on tap.
   const handleAllow = useCallback(async () => {
     setLocationBusy(true);
     try {
-      rememberLocationChoice((await resolveAndApply(true)) ? "allow" : null);
+      rememberLocationChoice((await locateForLanding(allowTarget.current)) ? "allow" : "skip");
     } finally {
       setLocationModalOpen(false);
       setLocationBusy(false);
     }
-  }, [resolveAndApply]);
+  }, [locateForLanding]);
 
-  // "Not now" → remember the skip (so the modal won't reappear), then IP,
-  // then Bucharest. No geolocation prompt.
+  // "Not now" → remember the skip (so the modal won't reappear). No
+  // geolocation prompt. Only an empty map still needs an area: IP, then
+  // Bucharest; a link's place stays as it is.
   const handleSkip = useCallback(async () => {
     setLocationBusy(true);
     rememberLocationChoice("skip");
     try {
-      await resolveAndApply(false);
+      if (allowTarget.current === "empty") await resolveAndApply(false);
     } finally {
       setLocationModalOpen(false);
       setLocationBusy(false);
     }
   }, [resolveAndApply]);
 
-  // ── One-shot auto-resolution on a fresh empty landing ────────────────────
-  // Consults the persisted geolocation permission + the remembered modal
-  // answer to decide whether to prime (show modal) or silently resolve. All
-  // setState is post-await inside an async IIFE — no synchronous setState in
-  // the effect body — keeping it lint-clean. The ran-once ref guards React 19
-  // dev double-invoke.
+  // ── One-shot location resolution when the map opens ──────────────────────
+  // The map is where location is asked, whatever link opened it (home and the
+  // industries page never ask). Consults the persisted geolocation permission
+  // + the remembered modal answer to decide whether to prime (show modal) or
+  // silently resolve. All setState is post-await inside an async IIFE — no
+  // synchronous setState in the effect body — keeping it lint-clean. The
+  // ran-once ref guards React 19 dev double-invoke.
   useEffect(() => {
     if (resolvedOnce.current) return;
     resolvedOnce.current = true;
-    // Not an empty landing (shared link with a place/search) — do nothing.
-    if (hasGeo || derived.city || derived.search) return;
+    const linkPlace = hasGeo || !!derived.city;
+    const landing: Landing = linkPlace && sp.get(ESTIMATE_PARAM) === "1" ? "estimate"
+      : linkPlace || derived.search ? "chosen" : "empty";
+    allowTarget.current = landing;
     let cancelled = false;
     void (async () => {
       let perm: PermissionState = "prompt";
@@ -774,13 +810,13 @@ export function SearchContent({
       }
       if (cancelled) return;
       if (perm === "granted") {
-        await resolveAndApply(true);
+        await locateForLanding(landing);
         return;
       }
       if (perm === "denied") {
         // Blocked in the browser: a remembered "Allow" no longer applies.
         rememberLocationChoice(null);
-        await resolveAndApply(false);
+        if (landing === "empty") await resolveAndApply(false);
         return;
       }
       // "prompt" — a first visit, or a browser that can't report a grant
@@ -788,13 +824,13 @@ export function SearchContent({
       const choice = readLocationChoice();
       if (cancelled) return;
       if (choice === "skip") {
-        await resolveAndApply(false);
+        if (landing === "empty") await resolveAndApply(false);
         return;
       }
       if (choice === "allow") {
         // If the device lookup now fails (blocked, unavailable), forget the
         // answer so the next visit explains first instead of asking on load.
-        if (!(await resolveAndApply(true))) rememberLocationChoice(null);
+        if (!(await locateForLanding(landing))) rememberLocationChoice(null);
         return;
       }
       setLocationModalOpen(true);
@@ -822,8 +858,10 @@ export function SearchContent({
   }, [updateParams]);
 
   // ── "My location" (the crosshair) ────────────────────────────────────────
-  // The ladder the mobile app uses, in order: the position the map ALREADY
-  // holds for the blue dot, then a fresh fix, then the stored anchor. A fresh
+  // In order: the position the map ALREADY holds for the blue dot, then a
+  // fresh fix, then the stored anchor. (The app's button differs: it also
+  // tries the phone's last known position, renames the saved place after a
+  // city lookup, and shows an alert when it fails.) A fresh
   // `getCurrentPosition` can take many seconds and fail indoors, so it never
   // gates the common path — when there is already a dot, the camera moves at
   // once and the fix refreshes behind it.
@@ -854,6 +892,7 @@ export function SearchContent({
     // Geolocation unsupported/blocked → route to the priming modal (its
     // "Use my location" gracefully falls back to IP/Bucharest).
     if (typeof navigator === "undefined" || !navigator.geolocation) {
+      allowTarget.current = "empty";
       setLocationModalOpen(true);
       return;
     }
@@ -878,7 +917,10 @@ export function SearchContent({
         // button still does something rather than silently failing — and only
         // reopen the priming modal when there is nowhere at all to go.
         if (searchAnchor) mapHandleRef.current?.flyTo(searchAnchor);
-        else setLocationModalOpen(true);
+        else {
+          allowTarget.current = "empty";
+          setLocationModalOpen(true);
+        }
       })
       .finally(() => {
         locatingRef.current = false;

@@ -7,4 +7,9 @@ export {
   citySecondary,
 } from "./maptiler";
 export { useCitySearch, type UseCitySearch } from "./use-city-search";
-export { getBrowserLocation, type BrowserCoords } from "./browser-location";
+export {
+  getBrowserLocation,
+  getBrowserLocationIfAllowed,
+  isLocationAllowed,
+  type BrowserCoords,
+} from "./browser-location";

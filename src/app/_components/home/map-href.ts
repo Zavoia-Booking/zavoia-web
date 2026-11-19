@@ -1,5 +1,6 @@
 import { localeHref } from "@/i18n/routes";
 import type { Locale } from "@/i18n/locales";
+import { ESTIMATE_PARAM } from "@/lib/search/query";
 
 /**
  * "See all" target for the home rails: the map, scoped to the city rather than to the rail's
@@ -8,9 +9,11 @@ import type { Locale } from "@/i18n/locales";
  * The map runs its OWN query from this URL — `?city=<name>` and nothing else — so it never
  * inherits the 20km/50km radius the rail was showing. It answers "everything published in this
  * city", deliberately a wider set than the rail displayed. Without a resolved name we can only
- * open the map unscoped.
+ * open the map unscoped. A city from the IP estimate is marked as such (see ESTIMATE_PARAM).
  */
-export function mapHref(locale: Locale, city: string | null): string {
+export function mapHref(locale: Locale, city: string | null, approximate: boolean): string {
   const base = localeHref(locale, "search");
-  return city ? `${base}?city=${encodeURIComponent(city)}` : base;
+  if (!city) return base;
+  const estimate = approximate ? `&${ESTIMATE_PARAM}=1` : "";
+  return `${base}?city=${encodeURIComponent(city)}${estimate}`;
 }

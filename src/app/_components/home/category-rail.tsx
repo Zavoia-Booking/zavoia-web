@@ -10,6 +10,7 @@ import { useServiceCatalog } from "@/components/search/service-catalog-provider"
 import { taxonomyLabel } from "@/lib/marketplace/card-mappers";
 import { industryAccent, industryIcon } from "@/lib/marketplace/industry-visuals";
 import type { Industry, IndustryTag } from "@/lib/api/marketplace/types";
+import { ESTIMATE_PARAM } from "@/lib/search/query";
 import { useHomeLocationSnapshot } from "./use-home-coords";
 import styles from "./category-rail.module.css";
 
@@ -40,6 +41,7 @@ export function CategoryRail({ locale, industries, orderedIndustryIds }: {
       params.set("lat", String(location.coords.lat));
       params.set("lng", String(location.coords.lng));
     }
+    if (location.approximate) params.set(ESTIMATE_PARAM, "1");
     router.push(`${localeHref(locale, "search")}?${params.toString()}`);
   };
   const browse = (industry?: Industry) => openCatalog({

@@ -63,7 +63,7 @@ test.beforeEach(async ({ page, context, request, baseURL }) => {
   await context.addCookies([{ name: 'zw-consent', value: 'denied', url: baseURL! }]);
   await context.addInitScript(() => localStorage.setItem('zw-recent-views', JSON.stringify([201, 202])));
   await context.route('https://api.maptiler.com/**', route => route.fulfill({ json: { features: [] } }));
-  await context.route('https://ipwho.is/**', route => route.fulfill({ json: { success: false } }));
+  await context.route('**/marketplace/public/approximate-location', route => route.fulfill({ json: { location: null } }));
 });
 test.afterEach(async ({ page, request }) => {
   expect((await inspect(request)).blockedMutations, 'The isolated fixture must not receive application mutations').toEqual([]);
@@ -280,19 +280,24 @@ test('a hung server feed reaches recovery and retry also settles without losing 
   await expect(recovery(page)).toHaveCount(1);
 });
 
-test('geolocation and IP lookups that never settle cannot leave the homepage loading forever', async ({ page, context, request }) => {
-  await context.addInitScript(() => Object.defineProperty(navigator, 'geolocation', {
-    configurable: true, value: { getCurrentPosition: () => {} },
-  }));
-  await context.route('https://ipwho.is/**', () => {});
+test('an IP lookup that never settles cannot leave the homepage loading forever, and home never asks for location', async ({ page, context, request }) => {
+  await context.addInitScript(() => {
+    const probe = window as unknown as Window & { __geoRequests: number };
+    probe.__geoRequests = 0;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true, value: { getCurrentPosition: () => { probe.__geoRequests += 1; } },
+    });
+  });
+  await context.route('**/marketplace/public/approximate-location', () => {});
   await configure(request, { empty: ['brands', 'recent', 'websites'] });
   await page.clock.install();
+  // Without an earlier "Allow", the IP lookup starts as the page loads.
+  const ipRequest = page.waitForRequest(item => new URL(item.url()).pathname === '/marketplace/public/approximate-location');
   await openHome(page);
-  const ipRequest = page.waitForRequest('https://ipwho.is/');
-  await page.clock.fastForward(8_100);
   await ipRequest;
   await page.clock.fastForward(8_100);
   await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as Window & { __geoRequests: number }).__geoRequests)).toBe(0);
   await expect(recovery(page)).toHaveCount(0);
   expect(await calls(request, 'city')).toHaveLength(0);
   expect(await calls(request, 'nearby')).toHaveLength(0);

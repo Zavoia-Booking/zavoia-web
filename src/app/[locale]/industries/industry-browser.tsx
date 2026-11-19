@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useHomeCoords } from "@/app/_components/home/use-home-coords";
+import { ESTIMATE_PARAM } from "@/lib/search/query";
 import { SEARCH_RADIUS_KM } from "@/components/search/constants";
 import { Icon } from "@/components/ui/icon";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -48,6 +49,7 @@ export function IndustryBrowser({
     locationQuery.set("radius", String(SEARCH_RADIUS_KM));
   }
   if (location.city) locationQuery.set("city", location.city);
+  if (location.approximate) locationQuery.set(ESTIMATE_PARAM, "1");
 
   function destination(item: { href: string }) {
     // Unknown locations keep the neutral industry/tag search destination;

@@ -13,7 +13,7 @@ export const cookiePolicy: LegalDocument = {
     ro: "Cookie-urile, stocarea locală și stocarea din aplicații folosite de Zavoia, și cum acceptați sau refuzați cookie-urile de analiză.",
   },
   status: "published",
-  effectiveDate: "2026-11-15",
+  effectiveDate: "2026-11-18",
   sections: [
     {
       id: "what-we-use",
@@ -164,7 +164,8 @@ export const cookiePolicy: LegalDocument = {
             en: [
               "zw-recent-searches, zw-recent-locations, zw-recent-locations-v · local storage · Zavoia · your last 6 searches and last 5 locations, so you can repeat them · until you clear your browser data",
               "zw-recent-views · local storage · Zavoia · the last 10 businesses you viewed · until you clear your browser data",
-              "zv-loc-skip · local storage · Zavoia · remembers that you chose “Not now” when asked for your location · until you clear your browser data",
+              "zv-loc-skip · local storage · Zavoia · remembers that you chose “Not now”, or that location couldn't be used, when asked for your location · until you clear your browser data",
+              "zv-loc-allow · local storage · Zavoia · remembers that you chose “Use my location” when asked for your location · until you clear your browser data",
               "zv.auth.lastDisplayName:v1 · local storage · Zavoia · shows your name and profile photo in the header while the page loads · until you sign out",
               "mc-anno-dismissed · local storage · Zavoia · remembers that you closed a business website's announcement bar · until you clear your browser data",
               "mapbox.eventData… · local storage · Mapbox · set by the map whenever a map is shown; Mapbox uses it to count map usage · until you clear your browser data",
@@ -172,7 +173,8 @@ export const cookiePolicy: LegalDocument = {
             ro: [
               "zw-recent-searches, zw-recent-locations, zw-recent-locations-v · stocare locală · Zavoia · ultimele 6 căutări și ultimele 5 locații, ca să le puteți repeta · până ștergeți datele browserului",
               "zw-recent-views · stocare locală · Zavoia · ultimele 10 afaceri vizualizate · până ștergeți datele browserului",
-              "zv-loc-skip · stocare locală · Zavoia · reține că ați ales „Mai târziu” când vi s-a cerut locația · până ștergeți datele browserului",
+              "zv-loc-skip · stocare locală · Zavoia · reține că ați ales „Mai târziu” sau că locația nu a putut fi folosită, când vi s-a cerut locația · până ștergeți datele browserului",
+              "zv-loc-allow · stocare locală · Zavoia · reține că ați ales „Folosește locația mea” când vi s-a cerut locația · până ștergeți datele browserului",
               "zv.auth.lastDisplayName:v1 · stocare locală · Zavoia · afișează numele și fotografia de profil în antet cât se încarcă pagina · până vă deconectați",
               "mc-anno-dismissed · stocare locală · Zavoia · reține că ați închis bara de anunțuri a site-ului unei afaceri · până ștergeți datele browserului",
               "mapbox.eventData… · stocare locală · Mapbox · plasată de hartă de fiecare dată când este afișată o hartă; Mapbox o folosește pentru a contoriza utilizarea hărții · până ștergeți datele browserului",

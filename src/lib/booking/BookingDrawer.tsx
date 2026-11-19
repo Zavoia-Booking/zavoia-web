@@ -99,6 +99,13 @@ function peopleFor(
 
 const CAL_DAYS_TO_CHECK = 30;
 
+/**
+ * Most services one booking may hold. Must match admin-api's
+ * MAX_BOOKING_SERVICES (get-availability.dto.ts), which rejects longer lists
+ * on the calendar, slots and book routes.
+ */
+const MAX_BOOKING_SERVICES = 15;
+
 /** crypto.randomUUID with a non-crypto fallback (older Safari / SSR-less guard). */
 function mintKey(): string {
   if (
@@ -1013,7 +1020,10 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     !validating &&
     !slotsError &&
     daySlots?.date === selectedDate;
-  const canContinueFromServices = picked.length > 0;
+  // The API rejects a booking with more services than this, so the picker
+  // stops here with an explanation instead of failing at the calendar step.
+  const tooManyServices = services.length > MAX_BOOKING_SERVICES;
+  const canContinueFromServices = picked.length > 0 && !tooManyServices;
 
   const stepTitle =
     step === 1
@@ -1339,7 +1349,11 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                 </div>
                 <footer className={styles.footer}>
                   <div className={styles.footerSummary}>
-                    {step === 1 && !canContinueFromServices ? (
+                    {step === 1 && tooManyServices ? (
+                      <div className={styles.hint} role="status">
+                        {format(t.tooManyServices, { max: String(MAX_BOOKING_SERVICES) })}
+                      </div>
+                    ) : step === 1 && !canContinueFromServices ? (
                       <div className={styles.hint}>{t.selectServicesEmpty}</div>
                     ) : (
                       <>

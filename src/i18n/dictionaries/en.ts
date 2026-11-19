@@ -284,6 +284,9 @@ export const en: {
     errors: {
       generic: string;
       invalidCredentials: string;
+      /** `{wait}` is a short duration such as "30 s" or "12 min". */
+      accountThrottled: string;
+      accountThrottledNoTime: string;
       googleAccountHint: string;
       emailInvalid: string;
       emailRequired: string;
@@ -897,6 +900,8 @@ export const en: {
     nextDates: string;
     chooseDate: string;
     selectServicesEmpty: string;
+    /** `{max}`: the most services one booking may hold (MAX_BOOKING_SERVICES). */
+    tooManyServices: string;
     noAvailability: string;
     nextAvailable: string;
     jumpToNext: string;
@@ -2218,6 +2223,8 @@ export const en: {
     errors: {
       generic: "Something went wrong. Please try again.",
       invalidCredentials: "Incorrect email or password.",
+      accountThrottled: "Too many attempts for this account. Try again in {wait}.",
+      accountThrottledNoTime: "Too many attempts for this account. Wait a few minutes and try again.",
       googleAccountHint:
         "Signed up with Google or Apple? Continue with it below, or choose \"Forgot password?\" to create a password.",
       emailInvalid: "Enter a valid email address.",
@@ -2877,6 +2884,7 @@ export const en: {
     nextDates: "Next dates",
     chooseDate: "Choose a date to see available times.",
     selectServicesEmpty: "Select at least one service to continue.",
+    tooManyServices: "You can only book up to {max} services at once.",
     noAvailability: "No availability in this date range.",
     nextAvailable: "Next available: {date}",
     jumpToNext: "Jump to next available",

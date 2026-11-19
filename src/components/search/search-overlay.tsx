@@ -1346,7 +1346,7 @@ export function SearchOverlay({
   // (even if reverse geocoding returns null / the key is missing). Robust:
   // never throws, falls back to a generic label on resolve failure.
   // Fallback when precise geolocation is unavailable or denied: estimate the
-  // city from the visitor's IP (ipwho.is, keyless). Keeps "use my location"
+  // city from the visitor's IP (our API, from Cloudflare). Keeps "use my location"
   // useful even without permission. `failMsg` is shown only if the estimate
   // itself fails.
   const applyIpFallback = (failMsg: string) => {

@@ -3,24 +3,32 @@ import { en } from '../../src/i18n/dictionaries/en'
 
 /**
  * HOME-03: unavailable location is optional, not a discovery outage.
- * Deny device coordinates and return an unsuccessful IP estimate so the result
- * is independent of the test runner's egress IP and the external service.
+ * Home never asks for location (the map does): without an earlier "Allow" it
+ * goes straight to the IP estimate. Our API returns no estimate here, so the
+ * result is independent of the test runner's egress IP.
  * The separate home-failure UI suite covers failed feeds and shared recovery.
  */
-test.describe('Home — near-you / in-your-city without geolocation', () => {
-  test('HOME-03 unavailable location settles without place requests, skeletons, or section warnings', async ({
+test.describe('Home — near-you / in-your-city without location', () => {
+  test('HOME-03 unavailable location settles without a location prompt, place requests, skeletons, or section warnings', async ({
     page, context,
   }) => {
-    await context.addInitScript(() => Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        getCurrentPosition: (_success: unknown, failure: (error: { code: number }) => void) => failure({ code: 1 }),
-      },
-    }))
+    // Count position requests: any would show the browser's location dialog.
+    await context.addInitScript(() => {
+      const probe = window as unknown as Window & { __geoRequests: number }
+      probe.__geoRequests = 0
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          getCurrentPosition: () => { probe.__geoRequests += 1 },
+          watchPosition: () => { probe.__geoRequests += 1; return 0 },
+          clearWatch: () => {},
+        },
+      })
+    })
     let ipLookups = 0
-    await context.route('https://ipwho.is/**', async route => {
+    await context.route('**/marketplace/public/approximate-location', async route => {
       ipLookups += 1
-      await route.fulfill({ json: { success: false } })
+      await route.fulfill({ json: { location: null } })
     })
     const locationRequests: string[] = []
     page.on('request', request => {
@@ -45,5 +53,6 @@ test.describe('Home — near-you / in-your-city without geolocation', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expect(page.locator('main').getByRole('button', { name: en.homeSections.hero.searchAria, exact: true })).toBeEnabled()
     expect(locationRequests).toEqual([])
+    expect(await page.evaluate(() => (window as unknown as Window & { __geoRequests: number }).__geoRequests)).toBe(0)
   })
 })

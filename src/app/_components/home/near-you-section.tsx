@@ -18,7 +18,7 @@ export function NearYouSection() {
   const { locale, dict } = useTranslation();
   const s = dict.homeSections.nearYou;
 
-  const { coords, city, resolving } = useHomeCoords();
+  const { coords, city, approximate, resolving } = useHomeCoords();
   const { items, loading, loaded, failed, hasMore, showMore, retry, failureId, failureKind, retryAt } =
     useHomeFeed("nearby", coords);
   const cards = items.map((item) => locationCardToData(item, locale));
@@ -37,7 +37,7 @@ export function NearYouSection() {
       <SectionTitle
         title={s.title}
         action={s.action}
-        href={mapHref(locale, city)}
+        href={mapHref(locale, city, approximate)}
       />
       {busy && cards.length === 0 ? (
         <div
