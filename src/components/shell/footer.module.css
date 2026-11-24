@@ -98,6 +98,7 @@
 .link {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   max-width: 100%;
   min-height: 32px;
   padding: 4px 0;
@@ -118,9 +119,10 @@
 
 .salLink {
   display: inline-flex;
+  align-items: center;
   justify-self: end;
   flex: none;
-  width: 250px;
+  gap: 4px;
   height: 50px;
   cursor: pointer;
 }

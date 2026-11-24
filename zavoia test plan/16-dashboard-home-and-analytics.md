@@ -147,8 +147,8 @@
 1. Open "See all" on the unresolved item.
 2. Filter by customer/staff name search, service chip, and date preset (7d/30d/90d/custom); clear filters.
 3. Select-all → "Mark no-show" (or Completed) → confirm.
-4. Repeat with a mix where one appointment was already resolved elsewhere (force a partial failure).
-**Expected:** Filters are client-side over the fetched list; empty result shows the no-results state. Bulk confirm calls `PUT /appointments/bulk-status` `{ids, status}`; successes toast the bulk-success count and disappear; per-id failures toast the failed count separately. Dashboard refetches after success.
+4. Repeat with a deliberately rejected ID in the second batch, such as a row deleted after the list was loaded.
+**Expected:** Filters are client-side over the fetched list; empty result shows the no-results state. For an owner, bulk confirm calls `PUT /appointments/bulk-status` with batches of up to 100 IDs. Verify 101 and 500 loaded rows and a partial failure in a later batch. Team members have no bulk selection. Their assigned rows offer Completed / No-show only when business settings allow it. In the owner flow, successes toast the bulk-success count and disappear; per-id failures toast the failed count separately. Dashboard refetches after success.
 
 ### 16.18 Pending bookings + SMS-low rows; all-clear state [Dashboard]
 **Steps:**

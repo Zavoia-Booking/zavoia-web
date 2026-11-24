@@ -1812,11 +1812,12 @@ dashboard's logical widths of 834px and 390px, with heights capped at 1080px and
 scale the page rather than changing its responsive breakpoints. Expanding or
 minimizing the floating panel does not resize the canvas or change the logical
 device selection.
-On phone screens (up to 600px), offer only desktop and mobile. Both fill the
-available screen without a device frame, gutters or backdrop. Mobile renders
-at the phone's actual width and scale 1; desktop keeps its 1280px logical canvas
-scaled to the same available width. Shared tablet-preview links fall back to
-mobile on these screens. Larger screens retain all three device choices.
+On phone screens (up to 600px), show only the mobile view, without a device
+switch. It fills the available screen without a device frame, gutters or
+backdrop, at the phone's actual width and scale 1. A 1280px desktop canvas
+scaled onto a phone crashes the tab on iPhone, so shared desktop and tablet
+links fall back to mobile on these screens. Larger screens retain all three
+device choices.
 The demo scroll host supplies its measured logical height as `--mc-vph`; unscaled
 published-site hosts use `100dvh`, and marketing previews retain their measured
 virtual heights. Preserve the visible section when switching devices. Section

@@ -108,6 +108,8 @@ function rescheduleErrorMessage(
       return t.alreadyStarted;
     case "APPOINTMENTS.E10":
       return t.noLongerReschedulable;
+    case "APPOINTMENTS.E13":
+      return format(t.notConfirmedYet, { businessName });
     case "MARKETPLACE_BOOKING.E08":
       return bookingErrors.tooSoon;
     case "MARKETPLACE_BOOKING.E09":

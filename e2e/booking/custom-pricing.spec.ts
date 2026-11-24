@@ -17,7 +17,7 @@ import { findApiSlotWithStaff } from '../fixtures/availability'
 
 /** The business-detail page's service row (name + duration/price meta), located by its exact visible name. */
 function serviceRowContainer(page: Page, serviceName: string): Locator {
-  return page.getByText(serviceName, { exact: true }).locator('xpath=..')
+  return new BusinessPage(page).serviceToggle(serviceName)
 }
 
 async function pickFirstAvailableDay(drawer: BookingDrawer): Promise<void> {

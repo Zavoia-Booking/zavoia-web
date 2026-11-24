@@ -1113,6 +1113,7 @@ export const ro: Dictionary = {
     open247: "Deschis 24/7",
     closesAt: "Se închide la {time}",
     photo: "poză",
+    opensInNewTab: "Se deschide într-o filă nouă",
   },
   errors: {
     generic: "Ceva nu a mers. Încearcă din nou.",
@@ -2545,6 +2546,8 @@ export const ro: Dictionary = {
         "Ora de începere a trecut. Reprogramarea nu mai este posibilă.",
       noLongerReschedulable:
         "Programarea nu mai poate fi reprogramată. Actualizează pagina pentru a vedea starea actuală.",
+      notConfirmedYet:
+        "Programarea poate fi reprogramată după ce {businessName} o confirmă.",
       unsupported:
         "Această programare nu poate fi reprogramată online. Contactează locația pentru a schimba ora.",
     },

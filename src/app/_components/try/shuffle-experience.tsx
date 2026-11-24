@@ -93,8 +93,8 @@ export function ShuffleExperience({ locale, backHref, initialCode, source, initi
   const compact = viewport.browserWidth > 0 && viewport.browserWidth < 1024;
   const phone = viewport.browserWidth > 0 && viewport.browserWidth <= 600;
   const controlsOpen = requestedControls ?? viewport.browserWidth >= 1024;
-  const device = phone && requestedDevice === "tablet" ? "mobile" : requestedDevice ?? (phone ? "mobile" : viewport.browserWidth > 0 && viewport.browserWidth <= 980 ? "tablet" : "desktop");
-  const devices = phone ? DEVICES.filter(option => option.id !== "tablet") : DEVICES;
+  // Phones always show mobile (shared desktop/tablet links included): a 1280px page scaled onto a phone crashes the tab on iPhone.
+  const device = phone ? "mobile" : requestedDevice ?? (viewport.browserWidth > 0 && viewport.browserWidth <= 980 ? "tablet" : "desktop");
   const framed = !phone && device !== "desktop";
   // Desktop fills the browser so section backgrounds stay edge-to-edge. Content limits belong
   // inside each section. Narrow desktop previews retain the dashboard's 1280px logical canvas;
@@ -473,9 +473,9 @@ export function ShuffleExperience({ locale, backHref, initialCode, source, initi
           </header>
           <div className={styles.panelBody} data-controls-body="">
             <div className={styles.previewTools} aria-label={t.previewSettings}>
-              <div className={styles.devices} role="group" aria-label={websiteT("businessPage.builder.deviceGroup")}>
-                {devices.map(({ id, labelKey, Icon }) => <button key={id} type="button" className={styles.deviceButton} aria-label={websiteT(`businessPage.builder.${labelKey}`)} title={websiteT(`businessPage.builder.${labelKey}`)} aria-pressed={device === id} onClick={() => selectDevice(id)}><Icon size={17} aria-hidden="true" /></button>)}
-              </div>
+              {!phone && <div className={styles.devices} role="group" aria-label={websiteT("businessPage.builder.deviceGroup")}>
+                {DEVICES.map(({ id, labelKey, Icon }) => <button key={id} type="button" className={styles.deviceButton} aria-label={websiteT(`businessPage.builder.${labelKey}`)} title={websiteT(`businessPage.builder.${labelKey}`)} aria-pressed={device === id} onClick={() => selectDevice(id)}><Icon size={17} aria-hidden="true" /></button>)}
+              </div>}
               <div className={styles.tools}>
                 <button type="button" className={styles.iconButton} disabled={!history.length} onClick={undo} aria-label={t.previous} title={t.previous}><Undo2 size={17} /></button>
                 <button type="button" className={styles.iconButton} disabled={resetDisabled} onClick={() => commit({ ...snapshot, look: OPENING_LOOK, hidden: DEFAULT_HIDDEN })} aria-label={t.reset} title={t.reset}><RotateCcw size={16} /></button>

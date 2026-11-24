@@ -999,6 +999,7 @@ export const en: {
     open247: string;
     closesAt: string;
     photo: string;
+    opensInNewTab: string;
   };
   errors: {
     generic: string;
@@ -1839,6 +1840,7 @@ export const en: {
       notAllowed: string;
       alreadyStarted: string;
       noLongerReschedulable: string;
+      notConfirmedYet: string;
       unsupported: string;
     };
     review: {
@@ -2993,6 +2995,7 @@ export const en: {
     open247: "Open 24/7",
     closesAt: "Closes {time}",
     photo: "photo",
+    opensInNewTab: "Opens in a new tab",
   },
   errors: {
     generic: "Something went wrong. Please try again.",
@@ -4417,6 +4420,8 @@ export const en: {
         "The appointment’s start time has passed. It can no longer be rescheduled.",
       noLongerReschedulable:
         "This appointment can no longer be rescheduled. Refresh the page to see its current status.",
+      notConfirmedYet:
+        "This appointment can be rescheduled once {businessName} confirms it.",
       unsupported:
         "This appointment can't be rescheduled online. Contact the venue to change the time.",
     },

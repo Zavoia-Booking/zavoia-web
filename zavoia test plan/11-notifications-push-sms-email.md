@@ -10,7 +10,7 @@
 
 ## Notification event reference (from API code)
 
-- Business bell (`BusinessNotificationType`): `support_reply`, `appointment_status_review`, `appointment_rescheduled_by_customer`, `appointment_cancelled_by_customer`, `sms_credits_low`, `sms_credits_depleted`, `appointment_rescheduled_by_team_member`, `team_member_accepted_invitation`, `team_member_left_organisation`, `appointment_assigned`, `appointment_unassigned`, `appointment_rescheduled`, `appointment_cancelled`
+- Business bell (`BusinessNotificationType`): `support_reply`, `appointment_status_review`, `appointment_rescheduled_by_customer`, `appointment_cancelled_by_customer`, `sms_credits_low`, `sms_credits_depleted`, `appointment_rescheduled_by_team_member`, `appointment_service_changed_by_team_member`, `team_member_accepted_invitation`, `team_member_left_organisation`, `appointment_assigned`, `appointment_unassigned`, `appointment_rescheduled`, `appointment_cancelled`
 - Customer notification events (`NotificationEventType`): `reminder`, `cancellation`, `reschedule`, `confirmation`, `review_request` — each fans out to channels `sms` / `push` / `email` with per-channel `notification_delivery` rows (`pending`/`sent`/`failed`/`skipped`)
 - Customer push inbox types (`NotificationType`): `appointment_reminder`, `appointment_confirmed`, `appointment_cancelled`, `appointment_rescheduled`, `new_message`, `promotion`, `review_request`, `account_update`, `general`
 - Business FCM push events (`AppointmentEventType`): `appointment.created`, `appointment.cancelled`, `appointment.rescheduled`, `appointment.confirmed`
@@ -66,8 +66,12 @@
 ### 11.7 Business cancels with reason → customer cancellation notice (no quiet hours) [Dashboard] [Mobile]
 **Steps:**
 1. In dashboard, cancel a confirmed appointment providing a cancellation reason (after 22:00 business time if possible)
-2. Check customer channels
-**Expected:** SMS/push/email sent immediately (cancellation ignores quiet hours) — SMS: "Your appointment at {business} on {date} at {time} has been cancelled. Reason: {reason}"; email `AppointmentCancellation` includes the reason; push title "Appointment Cancelled". Reminder event cancelled.
+2. Repeat using Email, SMS and Both. Test SMS disabled, zero credits, a rejected send, and a phone-only customer. Repeat with Notify customer off.
+
+**Expected**
+
+- Cancellation sends the selected email/SMS channels immediately. Push follows the customer’s preference. With SMS unavailable at the venue, the dialog offers email.
+- SMS-only falls back to email when SMS cannot send and the customer has an email. Both sends at most one email even if SMS fails. Notify customer off sends no customer cancellation message. A pending reminder is cancelled.
 
 ### 11.8 Mark completed → review request only for marketplace customers [Dashboard] [Mobile]
 **Steps:**
@@ -84,8 +88,8 @@
 2. Let it fire (or trigger the Cloud Task webhook)
 3. Book appointment ~3h ahead (ideal reminder time already past)
 4. Book appointment <2h ahead
-5. Book appointment whose computed reminder lands between 22:00–07:00 business time
-**Expected:** 1–2: reminder at T-24h on all enabled channels — SMS "Reminder: Your appointment at {business} is on {date} at {time}." (usage `appointment_reminder`), push "Appointment Reminder", email `AppointmentReminder`. 3: falls back to 2h before. 4: skipped ("too soon"). 5: shifted to 21:55 the prior evening if still future and before the appointment, else 07:05.
+5. Book an appointment whose computed reminder lands between 22:00 and 08:00 business time. Include 07:59 and 08:00.
+**Expected:** 1–2: reminder at T-24h on all enabled channels — SMS "Reminder: Your appointment at {business} is on {date} at {time}." (usage `appointment_reminder`), push "Appointment Reminder", email `AppointmentReminder`. 3: falls back to 2h before. 4: skipped ("too soon"). 5: shifted to 21:55 the prior evening if still future and before the appointment, otherwise 08:05. Skip it if the adjusted time is at or after the appointment.
 
 ### 11.10 Reminder re-checks at send time (stale state) [Dashboard]
 **Steps:**

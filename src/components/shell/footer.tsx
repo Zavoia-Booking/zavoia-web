@@ -13,6 +13,7 @@ import { localeHref } from "@/i18n/routes";
 import type { Locale } from "@/i18n/locales";
 import { useConsent } from "@/lib/consent/ConsentProvider";
 import { BUSINESS_APP_URL } from "@/lib/env";
+import { Icon } from "@/components/ui/icon";
 import motion from "@/components/ui/disclosure-motion.module.css";
 import styles from "./footer.module.css";
 
@@ -24,6 +25,7 @@ export function Footer({ locale, showWordmark = true }: {
   const { dict } = useTranslation();
   const t = dict.footer;
   const { openSettings } = useConsent();
+  const newTabHintId = useId();
 
   const fLink = (label: string, ...segments: string[]) => (
     <Link href={localeHref(locale, ...segments)} title={label} className={styles.link}>
@@ -77,8 +79,15 @@ export function Footer({ locale, showWordmark = true }: {
               <li>{fLink(t.webStudio, "web-studio")}</li>
               <li>{fLink(t.pricing, "pricing")}</li>
               <li>
-                <a href={`${BUSINESS_APP_URL}/login`} title={t.businessSignIn} className={styles.link}>
-                  {t.businessSignIn}
+                <a
+                  href={`${BUSINESS_APP_URL}/login`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={t.businessSignIn}
+                  className={styles.link}
+                  aria-describedby={newTabHintId}
+                >
+                  {t.businessSignIn}<Icon name="arrowUR" size={12} />
                 </a>
               </li>
             </FooterColumn>
@@ -99,12 +108,26 @@ export function Footer({ locale, showWordmark = true }: {
             <button type="button" className={styles.link} onClick={openSettings}>
               {t.cookieSettings}
             </button>
-            <a href="https://www.anpc.ro/" title={t.consumerProtection} className={styles.link}>
-              {t.consumerProtection}
+            <a
+              href="https://www.anpc.ro/"
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t.consumerProtection}
+              className={styles.link}
+              aria-describedby={newTabHintId}
+            >
+              {t.consumerProtection}<Icon name="arrowUR" size={12} />
             </a>
           </div>
           {/* Official artwork: https://anpc.ro/download/sal/SAL-PICTOGRAMA.png */}
-          <a href="https://reclamatiisal.anpc.ro/" title={t.alternativeDisputeResolution} className={styles.salLink}>
+          <a
+            href="https://reclamatiisal.anpc.ro/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={t.alternativeDisputeResolution}
+            className={styles.salLink}
+            aria-describedby={newTabHintId}
+          >
             <Image
               src="/legal/anpc-sal.png"
               alt={t.alternativeDisputeResolution}
@@ -114,7 +137,9 @@ export function Footer({ locale, showWordmark = true }: {
               className={styles.salBadge}
               unoptimized
             />
+            <Icon name="arrowUR" size={12} />
           </a>
+          <span id={newTabHintId} hidden>{dict.common.opensInNewTab}</span>
         </div>
 
         {/* All navigation remains rendered when JavaScript is unavailable. */}

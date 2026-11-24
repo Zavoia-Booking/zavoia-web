@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import { BusinessPage } from '../pages/BusinessPage'
 import { BookingDrawer } from '../pages/BookingDrawer'
-import { API_URL, signInAsFreshCustomer } from '../fixtures/customer-helpers'
+import { API_URL, authHeader, signInAsFreshCustomer } from '../fixtures/customer-helpers'
 import {
   DEMO,
   clearStaffForService,
@@ -155,10 +155,10 @@ test.describe('Availability conflicts', () => {
       await drawerB.confirmButton().click()
       await expect(drawerB.successHeading()).toBeVisible({ timeout: 15_000 })
 
-      // A is now stale — confirming the same slot hits E10 (slot conflict):
-      // the alert appears, the slot is dropped, and the grid refetches.
+      // A's checkout now rechecks the selected professional before booking.
+      // It warns, clears the stale selection and refreshes the time grid.
       await drawerA.confirmButton().click()
-      await expect(drawerA.submitAlert()).toHaveText('That time is no longer available. Choose another time.')
+      await expect(drawerA.submitAlert()).toHaveText("That professional isn't available then. Please choose another time.")
       await expect(drawerA.stepLabel(2)).toBeVisible()
       await expect(drawerA.slot(slotLabel)).toHaveCount(0)
 
@@ -179,47 +179,74 @@ test.describe('Availability conflicts', () => {
     }
   })
 
-  test('CONF-04 raising the minimum notice while a slot is held rejects confirm without clearing the slot', async ({
-    page,
-  }) => {
-    await signInAsFreshCustomer(page)
-    const business = new BusinessPage(page)
-    const drawer = new BookingDrawer(page)
+  for (const { name, dayIndex, updatedSettings, message } of [
+    {
+      name: 'raising minimum notice',
+      dayIndex: 0,
+      updatedSettings: { minAdvanceBookingMinutes: 4320 },
+      message: 'That time is too soon to book. Choose a later time.',
+    },
+    {
+      name: 'shortening the maximum booking window',
+      dayIndex: 2,
+      updatedSettings: { maxAdvanceBookingMinutes: 30 },
+      message: 'Bookings aren’t open for that date yet. Choose an earlier date.',
+    },
+  ]) {
+    test(`CONF-04 ${name} during review refreshes the calendar and clears the invalid slot`, async ({ page }) => {
+      const customer = await signInAsFreshCustomer(page)
+      const businessId = await getBusinessId(DEMO.businesses.zen)
+      const customerId = await getUserIdByEmail(customer.email)
+      const { rows: [originalSettings] } = await withTestDb((client) =>
+        client.query(
+          `SELECT "minAdvanceBookingMinutes", "maxAdvanceBookingMinutes" FROM booking_settings WHERE "businessId" = $1`,
+          [businessId],
+        ),
+      )
+      const business = new BusinessPage(page)
+      const drawer = new BookingDrawer(page)
 
-    await business.goto(DEMO.locationSlugs.zenDorobanti)
-    await business.addService(DEMO.services.zenRelax.name)
-    await business.bookButton('Book 1 service').click()
-    await drawer.waitForOpen()
-    await expect(drawer.stepLabel(2)).toBeVisible()
-
-    const day = firstAvailableDay(drawer)
-    await day.waitFor({ state: 'visible', timeout: 15_000 })
-    await day.click()
-    const slot = firstSlot(drawer)
-    await slot.waitFor({ state: 'visible', timeout: 15_000 })
-    await slot.click()
-    await expect(drawer.continueFromSlotButton()).toBeEnabled()
-    await drawer.continueFromSlotButton().click()
-    await expect(drawer.confirmButton()).toBeVisible()
-
-    try {
-      // Raise the minimum notice window to 3 days AFTER the slot is already
-      // held. The soonest slot of the soonest available day is always well
-      // inside that window on a fresh demo dataset.
-      await setBookingSettings(DEMO.businesses.zen, { minAdvanceBookingMinutes: 4320 })
-
-      await drawer.confirmButton().click()
-      await expect(drawer.submitAlert()).toHaveText('That time is too soon to book. Please pick a later date.')
-      // Sent back to step 2, but the slot itself is NOT cleared — Continue
-      // is still enabled without re-picking anything.
+      await business.goto(DEMO.locationSlugs.zenDorobanti)
+      await business.addService(DEMO.services.zenRelax.name)
+      await business.bookButton('Book 1 service').click()
+      await drawer.waitForOpen()
       await expect(drawer.stepLabel(2)).toBeVisible()
-      await expect(drawer.continueFromSlotButton()).toBeEnabled()
-    } finally {
-      // Restore the entity default so later specs booking at Zen aren't hit
-      // by this business's now-inflated minimum notice window.
-      await setBookingSettings(DEMO.businesses.zen, { minAdvanceBookingMinutes: 0 })
-    }
-  })
+
+      const availableDay = drawer.root.locator('button[data-date]:not(:disabled)').nth(dayIndex)
+      await expect(availableDay).toBeEnabled()
+      const date = await availableDay.getAttribute('data-date')
+      const day = drawer.root.locator(`button[data-date="${date}"]`)
+      await expect(day).toContainText(/slots?/)
+      await day.click()
+      await firstSlot(drawer).click()
+      await drawer.continueFromSlotButton().click()
+      await expect(drawer.confirmButton()).toBeVisible()
+
+      try {
+        await setBookingSettings(DEMO.businesses.zen, updatedSettings)
+        await drawer.confirmButton().click()
+        await expect(drawer.submitAlert()).toHaveText(message)
+        await expect(drawer.stepLabel(2)).toBeVisible()
+        await expect(day).toBeDisabled()
+        await expect(day).not.toContainText(/slots?/)
+        await expect(drawer.root.getByText(/fully booked this day/i)).toHaveCount(0)
+        await expect(drawer.root.locator('.zv-slot')).toHaveCount(0)
+        await expect(drawer.continueFromSlotButton()).toBeDisabled()
+        const bookings = await withTestDb((client) =>
+          client.query('SELECT id FROM appointment WHERE "customerId" = $1', [customerId]),
+        )
+        expect(bookings.rowCount).toBe(0)
+      } finally {
+        if (originalSettings) {
+          await setBookingSettings(DEMO.businesses.zen, originalSettings)
+        } else {
+          await withTestDb((client) =>
+            client.query('DELETE FROM booking_settings WHERE "businessId" = $1', [businessId]),
+          )
+        }
+      }
+    })
+  }
 
   test('CONF-05 a staff-scope calendar block hides the blocked professional from a slot, not the other', async ({
     page,
@@ -329,6 +356,7 @@ test.describe('Availability conflicts', () => {
       expect(listingRes.ok()).toBeTruthy()
       const listing = (await listingRes.json()) as { listingId: number; locationId: number }
       const bookRes = await page.request.post(`${API_URL}/marketplace/appointments/book`, {
+        headers: await authHeader(page),
         data: {
           listingId: listing.listingId,
           locationId: listing.locationId,

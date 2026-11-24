@@ -353,7 +353,22 @@ export function BusinessDetail({ listing, locale, categoryHref, categoryHasOther
         else router.push(localeHref(locale, "search"));
       }}><Icon name="back" size={16} /><span className={styles.backLabel}>{t.back}</span></button>
       <div className={styles.identityActions}>
-        {mapHref && <Link href={mapHref} prefetch={false} className={styles.toolbarMapAction} aria-label={t.seeOnMap}><Icon name="pin" size={18} />{t.seeOnMap}</Link>}
+        {mapHref && (
+          <Link
+            href={mapHref}
+            prefetch={false}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.toolbarMapAction}
+            aria-label={t.seeOnMap}
+            aria-describedby={`${panelId}-map-new-tab`}
+          >
+            <Icon name="pin" size={18} className={styles.toolbarMapPin} />
+            {t.seeOnMap}
+            <Icon name="arrowUR" size={14} />
+            <span id={`${panelId}-map-new-tab`} hidden>{dict.common.opensInNewTab}</span>
+          </Link>
+        )}
         <Button kind="ghost" size="sm" className={styles.shareAction} loading={sharing} aria-label={t.share} onClick={onShare}><Icon name="share" size={18} /><span className={styles.shareLabel}>{t.share}</span></Button>
         <span className={styles.saveAction}><FavoriteHeart locationId={locationId} /></span>
       </div>

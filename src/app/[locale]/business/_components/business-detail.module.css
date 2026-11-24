@@ -312,7 +312,7 @@ button.ticket { cursor: pointer; }
 @media (max-width: 370px) {
   .back { justify-content: center; flex-shrink: 0; width: 44px; min-width: 44px; padding: 0; }
   .backLabel { display: none; }
-  .toolbarMapAction > svg { display: none !important; }
+  .toolbarMapAction > .toolbarMapPin { display: none !important; }
   .identity h1[data-long-name] { font-size: 34px; }
   .tabCount { display: none; }
   .teamCard { grid-template-columns: 64px minmax(0, 1fr); padding: 18px 16px; }

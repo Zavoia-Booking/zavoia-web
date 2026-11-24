@@ -252,8 +252,23 @@ export function DemoControls({ locale, look, example, businessName, hidden, lock
         <p>{t.stylesNote}</p>
       </aside>
       <p className={styles.demoLegal}>
-        <Link href={localeHref(locale, "terms", "privacy-policy")}>{dict.footer.privacy}</Link>
-        <Link href={localeHref(locale, "terms")}>{dict.footer.terms}</Link>
+        <Link
+          href={localeHref(locale, "terms", "privacy-policy")}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-describedby={`${id}-new-tab`}
+        >
+          {dict.footer.privacy}<Icon name="arrowUR" size={12} />
+        </Link>
+        <Link
+          href={localeHref(locale, "terms")}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-describedby={`${id}-new-tab`}
+        >
+          {dict.footer.terms}<Icon name="arrowUR" size={12} />
+        </Link>
+        <span id={`${id}-new-tab`} hidden>{dict.common.opensInNewTab}</span>
         <button type="button" onClick={openSettings}>{dict.footer.cookieSettings}</button>
       </p>
     </div>
@@ -265,7 +280,16 @@ export function DemoControls({ locale, look, example, businessName, hidden, lock
         <div className={styles.keepButtons}>{LOCK_KEYS.map(keepChoice)}</div>
       </div>
       <div className={styles.footerActions}>
-        <a className={styles.signup} href={signupHref} aria-describedby={`${id}-trial-note`} title={trialNote}>{t.cta}</a>
+        <a
+          className={styles.signup}
+          href={signupHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-describedby={`${id}-trial-note ${id}-new-tab`}
+          title={trialNote}
+        >
+          {t.cta}<Icon name="arrowUR" size={14} />
+        </a>
         <button type="button" className={`${styles.shuffle} zw-try-shuffle`} disabled={allLocked} aria-describedby={allLocked ? `${id}-all-locked` : undefined} onClick={event => onShuffle(event.detail > 0)}><span>{t.shuffle}</span><Shuffle size={16} aria-hidden="true" /></button>
       </div>
       <p className={styles.trialNote} id={`${id}-trial-note`}>{trialNote}</p>

@@ -36,7 +36,7 @@ function minutesUntil(scheduledAt: string | null | undefined): number {
 }
 
 export function canReschedule(appt: AppointmentDetail): boolean {
-  if (appt.status !== "pending" && appt.status !== "confirmed") return false;
+  if (appt.status !== "confirmed") return false; // a pending booking first needs the business to confirm it (APPOINTMENTS.E13)
   const loc = appt.location;
   if (!loc?.allowCustomerReschedule) return false;
   return minutesUntil(appt.scheduled_at) >= (loc.rescheduleWindowMinutes ?? 0);

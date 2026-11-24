@@ -49,6 +49,7 @@ import type {
   BookingCalendar,
   BookingPolicy,
   BookingCalendarDay,
+  BookingDayStatus,
   BookingDaySlots,
   BookingServiceItem,
   ServiceSelection,
@@ -169,16 +170,14 @@ function selectionKey(picks: BookingPick[]): string {
 }
 
 /** Format a YYYY-MM-DD into a localized "Mon, Jan 5"-style label. */
-function fmtDateLabel(date: string, locale: string, timeZone: string): string {
-  const [y, mo, d] = date.split("-").map(Number);
-  // Anchor at noon UTC to avoid the calendar date drifting across the day line
-  // when projected into the location tz for display.
-  const dt = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
+function fmtDateLabel(date: string, locale: string): string {
+  // The API date already describes a day in the venue's calendar.
+  const dt = new Date(`${date}T12:00:00Z`);
   return new Intl.DateTimeFormat(locale, {
     weekday: "short",
     month: "short",
     day: "numeric",
-    timeZone,
+    timeZone: "UTC",
   }).format(dt);
 }
 
@@ -448,26 +447,46 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
   //    `servicesOverride` lets the staff-pin recovery refetch unpinned in the
   //    same tick it flips `ignorePins` (before the memo above recomputes). ──
   const loadCalendar = useCallback(
-    async (servicesOverride?: BookingSelectionItem[], retry = false, startDate?: string) => {
+    async (
+      servicesOverride?: BookingSelectionItem[],
+      retry = false,
+      startDate?: string,
+      refreshThroughDate?: string,
+    ) => {
       if (!payload) return;
       const requestId = (calRequestIdRef.current += 1);
       setCalLoading(true);
       if (!retry) setCalError(null);
       try {
-        const tz = payload.timezone || "UTC";
-        const res = await getBookingCalendar({
+        const firstDate = startDate ?? todayInTz(payload.timezone || "UTC");
+        const pages = [firstDate];
+        // Returning from review should keep the selected date reachable even
+        // when the customer paged beyond the first window to pick it.
+        if (refreshThroughDate) {
+          for (let date = addWallDays(firstDate, CAL_DAYS_TO_CHECK);
+            date <= refreshThroughDate; date = addWallDays(date, CAL_DAYS_TO_CHECK)) {
+            pages.push(date);
+          }
+        }
+        const responses = await Promise.all(pages.map((date) => getBookingCalendar({
           businessId: payload.businessId,
           locationId: payload.locationId,
           services: toServiceSelections(servicesOverride ?? effectiveServices),
-          startDate: startDate ?? todayInTz(tz),
+          startDate: date,
           daysToCheck: CAL_DAYS_TO_CHECK,
-        });
+        })));
         if (requestId !== calRequestIdRef.current) return; // superseded
+        const refreshed = responses.flatMap((response) => response.calendar);
+        const result = {
+          ...responses[0],
+          calendar: refreshed,
+          nextAvailableDate: refreshed.find((day) => day.status === "available")?.date ?? null,
+        };
         setCalendar((previous) => startDate && previous
-          ? { ...res, calendar: [...previous.calendar, ...res.calendar.filter((day) => !previous.calendar.some((old) => old.date === day.date))] }
-          : res);
+          ? { ...result, calendar: [...previous.calendar, ...refreshed.filter((day) => !previous.calendar.some((old) => old.date === day.date))] }
+          : result);
         setCalError(null);
-        return res;
+        return result;
       } catch (e) {
         if (requestId !== calRequestIdRef.current) return; // superseded
         const block = classifyBookingBlock(e);
@@ -697,6 +716,11 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     );
   }, [displaySlot, displayPicks, displayDay, resolvedServices, currency, locale, step]);
 
+  const refreshAvailability = useCallback((date: string) => {
+    void loadCalendar(undefined, false, undefined, date);
+    void loadSlots(date);
+  }, [loadCalendar, loadSlots]);
+
   const validateSequence = useCallback(async () => {
     if (!payload || !selectedSlot || !selectedDate || slotsLoading || slotsError || daySlots?.date !== selectedDate) return null;
     const requestId = ++validationRequestRef.current;
@@ -709,13 +733,22 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         date: selectedDate, services: selections,
       });
       if (requestId !== validationRequestRef.current || sessionId !== getAuthenticatedSessionId()) return null;
-      const slot = day.businessId === payload.businessId && day.locationId === payload.locationId
+      const matchesRequest = day.businessId === payload.businessId &&
+        day.locationId === payload.locationId && day.date === selectedDate;
+      const slot = matchesRequest
         ? findExactSlot(day, selectedDate, selectedSlot.startTime, selections)
         : undefined;
       if (!slot) {
-        toast(t.errors.staffUnavailable, "warn", undefined, "error");
+        let message = t.errors.staffUnavailable;
+        const bounds = matchesRequest ? day.bookingStartBounds : undefined;
+        if (bounds) {
+          const start = Date.parse(zonedWallTimeToUtcISO(selectedDate, selectedSlot.startTime, timeZone));
+          if (start < Date.parse(bounds.earliestBooking)) message = t.errors.tooSoon;
+          else if (bounds.latestBooking && start > Date.parse(bounds.latestBooking)) message = t.errors.tooFar;
+        }
+        toast(message, "warn", undefined, "error");
         setStep(2);
-        void loadSlots(selectedDate);
+        refreshAvailability(selectedDate);
         return null;
       }
       const picks = Object.fromEntries(selections.map((item, index) => [index, item.teamMemberId!])) as StaffPicks;
@@ -731,7 +764,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     } finally {
       if (requestId === validationRequestRef.current) setValidating(false);
     }
-  }, [payload, selectedSlot, selectedDate, staffPicks, slotsLoading, slotsError, daySlots, loadSlots, toast, dict.errors, t.errors.staffUnavailable, t.loadError]);
+  }, [payload, selectedSlot, selectedDate, staffPicks, slotsLoading, slotsError, daySlots, timeZone, refreshAvailability, toast, dict.errors, t.errors, t.loadError]);
 
   const continueToReview = async () => {
     // An unknown outcome must remain retryable even if that request booked the slot.
@@ -864,16 +897,10 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
         invalidateQuote();
         setStep(2);
         idempotencyKeyRef.current = "";
-        // Only a slot conflict or a fresh calendar block actually invalidate
-        // what's on screen — the grid the user is looking at is now a lie, so
-        // drop the pick and refetch it. The other recoverable codes (too
-        // soon/far, outside opening hours, staff unavailable) don't invalidate
-        // the grid itself; the user just needs to choose differently within
-        // it, same as reschedule-modal.tsx's identical distinction.
-        if (errorKey === "slotConflict" || errorKey === "calendarBlock") {
-          setSelectedSlot(null);
-          if (selectedDate) void loadSlots(selectedDate);
-          else void loadCalendar();
+        // Limits can change after the final slot check and before the booking write.
+        if (errorKey === "slotConflict" || errorKey === "calendarBlock" ||
+            errorKey === "tooSoon" || errorKey === "tooFar") {
+          refreshAvailability(selectedDate);
         }
       }
     } finally {
@@ -896,8 +923,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
     resolvedServices,
     t.errors,
     dict.errors,
-    loadCalendar,
-    loadSlots,
+    refreshAvailability,
     toast,
   ]);
 
@@ -1288,6 +1314,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                               loading={slotsLoading}
                               error={slotsError}
                               selectedDate={selectedDate}
+                              dayStatus={calendar?.calendar.find((day) => day.date === selectedDate)?.status}
                               selectedSlot={selectedSlot}
                               staffPicks={displayPicks}
                               locale={locale}
@@ -1792,13 +1819,12 @@ function DateStep({
         >
           {visibleDays.length > 0 && (
             <>
-              {fmtDateLabel(visibleDays[0].date, locale, timeZone)}
+              {fmtDateLabel(visibleDays[0].date, locale)}
               <span aria-hidden="true"> – </span>
               <span className="sr-only"> / </span>
               {fmtDateLabel(
                 visibleDays[visibleDays.length - 1].date,
                 locale,
-                timeZone,
               )}
             </>
           )}
@@ -1831,7 +1857,6 @@ function DateStep({
               key={day.date}
               day={day}
               locale={locale}
-              timeZone={timeZone}
               t={t}
               selected={day.date === selectedDate}
               isToday={day.date === today}
@@ -1849,7 +1874,6 @@ function DateStep({
 function DayCell({
   day,
   locale,
-  timeZone,
   t,
   selected,
   isToday,
@@ -1857,22 +1881,20 @@ function DayCell({
 }: {
   day: BookingCalendarDay;
   locale: string;
-  timeZone: string;
   t: BookingDict;
   selected: boolean;
   isToday: boolean;
   onPick: () => void;
 }) {
   const available = day.status === "available";
-  const [y, mo, d] = day.date.split("-").map(Number);
-  const date = new Date(Date.UTC(y, mo - 1, d, 12));
+  const date = new Date(`${day.date}T12:00:00Z`);
   const weekday = new Intl.DateTimeFormat(locale, {
     weekday: "short",
-    timeZone,
+    timeZone: "UTC",
   }).format(date);
   const dayNumber = new Intl.DateTimeFormat(locale, {
     day: "numeric",
-    timeZone,
+    timeZone: "UTC",
   }).format(date);
   const count =
     available && day.slotsCount != null
@@ -1901,7 +1923,7 @@ function DayCell({
       aria-pressed={selected}
       aria-label={[
         isToday ? t.todayLabel : null,
-        fmtDateLabel(day.date, locale, timeZone),
+        fmtDateLabel(day.date, locale),
         status,
       ]
         .filter(Boolean)
@@ -1923,6 +1945,7 @@ function SlotStep({
   loading,
   error,
   selectedDate,
+  dayStatus,
   selectedSlot,
   staffPicks,
   locale,
@@ -1942,6 +1965,7 @@ function SlotStep({
   loading: boolean;
   error: string | null;
   selectedDate: string | null;
+  dayStatus?: BookingDayStatus;
   selectedSlot: TimeSlot | null;
   staffPicks: StaffPicks;
   locale: string;
@@ -1987,15 +2011,17 @@ function SlotStep({
         kind="slots"
         title={
           selectedDate
-            ? fmtDateLabel(selectedDate, locale, timeZone)
+            ? fmtDateLabel(selectedDate, locale)
             : undefined
         }
       />
     );
   if (!daySlots || !selectedDate || daySlots.date !== selectedDate) return null;
   const slots = daySlots.slots ?? [];
-  if (slots.length === 0)
-    return <p className={styles.hint}>{t.fullyBookedDay}</p>;
+  if (slots.length === 0) {
+    const outsideBookingWindow = dayStatus === "too_early" || dayStatus === "too_late";
+    return <p className={styles.hint}>{outsideBookingWindow ? t.chooseDate : t.fullyBookedDay}</p>;
+  }
   const groups: Record<SlotGroup, TimeSlot[]> = {
     morning: [],
     afternoon: [],
@@ -2056,7 +2082,7 @@ function SlotStep({
     <div className={styles.slotGroups}>
       <div>
         <h3 className={styles.sectionLabel}>
-          {fmtDateLabel(selectedDate, locale, timeZone)}
+          {fmtDateLabel(selectedDate, locale)}
         </h3>
         <div className={styles.slotGroups}>
           {(Object.keys(groups) as SlotGroup[]).map((group) =>

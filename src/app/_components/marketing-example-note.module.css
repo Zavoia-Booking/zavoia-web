@@ -8,5 +8,5 @@
 .note p { margin: 0; }
 .credits { display: flex; align-items: center; justify-content: var(--marketing-credits-justify, flex-start); flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; }
 .credits img { display: block; }
-.credits a { color: inherit; text-underline-offset: 3px; }
+.credits a { display: inline-flex; align-items: center; gap: 4px; color: inherit; text-underline-offset: 3px; }
 .credits a:focus-visible { outline: 2px solid var(--focus-ring-color, var(--c-700)); outline-offset: 3px; }

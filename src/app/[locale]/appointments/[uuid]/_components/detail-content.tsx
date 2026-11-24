@@ -189,8 +189,10 @@ function BookingPolicies({ appt }: { appt: AppointmentDetail }) {
   const { dict, locale } = useTranslation();
   const p = dict.appointmentPage;
   const location = appt.location;
-  if (!location || (!location.allowCustomerCancellation && !location.allowCustomerReschedule)) return null;
-  const sharedDeadline = location.allowCustomerCancellation && location.allowCustomerReschedule
+  // A pending booking can be rescheduled only once the business confirms it (as in the app).
+  const showReschedule = !!location?.allowCustomerReschedule && appt.status === "confirmed";
+  if (!location || (!location.allowCustomerCancellation && !showReschedule)) return null;
+  const sharedDeadline = location.allowCustomerCancellation && showReschedule
     && location.cancellationWindowMinutes === location.rescheduleWindowMinutes;
   return <section className={styles.policies} aria-labelledby="appointment-policy-title">
     <h3 id="appointment-policy-title">{sharedDeadline ? p.combinedPolicyTitle : p.policyTitle}</h3>
@@ -205,7 +207,7 @@ function BookingPolicies({ appt }: { appt: AppointmentDetail }) {
           ? format(p.cancellationNotice, { duration: noticeDuration(location.cancellationWindowMinutes, locale) })
           : p.noNoticeRequired}</dd>
       </div>}
-      {location.allowCustomerReschedule && <div>
+      {showReschedule && <div>
         <dt>{p.reschedulePolicy}</dt>
         <dd>{location.rescheduleWindowMinutes > 0
           ? format(p.rescheduleNotice, { duration: noticeDuration(location.rescheduleWindowMinutes, locale) })
@@ -231,7 +233,7 @@ function ActionRail({ t, appt, tense, tone, onBookAgain, bookingAgain, offline }
   const reviewAllowed = canLeaveReview(appt);
   const showPrimary = reviewAllowed || (upcoming ? !!directionsHref : canBookAgain);
   const showRows = !!venue.phone || upcoming;
-  const blockedChanges = upcoming && (!rescheduleAllowed || !cancelAllowed);
+  const blockedChanges = upcoming && ((appt.status === "confirmed" && !rescheduleAllowed) || !cancelAllowed);
   return <div className={styles.railCard}>
     <h2 className={styles.railHeading}>{p.managementTitle}</h2>
     {showPrimary && <div className={styles.railPrimary}>
@@ -243,7 +245,7 @@ function ActionRail({ t, appt, tense, tone, onBookAgain, bookingAgain, offline }
     {showRows && <div className={styles.railRows}>
       {venue.phone && <ManageRow icon="phone" label={t.callVenue} href={`tel:${venue.phone}`} />}
       {upcoming && <>
-        <ManageRow icon="clock" label={t.reschedule} hint={!rescheduleAllowed ? (!appt.location?.allowCustomerReschedule ? t.rescheduleUnavailable : t.rescheduleWindowPassed) : undefined} disabled={!rescheduleAllowed || offline} onClick={() => openReschedule(appt)} />
+        {appt.status === "confirmed" && <ManageRow icon="clock" label={t.reschedule} hint={!rescheduleAllowed ? (!appt.location?.allowCustomerReschedule ? t.rescheduleUnavailable : t.rescheduleWindowPassed) : undefined} disabled={!rescheduleAllowed || offline} onClick={() => openReschedule(appt)} />}
         <ManageRow icon="x" label={appt.status === "pending" ? p.cancelRequest : t.cancelAppointment} hint={!cancelAllowed ? (!appt.location?.allowCustomerCancellation ? t.cancelUnavailable : t.cancelWindowPassed) : undefined} danger disabled={!cancelAllowed || offline} onClick={() => openCancel(appt)} />
         {blockedChanges && <p className={styles.contactHint}>{t.contactBusinessDirectly}</p>}
       </>}

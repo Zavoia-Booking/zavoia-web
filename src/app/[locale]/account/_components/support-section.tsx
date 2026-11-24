@@ -636,6 +636,7 @@ export function SupportSection({
 }) {
   const st = t.support;
   const { dict } = useTranslation();
+  const newTabHintId = useId();
   const [tickets, setTickets] = useState<TicketListItem[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -723,9 +724,16 @@ export function SupportSection({
       </div>
       <div className={styles.intro}>
         <p>{st.intro}</p>
-        <Link className={styles.helpLink} href={localeHref(locale, "help")}>
-          {dict.help.pageTitle}<Icon name="arrowR" size={16} />
+        <Link
+          className={styles.helpLink}
+          href={localeHref(locale, "help")}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-describedby={newTabHintId}
+        >
+          {dict.help.pageTitle}<Icon name="arrowUR" size={16} />
         </Link>
+        <span id={newTabHintId} hidden>{dict.common.opensInNewTab}</span>
       </div>
       <div className={styles.supportWorkspace}>
       <div className={styles.inbox}>

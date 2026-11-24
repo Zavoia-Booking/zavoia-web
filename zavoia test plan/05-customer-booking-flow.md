@@ -131,8 +131,9 @@
 **Steps:**
 1. Web: detail → Reschedule → modal shows day slots constrained to the same services/staff; pick new slot; confirm.
 2. Mobile: detail → Reschedule → reuses `app/booking` with `rescheduleUuid` (moves the existing appointment); pick new time; confirm.
-3. Repeat with `rescheduleWindowMinutes` set so the original start is inside the window; and with `allowCustomerReschedule` off.
-**Expected:** `POST /marketplace/appointments/reschedule` returns `APPOINTMENTS.S04`; the new time is validated like a booking (`MARKETPLACE_BOOKING.E08/E09/E11/E14/E10` — web modal refetches slots on `E10`/`E14`; `E15` no longer exists); window expired → `APPOINTMENTS.E12`; disabled or listing inactive → `APPOINTMENTS.E08`; dashboard calendar moves the appointment and the business is notified of the reschedule.
+3. Repeat with `rescheduleWindowMinutes` set so the original start is inside the window and with `allowCustomerReschedule` off.
+4. Repeat with a future pending appointment that would otherwise qualify. Check that web hides the reschedule action and policy. Request its reschedule calendar, slots and submission directly.
+**Expected:** `POST /marketplace/appointments/reschedule` returns `APPOINTMENTS.S04`; the new time is validated like a booking (`MARKETPLACE_BOOKING.E08/E09/E11/E14/E10` — web modal refetches slots on `E10`/`E14`; `E15` no longer exists); pending → `APPOINTMENTS.E13`; window expired → `APPOINTMENTS.E12`; disabled or listing inactive → `APPOINTMENTS.E08`; dashboard calendar moves the appointment and the business is notified of the reschedule.
 
 ### 05.18 Rebook from a past appointment [Web] [Mobile]
 **Steps:**
@@ -148,7 +149,9 @@
 **Steps:**
 1. Use a business whose location timezone differs from the device (e.g. venue Europe/Bucharest, device UTC-5).
 2. Book the "10:00" slot on web; repeat on mobile.
-3. Inspect the `scheduledAt` sent (network tab) and the times shown on success screen, appointment detail, and dashboard calendar.
+3. Inspect the `scheduledAt` sent and the times shown on success, appointment detail and dashboard calendar. On mobile, delay the month response while allowing day slots to load. Repeat for both Book and Reschedule.
+4. Repeat with a device ahead of the venue. Keep the mobile booking screen open across venue midnight and check the Today marker and available dates.
+5. On web, use a venue at UTC+12 or later and check that the displayed day matches the selected date and submitted booking.
 **Expected:** Slot wall-time is converted to UTC using the LOCATION timezone (web `zonedWallTimeToUtcISO`; API resolves `location.timezone` falling back to business timezone); success/detail render 10:00 venue time, not device time; dashboard calendar shows 10:00 at the venue. Policy deadline dates also use the venue timezone.
 
 ### 05.20 New booking appears instantly in the business dashboard [Web] [Dashboard]

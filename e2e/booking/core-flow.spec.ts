@@ -219,7 +219,7 @@ test.describe('Booking — core flow', () => {
     for (const time of timesBefore) {
       expect(reviewAfter).toContain(time)
     }
-    await expect(drawer.confirmButton()).toHaveText('Confirm booking')
+    await expect(drawer.confirmButton()).toHaveText('Confirm appointment')
   })
 
   test('BOOK-06 "Any available" still books a real, specific professional', async ({ page }) => {
@@ -330,7 +330,7 @@ test.describe('Booking — core flow', () => {
     }
   })
 
-  test('BOOK-12 a location with online booking off disables every Book CTA', async ({ page }) => {
+  test('BOOK-12 a location with online booking off offers a call instead of a booking button', async ({ page }) => {
     const locationId = await getLocationId(DEMO.locations.barberMilitari)
     await withTestDb((client) =>
       client.query('UPDATE location SET "allowOnlineBooking" = false WHERE id = $1', [locationId]),
@@ -340,7 +340,9 @@ test.describe('Booking — core flow', () => {
     const biz = new BusinessPage(page)
     await biz.goto(DEMO.locationSlugs.barberMilitari)
 
-    await expect(biz.bookButton()).toBeDisabled()
-    await expect(page.getByText(/doesn.t take online bookings/i).first()).toBeVisible()
+    await expect(biz.bookButton()).toHaveCount(0)
+    const booking = page.getByRole('complementary', { name: 'Book an appointment' })
+    await expect(booking.getByText('Online booking is unavailable at this location.')).toBeVisible()
+    await expect(booking.getByRole('link', { name: 'Call', exact: true })).toHaveAttribute('href', /^tel:/)
   })
 })

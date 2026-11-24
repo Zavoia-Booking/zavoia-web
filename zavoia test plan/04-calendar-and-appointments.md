@@ -81,15 +81,21 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 
 ### 04.11 Buffer-time conflict [Dashboard]
 **Steps:**
-1. With default `bufferTimeMinutes=15`, staff A booked 10:00–11:00.
+1. Set `bufferTimeMinutes=15` and book staff A at 10:00–11:00. The default is zero.
 2. Attempt a booking for staff A starting exactly 11:00 (inside the buffer window).
 **Expected:** Rejected as a conflict — availability adds the buffer to appointment ends (`ends_at + buffer > new start`). DnD preview shows the buffer toast (`page.dnd.staffBufferConflict` with minutes). Booking at 11:15 succeeds.
 
-### 04.12 Conflict override with reason [Dashboard]
-**Steps:**
-1. Trigger a 409 staff conflict from create or edit.
-2. In the override dialog, enter a reason and confirm ("Reschedule anyway").
-**Expected:** Request retried with `overrideConflicts: true` + `overrideReason`; double-booked appointment is created/updated and both cards render overlapped in the grid. `overrideUsedAt` persisted.
+### 04.12 Override a block while protecting staff availability [Dashboard]
+**Steps**
+
+1. Select an available time in Edit, add a block over it in another session, then save the edit from list and grid views. Enter a reason and choose “Reschedule anyway”.
+2. Repeat with another appointment for the same staff member already occupying the target time. Also check the buffer across two locations in the same business.
+3. For a time that needs both working-hours and block overrides, enter a reason in the first prompt and continue with it through the second.
+
+**Expected**
+
+- A block can be overridden with `overrideConflicts: true`. The final update saves `overrideReason` and `overrideUsedAt`.
+- A staff overlap returns 409 with `conflictType: staff_appointment`. The original booking stays in place.
 
 ## Edit, reschedule, cancel & statuses
 
@@ -111,18 +117,28 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 2. Send `PUT /appointments/:id` with `staffUserIds: []` (API call).
 **Expected:** Step 1: appointment moves to B's column; B gets `APPOINTMENT_ASSIGNED`, A gets `APPOINTMENT_UNASSIGNED` ("Appointment removed from your schedule"); staffSnapshot rebuilt; availability re-checked for B. Step 2: 400 "At least one staff member is required. Use a non-empty list to reassign." — this now applies at EVERY location; the old carve-out that accepted `[]` at a location with no team members ("This location has no team members; do not assign staff.") is gone, so stripping staff off an appointment is impossible.
 
-### 04.16 Change service on an existing appointment; composite is blocked [Dashboard]
-**Steps:**
-1. Owner edits a single-service appointment → picks a different service (different price/duration) → save.
-2. Attempt `serviceId` change on a composite (multi-item) appointment via API.
-**Expected:** Step 1: `bookedItemName`, `price`, `duration` update from the new service; `ends_at` recalculated; hours/conflict checks re-run. Step 2: 400 "Cannot change the service on a multi-item appointment. Cancel and rebook instead." (Composite reassignment requires the new staff to perform EVERY item: "Selected staff cannot perform all items in this appointment at this location.")
+### 04.16 Change booked services and bundles on an existing appointment [Dashboard] [Web] [Mobile]
+
+1. Edit an upcoming single-service appointment and replace its service with one of a different price and duration. Repeat by swapping one whole bundle for another.
+2. Open an upcoming appointment containing service, bundle, service in that order. Replace the middle bundle and remove one service. Add a service with a staff or location override. Reopen the same appointment after Save. Repeat on a phone.
+3. Exercise conversions between one service, one bundle and several items. Reopen the same appointment in the customer web and mobile views and check the revised selection used by Book again.
+4. Extend the booking at its original start until it reaches the next appointment or closing time. Try saving again after the appointment has started. Keep a second copy of Edit open, change the booked items in the first copy and submit the stale edit.
+5. Send the legacy scalar `serviceId` field on a bundle and a multi-item appointment via API. Try an empty `items` list, mixing `items` with `serviceId`, and selecting an offering disabled at the venue.
+
+**Expected**
+
+- The same appointment ID and status are retained. Retained items keep their booked prices, durations and bundle contents. New items use the effective booking values at that location. The final order, total price and end time agree across Edit, the calendar and customer details. The professional can perform the full revised selection. Other professionals' appointments in the visit are independent.
+- Staff overlap is refused. Existing working-hours and block confirmations use the revised interval without bypassing the staff conflict check. A started appointment or stale edit is refused. The original row stays intact on failure.
+- An items-only save updates the existing pending customer reminder without immediate customer delivery. An actual move uses the existing reschedule notice. Completing an eligible marketplace booking reports the revised items and total.
+- Scalar requests on bundle and multi-item appointments and invalid item-list requests return 400 without a save. Time-only edits and drag-and-drop continue to use their existing fields and behavior.
 
 ### 04.17 Status transitions — confirm, complete, no-show [Dashboard]
 **Steps:**
 1. Take a `pending` appointment (create via marketplace with `autoConfirmBookings=false`) and confirm it from the dashboard.
 2. On a confirmed appointment, use "Mark as complete".
 3. On another, use "No show" (confirm dialog).
-**Expected:** pending→`confirmed`: confirmation notification sent, reminder scheduled, push `appointment.confirmed`. →`completed`: review-request notification sent, each assigned staff's visits-completed counter incremented. →`no_show`: status set, pending reminders cancelled (terminal status). Status badge updates in list/grid.
+4. Repeat confirmation as the assigned team member and as a colleague. Leave a confirmation open across the appointment end or cancel it in a second session, rebook the slot, and submit the stale confirmation. Check the final status and customer messages.
+**Expected:** pending→`confirmed`: confirmation notification sent, reminder scheduled, push `appointment.confirmed`. →`completed`: review-request notification sent, each assigned staff's visits-completed counter incremented. →`no_show`: status set, pending reminders cancelled (terminal status). Status badge updates in list/grid. The owner and assigned team member can confirm a pending booking before it ends. A colleague, an ended booking, or a stale confirmation against a cancelled booking cannot confirm.
 
 ### 04.18 Cancel appointment with reason + customer notification [Dashboard] [Web] [Mobile]
 **Steps:**
@@ -140,15 +156,16 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 ### 04.20 Concurrent edit from two tabs [Dashboard]
 **Steps:**
 1. Open the same appointment in two tabs.
-2. Tab 1: reschedule to 14:00, save. Tab 2 (stale data): reschedule to 15:00, save.
-3. Refresh both tabs.
+2. Tab 1: reschedule to 14:00, save. Tab 2: reschedule to 15:00, save.
+3. Repeat with one tab moving the booking and the other changing the service to one with a longer duration. Test both commit orders.
+4. Refresh both tabs. Check that the detail header and the Visit date, time and duration match the stored booking and that the end time uses the saved service duration.
 **Expected:** No optimistic locking, but each save re-runs conflict/hours validation against the current DB state. When the two PUTs race, one succeeds and the other may return **409** (it validates against the state the first write just created) — this is acceptable and preferable to a silent double-write. Whichever save is applied last wins; there is no crash and no duplicate rows. Both tabs converge on the persisted time after refetch. (Verified 2026-07-23: concurrent 14:00/14:30 PUTs returned 200 + 409, final state clean.)
 
 ### 04.21 Delete a service that has appointments [Dashboard]
 **Steps:**
 1. Book a future appointment for service X.
 2. Services → attempt to delete service X.
-**Expected:** Delete refused: `DELETE /services/:id` returns `canDelete: false` with message code `SERVICE.E08` plus `appointmentsCount`/`locationsCount`/`teamMembersCount`; service remains and existing appointments are unaffected.
+**Expected:** Delete refused: `DELETE /services/:id` returns `canDelete: false` with message code `SERVICE.E08` plus `upcomingAppointmentsCount`, `locationsCount`, `teamMembersCount`, and `bundleNames`; service remains and existing appointments are unaffected.
 
 ### 04.22 Offboard a team member with upcoming appointments [Dashboard]
 **Steps:**
@@ -176,7 +193,10 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 **Steps:**
 1. Staff A has a confirmed appointment 10:00–11:00.
 2. Create a staff block for A covering 09:00–12:00.
-**Expected:** Block saves (block creation does not validate against existing appointments); the existing appointment stays intact and both render overlapping in the grid. NEW bookings in that window are rejected with the block conflict. Block with end <= start is rejected: "End time must be after start time."
+**Expected**
+
+- The first save returns 409 with the affected appointment count and the first appointment. Confirm the override to save the block.
+- The existing appointment stays in place and new bookings in the blocked window are rejected. A block whose end is at or before its start is rejected.
 
 ### 04.26 Team-member block permissions [Dashboard]
 **Steps:**
@@ -188,11 +208,17 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 ## Roles, views & timezone
 
 ### 04.28 Team-member scoping and edit/cancel permission flags [Dashboard]
-**Steps:**
-1. As team member NOT assigned to location L, request L's calendar day data / create an appointment at L (via API or stale location selector).
-2. With `allowStaffRescheduleWithoutConfirmation=false`, try to reschedule any appointment; also try changing its service/location.
+
+1. As a team member without access to location L, request L's calendar day data and try creating an appointment at L via API.
+2. With `allowStaffRescheduleWithoutConfirmation=false`, try to reschedule or change the booked items on your own appointment. Turn it on and replace a service, swap a whole bundle, and edit a multi-item appointment assigned to you. Try a colleague's appointment and a combined items edit plus reassignment to the colleague. Also try changing the location via API.
 3. With `allowStaffCancelWithoutConfirmation=false`, try to cancel.
-**Expected:** Step 1 → 403 "You do not have access to this location." (read) / "You can only create appointments at locations you are assigned to." (create). Step 2 → 403 "Rescheduling or reassigning without approval is not allowed for your role."; service/location change is owner-only: "Only owners can change service or location." Step 3 → 403 "Cancelling appointments without approval is not allowed for your role." At assigned locations the team member sees the full location calendar (all staff columns) — owner sees every location. A permitted team-member reschedule also creates an `APPOINTMENT_RESCHEDULED_BY_TEAM_MEMBER` notification for the business.
+4. Check the owner's bell after a same-time bundle swap, then change the time and multiple booked items in one save. Open both entries with the calendar on a different location. Check English and Romanian with the device in a different timezone from the venue.
+
+**Expected**
+
+- Step 1 returns 403 for read and create. At assigned locations, the team member sees the full location calendar. The owner can see every business location.
+- With the reschedule setting off, the team member cannot change time or contents. With it on, the member can change the items of their own upcoming appointment when they can perform every item in the revised selection. Colleagues' appointments and reassignment to someone else are refused. Location changes remain owner-only. Step 3 returns 403.
+- A genuine content edit creates one `APPOINTMENT_SERVICE_CHANGED_BY_TEAM_MEMBER` entry. Time plus contents creates that entry and `APPOINTMENT_RESCHEDULED_BY_TEAM_MEMBER`. Each opens the same appointment. Notes-only saves, unchanged selections and owner edits produce no team-member service-change entry.
 
 ### 04.29 Day / week / month views render correctly [Dashboard]
 **Steps:**
@@ -204,7 +230,9 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 **Steps:**
 1. Set location timezone to Europe/Bucharest; create an appointment at 10:00.
 2. Change OS/browser timezone to e.g. America/New_York, reload `/calendar` (day and week views), and open the appointment detail.
-3. Book an appointment near midnight local time and verify which calendar day it lands on.
+3. Repeat with a device ahead of the venue and on a different calendar date. Compare the first day request, heading and rows. Pick a day and verify the saved wall date.
+4. Leave the calendar open across venue midnight, then reopen the block form. Check Today in the start, end and repeat-until pickers.
+5. Drag on a day when venue midnight differs from device midnight. Repeat across the spring and autumn clock changes.
 **Expected:** Appointment still renders at 10:00 wall-clock — all calendar rendering, slot generation, day boundaries, and date pickers use the location timezone (resolved as location.timezone falling back to business timezone), never the browser's. The stored instant is unchanged; the day/summary buckets match the location's calendar day.
 
 ## Location-only booking removal — regression on existing flows

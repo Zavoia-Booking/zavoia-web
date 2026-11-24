@@ -1020,6 +1020,8 @@ export interface BookingDaySlots {
   staffPricing: Record<number, Record<number, StaffPricingEntry>>;
   itemStaffPricing?: ItemStaffPricing[];
   bookingPolicy?: BookingPolicy;
+  /** Inclusive UTC start limits used to generate the public booking slots. */
+  bookingStartBounds?: { earliestBooking: string; latestBooking: string | null };
   slots: TimeSlot[];
 }
 

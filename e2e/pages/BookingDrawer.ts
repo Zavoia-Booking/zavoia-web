@@ -88,7 +88,7 @@ export class BookingDrawer {
 
   /** A slot button — `.zv-slot`, labelled with the localized time e.g. "10:00 AM". Match by the exact visible time label. */
   slot(timeLabel: string): Locator {
-    return this.root.locator('.zv-slot', { hasText: timeLabel })
+    return this.root.getByRole('button', { name: timeLabel, exact: true }).and(this.root.locator('.zv-slot'))
   }
 
   anyAvailableStaffChip(): Locator {
@@ -185,8 +185,8 @@ export class BookingDrawer {
   // --- Step 3: review & confirm ---
 
   confirmButton(): Locator {
-    // "Sign in to book" when signed out, "Confirm booking" when authenticated, "Booking…" while submitting (disabled).
-    return this.root.getByRole('button', { name: /^(Confirm booking|Sign in to book|Booking…)$/ })
+    // "Sign in to book" when signed out, "Confirm appointment" when authenticated, "Booking…" while submitting (disabled).
+    return this.root.getByRole('button', { name: /^(Confirm appointment|Sign in to book|Booking…)$/ })
   }
 
   submitAlert(): Locator {
@@ -196,8 +196,8 @@ export class BookingDrawer {
   // --- Success / blocked screens ---
 
   successHeading(): Locator {
-    // "You're booked" when auto-confirmed, "Booking requested" when the business requires manual confirmation.
-    return this.page.getByRole('heading', { name: /^(You.re booked|Booking requested)$/ })
+    // "You're booked" when auto-confirmed, "Appointment requested" when the business requires manual confirmation.
+    return this.page.getByRole('heading', { name: /^(You.re booked|Appointment requested)$/ })
   }
 
   viewAppointmentButton(): Locator {
