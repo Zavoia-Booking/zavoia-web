@@ -23,8 +23,10 @@ import { format } from "@/i18n/format";
 import type { LocationCard, VenueTagDictionaries } from "@/lib/api/marketplace/types";
 import {
   applyMapFilters,
+  countActiveFilters,
   DISTANCE_STEPS,
   EMPTY_FILTERS,
+  filtersEqual,
   RATING_STEPS,
   SORT_KEYS,
   TAG_GROUPS,
@@ -46,6 +48,8 @@ export interface FiltersPanelProps {
   /** The unfiltered result set — the CTA counts matches against it. */
   listings: LocationCard[];
   distanceFor: (l: LocationCard) => number | undefined;
+  /** The search has a point to measure distance from. */
+  distanceAvailable: boolean;
   dictionaries: VenueTagDictionaries;
   dictionariesLoading: boolean;
   dictionariesFailed: boolean;
@@ -70,6 +74,7 @@ function FiltersPanelBody({
   onApply,
   listings,
   distanceFor,
+  distanceAvailable,
   dictionaries,
   dictionariesLoading,
   dictionariesFailed,
@@ -105,6 +110,10 @@ function FiltersPanelBody({
     () => applyMapFilters(listings, draft, distanceFor).length,
     [listings, draft, distanceFor],
   );
+  // Reset undoes an applied setting or an unapplied draft change; nothing else.
+  const canReset = countActiveFilters(filters) > 0 || !filtersEqual(draft, filters);
+  // It is the way out only when the draft hides every place the search loaded.
+  const resetIsWayOut = listings.length > 0 && matchCount === 0;
 
   const tagGroups = useMemo(
     () => TAG_GROUPS.filter((g) => dictionaries[g.dict].length > 0),
@@ -228,22 +237,28 @@ function FiltersPanelBody({
             ))}
           </ChipWrap>
 
-          <GroupLabel>{t.distance}</GroupLabel>
-          <ChipWrap>
-            {DISTANCE_STEPS.map((km) => (
-              <Choice
-                key={km}
-                label={`< ${km} km`}
-                selected={draft.maxDistanceKm === km}
-                onClick={() => set({ maxDistanceKm: km })}
-              />
-            ))}
-            <Choice
-              label={t.any}
-              selected={draft.maxDistanceKm == null}
-              onClick={() => set({ maxDistanceKm: null })}
-            />
-          </ChipWrap>
+          {/* Distance needs a point to measure from; an applied cap stays visible so it can be removed. */}
+          {(distanceAvailable || filters.maxDistanceKm != null) && (
+            <>
+              <GroupLabel>{t.distance}</GroupLabel>
+              <ChipWrap>
+                {DISTANCE_STEPS.map((km) => (
+                  <Choice
+                    key={km}
+                    label={`< ${km} km`}
+                    selected={draft.maxDistanceKm === km}
+                    onClick={() => set({ maxDistanceKm: km })}
+                  />
+                ))}
+                <Choice
+                  label={t.any}
+                  selected={draft.maxDistanceKm == null}
+                  onClick={() => set({ maxDistanceKm: null })}
+                />
+              </ChipWrap>
+              {!distanceAvailable && <p className={styles.toggleHelp} style={{ margin: "8px 0 0" }}>{t.distanceNeedsPoint}</p>}
+            </>
+          )}
 
           <GroupLabel>{t.availability}</GroupLabel>
           <ToggleRow
@@ -354,7 +369,8 @@ function FiltersPanelBody({
           <Button
             kind="secondary"
             size="md"
-            style={{ height: 42, padding: "0 var(--filter-reset-padding, 22px)", fontSize: 15, fontWeight: 700, flexShrink: 0, borderColor: matchCount === 0 ? "rgba(28,28,26,0.35)" : "rgba(28,28,26,0.12)" }}
+            disabled={!canReset}
+            style={{ height: 42, padding: "0 var(--filter-reset-padding, 22px)", fontSize: 15, fontWeight: 700, flexShrink: 0, borderColor: resetIsWayOut ? "rgba(28,28,26,0.35)" : "rgba(28,28,26,0.12)" }}
             onClick={() => { onApply(EMPTY_FILTERS); onClose(); }}
           >
             {t.reset}

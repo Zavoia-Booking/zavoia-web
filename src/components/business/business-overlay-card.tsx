@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { CSSProperties, KeyboardEvent } from "react";
+import { useState, type CSSProperties, type KeyboardEvent } from "react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Img } from "@/components/ui/image";
 import { Icon } from "@/components/ui/icon";
@@ -48,6 +48,8 @@ const ACTION_STYLE: CSSProperties = {
 // Ported from ZwBusinessOverlayCard.
 export function BusinessOverlayCard({ b, onClick, favorited, onFavorite, compactOnMobile = false, bento = false, imageSizes }: BusinessOverlayCardProps) {
   const { dict } = useTranslation();
+  const [failedImage, setFailedImage] = useState<string>();
+  const image = b.fallbackImage && failedImage === b.image ? b.fallbackImage : b.image;
   const locationName = b.locationName?.trim() || b.name;
   const businessName = b.businessName?.trim();
   const showBusinessName = businessName && businessName.toLowerCase() !== locationName.toLowerCase();
@@ -57,8 +59,9 @@ export function BusinessOverlayCard({ b, onClick, favorited, onFavorite, compact
     <>
       <div className="zw-zoom-wrap" style={{ position: "absolute", inset: 0 }}>
         <Img
-          src={b.image}
+          src={image}
           alt={imageName}
+          onFailure={b.fallbackImage && image === b.image ? () => setFailedImage(b.image) : undefined}
           label={bento ? <span className={styles.placeholderLabel}>{b.cat}</span> : b.cat}
           sizes={imageSizes ?? (compactOnMobile
             ? "(max-width: 320px) 248px, (max-width: 404px) calc(86vw - 27.52px), (max-width: 640px) 320px, (max-width: 920px) 50vw, 320px"

@@ -88,6 +88,18 @@ export function countActiveFilters(f: MapFilters): number {
   );
 }
 
+/** Same applied settings; tag order is not a difference. */
+export function filtersEqual(a: MapFilters, b: MapFilters): boolean {
+  return (
+    a.sort === b.sort &&
+    a.minRating === b.minRating &&
+    a.maxDistanceKm === b.maxDistanceKm &&
+    a.openNow === b.openNow &&
+    a.open247 === b.open247 &&
+    TAG_GROUPS.every(({ key }) => a[key].length === b[key].length && a[key].every((id) => b[key].includes(id)))
+  );
+}
+
 /**
  * Time-aware open check. Delegates to `openStatus`, which compares the actual
  * clock and handles days that run past midnight, so a 09:00–18:00 salon is not

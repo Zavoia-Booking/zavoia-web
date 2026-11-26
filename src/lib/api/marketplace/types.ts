@@ -167,6 +167,7 @@ export interface BrandCard {
   name: string;
   description: string | null;
   profileImage: string | null;
+  heroImageUrl?: string | null;
   featuredImage: string | null;
   city: string | null;
   primaryLocationId: number | null;

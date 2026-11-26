@@ -1135,9 +1135,24 @@ export const en: {
     filterAll: string;
     filterOpenNow: string;
     filterAvailableToday: string;
-    emptyTitle: string;
-    emptyBody: string;
     clearFilters: string;
+    emptyAreaTitle: string;
+    emptyAreaBody: string;
+    changeLocation: string;
+    emptyQueryTitle: string;
+    emptyTextBody: string;
+    emptyServiceBody: string;
+    emptyQueryDateBody: string;
+    emptyDateTitle: string;
+    emptyDateBody: string;
+    emptyFiltersTitle: string;
+    emptyFiltersBody: string;
+    clearSearch: string;
+    removeDate: string;
+    changeService: string;
+    distanceNeedsPointTitle: string;
+    distanceNeedsPointBody: string;
+    removeDistance: string;
     showOnMap: string;
     showList: string;
     loadMore: string;
@@ -1168,6 +1183,7 @@ export const en: {
       minRating: string;
       any: string;
       distance: string;
+      distanceNeedsPoint: string;
       availability: string;
       openNow: string;
       open247: string;
@@ -3135,9 +3151,24 @@ export const en: {
     filterAll: "All",
     filterOpenNow: "Open now",
     filterAvailableToday: "Available today",
-    emptyTitle: "No places match those filters",
-    emptyBody: "Try changing or clearing your filters.",
     clearFilters: "Clear filters",
+    emptyAreaTitle: "No places found in this area",
+    emptyAreaBody: "Try another area, or move the map and search there.",
+    changeLocation: "Change location",
+    emptyQueryTitle: "No places found for “{query}”",
+    emptyTextBody: "Check the spelling or try another word.",
+    emptyServiceBody: "Try another service.",
+    emptyQueryDateBody: "Try another day, or change your search.",
+    emptyDateTitle: "No places available on this date",
+    emptyDateBody: "Try another day.",
+    emptyFiltersTitle: "No places match your filters",
+    emptyFiltersBody: "Change or clear your filters to see the places here.",
+    clearSearch: "Clear search",
+    removeDate: "Remove date",
+    changeService: "Change service",
+    distanceNeedsPointTitle: "To filter by distance, we need your location",
+    distanceNeedsPointBody: "This search covers a whole city. Use your location to see places near you, or remove the distance limit.",
+    removeDistance: "Remove distance limit",
     showOnMap: "Map",
     showList: "List",
     loadMore: "Show more places",
@@ -3169,6 +3200,7 @@ export const en: {
       minRating: "Min rating",
       any: "Any",
       distance: "Distance",
+      distanceNeedsPoint: "Needs your location, because this search covers a whole city.",
       availability: "Availability",
       openNow: "Open now",
       open247: "Open 24/7",

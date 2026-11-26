@@ -213,10 +213,11 @@ Appointment status enum: `pending`, `confirmed`, `cancelled`, `completed`, `no_s
 2. With `allowStaffRescheduleWithoutConfirmation=false`, try to reschedule or change the booked items on your own appointment. Turn it on and replace a service, swap a whole bundle, and edit a multi-item appointment assigned to you. Try a colleague's appointment and a combined items edit plus reassignment to the colleague. Also try changing the location via API.
 3. With `allowStaffCancelWithoutConfirmation=false`, try to cancel.
 4. Check the owner's bell after a same-time bundle swap, then change the time and multiple booked items in one save. Open both entries with the calendar on a different location. Check English and Romanian with the device in a different timezone from the venue.
+5. At a venue with a three-professional booking, an unassigned appointment, and a day booked only with a colleague, compare the owner and member calendars in grid and list views. Open the member's own appointment, then follow a saved link to a booking the owner reassigned to someone else.
 
 **Expected**
 
-- Step 1 returns 403 for read and create. At assigned locations, the team member sees the full location calendar. The owner can see every business location.
+- Step 1 returns 403 for read and create. At an assigned location, Day, Week, Month, and the mini calendar show only appointments assigned to the signed-in member, including their part of a split booking. An unassigned booking or a colleague's separate appointment contributes no card, count, or preview. Opening a saved link after the appointment has been reassigned must not reveal its details. The owner sees all appointments, including unassigned ones, at every business location.
 - With the reschedule setting off, the team member cannot change time or contents. With it on, the member can change the items of their own upcoming appointment when they can perform every item in the revised selection. Colleagues' appointments and reassignment to someone else are refused. Location changes remain owner-only. Step 3 returns 403.
 - A genuine content edit creates one `APPOINTMENT_SERVICE_CHANGED_BY_TEAM_MEMBER` entry. Time plus contents creates that entry and `APPOINTMENT_RESCHEDULED_BY_TEAM_MEMBER`. Each opens the same appointment. Notes-only saves, unchanged selections and owner edits produce no team-member service-change entry.
 

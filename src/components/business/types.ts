@@ -17,6 +17,7 @@ export interface BusinessCardData {
   rating?: number;
   reviews?: number;
   image?: string;
+  fallbackImage?: string;
   blurb?: string;
   distance?: string;
   status?: "open" | "closed" | "24-7" | string;

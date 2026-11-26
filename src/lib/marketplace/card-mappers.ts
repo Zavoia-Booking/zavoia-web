@@ -81,8 +81,8 @@ export function businessCardToData(
 
 /**
  * BRAND-sourced card (Brands browse feed). `id` is the businessId (favorites
- * toggle the business endpoint). Everything shown is business-level: brand name,
- * brand profile image (location photo only as fallback), business-wide rating.
+ * toggle the business endpoint). Uses the brand's name, cover photo, and rating.
+ * A public location's featured photo is the fallback.
  * Navigates to the BRAND page (businessSlug); brands without one fall back to
  * their primary location's detail page.
  */
@@ -96,9 +96,10 @@ export function brandCardToData(b: BrandCard, locale: Locale): BusinessCardData 
     catLabel: b.industry ? taxonomyLabel(b.industry, locale) : undefined,
     rating: b.averageRating ?? undefined,
     reviews: b.totalReviews,
-    // Business profile image ONLY — no location-photo fallback: a brand card
-    // without a logo shows the placeholder rather than borrowing a location's photo.
-    image: b.profileImage ?? undefined,
+    image: b.heroImageUrl ?? b.featuredImage ?? undefined,
+    fallbackImage: b.heroImageUrl && b.heroImageUrl !== b.featuredImage
+      ? b.featuredImage ?? undefined
+      : undefined,
     city: b.city ?? undefined,
     href: b.slug
       ? localeHref(locale, "brand", b.slug)

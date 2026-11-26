@@ -71,6 +71,91 @@ function locationImageSizes(count: number): string {
   ].join(", ");
 }
 
+function BrandAbout({
+  title,
+  description,
+  photoUrl,
+  hasIndustryExplore,
+}: {
+  title: string;
+  description: string | null;
+  photoUrl: string | null;
+  hasIndustryExplore: boolean;
+}) {
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const photoSrc = photoFailed ? null : photoUrl;
+  if (!description && !photoSrc) return null;
+
+  const split = Boolean(description && photoSrc);
+
+  return (
+    <section
+      data-biz-cols
+      style={{
+        display: "grid",
+        gridTemplateColumns: split ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
+        alignItems: "center",
+        gap: "clamp(20px, 4vw, 56px)",
+        marginTop: "clamp(38px, 5.5vw, 60px)",
+        marginBottom: hasIndustryExplore ? 0 : "clamp(50px, 7vw, 90px)",
+      }}
+    >
+      <div>
+        <h2
+          style={{
+            margin: description ? "0 0 18px" : 0,
+            fontSize: "clamp(20px, 2.2vw, 26px)",
+            fontWeight: 700,
+            letterSpacing: "-0.03em",
+            color: "var(--c-900)",
+          }}
+        >
+          {title}
+        </h2>
+        {description && (
+          <p
+            className="txt-pretty"
+            style={{
+              margin: 0,
+              fontSize: 15.5,
+              lineHeight: 1.65,
+              color: "var(--c-700)",
+              maxWidth: "68ch",
+              whiteSpace: "pre-line",
+              overflowWrap: "anywhere",
+            }}
+          >
+            {description}
+          </p>
+        )}
+      </div>
+      {photoSrc && (
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: 700,
+            aspectRatio: "4 / 3",
+            borderRadius: "var(--card-r, 18px)",
+            backgroundColor: "var(--c-100)",
+            overflow: "hidden",
+          }}
+        >
+          <Img
+            src={photoSrc}
+            alt=""
+            sizes={split
+              ? "(max-width: 600px) calc(100vw - 32px), (max-width: 920px) calc(100vw - 40px), (max-width: 1556px) 45vw, 700px"
+              : "(max-width: 600px) calc(100vw - 32px), (max-width: 740px) calc(100vw - 40px), 700px"}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            onFailure={() => setPhotoFailed(true)}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function BrandDetail({ brand, locale }: Props) {
   const { dict } = useTranslation();
   const router = useRouter();
@@ -101,7 +186,6 @@ export function BrandDetail({ brand, locale }: Props) {
   ] as string[];
   const placeLabel = cities.length === 1 ? cities[0] : (brand.country ?? null);
 
-  const aboutText = brand.description;
   const multiLocation = brand.locations.length > 1;
   const imageSizes = locationImageSizes(brand.locations.length);
 
@@ -332,42 +416,13 @@ export function BrandDetail({ brand, locale }: Props) {
         />
       )}
 
-      {/* About */}
-      {aboutText && (
-        <section
-          style={{
-            marginTop: "clamp(38px, 5.5vw, 60px)",
-            marginBottom: industryExploreHref ? 0 : "clamp(50px, 7vw, 90px)",
-          }}
-        >
-          <h2
-            style={{
-              margin: "0 0 18px",
-              fontSize: "clamp(20px, 2.2vw, 26px)",
-              fontWeight: 700,
-              letterSpacing: "-0.03em",
-              color: "var(--c-900)",
-            }}
-          >
-            {format(t.aboutTitle, { name: brand.name })}
-          </h2>
-          {aboutText && (
-            <p
-              className="txt-pretty"
-              style={{
-                margin: 0,
-                fontSize: 15.5,
-                lineHeight: 1.65,
-                color: "var(--c-700)",
-                maxWidth: "68ch",
-                whiteSpace: "pre-line",
-              }}
-            >
-              {aboutText}
-            </p>
-          )}
-        </section>
-      )}
+      <BrandAbout
+        key={brand.heroImageUrl}
+        title={format(t.aboutTitle, { name: brand.name })}
+        description={brand.description?.trim() || null}
+        photoUrl={brand.heroImageUrl}
+        hasIndustryExplore={Boolean(industryExploreHref)}
+      />
       {industryExploreHref && industryLabel && (
         <div style={{ marginTop: "clamp(32px, 4vw, 48px)", marginBottom: 24 }}>
           <IndustryExplore

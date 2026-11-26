@@ -75,6 +75,8 @@ import { MapFloatingCard } from "@/components/search/map-floating-card";
 import { getBrowserLocation, ipLocate, resolveCity } from "@/lib/geocoding";
 import { CITY_ENTRIES, slugifyRo } from "@/data/seo";
 import { deriveSearchParams, ESTIMATE_PARAM, hasLocationRefinements, numberParam as numParam, patchSearchParams, searchRequestKey, toSearchListingsParams, type SearchQuery } from "@/lib/search/query";
+import { useSearchOverlay } from "@/components/search/search-overlay-provider";
+import type { SearchStep } from "@/components/search/search-overlay";
 import { useFavoriteToggle } from "@/app/_components/home/use-favorite-toggle";
 import { TagRail } from "@/components/search/tag-rail";
 import {
@@ -111,6 +113,9 @@ type LocationChoice = "allow" | "skip";
  *  - "chosen": a city, point or search the visitor chose, which stays; only the dot is added
  */
 type Landing = "empty" | "estimate" | "chosen";
+
+/** One way out of an empty result; each undoes a single narrowing. */
+type EmptyAction = { label: string; onClick: () => void; loading?: boolean };
 
 function readLocationChoice(): LocationChoice | null {
   try {
@@ -449,6 +454,23 @@ export function SearchContent({
     },
     [sp, router, locale, derived, filters],
   );
+
+  const { openSearch } = useSearchOverlay();
+  // Reopens search on the current query, at the step an empty state points to.
+  const openOverlay = useCallback((step: SearchStep) => {
+    openSearch({
+      step,
+      initial: {
+        what: derived.search ?? "",
+        industry: derived.industrySlug ?? "",
+        tagIds: derived.tagIds ?? [],
+        city: derived.city ?? "",
+        lat: derived.lat,
+        lng: derived.lng,
+        when: derived.date ? `date:${derived.date}` : "",
+      },
+    });
+  }, [openSearch, derived]);
 
   // ── Per-result distance (sorting + the distance cap) ────────────────────
   // Prefer the server's `distanceKm`; without an anchor there is none, and the
@@ -848,15 +870,6 @@ export function SearchContent({
     [updateParams],
   );
 
-  const clearFilters = useCallback(() => {
-    updateParams({
-      industry: null,
-      tagIds: null,
-      date: null,
-      ...filtersToParams(EMPTY_FILTERS),
-    });
-  }, [updateParams]);
-
   // ── "My location" (the crosshair) ────────────────────────────────────────
   // In order: the position the map ALREADY holds for the blue dot, then a
   // fresh fix, then the stored anchor. (The app's button differs: it also
@@ -1000,7 +1013,8 @@ export function SearchContent({
                 {loading && <Spinner size={14} color="var(--c-600)" />}
               </span>
             </div>
-            {activeFilterCount > 0 && (
+            {/* Sort only reorders, so it alone never offers Clear filters. */}
+            {hasLocationRefinements(filters) && (
               <button
                 type="button"
                 className={`${searchStyles.clearButton} tap`}
@@ -1038,87 +1052,6 @@ export function SearchContent({
     </div>
   );
 
-  // ── Result list ─────────────────────────────────────────────────────────
-  const resultList = (
-    <div
-      ref={listRef}
-      data-locale-scroll="search-results"
-      className={`${searchStyles.results} ${searchStyles.resultsFrame}`}
-      aria-busy={loading}
-    >
-      {resultsLimited && <p className={searchStyles.limitNote}>{format(t.resultsLimited, { count: String(locations.length), total: String(totalLocations) })}</p>}
-      {loading && locations.length === 0 && businesses.length === 0 && !resultsFailed ? (
-        <div className={searchStyles.resultItems} aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <RowSkeleton key={i} />
-          ))}
-        </div>
-      ) : resultCount === 0 && businessRows.length === 0 ? (
-        <div style={{ padding: "48px 20px", textAlign: "center" }}>
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 600,
-              color: "var(--c-800)",
-              marginBottom: resultsFailed ? 18 : 6,
-            }}
-          >
-            {resultsFailed ? failureMessage : t.emptyTitle}
-          </div>
-          {!resultsFailed && (
-            <div
-              style={{
-                fontSize: 13.5,
-                color: "var(--c-600)",
-                marginBottom: 18,
-              }}
-            >
-              {t.emptyBody}
-            </div>
-          )}
-          {resultsFailed ? (
-            <Button kind="secondary" size="sm" loading={loading} onClick={() => void runFetch()}>
-              {t.retry}
-            </Button>
-          ) : (
-            <Button kind="secondary" size="sm" onClick={clearFilters}>
-              {t.clearFilters}
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className={searchStyles.resultItems}>
-          {locationRows.map(({ id, data }) => {
-            const pin = pinById.get(id);
-            return <div key={`loc-${id}`} data-biz={id} data-result-key={`loc-${id}`}>
-              <BusinessRow
-                b={data}
-                onClick={pin && MAPBOX_TOKEN && mapEnabled && !mapFailed ? event => onResultSelect(pin, event.detail === 0) : undefined}
-                selected={selectedId === id}
-                imageLoading={data.image && eagerResultPhotoSources.has(data.image) ? "eager" : "lazy"}
-                imageFetchPriority={`loc-${id}` === firstResultPhotoKey ? "high" : undefined}
-                favorited={locFav.isFavorited(id)}
-                onFavorite={locFav.toggle}
-              />
-            </div>;
-          })}
-          {businessRows.length > 0 && <section className={searchStyles.resultItems} aria-label={t.matchingBusinesses}>
-            <h2 className={searchStyles.businessHeading}>{t.matchingBusinesses}</h2>
-            {businessRows.map(({ id, data }) => (
-            <div key={`biz-${id}`} data-result-key={`biz-${id}`}>
-              <BusinessRow
-                b={data}
-                imageLoading={data.image && eagerResultPhotoSources.has(data.image) ? "eager" : "lazy"}
-                imageFetchPriority={`biz-${id}` === firstResultPhotoKey ? "high" : undefined}
-              />
-            </div>
-            ))}
-          </section>}
-        </div>
-      )}
-    </div>
-  );
-
   // ── The floating browse rail ─────────────────────────────────────────────
   // A search is running once something names the query. A date alone is a
   // detail of the search bar, not a search — same rule the mobile app applies.
@@ -1153,6 +1086,148 @@ export function SearchContent({
       });
     },
     [updateParams],
+  );
+
+  // ── Why the list is empty, and what undoes it ───────────────────────────
+  // Filters can only hide places the search loaded; otherwise the search itself
+  // found nothing. Each action undoes one narrowing and keeps everything else.
+  const emptyState = ((): { title: string; body: string; actions: EmptyAction[] } => {
+    const removeDate: EmptyAction = { label: t.removeDate, onClick: () => updateParams({ date: null }) };
+    const dateActions = derived.date ? [removeDate] : [];
+    if (locations.length > 0) {
+      // A city-only search has no point, so a distance cap hides every place.
+      if (filters.maxDistanceKm != null && !hasGeo) {
+        return {
+          title: t.distanceNeedsPointTitle,
+          body: t.distanceNeedsPointBody,
+          actions: [
+            { label: t.useMyLocation, onClick: requestLocation, loading: locating },
+            { label: t.removeDistance, onClick: () => applyFilters({ ...filters, maxDistanceKm: null }) },
+          ],
+        };
+      }
+      return {
+        title: t.emptyFiltersTitle,
+        body: t.emptyFiltersBody,
+        actions: [{ label: t.clearFilters, onClick: () => applyFilters(EMPTY_FILTERS) }],
+      };
+    }
+    if (activeSelection) {
+      const title = format(t.emptyQueryTitle, { query: activeSelection.label });
+      if (derived.search) {
+        return {
+          title,
+          body: derived.date ? t.emptyQueryDateBody : t.emptyTextBody,
+          actions: [
+            { label: t.editSearch, onClick: () => openOverlay("what") },
+            { label: t.clearSearch, onClick: () => updateParams({ search: null }) },
+            ...dateActions,
+          ],
+        };
+      }
+      return {
+        title,
+        body: derived.date ? t.emptyQueryDateBody : t.emptyServiceBody,
+        actions: [
+          {
+            label: t.changeService,
+            onClick: () => openCatalog({ industries, onSelect: (industry, tag) => onPickTag(industry, tag.id) }),
+          },
+          ...dateActions,
+        ],
+      };
+    }
+    if (derived.date) return { title: t.emptyDateTitle, body: t.emptyDateBody, actions: dateActions };
+    return {
+      title: t.emptyAreaTitle,
+      body: t.emptyAreaBody,
+      actions: [{ label: t.changeLocation, onClick: () => openOverlay("where") }],
+    };
+  })();
+
+  // ── Result list ─────────────────────────────────────────────────────────
+  const resultList = (
+    <div
+      ref={listRef}
+      data-locale-scroll="search-results"
+      className={`${searchStyles.results} ${searchStyles.resultsFrame}`}
+      aria-busy={loading}
+    >
+      {resultsLimited && <p className={searchStyles.limitNote}>{format(t.resultsLimited, { count: String(locations.length), total: String(totalLocations) })}</p>}
+      {loading && locations.length === 0 && businesses.length === 0 && !resultsFailed ? (
+        <div className={searchStyles.resultItems} aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <RowSkeleton key={i} />
+          ))}
+        </div>
+      ) : resultCount === 0 && businessRows.length === 0 ? (
+        <div style={{ padding: "48px 20px", textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "var(--c-800)",
+              marginBottom: resultsFailed ? 18 : 6,
+            }}
+          >
+            {resultsFailed ? failureMessage : emptyState.title}
+          </div>
+          {!resultsFailed && (
+            <div
+              style={{
+                fontSize: 13.5,
+                color: "var(--c-600)",
+                marginBottom: 18,
+              }}
+            >
+              {emptyState.body}
+            </div>
+          )}
+          {resultsFailed ? (
+            <Button kind="secondary" size="sm" loading={loading} onClick={() => void runFetch()}>
+              {t.retry}
+            </Button>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
+              {emptyState.actions.map((action) => (
+                <Button key={action.label} kind="secondary" size="sm" loading={action.loading} onClick={action.onClick}>
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={searchStyles.resultItems}>
+          {locationRows.map(({ id, data }) => {
+            const pin = pinById.get(id);
+            return <div key={`loc-${id}`} data-biz={id} data-result-key={`loc-${id}`}>
+              <BusinessRow
+                b={data}
+                onClick={pin && MAPBOX_TOKEN && mapEnabled && !mapFailed ? event => onResultSelect(pin, event.detail === 0) : undefined}
+                selected={selectedId === id}
+                imageLoading={data.image && eagerResultPhotoSources.has(data.image) ? "eager" : "lazy"}
+                imageFetchPriority={`loc-${id}` === firstResultPhotoKey ? "high" : undefined}
+                favorited={locFav.isFavorited(id)}
+                onFavorite={locFav.toggle}
+              />
+            </div>;
+          })}
+          {businessRows.length > 0 && <section className={searchStyles.resultItems} aria-label={t.matchingBusinesses}>
+            <h2 className={searchStyles.businessHeading}>{t.matchingBusinesses}</h2>
+            {businessRows.map(({ id, data }) => (
+            <div key={`biz-${id}`} data-result-key={`biz-${id}`}>
+              <BusinessRow
+                b={data}
+                imageLoading={data.image && eagerResultPhotoSources.has(data.image) ? "eager" : "lazy"}
+                imageFetchPriority={`biz-${id}` === firstResultPhotoKey ? "high" : undefined}
+              />
+            </div>
+            ))}
+          </section>}
+        </div>
+      )}
+    </div>
   );
 
   // ── Map ──────────────────────────────────────────────────────────────────
@@ -1289,6 +1364,7 @@ export function SearchContent({
         onApply={applyFilters}
         listings={locations}
         distanceFor={distanceFor}
+        distanceAvailable={hasGeo}
         dictionaries={venueTagDictionaries}
         dictionariesLoading={venueTags.loading}
         dictionariesFailed={venueTags.failed}
