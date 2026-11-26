@@ -18,9 +18,10 @@ import {
 /**
  * The multi-role account-linking flow: an existing business OWNER/TEAM_MEMBER
  * account (no CUSTOMER role) hits register or login on the marketplace, gets
- * a 409 `account_exists_needs_marketplace_access`, and is walked through the
- * emailed-link + password confirmation to add the CUSTOMER role without
- * creating a second account. See src/app/[locale]/auth/_components/
+ * a 409 `account_exists_needs_marketplace_access`, and confirms with the
+ * account password right in the panel (no emailed link) to add the CUSTOMER
+ * role without creating a second account. The emailed-link page is still
+ * covered by the dead-link tests below. See src/app/[locale]/auth/_components/
  * enable-access-panel.tsx and .../verify-account-link/_components/
  * verify-account-link.tsx for the exact UI this drives.
  *
@@ -130,14 +131,14 @@ test.describe('Account linking — dead-link states', () => {
   })
 })
 
-test.describe.serial('Account linking — complete the link via the emailed token', () => {
+test.describe.serial('Account linking — confirm with the password in the panel', () => {
   // Set by AUTH-M05, consumed by AUTH-M08 to prove the CUSTOMER role
   // persisted beyond the one auto-logged-in session. workers: 1 and
   // fullyParallel: false (playwright.config.ts) guarantee these run in
   // declaration order within this serial describe block.
   let linkedOwner: TestOwner | null = null
 
-  test('AUTH-M05 EnableAccessPanel -> emailed token -> wrong password rejected -> correct password enables access and auto-logs-in', async ({ page }) => {
+  test('AUTH-M05 EnableAccessPanel -> wrong password rejected -> correct password enables access in place and auto-logs-in', async ({ page }) => {
     const owner = makeTestOwner()
     await withAnonContext((ctx) => registerBusinessOwnerViaApi(ctx, owner))
 
@@ -145,31 +146,22 @@ test.describe.serial('Account linking — complete the link via the emailed toke
     await auth.gotoLogin()
     await auth.login(owner.email, owner.password)
     await expect(auth.enableAccessHeading).toBeVisible()
-
-    await auth.sendSecureLinkButton.click()
-    await expect(page.getByRole('status')).toBeVisible()
-
-    const token = await rotateLatestToken(owner.email, 'BUSINESS_ACCOUNT_LINK')
-    await auth.gotoVerifyAccountLink(token)
-
-    await expect(auth.verifyLinkConfirmHeading).toBeVisible()
-    await expect(auth.verifyLinkPassword).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Send confirmation link' })).toHaveCount(0)
 
     // Confirming adds the customer role, so it waits for the terms box.
-    await expect(auth.verifyLinkConfirmButton).toBeDisabled()
-    await auth.acceptTerms.check()
+    await expect(auth.enableAccessConfirmButton).toBeDisabled()
+    await auth.enableAccessTerms.check()
 
-    // Wrong password first: inline error, the confirm form stays put.
-    await auth.verifyLinkPassword.fill('DefinitelyWrong123!')
-    await auth.verifyLinkConfirmButton.click()
-    await expect(auth.verifyLinkWrongPasswordError).toBeVisible()
-    await expect(auth.verifyLinkConfirmHeading).toBeVisible()
-    await expect(auth.verifyLinkPassword).toBeVisible()
+    // Wrong password first: inline error, the panel stays put.
+    await auth.enableAccessPassword.fill('DefinitelyWrong123!')
+    await auth.enableAccessConfirmButton.click()
+    await expect(auth.enableAccessWrongPasswordError).toBeVisible()
+    await expect(auth.enableAccessHeading).toBeVisible()
 
-    // Correct password: success + auto-login.
-    await auth.verifyLinkPassword.fill(owner.password)
-    await auth.verifyLinkConfirmButton.click()
-    await expect(auth.verifyLinkSuccessHeading).toBeVisible()
+    // Correct password: access enabled and signed in, leaving /auth.
+    await auth.enableAccessPassword.fill(owner.password)
+    await auth.enableAccessConfirmButton.click()
+    await expect(page).not.toHaveURL(/\/auth/, { timeout: 15_000 })
 
     // /account renders the signed-in user's real name as its h1 (account-content.tsx) —
     // a positive, name-specific signal that the session is real and authenticated,
@@ -197,5 +189,25 @@ test.describe.serial('Account linking — complete the link via the emailed toke
     } finally {
       await context.close()
     }
+  })
+})
+
+test.describe('Account linking — register path, confirm in place', () => {
+  test('AUTH-M09 registering with a business email confirms with the account password and signs in, no email', async ({ page }) => {
+    const owner = makeTestOwner()
+    await withAnonContext((ctx) => registerBusinessOwnerViaApi(ctx, owner))
+
+    const auth = new AuthPage(page)
+    await auth.gotoRegister()
+    await auth.register(makeTestCustomer({ email: owner.email }))
+    await expect(auth.enableAccessHeading).toBeVisible()
+
+    await auth.enableAccessTerms.check()
+    await auth.enableAccessPassword.fill(owner.password)
+    await auth.enableAccessConfirmButton.click()
+
+    await expect(page).not.toHaveURL(/\/auth/, { timeout: 15_000 })
+    await page.goto('/account')
+    await expect(page.getByRole('heading', { name: `${owner.firstName} ${owner.lastName}` })).toBeVisible()
   })
 })

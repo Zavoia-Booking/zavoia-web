@@ -21,7 +21,6 @@ import type {
   ReauthForGoogleLinkResponse,
   ResendVerificationResponse,
   ResetPasswordResponse,
-  SendAccountLinkResponse,
   VerifyEmailResponse,
 } from "@/lib/auth/types";
 
@@ -71,21 +70,22 @@ export async function getCurrentUser(): Promise<AuthUser> {
 }
 
 /**
- * Requests an email link that lets an existing business user enable marketplace
- * access. The backend always responds with a neutral confirmation message to
- * avoid leaking account existence.
+ * Enables marketplace access for an existing business account: the password
+ * proves ownership, the backend adds the CUSTOMER role and issues tokens
+ * (AuthResponse — auto-login). No emailed link. Errors: 401 CUSTOMER_AUTH.E38
+ * (wrong password), 400 `google_login_required` / `apple_login_required`
+ * (passwordless accounts), CUSTOMER_AUTH.E10 (access already enabled).
  */
-export async function sendAccountLink(
+export async function enableMarketplaceAccess(
   email: string,
-  locale?: "en" | "ro",
-): Promise<SendAccountLinkResponse> {
-  return apiFetch<SendAccountLinkResponse>(
-    "/marketplace/auth/send-account-link",
-    {
-      method: "POST",
-      body: JSON.stringify(locale ? { email, locale } : { email }),
-    },
-  );
+  password: string,
+  locale?: Locale,
+): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/marketplace/auth/enable-access", {
+    method: "POST",
+    headers: locale ? { "x-locale": locale } : undefined,
+    body: JSON.stringify({ email, password }),
+  });
 }
 
 /**

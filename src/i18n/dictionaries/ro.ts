@@ -422,17 +422,17 @@ export const ro: Dictionary = {
       explanation:
         "Fă programări cu același cont Zavoia pe care îl folosești pentru afacerea ta.",
       nextStep:
-        "Solicită un link de confirmare pe email, apoi deschide-l ca să confirmi că ești tu.",
-      sendLink: "Trimite linkul de confirmare",
-      sending: "Se trimite linkul…",
-      sentHeading: "Verifică emailul",
-      sentBody:
-        "Dacă această adresă aparține unui cont de afacere care are nevoie de confirmare, caută linkul în email. Deschide-l ca să confirmi că ești tu și să faci programări.",
-      spamHint: "Verifică și folderul Spam.",
-      alreadyRequestedHeading: "Există deja un link de confirmare",
-      alreadyRequestedBody:
-        "Un link de confirmare este încă activ pentru acest cont. Caută-l în email. Poți solicita altul după ce expiră.",
-      error: "Nu am putut trimite linkul. Încearcă din nou.",
+        "Introdu parola contului ca să confirmi că ești tu și să faci programări.",
+      passwordLabel: "Parolă",
+      passwordRequired: "Te rugăm să introduci parola.",
+      wrongPassword: "Parolă incorectă. Încearcă din nou.",
+      googleOnly:
+        "Acest cont se conectează cu Google. Revino la autentificare și continuă cu Google ca să faci programări.",
+      appleOnly:
+        "Acest cont se conectează cu Apple. Revino la autentificare și continuă cu Apple ca să faci programări.",
+      confirm: "Confirmă și continuă",
+      confirming: "Se confirmă…",
+      error: "Nu am putut confirma contul. Încearcă din nou.",
       cancel: "Revino la autentificare",
     },
     googleLink: {

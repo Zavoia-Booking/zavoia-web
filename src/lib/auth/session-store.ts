@@ -10,6 +10,7 @@ import {
   unlinkApple as unlinkAppleApi,
   changeEmail as changeEmailApi,
   completeAccountLink as completeAccountLinkApi,
+  enableMarketplaceAccess as enableMarketplaceAccessApi,
   confirmMarketplaceAccess as confirmMarketplaceAccessApi,
   getCurrentUser,
   googleAuth as googleAuthApi,
@@ -19,7 +20,6 @@ import {
   logoutCustomer,
   refreshSession,
   registerCustomer,
-  sendAccountLink as sendAccountLinkApi,
   unlinkGoogle as unlinkGoogleApi,
 } from "@/lib/api/customer-auth";
 import {
@@ -469,8 +469,12 @@ function createBrowserSession() {
         undefined,
         false,
       ),
-    sendAccountLink: async (email, locale) =>
-      (await sendAccountLinkApi(email, locale)).message,
+    enableMarketplaceAccess: (email, password, locale) =>
+      authenticate(
+        () => enableMarketplaceAccessApi(email, password, locale),
+        undefined,
+        false,
+      ),
     refreshUser,
     async unlinkGoogle(password) {
       const owner = revision;
@@ -630,8 +634,8 @@ export const sessionActions: Omit<AuthContextValue, keyof SessionSnapshot> = {
   refresh: () => activeSession().actions.refresh(),
   completeAccountLink: (...args) =>
     activeSession().actions.completeAccountLink(...args),
-  sendAccountLink: (...args) =>
-    activeSession().actions.sendAccountLink(...args),
+  enableMarketplaceAccess: (...args) =>
+    activeSession().actions.enableMarketplaceAccess(...args),
   googleSignIn: (...args) => activeSession().actions.googleSignIn(...args),
   linkGoogleAccount: (...args) =>
     activeSession().actions.linkGoogleAccount(...args),

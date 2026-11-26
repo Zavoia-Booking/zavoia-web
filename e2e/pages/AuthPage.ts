@@ -30,7 +30,10 @@ export class AuthPage {
 
   // Multi-role account-linking panels (auth-tabs.tsx swaps the whole card body)
   readonly enableAccessHeading: Locator
-  readonly sendSecureLinkButton: Locator
+  readonly enableAccessPassword: Locator
+  readonly enableAccessTerms: Locator
+  readonly enableAccessConfirmButton: Locator
+  readonly enableAccessWrongPasswordError: Locator
   readonly backToSignInButton: Locator
 
   // /auth/verify-account-link (verify-account-link.tsx) — the emailed-link
@@ -75,7 +78,11 @@ export class AuthPage {
     this.createAccountTab = page.getByRole('tab', { name: 'Create account' })
 
     this.enableAccessHeading = page.getByRole('heading', { name: 'Use your existing Zavoia account' })
-    this.sendSecureLinkButton = page.getByRole('button', { name: 'Send confirmation link' })
+    // The panel confirms with the account password in place (no emailed link).
+    this.enableAccessPassword = page.locator('.auth-access-panel #password')
+    this.enableAccessTerms = page.locator('.auth-access-panel input[type="checkbox"]')
+    this.enableAccessConfirmButton = page.getByRole('button', { name: 'Confirm and continue' })
+    this.enableAccessWrongPasswordError = page.locator('.auth-access-panel').getByText('Incorrect password. Please try again.')
     this.backToSignInButton = page.getByRole('button', { name: 'Return to sign in' })
 
     this.verifyLinkConfirmHeading = page.getByRole('heading', { name: "Confirm it's you" })

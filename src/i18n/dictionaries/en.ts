@@ -362,13 +362,13 @@ export const en: {
       emailLabel: string;
       explanation: string;
       nextStep: string;
-      sendLink: string;
-      sending: string;
-      sentHeading: string;
-      sentBody: string;
-      spamHint: string;
-      alreadyRequestedHeading: string;
-      alreadyRequestedBody: string;
+      passwordLabel: string;
+      passwordRequired: string;
+      wrongPassword: string;
+      googleOnly: string;
+      appleOnly: string;
+      confirm: string;
+      confirming: string;
       error: string;
       cancel: string;
     };
@@ -2312,17 +2312,17 @@ export const en: {
       explanation:
         "Book services with the Zavoia account you already use for business.",
       nextStep:
-        "Request a confirmation link by email, then open it to confirm it’s you.",
-      sendLink: "Send confirmation link",
-      sending: "Sending link…",
-      sentHeading: "Check your email",
-      sentBody:
-        "If this email belongs to a business account that needs confirmation, look for a link in your inbox. Open it to confirm it’s you and start booking.",
-      spamHint: "Check your spam folder too.",
-      alreadyRequestedHeading: "A link was already requested",
-      alreadyRequestedBody:
-        "A confirmation link is still active for this account. Check your inbox. You can request another after it expires.",
-      error: "We couldn't send the link. Please try again.",
+        "Enter your account password to confirm it’s you and start booking.",
+      passwordLabel: "Password",
+      passwordRequired: "Please enter your password.",
+      wrongPassword: "Incorrect password. Please try again.",
+      googleOnly:
+        "This account signs in with Google. Return to sign in and continue with Google to start booking.",
+      appleOnly:
+        "This account signs in with Apple. Return to sign in and continue with Apple to start booking.",
+      confirm: "Confirm and continue",
+      confirming: "Confirming…",
+      error: "We couldn't confirm your account. Please try again.",
       cancel: "Return to sign in",
     },
     googleLink: {

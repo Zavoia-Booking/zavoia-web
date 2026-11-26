@@ -172,10 +172,6 @@ export type AccountLinkValidation = {
   appleLinked?: boolean;
 };
 
-export type SendAccountLinkResponse = {
-  message: string;
-};
-
 /**
  * Response of GET /marketplace/auth/verify-email. The backend marks the email
  * verified and returns the user, but does NOT issue tokens (no auto-login) — so
@@ -306,13 +302,16 @@ export type AuthContextValue = {
    */
   completeAccountLink: (token: string, password: string) => Promise<void>;
   /**
-   * Request an email link to enable marketplace access. Does not change the
-   * session. Returns the backend confirmation message.
+   * Enable marketplace access for an existing business account with its
+   * password (no emailed link) and establish the session (auto-login).
+   * Re-throws the ApiError on failure (wrong password, `google_login_required`,
+   * `apple_login_required`) so the panel can branch on status/code.
    */
-  sendAccountLink: (
+  enableMarketplaceAccess: (
     email: string,
-    locale?: "en" | "ro",
-  ) => Promise<string>;
+    password: string,
+    locale?: Locale,
+  ) => Promise<void>;
   /**
    * Sign in / register with the Google OAuth authorization code returned to
    * /auth/callback. On a 200 it establishes the session (identical post-state

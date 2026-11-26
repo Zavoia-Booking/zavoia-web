@@ -157,6 +157,7 @@ export function AuthTabs({ locale }: { locale: Locale }) {
       locale={locale}
       details={linkFlow.details}
       flowKey={linkFlow.id}
+      redirect={redirect}
       onCancel={() => {
         setLinkFlow(null);
         window.history.replaceState(null, "", authFlowHref(locale, "login", searchParams));

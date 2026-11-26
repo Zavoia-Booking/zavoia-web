@@ -69,6 +69,7 @@ export function ApplePanel({
           locale={locale}
           details={outcome.details}
           flowKey={flowKey}
+          redirect={redirect}
           onCancel={onCancel}
         />
       );

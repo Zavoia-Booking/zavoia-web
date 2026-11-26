@@ -278,6 +278,7 @@ export function GoogleCallback({
                 locale={locale}
                 details={view.details}
                 flowKey={flowKey}
+                redirect={context?.redirect}
                 onCancel={() => router.replace(loginHref)}
               />
             )}

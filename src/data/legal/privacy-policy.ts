@@ -108,6 +108,7 @@ export const privacyPolicy: LegalDocument = {
               "Transactional messages (booking confirmations, changes, reminders) — performance of our contract with you (the Marketplace Customer Terms).",
               "Showing businesses near you — legitimate interest (art. 6(1)(f)) in showing relevant results; we use your precise location only if you allow it, and otherwise estimate it from your IP address.",
               "Security, fraud prevention and abuse protection — legitimate interest (art. 6(1)(f)).",
+              "Finding and fixing crashes and errors in the Zavoia app — legitimate interest (art. 6(1)(f)) in a working app. A report contains the error, the device and app version, the screens visited just before it, your account number if you are signed in, and the approximate city, estimated from your IP address; never your name or email address, and the IP address itself is not stored.",
               "Support and complaint handling — performance of our contract with you / legitimate interest.",
               "Legal obligations — compliance (art. 6(1)(c)), for example accounting and fiscal records.",
               "Marketing — only with your consent, per channel (art. 6(1)(a)); see the Marketing section.",
@@ -120,6 +121,7 @@ export const privacyPolicy: LegalDocument = {
               "Mesaje tranzacționale (confirmări de programare, modificări, mementouri) — executarea contractului nostru cu dumneavoastră (Termenii pentru clienți).",
               "Afișarea afacerilor din apropiere — interes legitim (art. 6(1)(f)) de a afișa rezultate relevante; folosim locația precisă doar dacă o permiteți, altfel o estimăm după adresa IP.",
               "Securitate, prevenirea fraudei și protecția împotriva abuzurilor — interes legitim (art. 6(1)(f)).",
+              "Identificarea și remedierea blocărilor și a erorilor din aplicația Zavoia — interes legitim (art. 6(1)(f)) de a avea o aplicație care funcționează. Un raport conține eroarea, dispozitivul și versiunea aplicației, ecranele vizitate chiar înainte numărul contului dumneavoastră, dacă sunteți autentificat, și orașul aproximativ, estimat după adresa IP; niciodată numele sau adresa de email, iar adresa IP nu este stocată.",
               "Asistență și soluționarea reclamațiilor — executarea contractului nostru cu dumneavoastră / interes legitim.",
               "Obligații legale — conformare (art. 6(1)(c)), de exemplu evidențe contabile și fiscale.",
               "Marketing — doar cu consimțământul dumneavoastră, pe fiecare canal (art. 6(1)(a)); vezi secțiunea Marketing.",
@@ -211,7 +213,7 @@ export const privacyPolicy: LegalDocument = {
           items: {
             en: [
               "Hosting and infrastructure: Google Cloud Run (our API), Supabase (our database), Vercel (the website and the business dashboard), Cloudflare (network protection and content delivery — traffic to our API passes through it — and R2 media storage).",
-              "Email delivery: Amazon Web Services (SES, with SNS for delivery and bounce notifications). SMS delivery: Twilio. Push notifications: Google Firebase Cloud Messaging (Zavoia Admin app), Expo (Zavoia app). App updates: Expo EAS Update.",
+              "Email delivery: Amazon Web Services (SES, with SNS for delivery and bounce notifications). SMS delivery: Twilio. Push notifications: Google Firebase Cloud Messaging (Zavoia Admin app), Expo (Zavoia app). App updates: Expo EAS Update. Crash and error reporting in the Zavoia app: Sentry (EU data region).",
               "Task scheduling: Google Cloud Tasks. Sign-in with Google: Google OAuth. Sign in with Apple: Apple (pages with the Apple button load Apple's sign-in script from Apple, which receives your IP address).",
               "Maps: Mapbox (map tiles and map usage data). Place search and address lookup: MapTiler (the place names you type and the coordinates looked up). Approximate location from your IP address: Cloudflare, which requests to our API already pass through, estimates your city from your IP address; when precise location is not available, the home page and search use that estimate to show businesses near you. Website analytics, only with your consent: Google Analytics. Marketing-site content: Sanity.",
               "For business customers only — subscription payments: Stripe; invoicing: Oblio.",
@@ -219,7 +221,7 @@ export const privacyPolicy: LegalDocument = {
             ],
             ro: [
               "Găzduire și infrastructură: Google Cloud Run (API-ul nostru), Supabase (baza noastră de date), Vercel (site-ul și panoul pentru afaceri), Cloudflare (protecția rețelei și livrarea conținutului — traficul către API-ul nostru trece prin rețeaua sa — și stocarea media R2).",
-              "Trimiterea emailurilor: Amazon Web Services (SES, cu SNS pentru notificările de livrare și de respingere). Trimiterea SMS-urilor: Twilio. Notificări push: Google Firebase Cloud Messaging (aplicația Zavoia Admin), Expo (aplicația Zavoia). Actualizările aplicației: Expo EAS Update.",
+              "Trimiterea emailurilor: Amazon Web Services (SES, cu SNS pentru notificările de livrare și de respingere). Trimiterea SMS-urilor: Twilio. Notificări push: Google Firebase Cloud Messaging (aplicația Zavoia Admin), Expo (aplicația Zavoia). Actualizările aplicației: Expo EAS Update. Raportarea erorilor și a blocărilor în aplicația Zavoia: Sentry (regiunea de date UE).",
               "Programarea sarcinilor: Google Cloud Tasks. Autentificare cu Google: Google OAuth. Autentificare cu Apple: Apple (paginile cu butonul Apple încarcă scriptul de autentificare Apple de pe serverele Apple, care primesc adresa dumneavoastră IP).",
               "Hărți: Mapbox (dalele hărții și datele de utilizare a hărții). Căutarea locurilor și a adreselor: MapTiler (numele de locuri pe care le tastați și coordonatele căutate). Locație aproximativă după adresa IP: Cloudflare, prin rețeaua căruia trec deja cererile către API-ul nostru, estimează orașul dumneavoastră după adresa IP; când locația precisă nu este disponibilă, prima pagină și căutarea folosesc această estimare pentru a vă arăta afaceri din apropiere. Analiza site-ului, doar cu consimțământul dumneavoastră: Google Analytics. Conținutul site-ului de marketing: Sanity.",
               "Doar pentru afaceri — plăți de abonament: Stripe; facturare: Oblio.",
