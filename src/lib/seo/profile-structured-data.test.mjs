@@ -65,6 +65,22 @@ test("a brand without displayed locations retains its factual organization profi
   assert.equal(brandStructuredData({ ...brand, name: " " }, "en", "/brand/the-brand"), null);
 });
 
+test("each configured business link identifies the brand without requiring a Studio site or biography", () => {
+  const brand = { ...brandFixture(), description: null };
+  const organization = fields => merchant(brandStructuredData({ ...brand, ...fields }, "en", "/brand/the-brand"));
+  for (const field of ["websiteUrl", "instagramUrl", "facebookUrl", "tiktokUrl", "pinterestUrl"]) {
+    assert.deepEqual(organization({ [field]: "atelier.example/contact" }).sameAs, ["https://atelier.example/contact"], field);
+  }
+  assert.deepEqual(organization({
+    websiteUrl: "http://atelier.example/contact",
+    instagramUrl: "instagram.com/atelier",
+    facebookUrl: "invalid",
+    pinterestUrl: "https://instagram.com/atelier",
+    website: { slug: "atelier-studio" },
+  }).sameAs, ["http://atelier.example/contact", "https://instagram.com/atelier"]);
+  assert.equal(organization({ websiteUrl: "invalid", website: { slug: "atelier-studio" } }).sameAs, undefined);
+});
+
 test("professional pages identify one real person across locales with reciprocal page references", () => {
   const profile = profileFixture();
   const business = contextFixture().businesses[0];

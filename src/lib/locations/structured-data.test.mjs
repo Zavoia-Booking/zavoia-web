@@ -67,9 +67,11 @@ test("branch geography, description and contacts never inherit unrelated brand f
   listing.description = "The merchant runs several branches.";
   listing.phone = "+12125550000";
   listing.email = "brand@example.invalid";
-  listing.instagramUrl = "https://www.instagram.com/merchant/";
+  listing.instagramUrl = "  www.instagram.com/merchant/  ";
   listing.facebookUrl = "javascript:alert(1)";
   listing.websiteUrl = "/unpublished-relative-website";
+  listing.pinterestUrl = "https://user:password@pinterest.com/merchant";
+  listing.tiktokUrl = "http://tiktok.com/@merchant?lang=ro";
   Object.assign(listing.location, {
     description: "  This particular branch.  ", phone: "+40215550000", email: "branch@example.invalid",
     addressComponents: { street: "Strada Centrului", streetNumber: "3", city: "Bucharest", country: "RO", postalCode: "030001" },
@@ -82,7 +84,7 @@ test("branch geography, description and contacts never inherit unrelated brand f
     "@type": "PostalAddress", streetAddress: "3 Strada Centrului", addressLocality: "Bucharest", postalCode: "030001", addressCountry: "RO",
   });
   assert.equal(venue(graph).sameAs, undefined);
-  assert.deepEqual(merchant(graph).sameAs, [listing.instagramUrl]);
+  assert.deepEqual(merchant(graph).sameAs, ["https://www.instagram.com/merchant/", listing.tiktokUrl]);
   assert.equal(merchant(graph).description, listing.description);
   assert.equal(merchant(graph).telephone, undefined, "A separate unshown brand number is not emitted");
   listing.location.phone = null;

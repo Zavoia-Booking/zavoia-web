@@ -106,7 +106,7 @@ const server = createServer(async (request, response) => {
   if (website && method === 'GET') return json(websiteFixture(website[1]));
   if (path === '/marketplace/public/website/demo-atelier-glow' && method === 'GET') return json(websiteFixture());
   if (path === '/marketplace/public/website/schema-merchant' && method === 'GET' && state.schemaWebsite) return json(state.schemaWebsite);
-  if (path === '/marketplace/public/brand/share-studio' && method === 'GET' && state.brand) return json(state.brand);
+  if (state.brand && path === `/marketplace/public/brand/${state.brand.slug}` && method === 'GET') return json(state.brand);
   if (path === '/marketplace/public/listings' && method === 'GET' && state.searchResult) return json(state.searchResult);
   if (path === '/marketplace/public/brands' && method === 'GET' && state.searchResult) return json({ data: [], total: 0, offset: 0, limit: 10 });
   if (path === '/marketplace/public/websites' && method === 'GET' && state.searchResult) return json({ data: [] });

@@ -31,6 +31,7 @@ import type {
   RatingBars,
 } from "@/features/website/components/builder/preview/shared/types";
 import type { HeroPreviewLocation } from "@/features/website/components/builder/preview/sections/hero/types";
+import type { BusinessProfileLinks } from "@/lib/marketplace/business-profile-links";
 
 /** Published Website Builder heroes, without the full site's booking catalog. */
 export interface PublicWebsiteShowcaseCard {
@@ -187,7 +188,7 @@ export interface BrandCard {
  * Brands feed; locations/team are UNCAPPED here (still gated by the listing's
  * show flags). Microsite identity fields are all nullable.
  */
-export interface BrandDetail {
+export interface BrandDetail extends BusinessProfileLinks {
   businessId: number;
   slug: string | null;
   /** BusinessMarketplaceListing id — location-scoped team-member profile context. */
@@ -203,6 +204,8 @@ export interface BrandDetail {
   aboutContent: string | null;
   establishedYear: number | null;
   heroImageUrl: string | null;
+  /** The business's live Website Studio site (zavoia.com/<slug>); null or absent when there is none. */
+  website?: { slug: string } | null;
   locations: BrandLocation[];
   locationsCount: number;
   teamMembers: BrandTeamMember[];
@@ -615,7 +618,7 @@ export interface BookingPolicy {
  * `locationId` mirrors it. `listingId` is the BusinessMarketplaceListing id used for
  * booking. `additionalSettings` is dynamic jsonb — typed as `unknown`.
  */
-export interface ListingDetail {
+export interface ListingDetail extends Required<BusinessProfileLinks> {
   id: number;
   locationId: number;
   businessId: number;
@@ -635,11 +638,8 @@ export interface ListingDetail {
   businessCurrency: string;
   timezone: string;
 
-  instagramUrl: string | null;
-  facebookUrl: string | null;
-  tiktokUrl: string | null;
-  websiteUrl: string | null;
-  pinterestUrl: string | null;
+  /** The business's live Website Studio site (zavoia.com/<slug>); null or absent when there is none. */
+  website?: { slug: string } | null;
 
   industry: Industry | IndustryRef | null;
 

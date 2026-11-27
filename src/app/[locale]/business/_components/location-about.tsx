@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { Avatar, Icon, Img, Rating, Skeleton, type IconName } from "@/components/ui";
+import { Avatar, Icon, Img, Rating, Skeleton } from "@/components/ui";
+import { BusinessLinks } from "@/components/business/business-links";
 import { IndustryExplore } from "@/components/business/industry-explore";
 import { tagIcon } from "@/features/marketplace/utils/tagIcons";
 import { format, formatCount } from "@/i18n/format";
@@ -25,16 +26,6 @@ const VENUE_TAG_GROUPS = [
   { key: "paymentMethods", section: "payment" },
   { key: "languages", section: "languages" },
 ] as const;
-
-function webHref(value: string | null): string | null {
-  if (!value?.trim()) return null;
-  try {
-    const url = new URL(value.trim());
-    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
-  } catch {
-    return null;
-  }
-}
 
 export function LocationAbout({
   listing,
@@ -76,14 +67,6 @@ export function LocationAbout({
   const hours = location.workingHours;
   const hasHours = hours != null && WEEKDAYS.some((day) => hours[day] != null);
   const otherLocations = Array.isArray(listing.otherLocations) ? listing.otherLocations : [];
-  const socialLinks: { label: string; href: string | null; icon: IconName }[] = [
-    { label: t.visitWebsite, href: webHref(listing.websiteUrl), icon: "globe" },
-    { label: "Instagram", href: webHref(listing.instagramUrl), icon: "ig" },
-    { label: "Facebook", href: webHref(listing.facebookUrl), icon: "fb" },
-    { label: "TikTok", href: webHref(listing.tiktokUrl), icon: "tt" },
-    { label: "Pinterest", href: webHref(listing.pinterestUrl), icon: "pint" },
-  ];
-  const socials = socialLinks.filter((social): social is { label: string; href: string; icon: IconName } => social.href != null);
   // The listing decides which places exist; the brand page only adds their details.
   const siblings = otherLocations.map((other) => ({ ...other, detail: brand?.locations[other.id] ?? null }));
   const brandRating = brand?.averageRating ?? null;
@@ -267,27 +250,14 @@ export function LocationAbout({
             {brandDescription && brandDescription !== locationDescription && (
               <p className={`txt-pretty ${styles.brandDescription}`}>{brandDescription}</p>
             )}
-            <div className={styles.brandActions}>
-              <Link
-                href={localeHref(locale, "brand", listing.businessSlug ?? String(listing.businessId))}
-                className={`tap zw-btn ${styles.brandAction}`}
-              >
-                {t.brandPage}
-                <Icon name="arrowR" size={15} />
-              </Link>
-              {socials.length > 0 && (
-                <nav className={styles.socials} aria-label={t.socialLinks}>
-                  {/* The business enters these addresses itself: Zavoia links to them without vouching for them. */}
-                  {socials.map((social) => (
-                    <a key={social.label} href={social.href} target="_blank" rel="nofollow ugc noreferrer">
-                      <Icon name={social.icon} size={15} />
-                      {social.label}
-                      <Icon name="arrowUR" size={12} />
-                    </a>
-                  ))}
-                </nav>
-              )}
-            </div>
+            <Link
+              href={localeHref(locale, "brand", listing.businessSlug ?? String(listing.businessId))}
+              className={`tap zw-btn ${styles.brandAction}`}
+            >
+              {t.brandPage}
+              <Icon name="arrowR" size={15} />
+            </Link>
+            <BusinessLinks business={listing} headingAs="h3" className={styles.businessLinks} />
           </div>
           {siblings.length > 0 && (
             <div className={styles.brandAside}>

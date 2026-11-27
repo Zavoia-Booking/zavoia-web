@@ -3,6 +3,8 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/routes";
 import type { BrandDetail, TeamMemberBookingBusiness, TeamMemberProfile } from "@/lib/api/marketplace/types";
 import { webUrl } from "@/lib/locations/structured-data";
+import { businessSameAs } from "@/lib/marketplace/business-profile-links";
+import { profileLinkHref } from "@/lib/marketplace/profile-link";
 import { professionalHref } from "@/lib/professionals/urls";
 import { professionalLanguageLabels } from "@/lib/professionals/languages";
 import { getPostModifiedAt, getPostPublishedAt } from "@/lib/blog/dates";
@@ -29,6 +31,7 @@ export function brandStructuredData(brand: BrandDetail, locale: Locale, pagePath
   const pageUrl = `${SITE_URL}${pagePath}`;
   const description = text(brand.description);
   const logo = webUrl(brand.logo, true);
+  const sameAs = businessSameAs(brand);
   const key = encodeURIComponent(text(brand.slug) || String(brand.businessId));
   // Branch cards link to real pages. This payload lacks each location UUID,
   // so the list identifies their pages rather than inventing competing venues.
@@ -50,6 +53,7 @@ export function brandStructuredData(brand: BrandDetail, locale: Locale, pagePath
         url: `${SITE_URL}${localeHref(DEFAULT_LOCALE, "brand", key)}`,
         ...(description && { description }),
         ...(logo && { logo }),
+        ...(sameAs.length > 0 && { sameAs }),
       },
       {
         "@type": locations ? "CollectionPage" : "WebPage",
@@ -92,8 +96,7 @@ export function professionalStructuredData(
     .map(value => value.trim()).filter(Boolean);
   const links = profile.about?.socialLinks ?? {};
   const sameAs = [...new Set(PROFILE_LINK_KEYS.flatMap((key) => {
-    const value = text(links[key]);
-    const url = value ? webUrl(/^https?:\/\//i.test(value) ? value : `https://${value}`) : undefined;
+    const url = profileLinkHref(links[key]);
     return url ? [url] : [];
   }))];
   const seenBusinesses = new Set<number>();

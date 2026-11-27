@@ -1,0 +1,53 @@
+/* Identity band on phones and tablets (920px and narrower, switched by the shared
+   zw-only-mobile / zw-only-desktop classes): the industry sits above the name, like the
+   location page's eyebrow, and the meta line keeps only the rating. */
+.eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--c-700); font-size: 12.5px; font-weight: 600; line-height: 1.5; }
+.ratingMobile { margin-top: 10px; color: var(--c-600); font-size: 14px; }
+
+.businessLinks { margin-top: clamp(24px, 4vw, 40px); }
+.about:last-child,
+.businessLinks:last-child { margin-bottom: clamp(50px, 7vw, 90px); }
+
+/* Live website: its own band under the identity band, between two faded hairlines
+   (the location page's divider: 32px fade at each end). The row is the location
+   page's website row: terracotta globe, underlined 18px address, 16px arrow. */
+.websiteSection { position: relative; display: flex; margin-top: clamp(22px, 3vw, 28px); padding-block: 8px; --website-rule: rgba(28, 28, 26, .1); }
+.websiteSection::before,
+.websiteSection::after { content: ""; position: absolute; inset-inline: 0; height: 1px; background: var(--website-rule); pointer-events: none; mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+.websiteSection::before { top: 0; }
+.websiteSection::after { bottom: 0; }
+
+.websiteLink { display: inline-flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%; min-height: 44px; border-radius: 4px; color: var(--c-700); text-decoration: none; }
+.websiteText { min-width: 0; overflow: hidden; color: var(--c-800); font-size: 18px; font-weight: 500; line-height: 1.5; text-decoration: underline; text-decoration-color: var(--c-300); text-overflow: ellipsis; text-underline-offset: 4px; white-space: nowrap; }
+
+@media (min-width: 921px) {
+  /* Desktop: the dividers run 40% of the row from its left edge, not the whole row. */
+  .websiteSection::before,
+  .websiteSection::after { inset-inline-end: auto; width: 40%; }
+}
+
+@media (min-width: 921px) and (hover: hover) and (pointer: fine) {
+  .websiteLink:hover .websiteText { color: var(--c-900); text-decoration-color: var(--c-600); }
+}
+
+/* Team cards: the location page's team card (business-detail.module.css), so a person
+   reads the same on both pages: the portrait beside a left-aligned identity, the
+   profile link along the bottom. One column on phones, as there. */
+.teamGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 16px; }
+.teamCard { display: grid; grid-template-columns: 80px minmax(0, 1fr); grid-template-rows: 1fr auto; align-items: start; gap: 12px 20px; min-width: 0; padding: 24px; border: 1px solid var(--c-200); border-radius: 18px; background: var(--c-50); color: var(--c-900); box-shadow: var(--sh-sm); font: inherit; text-align: start; text-decoration: none; cursor: pointer; }
+.teamPortrait { grid-row: 1 / 3; }
+.teamIdentity { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.teamIdentity > strong { font-size: 17px; font-weight: 600; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.teamIdentity > span { color: var(--c-600); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.profileLink { display: inline-flex; align-items: center; gap: 6px; grid-column: 2; align-self: end; justify-self: start; color: var(--p-700); font-size: 13px; font-weight: 600; line-height: 1.5; }
+
+@media (max-width: 600px) {
+  .teamGrid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .teamCard { gap: 10px 16px; padding: 20px; }
+}
+
+@media (max-width: 370px) {
+  .teamCard { grid-template-columns: 64px minmax(0, 1fr); padding: 18px 16px; }
+  .teamPortrait > * { width: 64px !important; height: 64px !important; }
+  .teamIdentity > strong { font-size: 16px; }
+}

@@ -856,6 +856,32 @@ function fillBookingCalendar(saved: Awaited<ReturnType<typeof installSavedFixtur
   })
 }
 
+function setBookingOpenDays(saved: Awaited<ReturnType<typeof installSavedFixture>>, ...openDates: string[]) {
+  fillBookingCalendar(saved)
+  for (const day of saved.availability.calendar.calendar) {
+    const available = openDates.includes(day.date)
+    day.status = available ? 'available' : 'fully_booked'
+    day.slotsCount = available ? 1 : undefined
+    if (available) {
+      saved.slotsByDate[day.date] = { ...saved.availability.slots, date: day.date, dayOfWeek: day.dayOfWeek }
+    }
+  }
+  saved.availability.calendar.nextAvailableDate = saved.availability.calendar.calendar.find(day => day.status === 'available')?.date ?? null
+}
+
+function calendarWindowWithOpening(initial: BookingCalendar, request: GetBookingCalendarBody, opening: string): BookingCalendar {
+  const start = new Date(`${request.startDate}T12:00:00Z`)
+  const calendar: BookingCalendar['calendar'] = Array.from({ length: request.daysToCheck ?? 30 }, (_, offset) => {
+    const day = new Date(start.getTime() + offset * 86_400_000)
+    const date = day.toISOString().slice(0, 10)
+    return {
+      date, dayOfWeek: day.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }),
+      status: date === opening ? 'available' : 'fully_booked', slotsCount: date === opening ? 1 : undefined,
+    }
+  })
+  return { ...initial, calendar, nextAvailableDate: calendar.find(day => day.status === 'available')?.date ?? null }
+}
+
 async function openProfileBooking(page: Page, locale: 'en' | 'ro' = 'en') {
   await page.goto(locale === 'en' ? '/saved' : '/ro/saved')
   await page.getByRole('button', { name: PERSON, exact: true }).click()
@@ -863,7 +889,7 @@ async function openProfileBooking(page: Page, locale: 'en' | 'ro' = 'en') {
   await expect(profile).toBeVisible()
   await profile.getByRole('button', { name: `${locale === 'en' ? 'Add' : 'Adaugă'} Fixture haircut`, exact: true }).click()
   await profile.getByRole('button', { name: locale === 'en' ? 'Book with Mara' : 'Programează-te la Mara', exact: true }).click()
-  const drawer = page.getByRole('dialog', { name: locale === 'en' ? 'Book an appointment' : 'Rezervă o programare', exact: true })
+  const drawer = page.getByRole('dialog', { name: locale === 'en' ? 'Book an appointment' : 'Fă o programare', exact: true })
   await expect(drawer).toBeVisible()
   await expect(drawer.locator('button[data-date="2030-10-22"]')).toBeVisible()
   return drawer
@@ -994,6 +1020,127 @@ testSaved('booking redesign never allows stale day slots to replace the current 
   expect(saved.mutations).toEqual([])
 })
 
+testSaved.describe('next available date in customer booking', () => {
+  testSaved.beforeEach(async ({ page, saved }) => {
+    await page.clock.setFixedTime(new Date('2030-10-22T08:00:00Z'))
+    saved.bookingContext = venueFixture(1)
+  })
+
+  testSaved('reveals day ten and fetches its live times on request', async ({ page, saved }) => {
+    const opening = '2030-10-31'
+    await page.setViewportSize({ width: 320, height: 690 })
+    setBookingOpenDays(saved, opening)
+    const drawer = await openProfileBooking(page)
+    const jump = drawer.getByRole('button', { name: /^Next available: .*Oct 31/ })
+    await expect(drawer.locator('button[data-date]:disabled')).toHaveCount(7)
+    await expect(jump).toBeVisible()
+    expect(saved.availabilityRequests).toHaveLength(1)
+    await drawer.getByRole('button', { name: 'Next dates', exact: true }).click()
+    await drawer.getByRole('button', { name: 'Previous dates', exact: true }).click()
+    await jump.focus()
+    await page.keyboard.press('Enter')
+    const selectedDay = drawer.locator('button[data-date="2030-10-31"]')
+    await expect(selectedDay).toHaveAttribute('aria-pressed', 'true')
+    await expect(selectedDay).toBeFocused()
+    await expect(selectedDay).toBeInViewport({ ratio: 1 })
+    await expect(drawer.getByRole('button', { name: /^10:00/ })).toHaveAttribute('aria-pressed', 'false')
+    await expect(drawer.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
+    expect(saved.availabilityRequests).toEqual([
+      expect.objectContaining({ daysToCheck: 30, startDate: '2030-10-22' }),
+      { businessId: 101, locationId: 201, date: opening, services: [{ serviceId: 401, teamMemberId: 301 }] },
+    ])
+  })
+
+  testSaved('offers a strictly later opening after the selected day loses its last slot', async ({ page, saved }) => {
+    const selected = '2030-10-25'
+    const next = '2030-10-31'
+    setBookingOpenDays(saved, '2030-10-22', selected, next)
+    saved.slotsByDate[selected].slots = []
+    const drawer = await openProfileBooking(page)
+    const jump = drawer.getByRole('button', { name: /^Next available:/ })
+    await expect(jump).toHaveCount(0)
+    await drawer.locator(`button[data-date="${selected}"]`).click()
+    await expect(jump).toHaveAccessibleName(/Oct 31/)
+    await jump.click()
+    await expect(drawer.locator(`button[data-date="${next}"]`)).toHaveAttribute('aria-pressed', 'true')
+    await expect(drawer.getByRole('button', { name: /^10:00/ })).toBeVisible()
+    expect(saved.availabilityRequests.filter(req => 'date' in req).map(req => req.date)).toEqual([selected, next])
+  })
+
+  for (const [opening, withinLimit] of [['2030-11-21', true], ['2030-11-22', false]] as const) {
+    testSaved(`checks the missing part of the window and ${withinLimit ? 'includes day 30' : 'excludes day 31'}`, async ({ page, saved }) => {
+      const selected = '2030-10-22'
+      setBookingOpenDays(saved, selected)
+      saved.availability.calendar.bookingSettings.maxAdvanceBookingMinutes = null
+      saved.slotsByDate[selected].slots = []
+      saved.slotsByDate[opening] = { ...saved.availability.slots, date: opening }
+      const calendarRequests: GetBookingCalendarBody[] = []
+      await page.route('**/public/booking/calendar', async route => {
+        const body: GetBookingCalendarBody = route.request().postDataJSON()
+        calendarRequests.push(body)
+        if (calendarRequests.length === 1) return route.fallback()
+        await route.fulfill({ json: { data: calendarWindowWithOpening(saved.availability.calendar, body, opening) } })
+      })
+      const drawer = await openProfileBooking(page)
+      await drawer.locator(`button[data-date="${selected}"]`).click()
+      const find = drawer.getByRole('button', { name: 'Find next available date', exact: true })
+      await expect(find).toBeVisible()
+      expect(calendarRequests).toHaveLength(1)
+      await find.click()
+      if (withinLimit) {
+        await expect(drawer.locator(`button[data-date="${opening}"]`)).toHaveAttribute('aria-pressed', 'true')
+        await expect(drawer.getByRole('button', { name: /^10:00/ })).toBeVisible()
+      } else {
+        await expect(drawer.getByRole('status').filter({ hasText: /No openings through .*Nov 21/ })).toBeFocused()
+        await expect(drawer.locator(`button[data-date="${selected}"]`)).toHaveAttribute('aria-pressed', 'true')
+        await expect(find).toHaveCount(0)
+        await expect(drawer.getByRole('button', { name: /^Next available:/ })).toHaveCount(0)
+      }
+      expect(calendarRequests).toHaveLength(2)
+      expect(calendarRequests[1]).toMatchObject({ businessId: 101, locationId: 201, services: [{ serviceId: 401, teamMemberId: 301 }] })
+      expect(saved.availabilityRequests.filter(req => 'date' in req).map(req => req.date)).toEqual(withinLimit ? [selected, opening] : [selected])
+    })
+  }
+
+  testSaved('a failed search can be retried and a late retry honors the customer’s new date', async ({ page, saved }) => {
+    const selected = '2030-10-25'
+    const manual = '2030-10-22'
+    setBookingOpenDays(saved, manual, selected)
+    saved.availability.calendar.bookingSettings.maxAdvanceBookingMinutes = null
+    saved.slotsByDate[selected].slots = []
+    let attempts = 0
+    let releaseLookup!: () => void
+    const holdLookup = new Promise<void>(resolve => { releaseLookup = resolve })
+    await page.route('**/public/booking/calendar', async route => {
+      const body: GetBookingCalendarBody = route.request().postDataJSON()
+      if (body.startDate === manual) return route.fallback()
+      attempts += 1
+      if (attempts === 1) return route.fulfill({ status: 503, json: { message: 'Unavailable' } })
+      await holdLookup
+      await route.fulfill({ json: { data: calendarWindowWithOpening(saved.availability.calendar, body, '2030-11-21') } })
+    })
+    const drawer = await openProfileBooking(page)
+    await drawer.locator(`button[data-date="${selected}"]`).click()
+    const find = drawer.getByRole('button', { name: 'Find next available date', exact: true })
+    await find.click()
+    await expect(drawer.locator('[data-toast-host] [role="alert"]')).toBeVisible()
+    await expect(drawer.locator(`button[data-date="${selected}"]`)).toHaveAttribute('aria-pressed', 'true')
+    await expect(find).toBeEnabled()
+    await find.click()
+    try {
+      await expect.poll(() => attempts).toBe(2)
+      await drawer.locator(`button[data-date="${manual}"]`).click()
+      await drawer.getByRole('button', { name: /^10:00/ }).click()
+    } finally {
+      releaseLookup()
+    }
+    await expect(drawer.getByRole('button', { name: 'Next dates', exact: true })).toBeEnabled()
+    await expect(drawer.locator(`button[data-date="${manual}"]`)).toHaveAttribute('aria-pressed', 'true')
+    await expect(drawer.getByRole('button', { name: /^10:00/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(saved.availabilityRequests.filter(req => 'date' in req).map(req => req.date)).toEqual([selected, manual])
+  })
+})
+
 for (const [locale, viewport] of [
   ['en', { width: 1440, height: 1000 }],
   ['ro', { width: 320, height: 640 }],
@@ -1014,7 +1161,7 @@ for (const [locale, viewport] of [
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width)
     expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height)
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    const close = drawer.getByRole('button', { name: locale === 'en' ? 'Close' : 'Închide', exact: true })
+    const close = drawer.locator('header').getByRole('button', { name: locale === 'en' ? 'Close' : 'Închide', exact: true })
     const closeBounds = (await close.boundingBox())!
     expect(closeBounds.width).toBeGreaterThanOrEqual(44)
     expect(closeBounds.height).toBeGreaterThanOrEqual(44)
@@ -1368,7 +1515,7 @@ testSaved('booking contract keeps navigation available when the first thirty day
     return route.fulfill({ json: { data: calendar } })
   })
   const drawer = await openProfileBooking(page)
-  await expect(drawer).toContainText('No availability in this date range.')
+  await expect(drawer).toContainText(/No openings through .*Nov 20/)
   for (let index = 0; index < 4; index += 1) await drawer.getByRole('button', { name: 'Next dates', exact: true }).click()
   await expect(drawer.locator('button[data-date="2030-11-21"]')).toBeEnabled()
   expect(requests).toHaveLength(2)

@@ -36,6 +36,7 @@ import { getBrowserLocationIfAllowed } from "@/lib/geocoding";
 import { TeamMemberProfileModal } from "./team-member-profile-modal";
 import { professionalHref } from "@/lib/professionals/urls";
 import { locationHref, locationName } from "@/lib/locations/identity";
+import { SITE_HOST } from "@/lib/site";
 import { EmptyState } from "./empty-state";
 import styles from "./business-detail.module.css";
 import { LocationGallery } from "./location-gallery";
@@ -327,6 +328,9 @@ export function BusinessDetail({ listing, locale, categoryHref, categoryHasOther
   const phone = listing.location.phone || listing.phone;
   const placeHref = buildPlaceHref(listing);
   const brandHref = localeHref(locale, "brand", listing.businessSlug ?? String(listing.businessId));
+  // The business's live Website Studio site, shown as its address (zavoia.com/<slug>).
+  const websiteSlug = listing.website?.slug ?? null;
+  const websiteLabel = websiteSlug ? `${SITE_HOST}/${websiteSlug}` : null;
   const mapHref = listing.location.latitude != null && listing.location.longitude != null
     ? `${localeHref(locale, "search")}?lat=${listing.location.latitude}&lng=${listing.location.longitude}&radius=${SEARCH_RADIUS_KM}&focus=${locationId}`
     : null;
@@ -400,21 +404,36 @@ export function BusinessDetail({ listing, locale, categoryHref, categoryHasOther
           </button>}
           {distanceStr && <div className={styles.meta}><span>{distanceStr}</span></div>}
         </div>}
-        {addressLabel && (placeHref ? <a
-          href={placeHref}
+        {websiteSlug && websiteLabel && <Link
+          href={localeHref(locale, websiteSlug)}
+          prefetch={false}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className={`${styles.where} ${styles.addressLink}`}
-          aria-label={`${dict.locationPage.openInMaps}: ${addressLabel}`}
+          aria-label={`${dict.homeSections.websiteShowcase.viewWebsite}: ${websiteLabel}`}
+          aria-describedby={`${panelId}-website-new-tab`}
         >
-          <Icon name="pin" size={20} />
-          <span className={styles.addressContent}><span className={styles.addressLine}>{addressLabel}</span></span>
-          <Icon name="arrowUR" size={14} />
-        </a> : <div className={styles.where}>
-          <Icon name="pin" size={20} />
-          <span className={styles.addressContent}><span className={styles.addressLine}>{addressLabel}</span></span>
-        </div>)}
+          <Icon name="globe" size={20} color="var(--p-500)" className={styles.websiteIcon} />
+          <span className={styles.addressContent}><span className={`${styles.addressLine} ${styles.websiteLine}`}>{websiteLabel}</span></span>
+          <Icon name="arrowUR" size={16} className={styles.websiteArrow} />
+          <span id={`${panelId}-website-new-tab`} hidden>{dict.common.opensInNewTab}</span>
+        </Link>}
         <Link href={brandHref} className={styles.brandLink}><Avatar src={listing.logo ?? undefined} name={listing.name} size={32} decorative /><span>{listing.name}</span><Icon name="arrowUR" size={16} /></Link>
+        {addressLabel && <div className={styles.addressBlock}>
+          {placeHref ? <a
+            href={placeHref}
+            target="_blank"
+            rel="noreferrer"
+            className={`${styles.where} ${styles.addressLink}`}
+            aria-label={`${dict.locationPage.openInMaps}: ${addressLabel}`}
+          >
+            <Icon name="pin" size={20} className={styles.addressIcon} />
+            <span className={styles.addressContent}><span className={styles.addressLine}>{addressLabel}</span></span>
+          </a> : <div className={styles.where}>
+            <Icon name="pin" size={20} className={styles.addressIcon} />
+            <span className={styles.addressContent}><span className={styles.addressLine}>{addressLabel}</span></span>
+          </div>}
+        </div>}
       </header>
       <LocationGallery listing={listing} cat={cat} />
     </div>

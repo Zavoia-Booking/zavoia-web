@@ -46,6 +46,7 @@ import type {
   TeamMemberBookingContext,
   TeamMemberProfile,
 } from "@/lib/api/marketplace/types";
+import { profileLinkHref } from "@/lib/marketplace/profile-link";
 
 // Professional profile shared by the public page and contextual modal.
 // The page supplies the server-resolved profile; existing modal entry points
@@ -62,10 +63,6 @@ const SOCIALS: Array<{ key: string; icon: "ig" | "tt" | "fb" | "globe" }> = [
   { key: "facebook", icon: "fb" },
   { key: "website", icon: "globe" },
 ];
-
-function externalHref(value: string): string {
-  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
-}
 
 /** Inert subscription for the client-detection useSyncExternalStore. */
 function subscribeNoop(): () => void {
@@ -525,10 +522,10 @@ export function ProfessionalProfile({
 
   const socials = useMemo(() => {
     const links = profile?.about?.socialLinks ?? {};
-    return SOCIALS.filter(({ key }) => {
-      const v = links[key];
-      return typeof v === "string" && v.trim().length > 0;
-    }).map(({ key, icon }) => ({ key, icon, href: externalHref(links[key]!.trim()) }));
+    return SOCIALS.flatMap(({ key, icon }) => {
+      const href = profileLinkHref(links[key]);
+      return href ? [{ key, icon, href }] : [];
+    });
   }, [profile]);
 
   // A single venue is unambiguous. Multiple venues need an explicit choice

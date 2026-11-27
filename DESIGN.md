@@ -1158,16 +1158,25 @@ use a compact 38–44px title (36px on phones, 34px below 370px). Show the full 
 wrap at natural word boundaries, and allow emergency wrapping for unbroken text;
 never truncate or clamp the title. Give the desktop overview a 360px identity
 column, or 300px at 1100px, independently of the booking rail. Place the owning
-brand last in the identity column, beneath the address, with a full-width divider
-above it, 12px top padding, a 32px logo and a 17px/600 brand link.
+brand beneath the rating (and the website, when shown), with a full-width
+divider above it, 12px top padding, a 32px logo and a 17px/600 brand link. Close
+the identity with the address below the brand, behind its own full-width divider
+with 12px top padding; where the gallery stacks below the identity (920px and
+narrower) a matching divider with 12px bottom padding closes the address too.
 
 Use a dedicated 44px review action with a 20px star, 28px score and 18px localized
 written review count aligned to the score's typographic baseline. Keep optional
-distance on a secondary line. Show the 15px full address as a wrapping Google Maps
-place link with a 20px pin and quiet external-link arrow. Use the address as the
-place query, falling back to its coordinates. Open it in a new tab. Keep the
-address in the identity header on every tab, including About. Do not duplicate
-it in Contact. The toolbar's See on map action remains in place.
+distance on a secondary line. Show the 14px full address as a wrapping Google Maps
+place link with a 20px pin and no arrow. Use the address as the place query,
+falling back to its coordinates. Open it in a new tab. Keep the address in the
+identity header on every tab, including About. Do not duplicate it in Contact.
+The toolbar's See on map action remains in place.
+When the business has a live Web Studio website, show its address
+(`zavoia.com/<slug>`) beneath the rating as a row: a 20px terracotta globe (the
+live thing, like the rating star), the underlined line at 18px, the review
+count's size, kept to one line with an ellipsis, and a 16px external-link arrow.
+It opens in a new tab and its accessible name starts with "View website". It is
+not the owner's external website link in About.
 A city without coordinates or a street address stays
 static. Keep 12px between identity groups and local
 color/underline hover feedback. At 920px the identity and gallery stack; phones
@@ -1176,6 +1185,18 @@ fine outer frame, inset content and faded dividers to connect header and catalog
 Confine warm material to the overview and keep the shared 1400px container.
 Brand pages retain their own identity-led layout and location cards.
 Use the same canonical industry icon and localized label in the brand identity.
+The brand identity shows no city, because a brand's locations can be in different
+cities and the location cards show them: the meta line reads rating · industry.
+At 920px and narrower the industry moves above the name as a 12.5px/600 eyebrow
+with its icon, like the location page's, and the meta line keeps only the rating.
+A live Web Studio website has its own band between the identity band and the
+locations, set between two faded hairline dividers like the location page's (32px
+fade at each end), 40% of the row wide from its left edge on desktop and the full
+row at 920px and narrower: a 20px terracotta globe, the address
+(`zavoia.com/<slug>`) underlined at 18px and a 16px external-link arrow, with no
+box, badge or circle. It ends in an ellipsis when long, changes its underline
+color on desktop hover only and opens in a new tab. Without a live website the
+band is not rendered.
 Close the brand content with the shared `IndustryExplore` row, a subtle top
 divider and the existing industry-filtered search link. Keep its destination
 independent of city because a brand may span several cities. Location About

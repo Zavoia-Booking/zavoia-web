@@ -8,6 +8,7 @@
  * and tag dictionaries are the live projections served on the public payload.
  */
 import type { PublicWebsite } from "@/lib/api/marketplace/types";
+import { profileLinkHref } from "@/lib/marketplace/profile-link";
 import type {
   AnnouncementContent,
   SectionEntry,
@@ -96,11 +97,11 @@ export function buildMicrositeRender(
     email: identity.email ?? "",
     phone: identity.phone ?? "",
     social: {
-      instagram: identity.instagramUrl,
-      facebook: identity.facebookUrl,
-      tiktok: identity.tiktokUrl,
-      website: identity.websiteUrl,
-      pinterest: identity.pinterestUrl,
+      instagram: profileLinkHref(identity.instagramUrl),
+      facebook: profileLinkHref(identity.facebookUrl),
+      tiktok: profileLinkHref(identity.tiktokUrl),
+      website: profileLinkHref(identity.websiteUrl),
+      pinterest: profileLinkHref(identity.pinterestUrl),
     },
     locations: site.locations ?? [],
     faq: snapshot.faq ?? [],

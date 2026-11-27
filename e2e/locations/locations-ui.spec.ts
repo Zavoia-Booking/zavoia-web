@@ -1,6 +1,7 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import type { ListingDetail } from '../../src/lib/api/marketplace/types';
 import { availabilityFixture, listingFixture } from '../professionals/fixtures.mjs';
+import { structuredDataFixtures } from '../structured-data/fixtures.mjs';
 
 const api = `http://127.0.0.1:${process.env.LOCATIONS_FIXTURE_PORT || '4319'}`;
 const phone = '+40722123456';
@@ -103,7 +104,7 @@ async function expectIdentityFits(page: Page, main: Locator, listing: ListingDet
     place: (await place.elementHandle())!, gallery: (await gallery.elementHandle())!,
   });
   const { identityBounds, brandBounds, brandNameBounds, brandArrowBounds, ratingBounds, addressGroupBounds, galleryBounds } = geometry;
-  for (const [fragments, nextTop] of [[geometry.headingFragments, ratingBounds.y], [geometry.addressFragments, brandBounds.y]] as const) {
+  for (const [fragments, nextTop] of [[geometry.headingFragments, ratingBounds.y], [geometry.addressFragments, identityBounds.y + identityBounds.height]] as const) {
     // Range rectangles include text hidden by a line clamp or ellipsis, so this
     // checks the full copy fits instead of relying on accessible text alone.
     expect(fragments.length).toBeGreaterThan(0);
@@ -113,10 +114,11 @@ async function expectIdentityFits(page: Page, main: Locator, listing: ListingDet
       expect(fragment.bottom, 'Full text does not overlap the following identity content').toBeLessThanOrEqual(nextTop + 1);
     }
   }
-  expect(ratingBounds.y + ratingBounds.height, 'Reviews precede the address').toBeLessThanOrEqual(addressGroupBounds.y + 1);
-  expect(addressGroupBounds.y + addressGroupBounds.height, 'The brand closes the identity below the address').toBeLessThanOrEqual(brandBounds.y + 1);
+  expect(ratingBounds.y + ratingBounds.height, 'Reviews precede the brand').toBeLessThanOrEqual(brandBounds.y + 1);
+  expect(brandBounds.y + brandBounds.height, 'The address closes the identity below the brand').toBeLessThanOrEqual(addressGroupBounds.y + 1);
   expect(brandArrowBounds.x - (brandNameBounds.x + brandNameBounds.width), 'The brand arrow follows the brand name').toBeLessThanOrEqual(16);
-  await expect(identity.locator('a, button').last()).toHaveAttribute('href', /\/brand\//);
+  await expect(brand).toHaveAttribute('href', /\/brand\//);
+  await expect(identity.locator('a, button').last(), 'The address link closes the identity').toHaveAttribute('href', /^https:\/\/www\.google\.com\/maps\/search\//);
   const scoreBaseline = await textBaseline(rating.getByText(/^\d[.,]\d$/));
   const countBaseline = await textBaseline(rating.getByText(/\d[\d,.]* (?:de )?(?:reviews|recenzii)$/));
   expect(Math.abs(scoreBaseline - countBaseline), 'Score and review count share a text baseline').toBeLessThanOrEqual(1);
@@ -163,6 +165,8 @@ function seoFixture() {
   // Numeric aliases share one cached API URL; keep their payload identical
   // across locale and sharing scenarios, while other fixtures use unique slugs.
   const listing = locationFixture('seo-canonical');
+  listing.instagramUrl = 'instagram.com/atelier';
+  listing.websiteUrl = 'http://atelier.example/old-town';
   listing.location.description = `  ${seoDescription}  `;
   listing.location.email = 'oldtown@example.invalid';
   listing.location.workingHours = {
@@ -184,6 +188,95 @@ async function locationPanel(page: Page, name: string | RegExp) {
   const id = await page.getByRole('tab', { name, exact: true, includeHidden: true }).getAttribute('aria-controls');
   expect(id, 'A location tab identifies its real content panel').toBeTruthy();
   return page.locator(`[id=${JSON.stringify(id)}]`);
+}
+
+const profileDestinations = [
+  { label: 'Website', field: 'websiteUrl', saved: 'http://atelier.example/contact?lang=ro', href: 'http://atelier.example/contact?lang=ro' },
+  { label: 'Instagram', field: 'instagramUrl', saved: 'instagram.com/atelier', href: 'https://instagram.com/atelier' },
+  { label: 'Facebook', field: 'facebookUrl', saved: 'https://facebook.com/atelier', href: 'https://facebook.com/atelier' },
+  { label: 'TikTok', field: 'tiktokUrl', saved: 'tiktok.com/@atelier', href: 'https://tiktok.com/@atelier' },
+  { label: 'Pinterest', field: 'pinterestUrl', saved: 'pinterest.com/atelier/ideas/', href: 'https://pinterest.com/atelier/ideas/' },
+] as const;
+
+const profileLinkCases = [
+  { scenario: 'all-en', expected: profileDestinations },
+  { scenario: 'all-ro', expected: profileDestinations },
+  ...profileDestinations.map(link => ({ scenario: link.field, expected: [link] })),
+  { scenario: 'empty', expected: [] },
+];
+
+for (const { scenario, expected } of profileLinkCases) {
+  test(`business profile links on location and brand pages · ${scenario}`, async ({ page, request }) => {
+    const ro = scenario === 'all-ro';
+    const prefix = ro ? '/ro' : '';
+    const heading = ro ? 'Găsește-ne online' : 'Find us online';
+    const all = expected.length === profileDestinations.length;
+    const links = {
+      instagramUrl: 'invalid',
+      ...Object.fromEntries(expected.map(link => [link.field, link.saved])),
+      website: all ? { slug: 'atelier-studio' } : null,
+    };
+    const listing = { ...locationFixture(scenario), ...links, businessSlug: `brand-${scenario}` };
+    const brand = { ...structuredDataFixtures().brand, ...links, slug: listing.businessSlug, description: null };
+    brand.locations[0].slug = listing.slug;
+    brand.locations[1].slug = `${listing.slug}-north`;
+    const response = await request.post(`${api}/__control`, { data: { reset: true, patch: { listing, brand } } });
+    expect(response.ok()).toBeTruthy();
+    if (ro) await page.setViewportSize({ width: 320, height: 760 });
+    await page.goto(`${prefix}/business/${listing.slug}?tab=about`);
+
+    for (const surface of ['location', 'brand']) {
+      if (surface === 'brand') {
+        await page.getByRole('tabpanel').locator(`a[href="${prefix}/brand/${brand.slug}"]`).click();
+        await expect(page.getByRole('heading', { level: 1, name: brand.name })).toBeVisible();
+      } else {
+        await expect(page.getByRole('tabpanel').getByRole('heading', { name: listing.name, exact: false })).toBeVisible();
+      }
+      const group = page.getByRole('navigation', { name: heading });
+      if (expected.length === 0) {
+        await expect(group).toHaveCount(0);
+        await expect(page.getByRole('heading', { name: heading })).toHaveCount(0);
+        continue;
+      }
+      await expect(group.getByRole('heading', { name: heading })).toBeVisible();
+      const anchors = group.getByRole('link');
+      const labels = expected.map(link => ro && link.field === 'websiteUrl' ? 'Site web' : link.label);
+      await expect(anchors).toHaveText(labels);
+      for (const [index, { href }] of expected.entries()) {
+        const link = group.getByRole('link', { name: labels[index], exact: true });
+        await expect(link).toHaveAttribute('href', href);
+        await expect(link).toHaveAttribute('target', '_blank');
+        await expect(link).toHaveAttribute('rel', /\bnoreferrer\b/);
+        const bounds = (await link.boundingBox())!;
+        expect(bounds.height).toBeGreaterThanOrEqual(44);
+        expect(bounds.x).toBeGreaterThanOrEqual(0);
+        expect(bounds.x + bounds.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+      }
+      if (all) {
+        await expect(page.getByRole('main').locator(`a[href="${prefix}/atelier-studio"]`)).toBeVisible();
+        await anchors.first().focus();
+        await page.keyboard.press('Tab');
+        await expect(anchors.nth(1)).toBeFocused();
+        if (ro) expect((await anchors.last().boundingBox())!.y).toBeGreaterThan((await anchors.first().boundingBox())!.y);
+      }
+    }
+    if (scenario === 'all-en') {
+      const north = brand.locations[1];
+      const secondLocation = {
+        ...listing, id: north.id, locationId: north.id, slug: north.slug,
+        location: { ...listing.location, id: north.id, slug: north.slug, uuid: 'fixture-north', name: north.name },
+      };
+      const switched = await request.post(`${api}/__control`, { data: { patch: { listing: secondLocation } } });
+      expect(switched.ok()).toBeTruthy();
+      await page.getByRole('main').locator(`a[href="/business/${north.slug}"]`).click();
+      await expect(page.getByRole('heading', { level: 1, name: north.name })).toBeVisible();
+      await page.getByRole('tab', { name: 'About', exact: true }).click();
+      const links = page.getByRole('navigation', { name: heading }).getByRole('link');
+      await expect(links).toHaveCount(profileDestinations.length);
+      expect(await links.evaluateAll(items => items.map(item => item.getAttribute('href'))))
+        .toEqual(profileDestinations.map(link => link.href));
+    }
+  });
 }
 
 
@@ -246,6 +339,8 @@ test.describe('location SEO', () => {
         await expect(about.getByText(seoDescription, { exact: true })).toHaveCount(1);
         await expect(about.locator(`a[href="tel:${phone}"]`)).toHaveCount(1);
         await expect(about.locator('a[href="mailto:oldtown@example.invalid"]')).toHaveCount(1);
+        await expect(about.locator('a[href="https://instagram.com/atelier"]')).toHaveText('Instagram');
+        await expect(about.locator('a[href="http://atelier.example/old-town"]')).toHaveCount(1);
         await expect(about.locator('dl')).toContainText('09:00 - 19:00');
         await expect(reviews.locator('article')).toContainText(seoReview);
         await expect(reviews.getByText(seoReview, { exact: true })).toHaveCount(1);

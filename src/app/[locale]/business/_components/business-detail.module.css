@@ -54,9 +54,17 @@
 .where { display: inline-flex; align-items: flex-start; gap: 12px; min-width: 0; max-width: 100%; min-height: 44px; padding-block: 2px; color: var(--c-700); }
 .where > svg { flex-shrink: 0; margin-top: 2px; color: var(--c-500); }
 .addressContent { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
-.addressLine { min-width: 0; max-width: 100%; color: var(--c-800); font-size: 15px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+.addressLine { min-width: 0; max-width: 100%; color: var(--c-800); font-size: 14px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
 .addressLink { align-self: flex-start; border-radius: 4px; text-decoration: none; }
 .addressLink .addressLine { text-decoration: underline; text-decoration-color: var(--c-300); text-underline-offset: 4px; }
+/* The website row is the address row one step up: an 18px line (the review count's size) kept to one line with an
+   ellipsis when long, and a 16px arrow like the brand link's. Its globe is terracotta, set on the icon itself. */
+.websiteLine { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.where > .websiteIcon { margin-top: 3px; }
+.where > .websiteArrow { margin-top: 4px; }
+/* The address closes the identity under the brand, behind its own full-width divider (the brand's is above it). */
+.addressBlock { display: flex; align-self: stretch; min-width: 0; padding-top: 12px; border-top: 1px solid var(--location-rule); }
+.where > .addressIcon { margin-top: 1px; }
 .columns { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) var(--location-rail); align-items: start; gap: var(--location-gap); padding: 24px var(--location-inset) 0; }
 .columns::before { content: ""; position: absolute; inset-block: 64px; inset-inline-end: calc(var(--location-inset) + var(--location-rail) + var(--location-gap) / 2); width: 1px; background: var(--location-rule); pointer-events: none; mask-image: linear-gradient(to bottom, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
 .content { min-width: 0; }
@@ -268,6 +276,8 @@ button.ticket { cursor: pointer; }
   .frame { --location-inset: 20px; }
   .overview { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 28px; }
   .identity { gap: 12px; }
+  /* The gallery stacks under the identity here, so the address gets a closing divider (the brand's is above it). */
+  .addressBlock { padding-bottom: 12px; border-bottom: 1px solid var(--location-rule); }
   .columns { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 24px; }
   .columns::before { content: none; }
   .ratingLink, a.categoryLink { min-height: 44px; }

@@ -3,6 +3,7 @@ import { localeHref } from "@/i18n/routes";
 import type { ListingDetail, ListingLocation } from "@/lib/api/marketplace/types";
 import { countryCode } from "@/lib/geo/country-code";
 import { parseWorkingHoursDay, WEEKDAYS } from "@/lib/marketplace/working-hours";
+import { businessSameAs } from "@/lib/marketplace/business-profile-links";
 import { organizationId, siteEntities, websiteId } from "@/lib/seo/site-identity";
 import { SITE_URL } from "@/lib/site";
 import { merchantId as merchantEntityId } from "@/lib/seo/entities";
@@ -160,9 +161,7 @@ export function locationStructuredData(
   const merchantDescription = text(listing.description);
   const merchantUrl = `${SITE_URL}${localeHref(DEFAULT_LOCALE, "brand", encodeURIComponent(text(listing.businessSlug) || String(listing.businessId)))}`;
   const logo = webUrl(listing.logo, true);
-  const sameAs = [...new Set([
-    listing.websiteUrl, listing.instagramUrl, listing.facebookUrl, listing.tiktokUrl, listing.pinterestUrl,
-  ].map(value => webUrl(value)).filter((value): value is string => Boolean(value)))];
+  const sameAs = businessSameAs(listing);
   const image = [...new Set([
     listing.featuredImage,
     ...listing.portfolioImages.map(photo => typeof photo === "string" ? photo : photo.url),

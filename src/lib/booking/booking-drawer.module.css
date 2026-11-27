@@ -253,6 +253,15 @@
   color: var(--c-600);
   overflow-wrap: anywhere;
 }
+.dateHint {
+  composes: hint;
+  margin-top: 12px;
+}
+.nextOpening {
+  margin-top: 12px;
+  min-height: 44px;
+  max-width: 100%;
+}
 .emptyAvailability {
   display: flex;
   flex-direction: column;

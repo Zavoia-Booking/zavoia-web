@@ -13,7 +13,7 @@
  *   locations immediately → clicks one to book, or meets the team and jumps to
  *   a member's profile on their location page.
  * FIRST VIEWPORT: back link; identity band (logo avatar left; name; rating ·
- *   industry · city meta) directly above a full-width
+ *   industry meta) directly above a full-width
  *   locations grid — one large photo card per location with name, address,
  *   rating, and the page's primary action ("View & book").
  * FORM: Location-first — candidate 3 of 7 grounded structures; seed a70871c2.
@@ -22,9 +22,10 @@
  */
 
 import Link from "next/link";
-import { useState, type CSSProperties } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Icon, Img, Rating } from "@/components/ui";
+import { BusinessLinks } from "@/components/business/business-links";
 import { IndustryExplore } from "@/components/business/industry-explore";
 import {
   TeamMemberProfileModal,
@@ -36,12 +37,14 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { format } from "@/i18n/format";
 import { localeHref } from "@/i18n/routes";
 import { professionalHref } from "@/lib/professionals/urls";
+import { SITE_HOST } from "@/lib/site";
 import type { Locale } from "@/i18n/locales";
 import type {
   BrandDetail as BrandDetailData,
   BrandLocation,
   BrandTeamMember,
 } from "@/lib/api/marketplace/types";
+import styles from "./brand-detail.module.css";
 
 interface Props {
   brand: BrandDetailData;
@@ -75,12 +78,10 @@ function BrandAbout({
   title,
   description,
   photoUrl,
-  hasIndustryExplore,
 }: {
   title: string;
   description: string | null;
   photoUrl: string | null;
-  hasIndustryExplore: boolean;
 }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const photoSrc = photoFailed ? null : photoUrl;
@@ -90,6 +91,7 @@ function BrandAbout({
 
   return (
     <section
+      className={styles.about}
       data-biz-cols
       style={{
         display: "grid",
@@ -97,7 +99,6 @@ function BrandAbout({
         alignItems: "center",
         gap: "clamp(20px, 4vw, 56px)",
         marginTop: "clamp(38px, 5.5vw, 60px)",
-        marginBottom: hasIndustryExplore ? 0 : "clamp(50px, 7vw, 90px)",
       }}
     >
       <div>
@@ -180,11 +181,10 @@ export function BrandDetail({ brand, locale }: Props) {
   const industryExploreHref = industrySlug
     ? `${localeHref(locale, "search")}?${new URLSearchParams({ industry: industrySlug })}`
     : null;
-  // One city when every location shares it, else the country as the umbrella.
-  const cities = [
-    ...new Set(brand.locations.map((l) => l.city).filter(Boolean)),
-  ] as string[];
-  const placeLabel = cities.length === 1 ? cities[0] : (brand.country ?? null);
+  // The business's live Website Studio site, shown as its address (zavoia.com/<slug>).
+  const websiteSlug = brand.website?.slug ?? null;
+  const websiteLabel = websiteSlug ? `${SITE_HOST}/${websiteSlug}` : null;
+  const websiteHintId = useId();
 
   const multiLocation = brand.locations.length > 1;
   const imageSizes = locationImageSizes(brand.locations.length);
@@ -234,6 +234,13 @@ export function BrandDetail({ brand, locale }: Props) {
           ring
         />
         <div style={{ minWidth: 240, flex: 1 }}>
+          {/* Phones and tablets: the industry sits above the name (wider screens keep it in the meta line below). */}
+          {industryLabel && (
+            <div className={`zw-only-mobile ${styles.eyebrow}`}>
+              <Icon name={visual.icon} color={visual.accent} size={18} />
+              {industryLabel}
+            </div>
+          )}
           <h1
             className="txt-balance"
             style={{
@@ -248,6 +255,7 @@ export function BrandDetail({ brand, locale }: Props) {
             {brand.name}
           </h1>
           <div
+            className="zw-only-desktop"
             style={{
               display: "flex",
               flexWrap: "wrap",
@@ -260,7 +268,7 @@ export function BrandDetail({ brand, locale }: Props) {
             }}
           >
             {/* Each `·` trails its PRECEDING item in one nowrap span, so a
-                wrapped line ends "…București ·" (continuation mark) and never
+                wrapped line ends "…(10) ·" (continuation mark) and never
                 opens with a stranded separator. */}
             {[
               brand.averageRating != null && (
@@ -282,7 +290,7 @@ export function BrandDetail({ brand, locale }: Props) {
                   {industryLabel}
                 </span>
               ),
-              placeLabel && <span>{placeLabel}</span>,
+              // No city here: a brand's locations can be in different cities (the cards below show them).
             ]
               .filter(Boolean)
               .map((item, i, arr) => (
@@ -304,8 +312,40 @@ export function BrandDetail({ brand, locale }: Props) {
                 </span>
               ))}
           </div>
+          {/* Phones and tablets: only the rating stays under the name (the industry is above it). */}
+          {brand.averageRating != null && (
+            <div className={`zw-only-mobile ${styles.ratingMobile}`}>
+              <Rating
+                rating={brand.averageRating}
+                reviews={brand.totalReviews}
+                size={14}
+              />
+            </div>
+          )}
         </div>
       </header>
+
+      {/* Live Web Studio website: its own band between faded dividers */}
+      {websiteSlug && websiteLabel && (
+        <div className={styles.websiteSection}>
+          <Link
+            href={localeHref(locale, websiteSlug)}
+            prefetch={false}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.websiteLink}
+            aria-label={`${dict.homeSections.websiteShowcase.viewWebsite}: ${websiteLabel}`}
+            aria-describedby={websiteHintId}
+          >
+            <Icon name="globe" size={20} color="var(--p-500)" />
+            <span className={styles.websiteText}>{websiteLabel}</span>
+            <Icon name="arrowUR" size={16} />
+            <span id={websiteHintId} hidden>
+              {dict.common.opensInNewTab}
+            </span>
+          </Link>
+        </div>
+      )}
 
       {/* Locations — the decision this page exists for */}
       {brand.locations.length > 0 && (
@@ -370,13 +410,7 @@ export function BrandDetail({ brand, locale }: Props) {
           >
             {t.teamTitle}
           </h2>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: 16,
-            }}
-          >
+          <div className={styles.teamGrid}>
             {brand.teamMembers.map((m) => (
               <TeamMemberCard
                 key={m.id}
@@ -389,6 +423,7 @@ export function BrandDetail({ brand, locale }: Props) {
                     : null
                 }
                 worksAtLabel={t.worksAt}
+                viewProfileLabel={dict.locationPage.viewProfile}
                 onOpen={() =>
                   setOpenMember({
                     id: m.id,
@@ -421,8 +456,8 @@ export function BrandDetail({ brand, locale }: Props) {
         title={format(t.aboutTitle, { name: brand.name })}
         description={brand.description?.trim() || null}
         photoUrl={brand.heroImageUrl}
-        hasIndustryExplore={Boolean(industryExploreHref)}
       />
+      <BusinessLinks business={brand} className={styles.businessLinks} />
       {industryExploreHref && industryLabel && (
         <div style={{ marginTop: "clamp(32px, 4vw, 48px)", marginBottom: 24 }}>
           <IndustryExplore
@@ -560,63 +595,46 @@ function TeamMemberCard({
   locale,
   locationName,
   worksAtLabel,
+  viewProfileLabel,
   onOpen,
 }: {
   m: BrandTeamMember;
   locale: Locale;
   locationName: string | null;
   worksAtLabel: string;
+  viewProfileLabel: string;
   onOpen: () => void;
 }) {
-  const cardProps = {
-    className: "zw-hover-lift tap",
-    style: {
-      background: "#fff",
-      border: "1px solid rgba(28,28,26,0.07)",
-      borderRadius: 18,
-      padding: "22px 16px 18px",
-      textAlign: "center",
-      cursor: "pointer",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 8,
-      boxShadow: "var(--sh-sm)",
-    } satisfies CSSProperties,
-  };
+  const cardProps = { className: `zw-hover-lift tap ${styles.teamCard}` };
   const content = (
     <>
-      <Avatar
-        src={m.profileImage ?? undefined}
-        name={m.displayName ?? ""}
-        size={72}
-        ring
-        loading="lazy"
-      />
-      <div
-        style={{
-          fontSize: 15,
-          fontWeight: 600,
-          color: "var(--c-900)",
-          letterSpacing: "-0.015em",
-          marginTop: 4,
-        }}
-      >
-        {m.displayName}
-      </div>
-      {m.professionalTitle && (
-        <div style={{ fontSize: 12.5, color: "var(--c-600)", marginTop: -4 }}>
-          {m.professionalTitle}
-        </div>
-      )}
-      {m.averageRating != null && (
-        <Rating rating={m.averageRating} reviews={m.totalReviews} size={12.5} />
-      )}
-      {locationName && (
-        <div style={{ fontSize: 12, color: "var(--c-600)" }}>
-          {format(worksAtLabel, { location: locationName })}
-        </div>
-      )}
+      {/* The name follows in text; the photo would only repeat it. */}
+      <span className={styles.teamPortrait} aria-hidden="true">
+        <Avatar
+          src={m.profileImage ?? undefined}
+          name={m.displayName ?? ""}
+          size={80}
+          ring
+          monogram
+          loading="lazy"
+          decorative
+        />
+      </span>
+      <span className={styles.teamIdentity}>
+        <strong>{m.displayName}</strong>
+        {m.professionalTitle && <span>{m.professionalTitle}</span>}
+        {m.averageRating != null && (
+          <Rating rating={m.averageRating} reviews={m.totalReviews} size={13} />
+        )}
+        {locationName && (
+          <span>{format(worksAtLabel, { location: locationName })}</span>
+        )}
+      </span>
+      {/* The profile opens here, so a right arrow, not the leave-the-site one. */}
+      <span className={styles.profileLink}>
+        {viewProfileLabel}
+        <Icon name="arrowR" size={14} />
+      </span>
     </>
   );
   return m.publicProfileAvailable === true && m.uuid ? (

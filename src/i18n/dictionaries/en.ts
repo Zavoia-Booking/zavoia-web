@@ -903,7 +903,9 @@ export const en: {
     /** `{max}`: the most services one booking may hold (MAX_BOOKING_SERVICES). */
     tooManyServices: string;
     noAvailability: string;
+    noAvailabilityThrough: string;
     nextAvailable: string;
+    findNextAvailable: string;
     jumpToNext: string;
     slotsCountLabel: string;
     slotsCountOne: string;
@@ -2904,7 +2906,9 @@ export const en: {
     selectServicesEmpty: "Select at least one service to continue.",
     tooManyServices: "You can only book up to {max} services at once.",
     noAvailability: "No availability in this date range.",
+    noAvailabilityThrough: "No openings through {date}.",
     nextAvailable: "Next available: {date}",
+    findNextAvailable: "Find next available date",
     jumpToNext: "Jump to next available",
     slotsCountLabel: "{count} slots",
     slotsCountOne: "{count} slot",

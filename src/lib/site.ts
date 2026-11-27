@@ -30,6 +30,9 @@ function publicOrigin(value: string | undefined): string {
  */
 export const SITE_URL = publicOrigin(process.env.NEXT_PUBLIC_SITE_URL);
 
+/** The host as people type it ("zavoia.com"), for showing an address on this site, such as a business website. */
+export const SITE_HOST = new URL(SITE_URL).host.replace(/^www\./, "");
+
 /** Open Graph `og:locale` for each interface language. */
 export const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
   en: "en_US",

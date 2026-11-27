@@ -99,6 +99,8 @@ function peopleFor(
 }
 
 const CAL_DAYS_TO_CHECK = 30;
+const NEXT_AVAILABLE_DAYS = 30;
+const VISIBLE_DAYS = 7;
 
 /**
  * Most services one booking may hold. Must match admin-api's
@@ -452,6 +454,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
       retry = false,
       startDate?: string,
       refreshThroughDate?: string,
+      daysToCheck = CAL_DAYS_TO_CHECK,
     ) => {
       if (!payload) return;
       const requestId = (calRequestIdRef.current += 1);
@@ -473,7 +476,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
           locationId: payload.locationId,
           services: toServiceSelections(servicesOverride ?? effectiveServices),
           startDate: date,
-          daysToCheck: CAL_DAYS_TO_CHECK,
+          daysToCheck,
         })));
         if (requestId !== calRequestIdRef.current) return; // superseded
         const refreshed = responses.flatMap((response) => response.calendar);
@@ -482,9 +485,15 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
           calendar: refreshed,
           nextAvailableDate: refreshed.find((day) => day.status === "available")?.date ?? null,
         };
-        setCalendar((previous) => startDate && previous
-          ? { ...result, calendar: [...previous.calendar, ...refreshed.filter((day) => !previous.calendar.some((old) => old.date === day.date))] }
-          : result);
+        setCalendar((previous) => {
+          if (!startDate || !previous) return result;
+          const merged = mergeCalendarDays(previous.calendar, refreshed);
+          return {
+            ...result,
+            calendar: merged,
+            nextAvailableDate: merged.find((day) => day.status === "available")?.date ?? null,
+          };
+        });
         setCalError(null);
         return result;
       } catch (e) {
@@ -1299,11 +1308,13 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                           timeZone={timeZone}
                           t={t}
                           selectedDate={selectedDate}
-                          hasMore={canExtendCalendar(calendar, timeZone)}
-                          onLoadMore={async () => {
-                            const tail = calendar?.calendar.at(-1)?.date;
-                            return !!tail && !!await loadCalendar(undefined, false, addWallDays(tail, 1));
-                          }}
+                          selectedDayEmpty={
+                            !!selectedDate && !slotsLoading && !slotsError &&
+                            daySlots?.businessId === payload.businessId &&
+                            daySlots.locationId === payload.locationId &&
+                            daySlots.date === selectedDate && daySlots.slots.length === 0
+                          }
+                          onLoadDates={(firstDate, count) => loadCalendar(undefined, false, firstDate, undefined, count)}
                           onRetry={() => void loadCalendar(undefined, true)}
                           onPickDate={onPickDate}
                         />
@@ -1333,13 +1344,7 @@ export function BookingDrawer({ open, payload, onClose }: BookingDrawerProps) {
                               onPickStaff={onPickStaff}
                               onPickStaffForAll={onPickStaffForAll}
                             />
-                          ) : (
-                            !calError &&
-                            !calLoading &&
-                            calendar?.calendar.some(
-                              (day) => day.status === "available",
-                            ) && <p className={styles.hint}>{t.chooseDate}</p>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     )}
@@ -1727,16 +1732,27 @@ function ServiceCheckRow({
 // Step 2 — Date picker (part of the combined date/time/staff step)
 // ─────────────────────────────────────────────
 
-/** Calendar request size is a page size, not the venue's booking horizon. */
-function canExtendCalendar(calendar: BookingCalendar | null, timeZone: string): boolean {
-  if (!calendar?.calendar.length) return false;
-  const maximum = calendar.bookingSettings.maxAdvanceBookingMinutes;
-  if (maximum === null) return true;
-  if (maximum === undefined) return false;
-  const end = new Intl.DateTimeFormat("en-CA", {
+function bookingDeadline(maximum: number | null | undefined, timeZone: string) {
+  if (maximum == null) return null;
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone, year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date(Date.now() + (maximum + 1) * 60_000 - 1));
-  return calendar.calendar[calendar.calendar.length - 1].date < end;
+}
+
+function mergeCalendarDays(existing: BookingCalendarDay[], incoming: BookingCalendarDay[]) {
+  const byDate = new Map(existing.map((day) => [day.date, day]));
+  for (const day of incoming) byDate.set(day.date, day);
+  return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
+}
+
+/** A gap before an opening means we can't yet call it the first one. */
+function checkNextOpening(days: BookingCalendarDay[], first: string, last: string) {
+  const byDate = new Map(days.map((day) => [day.date, day]));
+  for (let date = first; date <= last; date = addWallDays(date, 1)) {
+    const day = byDate.get(date);
+    if (!day || day.status === "available") return { date, available: !!day };
+  }
+  return null;
 }
 
 function DateStep({
@@ -1747,8 +1763,8 @@ function DateStep({
   timeZone,
   t,
   selectedDate,
-  hasMore,
-  onLoadMore,
+  selectedDayEmpty,
+  onLoadDates,
   onRetry,
   onPickDate,
 }: {
@@ -1759,8 +1775,8 @@ function DateStep({
   timeZone: string;
   t: BookingDict;
   selectedDate: string | null;
-  hasMore: boolean;
-  onLoadMore: () => Promise<boolean>;
+  selectedDayEmpty: boolean;
+  onLoadDates: (first: string, count?: number) => Promise<BookingCalendar | undefined>;
   onRetry: () => void;
   onPickDate: (date: string) => void;
 }) {
@@ -1768,21 +1784,80 @@ function DateStep({
   const [page, setPage] = useState<{ start: number | null; direction: number }>(
     { start: null, direction: 0 },
   );
+  const [findingNext, setFindingNext] = useState(false);
+  const jumpRequest = useRef(0);
+  const focusAfterJump = useRef<string | null>(null);
+  const emptyResultRef = useRef<HTMLParagraphElement | null>(null);
   const days = calendar?.calendar ?? [];
+  const tail = days.at(-1)?.date;
+  const maximum = calendar?.bookingSettings.maxAdvanceBookingMinutes;
+  const deadline = bookingDeadline(maximum, timeZone);
+  const hasMore = !!tail && (maximum === null || (deadline !== null && tail < deadline));
   const selectedIndex = days.findIndex((day) => day.date === selectedDate);
-  const lastStart = Math.max(0, Math.floor((days.length - 1) / 7) * 7);
+  const lastStart = Math.max(0, Math.floor((days.length - 1) / VISIBLE_DAYS) * VISIBLE_DAYS);
   const start = Math.min(
-    page.start ?? Math.max(0, Math.floor(selectedIndex / 7) * 7),
+    page.start ?? Math.max(0, Math.floor(selectedIndex / VISIBLE_DAYS) * VISIBLE_DAYS),
     lastStart,
   );
-  const visibleDays = days.slice(start, start + 7);
-  const hasAvailable = days.some((day) => day.status === "available");
+  const visibleDays = days.slice(start, start + VISIBLE_DAYS);
+  const visibleHasOpening = visibleDays.some((day) => day.status === "available");
   const today = todayInTz(timeZone);
+  const searchAnchor = selectedDate
+    ? (selectedDayEmpty ? addWallDays(selectedDate, 1) : null)
+    : (!visibleHasOpening ? visibleDays[0]?.date : null);
+  const searchStart = searchAnchor && (searchAnchor < today ? today : searchAnchor);
+  const searchEnd = searchAnchor && addWallDays(searchAnchor, NEXT_AVAILABLE_DAYS - 1);
+  const lastSearchDate = deadline && searchEnd && deadline < searchEnd ? deadline : searchEnd;
+  const opening = searchStart && lastSearchDate ? checkNextOpening(days, searchStart, lastSearchDate) : null;
   const viewportRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => () => {
+    jumpRequest.current += 1;
+  }, [selectedDate, start, timeZone]);
+
   useLayoutEffect(() => {
     // A partial final page must stay reachable after swiping the previous row.
     if (viewportRef.current) viewportRef.current.scrollLeft = 0;
   }, [start]);
+
+  useLayoutEffect(() => {
+    if (focusAfterJump.current === "empty") {
+      focusAfterJump.current = null;
+      emptyResultRef.current?.focus();
+      return;
+    }
+    if (!focusAfterJump.current || focusAfterJump.current !== selectedDate) return;
+    const button = viewportRef.current?.querySelector<HTMLButtonElement>(
+      `button[data-date="${selectedDate}"]`,
+    );
+    focusAfterJump.current = null;
+    button?.focus({ preventScroll: true });
+    button?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+  }, [findingNext, selectedDate, start]);
+
+  const jumpTo = (date: string, knownDays: BookingCalendarDay[]) => {
+    const index = knownDays.findIndex((day) => day.date === date && day.status === "available");
+    if (index < 0) return;
+    focusAfterJump.current = date;
+    setPage({ start: Math.floor(index / VISIBLE_DAYS) * VISIBLE_DAYS, direction: 0 });
+    onPickDate(date);
+  };
+
+  const findNext = async () => {
+    if (!opening || !lastSearchDate) return;
+    const request = ++jumpRequest.current;
+    setFindingNext(true);
+    const count = Math.round(
+      (Date.parse(lastSearchDate) - Date.parse(opening.date)) / 86_400_000,
+    ) + 1;
+    const result = await onLoadDates(opening.date, count);
+    setFindingNext(false);
+    if (request !== jumpRequest.current || !result) return;
+    const updated = mergeCalendarDays(days, result.calendar);
+    const next = checkNextOpening(updated, opening.date, lastSearchDate);
+    if (next?.available) jumpTo(next.date, updated);
+    else if (!next) focusAfterJump.current = "empty";
+  };
 
   if (error && !calendar)
     return (
@@ -1807,7 +1882,7 @@ function DateStep({
           disabled={start === 0 || loading}
           aria-label={t.previousDates}
           onClick={() =>
-            setPage({ start: Math.max(0, start - 7), direction: -1 })
+            setPage({ start: Math.max(0, start - VISIBLE_DAYS), direction: -1 })
           }
         >
           <Icon name="chevL" size={18} color="currentColor" />
@@ -1836,9 +1911,9 @@ function DateStep({
           aria-label={t.nextDates}
           aria-busy={loading}
           onClick={async () => {
-            const next = start + 7;
-            if (hasMore && next + 7 > days.length) {
-              if (!await onLoadMore()) return;
+            const next = start + VISIBLE_DAYS;
+            if (tail && hasMore && next + VISIBLE_DAYS > days.length) {
+              if (!await onLoadDates(addWallDays(tail, 1))) return;
             }
             setPage({ start: next, direction: 1 });
           }}
@@ -1860,12 +1935,36 @@ function DateStep({
               t={t}
               selected={day.date === selectedDate}
               isToday={day.date === today}
-              onPick={() => onPickDate(day.date)}
+              onPick={() => {
+                jumpRequest.current += 1;
+                onPickDate(day.date);
+              }}
             />
           ))}
         </div>
       </div>
-      {!hasAvailable && <p className={styles.hint}>{t.noAvailability}</p>}
+      {!loading && !error && !selectedDate && visibleHasOpening && (
+        <p className={styles.dateHint}>{t.chooseDate}</p>
+      )}
+      {searchStart && lastSearchDate && (!loading || findingNext) && !error && (
+        opening && !findingNext && opening.available ? (
+          <Button kind="secondary" size="sm" className={styles.nextOpening} onClick={() => jumpTo(opening.date, days)}>
+            {format(t.nextAvailable, { date: fmtDateLabel(opening.date, locale) })}
+            <Icon name="chevR" size={16} color="currentColor" />
+          </Button>
+        ) : opening || findingNext ? (
+          <Button kind="secondary" size="sm" className={styles.nextOpening} loading={findingNext} onClick={findNext}>
+            {t.findNextAvailable}
+          </Button>
+        ) : (
+          <p ref={emptyResultRef} className={styles.dateHint} role="status" tabIndex={-1}>
+            {lastSearchDate >= searchStart
+              ? format(t.noAvailabilityThrough, { date: fmtDateLabel(lastSearchDate, locale) })
+              : t.noAvailability}
+          </p>
+        )
+      )}
+      {!days.length && !loading && <p className={styles.dateHint}>{t.noAvailability}</p>}
       <span className="sr-only" role="status">{loading ? t.loading : ""}</span>
     </section>
   );

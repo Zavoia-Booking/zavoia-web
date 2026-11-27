@@ -456,13 +456,8 @@ a.contact:active .contactAction {
   overflow-wrap: anywhere;
 }
 
-/* The brand page and its own links, as one row of white pills. */
-.brandActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 20px;
+.businessLinks {
+  margin-top: 24px;
 }
 
 /* The shared secondary button, as a link. */
@@ -471,6 +466,7 @@ a.contact:active .contactAction {
   align-items: center;
   gap: 8px;
   min-height: 44px;
+  margin-top: 20px;
   padding: 11px 20px;
   border: 1px solid rgba(28, 28, 26, 0.14);
   border-radius: var(--r-full);
@@ -558,40 +554,6 @@ a.contact:active .contactAction {
   transition: color 160ms var(--ease-out);
 }
 
-.socials {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* The system's chip: a white pill on a 12% hairline. */
-.socials a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 100%;
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid rgba(28, 28, 26, 0.12);
-  border-radius: var(--r-full);
-  background: #fff;
-  box-shadow: var(--sh-sm);
-  color: var(--c-900);
-  font-size: 13.5px;
-  font-weight: 600;
-  line-height: 1.2;
-  text-decoration: none;
-  transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out);
-}
-
-.socials svg {
-  flex-shrink: 0;
-}
-
-.socials a > svg:last-child {
-  color: var(--c-500);
-}
-
 .report {
   display: inline-flex;
   align-items: center;
@@ -616,7 +578,6 @@ a.contact:active .contactAction {
 .contact:focus-visible,
 .brandAction:focus-visible,
 .locationCard:focus-visible,
-.socials a:focus-visible,
 .report:focus-visible {
   outline: 2px solid var(--c-ink);
   outline-offset: 4px;
@@ -637,12 +598,6 @@ a.contact:active .contactAction {
 
   .locationCard:hover > svg {
     color: var(--c-900);
-  }
-
-  /* Shade is the hover fill for white pills, and the hairline rises toward 26%. */
-  .socials a:hover {
-    border-color: rgba(28, 28, 26, 0.26);
-    background: var(--c-shade);
   }
 
   .report:hover {
@@ -742,8 +697,7 @@ a.contact:active .contactAction {
 @media (prefers-reduced-motion: reduce) {
   .contactAction,
   .locationCard,
-  .locationCard > svg,
-  .socials a {
+  .locationCard > svg {
     transition: none;
   }
 }

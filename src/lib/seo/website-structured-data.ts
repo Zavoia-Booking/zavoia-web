@@ -4,6 +4,7 @@ import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
 import { localeHref } from "@/i18n/routes";
 import type { PublicWebsite } from "@/lib/api/marketplace/types";
 import { webUrl } from "@/lib/locations/structured-data";
+import { profileLinkHref } from "@/lib/marketplace/profile-link";
 import { merchantId, webPageNode } from "@/lib/seo/entities";
 import { siteEntities } from "@/lib/seo/site-identity";
 import { SITE_URL } from "@/lib/site";
@@ -55,11 +56,7 @@ export function websiteStructuredData(site: PublicWebsite, locale: Locale, pageP
     site.identity.tiktokUrl, site.identity.pinterestUrl,
     // Marque shows social profiles and email, but has no website contact link.
     footer?.variant !== "marque" ? site.identity.websiteUrl : undefined,
-  ].flatMap((value) => {
-    const source = text(value);
-    const url = source ? webUrl(/^https?:\/\//i.test(source) ? source : `https://${source}`) : undefined;
-    return url ? [url] : [];
-  }))] : [];
+  ].map(profileLinkHref).filter((url): url is string => url !== null))] : [];
   const businessId = merchantId(site.businessId);
 
   return {

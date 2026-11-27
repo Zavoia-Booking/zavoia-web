@@ -164,7 +164,7 @@ export const locationPageRo: typeof locationPageEn = {
   moreLocationsOne: "Încă o locație",
   moreLocations: "Încă {count} locații",
   moreLocationsMany: "Încă {count} de locații",
-  visitWebsite: "Website",
+  visitWebsite: "Site web",
   email: "E-mail",
   socialLinks: "Găsește-ne online",
   reportLocation: "Raportează locația",
